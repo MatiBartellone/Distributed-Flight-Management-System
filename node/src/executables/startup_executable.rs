@@ -1,7 +1,7 @@
 use crate::executables::executable::Executable;
 use crate::frame::Frame;
 
-struct StartupExecutable {}
+pub struct StartupExecutable {}
 
 impl Executable for StartupExecutable {
     fn execute(&self) -> Frame {

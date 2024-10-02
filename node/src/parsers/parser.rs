@@ -1,5 +1,5 @@
-use node::executables::executable::Executable;
+use crate::executables::executable::Executable;
 
 pub trait  Parser {
-    fn parse(&self, bytes : &[u8]) -> dyn Executable;
+    fn parse(&self, bytes : &[u8]) -> impl Executable;
 }
