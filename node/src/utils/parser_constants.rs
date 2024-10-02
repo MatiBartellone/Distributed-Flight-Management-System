@@ -1,0 +1,16 @@
+pub const ERROR : u8 = 0;
+pub const STARTUP : u8 = 1;
+pub const READY : u8 = 2;
+pub const AUTHENTICATE : u8 = 3;
+pub const OPTIONS : u8 = 5;
+pub const SUPPORTED : u8 = 6;
+pub const QUERY : u8 = 7;
+pub const RESULT : u8 = 8;
+pub const PREPARE : u8 = 9;
+pub const EXECUTE : u8 = 10;
+pub const REGISTER : u8 = 11;
+pub const EVENT : u8 = 12;
+pub const BATCH : u8 = 13;
+pub const AUTH_CHALLENGE : u8 = 14;
+pub const AUTH_RESPONSE : u8 = 15;
+pub const AUTH_SUCCESS : u8 = 16;
