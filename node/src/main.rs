@@ -13,7 +13,7 @@ fn main() -> Result<(), Errors> {
     ];
     let frame = Frame::parse_frame(bytes.as_slice())?;
     let parser = ParserFactory::get_parser(frame.opcode)?;
-    let executable = parser.parse(frame.body.as_slice());
+    let executable = parser.parse(frame.body.as_slice())?;
     executable.execute();
     Ok(())
 }
