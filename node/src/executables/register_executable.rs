@@ -1,9 +1,9 @@
 use crate::executables::executable::Executable;
 use crate::frame::Frame;
 
-pub struct StartupExecutable;
+pub struct RegisterExecutable;
 
-impl Executable for StartupExecutable {
+impl Executable for RegisterExecutable {
     fn execute(&self) -> Frame {
         todo!()
     }

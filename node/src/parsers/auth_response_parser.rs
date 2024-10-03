@@ -1,10 +1,11 @@
 use crate::executables::auth_response_executable::AuthResponseExecutable;
+use crate::executables::executable::Executable;
 use crate::parsers::parser::Parser;
 
-struct AuthResponseParser{}
+pub struct AuthResponseParser;
 
 impl Parser for AuthResponseParser {
-    fn parse(&self, bytes: &[u8]) -> AuthResponseExecutable {
-        AuthResponseExecutable{}
+    fn parse(&self, _bytes: &[u8]) -> Box<dyn Executable> {
+        Box::new(AuthResponseExecutable)
     }
 }
