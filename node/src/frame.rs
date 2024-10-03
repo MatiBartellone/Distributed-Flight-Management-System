@@ -20,14 +20,23 @@ impl Frame {
         let length = cursor.read_u32()?;
         let body = cursor.read_remaining_bytes()?;
 
-        Ok(Frame {
+        let frame = Frame {
             version,
             flags,
             stream,
             opcode,
             length,
             body,
-        })
+        };
+        frame.validate_request_frame()?;
+        Ok(frame)
+    }
+
+    fn validate_request_frame(&self) -> Result<(), Errors> {
+        if self.version != 0x03 { return Err(Errors::ProtocolError(format!("Version {} is incorrect", self.version))); }
+        if self.flags != 0x00 { return Err(Errors::ProtocolError(format!("Flag {} is incorrect", self.flags))); }
+        if self.stream < 0x00 { return Err(Errors::ProtocolError(String::from("Stream cannot be negative"))); }
+        Ok(())
     }
 }
 
@@ -44,25 +53,25 @@ impl FrameCursor {
 
     fn read_u8(&mut self) -> Result<u8, Errors> {
         let mut buf = [0u8; 1];
-        self.cursor.read_exact(&mut buf).map_err(|_| Errors::ProtocolError(format!("")))?;
+        self.cursor.read_exact(&mut buf).map_err(|_| Errors::ProtocolError(String::from("Protocol lenght is shorter than expected")))?;
         Ok(buf[0])
     }
 
     fn read_i16(&mut self) -> Result<i16, Errors> {
         let mut buf = [0u8; 2];
-        self.cursor.read_exact(&mut buf).map_err(|_| Errors::ProtocolError(format!("")))?;
+        self.cursor.read_exact(&mut buf).map_err(|_| Errors::ProtocolError(String::from("Protocol lenght is shorter than expected")))?;
         Ok(i16::from_be_bytes(buf))
     }
 
     fn read_u32(&mut self) -> Result<u32, Errors> {
         let mut buf = [0u8; 4];
-        self.cursor.read_exact(&mut buf).map_err(|_| Errors::ProtocolError(format!("")))?;
+        self.cursor.read_exact(&mut buf).map_err(|_| Errors::ProtocolError(String::from("Protocol lenght is shorter than expected")))?;
         Ok(u32::from_be_bytes(buf))
     }
 
     fn read_remaining_bytes(&mut self) -> Result<Vec<u8>, Errors> {
         let mut body = Vec::new();
-        self.cursor.read_to_end(&mut body).map_err(|_| Errors::ProtocolError(format!("")))?;
+        self.cursor.read_to_end(&mut body).map_err(|_| Errors::ProtocolError(String::from("Protocol lenght is shorter than expected")))?;
         Ok(body)
     }
 }
@@ -111,7 +120,7 @@ mod tests {
     #[test]
     fn test_parse_frame() -> Result<(), Errors> {
         let bytes = vec![
-            0x04,
+            0x03,
             0x00,
             0x00, 0x01,
             0x03,
@@ -119,7 +128,7 @@ mod tests {
             0x10, 0x03, 0x35, 0x12, 0x22
         ];
         let result = Frame::parse_frame(&bytes)?;
-        assert_eq!(result.version, 4);
+        assert_eq!(result.version, 3);
         assert_eq!(result.flags, 0);
         assert_eq!(result.stream, 1);
         assert_eq!(result.opcode, 3);
