@@ -44,25 +44,25 @@ impl FrameCursor {
 
     fn read_u8(&mut self) -> Result<u8, Errors> {
         let mut buf = [0u8; 1];
-        self.cursor.read_exact(&mut buf).map_err(|_| Errors::ProtocolError(format!("")))?;
+        self.cursor.read_exact(&mut buf).map_err(|_| Errors::ProtocolError(String::from("Protocol lenght is shorter than expected")))?;
         Ok(buf[0])
     }
 
     fn read_i16(&mut self) -> Result<i16, Errors> {
         let mut buf = [0u8; 2];
-        self.cursor.read_exact(&mut buf).map_err(|_| Errors::ProtocolError(format!("")))?;
+        self.cursor.read_exact(&mut buf).map_err(|_| Errors::ProtocolError(String::from("Protocol lenght is shorter than expected")))?;
         Ok(i16::from_be_bytes(buf))
     }
 
     fn read_u32(&mut self) -> Result<u32, Errors> {
         let mut buf = [0u8; 4];
-        self.cursor.read_exact(&mut buf).map_err(|_| Errors::ProtocolError(format!("")))?;
+        self.cursor.read_exact(&mut buf).map_err(|_| Errors::ProtocolError(String::from("Protocol lenght is shorter than expected")))?;
         Ok(u32::from_be_bytes(buf))
     }
 
     fn read_remaining_bytes(&mut self) -> Result<Vec<u8>, Errors> {
         let mut body = Vec::new();
-        self.cursor.read_to_end(&mut body).map_err(|_| Errors::ProtocolError(format!("")))?;
+        self.cursor.read_to_end(&mut body).map_err(|_| Errors::ProtocolError(String::from("Protocol lenght is shorter than expected")))?;
         Ok(body)
     }
 }
