@@ -1,11 +1,11 @@
-use crate::executables::batch_executable::BatchExecutable;
 use crate::executables::executable::Executable;
+use crate::executables::event_executable::EventExecutable;
 use crate::parsers::parser::Parser;
 
-pub struct BatchParser;
+pub struct EventParser;
 
-impl Parser for BatchParser {
+impl Parser for EventParser {
     fn parse(&self, _bytes: &[u8]) -> Box<dyn Executable> {
-        Box::new(BatchExecutable)
+        Box::new(EventExecutable)
     }
 }

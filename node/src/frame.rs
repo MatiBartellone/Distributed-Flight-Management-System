@@ -2,16 +2,16 @@ use crate::utils::errors::Errors;
 use std::io::{Cursor, Read};
 
 pub struct Frame {
-    version: u8,
-    flags: u8,
-    stream: i16,
-    opcode: u8,
-    length: u32,
-    body: Vec<u8>,
+    pub version: u8,
+    pub flags: u8,
+    pub stream: i16,
+    pub opcode: u8,
+    pub length: u32,
+    pub body: Vec<u8>,
 }
 
 impl Frame {
-    fn parse_frame(bytes: &[u8]) -> Result<Frame, Errors> {
+    pub fn parse_frame(bytes: &[u8]) -> Result<Frame, Errors> {
         let mut cursor = FrameCursor::new(bytes);
         let version = cursor.read_u8()?;
         let flags = cursor.read_u8()?;
