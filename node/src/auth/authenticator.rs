@@ -38,20 +38,20 @@ mod tests {
     fn test_valid_credentials() {
         let result = Authenticator::validate_credentials("admin".to_string(), "password".to_string());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), true);
+        assert!(result.unwrap());
     }
 
     #[test]
     fn test_invalid_password() {
         let result = Authenticator::validate_credentials("admin".to_string(), "invalid_password".to_string());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), false);
+        assert!(!result.unwrap());
     }
 
     #[test]
     fn test_invalid_username() {
         let result = Authenticator::validate_credentials("invalid_user".to_string(), "password".to_string());
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), false);
+        assert!(!result.unwrap());
     }
 }
