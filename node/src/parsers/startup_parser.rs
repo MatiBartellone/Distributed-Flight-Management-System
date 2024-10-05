@@ -35,7 +35,8 @@ fn validate_config(config: &HashMap<String, String>) -> Result<(), Errors> {
 
 impl Parser for StartupParser {
     fn parse(&self, bytes: &[u8]) -> Result<Box<dyn Executable>, Errors> {
-        let config = bytes_to_string_map(bytes)?;
+        let mut cursor = BytesCursor::new(&bytes);
+        let config = cursor.read_string_map(&bytes)?;
         validate_config(&config)?;
         let executable = StartupExecutable::new(config);
         Ok(Box::new(executable))
