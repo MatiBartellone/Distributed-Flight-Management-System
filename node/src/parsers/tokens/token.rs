@@ -70,7 +70,7 @@ fn eliminar_between(input: &str, fin: &str, ini: &str) -> String {
 
 fn eliminar_comentarios(input: &str) -> String {
     let sin_diagonal = eliminar_between(input, "\n", "//");
-    let sin_barra = eliminar_between(&sin_diagonal, "--", "//");
+    let sin_barra = eliminar_between(&sin_diagonal, "\n", "--");
     eliminar_between(&sin_barra, "*/", "/*")
 }
 
