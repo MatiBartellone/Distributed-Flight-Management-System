@@ -76,4 +76,7 @@ fn eliminar_comentarios(input: &str) -> String {
 
 fn normalizar(entrada: &str) -> Vec<String> {
     let entrada = eliminar_comentarios(entrada);
+    entrada.split_whitespace()
+        .map(|s| s.to_string())
+        .collect() 
 }
