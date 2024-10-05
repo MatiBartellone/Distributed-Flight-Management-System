@@ -47,7 +47,7 @@ enum DataType {
     Time,
 }
 
-
-fn normalizar(entrada: &str) -> Vec<String> {
+//comento asi pasa, igual hagamos el lexer en otro archivo
+//fn normalizar(entrada: &str) -> Vec<String> {
     
-}
+//}
