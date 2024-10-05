@@ -4,6 +4,7 @@
         "./node/Cargo.toml",
         "./node/Cargo.toml",
         "./node/Cargo.toml",
+        "./node/Cargo.toml",
         "./node/Cargo.toml"
     ]
 }

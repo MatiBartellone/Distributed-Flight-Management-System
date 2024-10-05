@@ -14,7 +14,7 @@ enum Term {
 
 struct Literal {
     valor: String,
-    tipo: Type,
+    tipo: DataType,
 }
 
 enum AritmeticasMath {
