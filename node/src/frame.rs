@@ -1,6 +1,7 @@
 use crate::utils::errors::Errors;
 use crate::utils::bytes_cursor::BytesCursor;
 
+#[derive(Debug, PartialEq)]
 pub struct Frame {
     pub version: u8,
     pub flags: u8,
@@ -28,7 +29,7 @@ impl Frame {
             length,
             body,
         };
-        frame.validate_request_frame()?;
+        //frame.validate_request_frame()?; HAY QUE VALIDAR EN OTRO LADO!!
         Ok(frame)
     }
 
