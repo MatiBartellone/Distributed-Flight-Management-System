@@ -3,7 +3,7 @@ use std::io::Read;
 use serde::{Deserialize, Serialize};
 use crate::utils::errors::Errors;
 
-const CREDENTIALS: &str = "credentials.json";
+const CREDENTIALS: &str = "src/auth/credentials.json";
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Credential {
@@ -27,4 +27,31 @@ fn access_credentials(user: &str, pass: &str) -> Result<bool, Errors> {
     let credentials: Result<Vec<Credential>, Errors> = serde_json::from_str(&data).map_err(|_| Errors::ServerError(String::from("Failed to parse credentials file")));
 
     Ok(credentials?.into_iter().any(|cred| cred.user == user && cred.pass == pass))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // LOS TESTS SE BASAN EN QUE EXISTA EL USER "admin" y PASS "password"
+    #[test]
+    fn test_valid_credentials() {
+        let result = Authenticator::validate_credentials("admin".to_string(), "password".to_string());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), true);
+    }
+
+    #[test]
+    fn test_invalid_password() {
+        let result = Authenticator::validate_credentials("admin".to_string(), "invalid_password".to_string());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), false);
+    }
+
+    #[test]
+    fn test_invalid_username() {
+        let result = Authenticator::validate_credentials("invalid_user".to_string(), "password".to_string());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), false);
+    }
 }
