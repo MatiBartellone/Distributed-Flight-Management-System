@@ -22,6 +22,6 @@ impl WordsReserved {
     }
 
     fn is_reserved(&self, word: &str) -> bool {
-        self.words.contains(word)
+        self.words.contains(&word.to_uppercase())
     }
 }
