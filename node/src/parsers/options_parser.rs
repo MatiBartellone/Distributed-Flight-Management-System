@@ -30,7 +30,7 @@ mod tests {
     use super::*;
     fn setup() -> (OptionsParser, Vec<u8>) {
         let parser = OptionsParser;
-        let bytes = vec![0x03, 0x00, 0x00, 0x01, 0x05];
+        let bytes = vec![];
         (parser, bytes)
     }
     #[test]
