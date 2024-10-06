@@ -13,6 +13,7 @@ struct WordsReserved {
 }
 
 impl WordsReserved {
+    #[allow(dead_code)]
     fn new() -> Self {
         let mut set = HashSet::new();
         for &word in PALABRAS_RESERVADAS {
@@ -20,7 +21,7 @@ impl WordsReserved {
         }
         WordsReserved { words: set }
     }
-
+    #[allow(dead_code)]
     fn is_reserved(&self, word: &str) -> bool {
         self.words.contains(&word.to_uppercase())
     }

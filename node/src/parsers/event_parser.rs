@@ -6,7 +6,7 @@ use crate::utils::errors::Errors;
 pub struct EventParser;
 
 impl Parser for EventParser {
-    fn parse(&self, _bytes: &[u8]) -> Result<Box<dyn Executable>, Errors> {
+    fn parse(&self, _body: &[u8]) -> Result<Box<dyn Executable>, Errors> {
         Ok(Box::new(EventExecutable))
     }
 }

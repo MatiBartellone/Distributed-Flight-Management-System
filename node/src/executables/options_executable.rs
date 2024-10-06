@@ -77,8 +77,7 @@ mod tests {
     use super::*;
 
     fn setup() -> OptionsExecutable {
-        let executable = OptionsExecutable::new();
-        executable
+        OptionsExecutable::new()
     }
 
     #[test]

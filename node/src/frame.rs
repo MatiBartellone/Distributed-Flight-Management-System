@@ -29,11 +29,10 @@ impl Frame {
             length,
             body,
         };
-        //frame.validate_request_frame()?; HAY QUE VALIDAR EN OTRO LADO!!
         Ok(frame)
     }
 
-    fn validate_request_frame(&self) -> Result<(), Errors> {
+    pub fn validate_request_frame(&self) -> Result<(), Errors> {
         if self.version != 0x03 {
             return Err(Errors::ProtocolError(format!(
                 "Version {} is incorrect",

@@ -33,8 +33,8 @@ fn validate_config(config: &HashMap<String, String>) -> Result<(), Errors> {
 }
 
 impl Parser for StartupParser {
-    fn parse(&self, bytes: &[u8]) -> Result<Box<dyn Executable>, Errors> {
-        let mut cursor = BytesCursor::new(&bytes);
+    fn parse(&self, body: &[u8]) -> Result<Box<dyn Executable>, Errors> {
+        let mut cursor = BytesCursor::new(body);
         let config = cursor.read_string_map()?;
         validate_config(&config)?;
         let executable = StartupExecutable::new(config);
@@ -55,7 +55,7 @@ mod tests {
         ];
 
         let mut cursor = BytesCursor::new(&bytes);
-        let config = cursor.read_string_map(&bytes).unwrap();
+        let config = cursor.read_string_map().unwrap();
         let result = validate_config(&config);
         assert!(result.is_ok());
     }
@@ -66,12 +66,12 @@ mod tests {
             0x00, 0x02, // n = 2
             0x00, 0x0B, b'C', b'Q', b'L', b'_', b'V', b'E', b'R', b'S', b'I', b'O', b'N', // "CQL_VERSION"
             0x00, 0x05, b'3', b'.', b'0', b'.', b'0', // "3.0.0"
-            0x00, 0x0A, b'C', b'O', b'M', b'P', b'R', b'E', b'S', b'S', b'I', b'O', // "COMPRESSION"
+            0x00, 0x0B, b'C', b'O', b'M', b'P', b'R', b'E', b'S', b'S', b'I', b'O', b'N',// "COMPRESSION"
             0x00, 0x03, b'i', b'z', b'4', // "iz4"
         ];
 
         let mut cursor = BytesCursor::new(&bytes);
-        let config = cursor.read_string_map(&bytes).unwrap();
+        let config = cursor.read_string_map().unwrap();
         let result = validate_config(&config);
         assert!(result.is_ok());
     }
@@ -85,7 +85,7 @@ mod tests {
         ];
     
         let mut cursor = BytesCursor::new(&bytes);
-        let config = cursor.read_string_map(&bytes).unwrap();
+        let config = cursor.read_string_map().unwrap();
         let result = validate_config(&config);
         assert!(result.is_err());
 
@@ -103,12 +103,12 @@ mod tests {
     fn test_validate_config_missing_cql_version() {
         let bytes = vec![
             0x00, 0x01, // n = 1
-            0x00, 0x0A, b'C', b'O', b'M', b'P', b'R', b'E', b'S', b'S', b'I', b'O', // "COMPRESSION"
+            0x00, 0x0B, b'C', b'O', b'M', b'P', b'R', b'E', b'S', b'S', b'I', b'O', b'N',// "COMPRESSION"
             0x00, 0x03, b'i', b'z', b'4', // "iz4"
         ];
     
         let mut cursor = BytesCursor::new(&bytes);
-        let config = cursor.read_string_map(&bytes).unwrap();
+        let config = cursor.read_string_map().unwrap();
         let result = validate_config(&config);
         assert!(result.is_err());
     
@@ -135,7 +135,7 @@ mod tests {
         ];
     
         let mut cursor = BytesCursor::new(&bytes);
-        let config = cursor.read_string_map(&bytes).unwrap();
+        let config = cursor.read_string_map().unwrap();
         let result = validate_config(&config);
         assert!(result.is_err());
     
@@ -158,7 +158,7 @@ mod tests {
         ];
     
         let mut cursor = BytesCursor::new(&bytes);
-        let config = cursor.read_string_map(&bytes).unwrap();
+        let config = cursor.read_string_map().unwrap();
         let result = validate_config(&config);
     
         assert!(result.is_err());
@@ -175,17 +175,17 @@ mod tests {
             0x00, 0x02, // n = 2 
             0x00, 0x0B, b'C', b'Q', b'L', b'_', b'V', b'E', b'R', b'S', b'I', b'O', b'N', // "CQL_VERSION"
             0x00, 0x05, b'3', b'.', b'0', b'.', b'0', // "3.0.0"
-            0x00, 0x0A, b'C', b'O', b'M', b'P', b'R', b'E', b'S', b'S', b'I', b'O', b'N', // "COMPRESSION"
+            0x00, 0x0B, b'C', b'O', b'M', b'P', b'R', b'E', b'S', b'S', b'I', b'O', b'N', // "COMPRESSION"
             0x00, 0x07, b'I', b'N', b'V', b'A', b'L', b'I', b'D', // "INVALID"
         ];
     
         let mut cursor = BytesCursor::new(&bytes);
-        let config = cursor.read_string_map(&bytes).unwrap();
+        let config = cursor.read_string_map().unwrap();
         let result = validate_config(&config);
     
         assert!(result.is_err());
         if let Err(Errors::ConfigError(msg)) = result {
-            assert_eq!(msg,format!("COMPRESSION must be {}, the value provided (COMPRESSION unsupported_compression) is unsupported", COMPRESSION_VALUE));
+            assert_eq!(msg,format!("COMPRESSION must be {}, the value provided (COMPRESSION INVALID) is unsupported", COMPRESSION_VALUE));
         } else {
             panic!("Expected ConfigError due to invalid COMPRESSION");
         }
