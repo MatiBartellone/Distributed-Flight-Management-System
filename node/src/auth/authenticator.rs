@@ -20,11 +20,11 @@ impl Authenticator {
 }
 
 fn access_credentials(user: &str, pass: &str) -> Result<bool, Errors> {
-    let mut file = File::open(CREDENTIALS).map_err(|_| Errors::ServerError(String::from("Failed to open credentials file")))?;
+    let mut file = File::open(CREDENTIALS).map_err(|_| Errors::ServerError(String::from("Failed to validate credentials")))?;
     let mut data = String::new();
-    file.read_to_string(&mut data).map_err(|_| Errors::ServerError(String::from("Failed to read credentials file")))?;
+    file.read_to_string(&mut data).map_err(|_| Errors::ServerError(String::from("Failed to validate credentials")))?;
 
-    let credentials: Result<Vec<Credential>, Errors> = serde_json::from_str(&data).map_err(|_| Errors::ServerError(String::from("Failed to parse credentials file")));
+    let credentials: Result<Vec<Credential>, Errors> = serde_json::from_str(&data).map_err(|_| Errors::ServerError(String::from("Failed to validate credentials")));
 
     Ok(credentials?.into_iter().any(|cred| cred.user == user && cred.pass == pass))
 }
