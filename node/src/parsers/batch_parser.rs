@@ -10,3 +10,4 @@ impl Parser for BatchParser {
         Ok(Box::new(BatchExecutable))
     }
 }
+

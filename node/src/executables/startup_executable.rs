@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use crate::executables::executable::Executable;
 use crate::frame::Frame;
-use crate::utils::parser_constants::AUTHENTICATE;
 
 #[derive(Debug)]
 pub struct StartupExecutable {
@@ -24,3 +23,4 @@ impl Executable for StartupExecutable {
         // FrameBuilder::build_response_frame(request_frame, AUTHENTICATE, auth_class)
     }
 }
+

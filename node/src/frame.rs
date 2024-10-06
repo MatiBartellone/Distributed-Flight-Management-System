@@ -1,5 +1,5 @@
-use crate::utils::errors::Errors;
 use crate::utils::bytes_cursor::BytesCursor;
+use crate::utils::errors::Errors;
 
 #[derive(Debug, PartialEq)]
 pub struct Frame {
@@ -34,9 +34,23 @@ impl Frame {
     }
 
     fn validate_request_frame(&self) -> Result<(), Errors> {
-        if self.version != 0x03 { return Err(Errors::ProtocolError(format!("Version {} is incorrect", self.version))); }
-        if self.flags != 0x00 { return Err(Errors::ProtocolError(format!("Flag {} is incorrect", self.flags))); }
-        if self.stream < 0x00 { return Err(Errors::ProtocolError(String::from("Stream cannot be negative"))); }
+        if self.version != 0x03 {
+            return Err(Errors::ProtocolError(format!(
+                "Version {} is incorrect",
+                self.version
+            )));
+        }
+        if self.flags != 0x00 {
+            return Err(Errors::ProtocolError(format!(
+                "Flag {} is incorrect",
+                self.flags
+            )));
+        }
+        if self.stream < 0x00 {
+            return Err(Errors::ProtocolError(String::from(
+                "Stream cannot be negative",
+            )));
+        }
         Ok(())
     }
 }
@@ -48,12 +62,7 @@ mod tests {
     #[test]
     fn test_parse_frame() -> Result<(), Errors> {
         let bytes = vec![
-            0x03,
-            0x00,
-            0x00, 0x01,
-            0x03,
-            0x00, 0x00, 0x00, 0x05,
-            0x10, 0x03, 0x35, 0x12, 0x22
+            0x03, 0x00, 0x00, 0x01, 0x03, 0x00, 0x00, 0x00, 0x05, 0x10, 0x03, 0x35, 0x12, 0x22,
         ];
         let result = Frame::parse_frame(&bytes)?;
         assert_eq!(result.version, 3);

@@ -1,7 +1,7 @@
 use crate::frame::Frame;
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::errors::Errors;
-use crate::utils::parser_constants:: AUTH_SUCCESS;
+use crate::utils::parser_constants::AUTH_SUCCESS;
 
 pub struct AuthSuccessBuilder;
 

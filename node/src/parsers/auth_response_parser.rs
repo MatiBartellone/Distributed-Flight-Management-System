@@ -10,3 +10,4 @@ impl Parser for AuthResponseParser {
         Ok(Box::new(AuthResponseExecutable))
     }
 }
+

@@ -6,7 +6,8 @@ use crate::utils::errors::Errors;
 pub struct PrepareParser;
 
 impl Parser for PrepareParser {
-    fn parse(&self, _bytes: &[u8]) ->  Result<Box<dyn Executable>, Errors> {
+    fn parse(&self, _bytes: &[u8]) -> Result<Box<dyn Executable>, Errors> {
         Ok(Box::new(PrepareExecutable))
     }
 }
+
