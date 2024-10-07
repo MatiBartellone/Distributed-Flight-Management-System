@@ -1,5 +1,5 @@
 #[allow(dead_code)]
-enum Token {
+pub enum Token {
     Identifier(String),
     Term(Term),
     Reserved(String),
@@ -7,18 +7,19 @@ enum Token {
     TokensList(Vec<Token>),
 }
 #[allow(dead_code)]
-enum Term {
+pub enum Term {
     Literal(Literal),
     AritmeticasMath(AritmeticasMath),
     AritmeticasBool(AritmeticasBool)
 }
 #[allow(dead_code)]
-struct Literal {
-    valor: String,
-    tipo: DataType,
+#[derive(PartialEq, Debug)]
+pub struct Literal {
+    pub valor: String,
+    pub tipo: DataType,
 }
 #[allow(dead_code)]
-enum AritmeticasMath {
+pub enum AritmeticasMath {
     Suma,
     Resta,
     Division,
@@ -26,7 +27,7 @@ enum AritmeticasMath {
     Multiplication,
 }
 #[allow(dead_code)]
-enum AritmeticasBool {
+pub enum AritmeticasBool {
     Or,
     And,
     Not, 
@@ -38,7 +39,8 @@ enum AritmeticasBool {
     MenorIgual
 }
 #[allow(dead_code)]
-enum DataType {
+#[derive(PartialEq, Debug)]
+pub enum DataType {
     Bigint,
     Boolean,
     Date,

@@ -9,3 +9,4 @@ pub mod select_query;
 pub mod alter_table_query;
 pub mod create_table_query;
 pub mod drop_table_query;
+pub mod query;
