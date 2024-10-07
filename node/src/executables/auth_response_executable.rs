@@ -10,6 +10,7 @@ pub struct AuthResponseExecutable {
     password: String,
 }
 
+
 impl AuthResponseExecutable {
     pub fn new(user: String, password: String) -> AuthResponseExecutable {
         AuthResponseExecutable { user, password }
