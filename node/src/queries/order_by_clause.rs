@@ -1,15 +1,22 @@
-use crate::parsers::tokens::token::Token;
 
+#[derive(Debug)]
 pub struct OrderByClause {
-    pub column: Token::Identifier,
-    pub order: Token::Reserved()
+    pub column: String,
+    pub order: String,
 }
 
 impl OrderByClause {
-    pub fn new(column: Token::Identifier()) -> Self {
+    pub fn new(column: String) -> Self {
         OrderByClause {
             column,
-            order: Token::Reserved(String::from("ASC")),
+            order: String::from("ASC"),
+        }
+    }
+
+    pub fn new_with_order(column: String, order: String) -> Self {
+        OrderByClause {
+            column,
+            order
         }
     }
 }
