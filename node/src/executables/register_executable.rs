@@ -4,7 +4,8 @@ use crate::frame::Frame;
 pub struct RegisterExecutable;
 
 impl Executable for RegisterExecutable {
-    fn execute(&self) -> Frame {
+    fn execute(&self, _request: Frame) -> Frame {
         todo!()
     }
 }
+
