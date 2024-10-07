@@ -22,3 +22,9 @@ impl Query for InsertQuery {
         unimplemented!()
     }
 }
+
+impl Default for InsertQuery {
+    fn default() -> Self {
+        Self::new()
+    }
+}
