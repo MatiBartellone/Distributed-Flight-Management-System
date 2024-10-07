@@ -1,4 +1,4 @@
-use super::{data_type::DataType, token::Token, terms::Term};
+use super::{data_type::DataType, terms::Term, token::Token};
 
 #[derive(Debug, PartialEq)]
 pub struct Literal {
@@ -41,7 +41,7 @@ fn is_valid_text(input: &str) -> Option<Token> {
             valor: inner.to_string(),
             tipo: DataType::Text,
         };
-        Some(Token::Term(Term::Literal(literal))) 
+        Some(Token::Term(Term::Literal(literal)))
     } else {
         None
     }
@@ -49,13 +49,13 @@ fn is_valid_text(input: &str) -> Option<Token> {
 
 pub fn to_literal(word: &str) -> Option<Token> {
     if let Some(token) = is_valid_bigint(word) {
-        return  Some(token);
+        return Some(token);
     }
     if let Some(token) = is_valid_boolean(word) {
-        return  Some(token);
+        return Some(token);
     }
     if let Some(token) = is_valid_text(word) {
-        return  Some(token);
+        return Some(token);
     }
     //si se puede usar regex, es una pavada
     //si no se puede, suerte :))

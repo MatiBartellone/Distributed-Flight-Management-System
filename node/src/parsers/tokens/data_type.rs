@@ -20,6 +20,6 @@ pub fn string_to_data_type(word: &str) -> Option<Token> {
         "text" => Some(Token::DataType(DataType::Text)),
         "duration" => Some(Token::DataType(DataType::Duration)),
         "time" => Some(Token::DataType(DataType::Time)),
-        _ => None, 
+        _ => None,
     }
 }

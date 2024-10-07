@@ -1,5 +1,5 @@
-use crate::executables::executable::Executable;
 use crate::executables::event_executable::EventExecutable;
+use crate::executables::executable::Executable;
 use crate::parsers::parser::Parser;
 
 pub struct EventParser;
