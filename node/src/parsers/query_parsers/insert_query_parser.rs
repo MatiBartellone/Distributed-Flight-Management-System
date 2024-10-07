@@ -17,16 +17,14 @@ impl InsertQueryParser {
 }
 
 fn into(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
-    let token = tokens.next().ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))?;
-    match token {
+    match get_next_value(tokens)? {
         Token::Reserved(res) if res == INTO.to_string() => table(tokens, query),
         _ => Err(Errors::SyntaxError(String::from("INSERT not followed by INTO"))),
     }
 }
 
 fn table(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
-    let token = tokens.next().ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))?;
-    match token {
+    match get_next_value(tokens)? {
         Token::Identifier(identifier)  => {
             query.table = identifier;
             headers(tokens, query)
@@ -35,8 +33,7 @@ fn table(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Er
     }
 }
 fn headers(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
-    let token = tokens.next().ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))?;
-    match token {
+    match get_next_value(tokens)? {
         Token::TokensList(list)  => {
             query.headers = get_headers(list)?;
             values(tokens, query)
@@ -46,16 +43,14 @@ fn headers(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), 
 }
 
 fn values(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
-    let token = tokens.next().ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))?;
-    match token {
+    match get_next_value(tokens)? {
         Token::Reserved(res) if res == VALUES.to_string() => values_list(tokens, query),
         _ => Err(Errors::SyntaxError(String::from("headers not followed by VALUES"))),
     }
 }
 
 fn values_list(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
-    let token = tokens.next().ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))?;
-    match token {
+    match get_next_value(tokens)? {
         Token::TokensList(list)  => {
             query.values_list.push(get_values(list)?);
             values_list(tokens, query)
@@ -83,4 +78,8 @@ fn get_values(list: Vec<Token>) -> Result<Vec<Literal>, Errors> {
         }
     }
     Ok(values)
+}
+
+fn get_next_value(tokens: &mut IntoIter<Token>) -> Result<Token, Errors> {
+    tokens.next().ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))
 }
