@@ -29,7 +29,7 @@ fn column(tokens: &mut IntoIter<Token>, order_clauses: &mut Vec<OrderByClause>, 
         },
         Token::Reserved(res) if res == *DESC => {
             if modified { return Err(Errors::SyntaxError(String::from("Cannot use two types of order together, a column is missing")))}
-            change_last_to_desc(order_clauses, res)?;
+            change_last_to_desc(order_clauses)?;
             column(tokens, order_clauses, true)
         },
         _ => Err(Errors::SyntaxError(String::from("Unexpected token in order by clause"))),
