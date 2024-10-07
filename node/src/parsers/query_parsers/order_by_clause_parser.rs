@@ -22,7 +22,11 @@ fn column(tokens: &mut IntoIter<Token>, order_clauses: &mut Vec<OrderByClause>, 
             order_clauses.push(OrderByClause::new(identifier));
             column(tokens, order_clauses, false)
         },
-        Token::Reserved(res) if res == *DESC || res == *ASC => {
+        Token::Reserved(res) if res == *ASC => {
+            if modified { return Err(Errors::SyntaxError(String::from("Cannot use two types of order together, a column is missing")))};
+            column(tokens, order_clauses, true)
+        },
+        Token::Reserved(res) if res == *DESC => {
             if modified { return Err(Errors::SyntaxError(String::from("Cannot use two types of order together, a column is missing")))}
             change_last_to_desc(order_clauses, res)?;
             column(tokens, order_clauses, true)
