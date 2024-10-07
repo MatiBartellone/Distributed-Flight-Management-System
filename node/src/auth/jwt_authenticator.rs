@@ -20,6 +20,12 @@ impl Authenticator for JWTAuthenticator {
         self.access_credentials(&user, &pass)
     }
 }
+impl Default for JWTAuthenticator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl JWTAuthenticator {
     pub fn new() -> JWTAuthenticator {
         JWTAuthenticator {}
