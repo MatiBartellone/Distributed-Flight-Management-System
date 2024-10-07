@@ -1,5 +1,6 @@
 use core::str;
 
+use crate::auth::jwt_authenticator::JWTAuthenticator;
 use crate::executables::auth_response_executable::AuthResponseExecutable;
 use crate::executables::executable::Executable;
 use crate::parsers::parser::Parser;
@@ -45,7 +46,11 @@ impl Parser for AuthResponseParser {
         let credentials = self.valid_credentials(body)?;
         let (user, password) = self.get_user_and_password(credentials)?;
 
-        Ok(Box::new(AuthResponseExecutable::new(user, password)))
+        Ok(Box::new(AuthResponseExecutable::new(
+            user,
+            password,
+            Box::new(JWTAuthenticator::new()),
+        )))
     }
 }
 
