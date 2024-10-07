@@ -50,7 +50,8 @@ fn values(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), E
 }
 
 fn values_list(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
-    match get_next_value(tokens)? {
+    let Some(token) = tokens.next() else { return Ok(()) };
+    match token {
         Token::TokensList(list)  => {
             query.values_list.push(get_values(list)?);
             values_list(tokens, query)
@@ -82,4 +83,36 @@ fn get_values(list: Vec<Token>) -> Result<Vec<Literal>, Errors> {
 
 fn get_next_value(tokens: &mut IntoIter<Token>) -> Result<Token, Errors> {
     tokens.next().ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::parsers::tokens::token::DataType;
+    use crate::parsers::tokens::token::Token::Identifier;
+    use super::*;
+
+    #[test]
+    fn test_insert_query_parser() {
+        let tokens = vec![
+            Token::Reserved(String::from(INTO)),
+            Token::Identifier(String::from("table_name")),
+            Token::TokensList(vec![Identifier(String::from("id")),Identifier(String::from("name"))]),
+            Token::Reserved(String::from(VALUES)),
+            Token::TokensList(vec![
+                Token::Term(Term::Literal(Literal{valor: "3".to_string(), tipo:DataType::Bigint})),
+                Token::Term(Term::Literal(Literal{valor: "Thaigo".to_string(), tipo:DataType::Text}))
+            ]),
+        ];
+
+        let expected = InsertQuery{
+            table: "table_name".to_string(),
+            headers: vec![String::from("id"), String::from("name")],
+            values_list: vec![vec![
+                Literal{valor: "3".to_string(), tipo:DataType::Bigint},
+                Literal{valor: "Thaigo".to_string(), tipo:DataType::Text}
+            ]]
+        };
+
+        assert_eq!(expected, InsertQueryParser::parse(tokens).unwrap());
+    }
 }

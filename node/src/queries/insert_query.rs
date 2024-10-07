@@ -1,6 +1,7 @@
 use crate::parsers::tokens::token::Literal;
 use crate::queries::query::Query;
 
+#[derive(PartialEq, Debug)]
 pub struct InsertQuery {
     pub table: String,
     pub headers: Vec<String>,

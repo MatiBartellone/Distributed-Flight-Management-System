@@ -13,9 +13,10 @@ pub enum Term {
     AritmeticasBool(AritmeticasBool)
 }
 #[allow(dead_code)]
+#[derive(PartialEq, Debug)]
 pub struct Literal {
-    valor: String,
-    tipo: DataType,
+    pub valor: String,
+    pub tipo: DataType,
 }
 #[allow(dead_code)]
 pub enum AritmeticasMath {
@@ -38,6 +39,7 @@ pub enum AritmeticasBool {
     MenorIgual
 }
 #[allow(dead_code)]
+#[derive(PartialEq, Debug)]
 pub enum DataType {
     Bigint,
     Boolean,
