@@ -1,0 +1,86 @@
+use std::vec::IntoIter;
+use crate::parsers::tokens::token::{Token, Term, Literal};
+use crate::queries::insert_query::InsertQuery;
+use crate::utils::errors::Errors;
+
+const  INTO : &str = "INTO";
+const VALUES : &str = "VALUES";
+
+pub struct InsertQueryParser;
+
+impl InsertQueryParser {
+    pub fn parse(tokens_list: Vec<Token>) -> Result<InsertQuery, Errors> {
+        let mut insert_query = InsertQuery::new();
+        into(&mut tokens_list.into_iter(), &mut insert_query)?;
+        Ok(insert_query)
+    }
+}
+
+fn into(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
+    let token = tokens.next().ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))?;
+    match token {
+        Token::Reserved(res) if res == INTO.to_string() => table(tokens, query),
+        _ => Err(Errors::SyntaxError(String::from("INSERT not followed by INTO"))),
+    }
+}
+
+fn table(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
+    let token = tokens.next().ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))?;
+    match token {
+        Token::Identifier(identifier)  => {
+            query.table = identifier;
+            headers(tokens, query)
+        },
+        _ => Err(Errors::SyntaxError(String::from("Unexpected token in table_name"))),
+    }
+}
+fn headers(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
+    let token = tokens.next().ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))?;
+    match token {
+        Token::TokensList(list)  => {
+            query.headers = get_headers(list)?;
+            values(tokens, query)
+        },
+        _ => Err(Errors::SyntaxError(String::from("Unexpected token in headers"))),
+    }
+}
+
+fn values(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
+    let token = tokens.next().ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))?;
+    match token {
+        Token::Reserved(res) if res == VALUES.to_string() => values_list(tokens, query),
+        _ => Err(Errors::SyntaxError(String::from("headers not followed by VALUES"))),
+    }
+}
+
+fn values_list(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
+    let token = tokens.next().ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))?;
+    match token {
+        Token::TokensList(list)  => {
+            query.values_list.push(get_values(list)?);
+            values_list(tokens, query)
+        },
+        _ => Ok(()),
+    }
+}
+
+fn get_headers(list: Vec<Token>) -> Result<Vec<String>, Errors> {
+    let mut headers = Vec::new();
+    for elem in list {
+        match elem {
+            Token::Identifier(header) => headers.push(header),
+            _ => return Err(Errors::SyntaxError(String::from("Unexpected token in headers"))),
+        }
+    }
+    Ok(headers)
+}
+fn get_values(list: Vec<Token>) -> Result<Vec<Literal>, Errors> {
+    let mut values = Vec::new();
+    for elem in list {
+        match elem {
+            Token::Term(Term::Literal(literal)) => values.push(literal),
+            _ => return Err(Errors::SyntaxError(String::from("Unexpected token in values"))),
+        }
+    }
+    Ok(values)
+}
