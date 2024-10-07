@@ -2,9 +2,8 @@ use crate::auth::authenticator::Authenticator;
 use crate::executables::executable::Executable;
 use crate::frame::Frame;
 use crate::response_builders::frame_builder::FrameBuilder;
+use crate::utils::parser_constants::{AUTH_CHALLENGE, AUTH_SUCCESS};
 
-const AUTH_SUCCESS: u8 = 0x10;
-const AUTH_CHALLENGE: u8 = 0x0E;
 pub struct AuthResponseExecutable {
     user: String,
     password: String,
