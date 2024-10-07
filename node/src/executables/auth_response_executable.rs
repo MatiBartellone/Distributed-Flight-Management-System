@@ -11,7 +11,6 @@ pub struct AuthResponseExecutable {
     authenticator: Box<dyn Authenticator>,
 }
 
-
 impl AuthResponseExecutable {
     pub fn new(
         user: String,
@@ -49,10 +48,24 @@ impl Executable for AuthResponseExecutable {
 
 #[cfg(test)]
 mod tests {
+    const VALID_USER: &str = "my_usr";
+    const VALID_PASS: &str = "my_pass";
+    const INVALID_PASS: &str = "invalid_pass";
+    const INVALID_USER: &str = "invalid_user";
+
     struct AuthenticatorMock;
     impl AuthenticatorMock {
         fn new() -> AuthenticatorMock {
             AuthenticatorMock
+        }
+    }
+
+    impl Authenticator for AuthenticatorMock {
+        fn validate_credentials(&self, user: String, password: String) -> Result<bool, Errors> {
+            if user == "my_usr" && password == "my_pass" {
+                return Ok(true);
+            }
+            Ok(false)
         }
     }
 
@@ -66,18 +79,51 @@ mod tests {
         body
     }
 
-    use super::*;
-    #[test]
-    fn test_01_successfull_response() {
-        let request = Frame {
+    fn build_request_with(user: &str, pass: &str) -> Frame {
+        let body = get_body_as_vec(user, pass);
+        let size = body.len() as u32;
+        Frame {
             version: 0x03,
             flags: 0x00,
             stream: 0x01,
             opcode: AUTH_CHALLENGE,
-            length: 0x00000006,
-            body: get_body_as_vec("my_usr", "my_pass"),
-        };
+            length: size,
+            body,
+        }
+    }
 
+    fn assert_with(user: &str, pass: &str, expected_opcode: u8, expected_body: Vec<u8>) {
+        let request = build_request_with(user, pass);
         let authenticator = AuthenticatorMock::new();
+        let executable = AuthResponseExecutable::new(
+            user.to_string(),
+            pass.to_string(),
+            Box::new(authenticator),
+        );
+        let response = executable.execute(request).unwrap();
+        assert_eq!(response.opcode, expected_opcode);
+        assert_eq!(response.body, expected_body);
+    }
+
+    use super::*;
+    #[test]
+    fn test_01_successfull_response() {
+        // En este test debería cambiar el body con los tokens si no me equivoco
+        assert_with(VALID_USER, VALID_PASS, AUTH_SUCCESS, Vec::new());
+    }
+
+    #[test]
+    fn test_02_unsuccessfull_response_with_invalid_pass() {
+        assert_with(VALID_USER, INVALID_PASS, AUTH_CHALLENGE, Vec::new());
+    }
+
+    #[test]
+    fn test_03_unsuccessfull_response_with_invalid_user() {
+        assert_with(INVALID_USER, VALID_PASS, AUTH_CHALLENGE, Vec::new());
+    }
+
+    #[test]
+    fn test_04_unsuccessfull_response_with_invalid_user_and_password() {
+        assert_with(INVALID_USER, INVALID_PASS, AUTH_CHALLENGE, Vec::new());
     }
 }
