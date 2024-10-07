@@ -8,20 +8,20 @@ const PALABRAS_RESERVADAS: &[&str] = &[
     "UPDATE", "USE", "USING", "VALUES", "WHERE", "WITH"
 ];
 
-struct WordsReserved {
-    words: HashSet<String>,
+pub struct WordsReserved {
+    words: HashSet<&'static str>,
 }
 
 impl WordsReserved {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let mut set = HashSet::new();
         for &word in PALABRAS_RESERVADAS {
-            set.insert(word.to_string());
+            set.insert(word);
         }
         WordsReserved { words: set }
     }
 
-    fn is_reserved(&self, word: &str) -> bool {
-        self.words.contains(&word.to_uppercase())
+    pub fn is_reserved(&self, word: &str) -> bool {
+        self.words.contains(&word.to_uppercase().as_str())
     }
 }

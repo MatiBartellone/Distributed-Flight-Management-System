@@ -1,4 +1,9 @@
-enum Token {
+use crate::utils::errors::Errors;
+
+use super::terms::{Term, string_to_term};
+use super::words_reserved::WordsReserved;
+use super::data_type::{DataType, string_to_data_type};
+pub enum Token {
     Identifier(String),
     Term(Term),
     Reserved(String),
@@ -6,46 +11,9 @@ enum Token {
     TokensList(Vec<Token>),
 }
 
-enum Term {
-    Literal(Literal),
-    AritmeticasMath(AritmeticasMath),
-    AritmeticasBool(AritmeticasBool)
-}
 
-struct Literal {
-    valor: String,
-    tipo: DataType,
-}
 
-enum AritmeticasMath {
-    Suma,
-    Resta,
-    Division,
-    Resto,
-    Multiplication,
-}
 
-enum AritmeticasBool {
-    Or,
-    And,
-    Not, 
-    Menor,
-    Igual,
-    Disinto,
-    Mayor,
-    MayorIgual,
-    MenorIgual
-}
-
-enum DataType {
-    Bigint,
-    Boolean,
-    Date,
-    Decimal,
-    Text,
-    Duration,
-    Time,
-}
 
 fn caracteres(palabra: &str, inicio: usize, fin: usize) -> String {
     palabra.chars().skip(inicio).take(fin - inicio).collect()
@@ -154,10 +122,11 @@ fn separar_palabras(query: &str) -> Vec<String> {
 }
 
 fn es_seccion(palabra: &str) -> bool {
-    if let Some(primer_caracter) = palabra.chars().next() {
-        return primer_caracter == '$' || primer_caracter == '\'' || primer_caracter == '"';
-    }
-    false 
+    // if let Some(primer_caracter) = palabra.chars().next() {
+    //     return primer_caracter == '$' || primer_caracter == '\'' || primer_caracter == '"';
+    // }
+    // false
+    matches!(palabra.chars().next(), Some('$' | '\'' | '"'))
 }
 
 
@@ -176,6 +145,64 @@ fn normalizar(entrada: &str) -> Vec<String> {
         }
     }
     normalizada
+}
+
+fn to_identifier(word: &str) -> Option<Token> {
+    if word.starts_with('"') && word.ends_with('"') {
+        let inner = &word[1..word.len() - 1];
+        return Some(Token::Identifier(inner.to_string()));
+    }
+
+    if let Some(first_char) = word.chars().next() {
+        if !(first_char.is_alphabetic() || first_char == '_') {
+            return None; 
+        }
+        for c in word.chars().skip(1) {
+            if !(c.is_alphanumeric()) {
+                return None; 
+            }
+        }
+        return Some(Token::Identifier(word.to_string()));
+    }
+    None
+}
+
+fn tokenize(palabras: Vec<String>) -> Result<Vec<Token>, Errors> {
+    let reservadas = WordsReserved::new();
+    let mut res = Vec::new();
+    let mut i = 0;
+    while i < palabras.len() {
+        let palabra = &palabras[i];
+        if let Some(token) = string_to_term(palabra) {
+            res.push(token)
+        }
+        else if reservadas.is_reserved(palabra) {
+            let token = Token::Reserved(palabra.to_ascii_uppercase());
+            res.push(token)
+        } 
+        else if let Some(token) = string_to_data_type(palabra) {
+            res.push(token)
+        }
+        else if let Some(token) = to_identifier(palabra) {
+            res.push(token)
+        } 
+        else if palabra == "(" {
+            let temp = tokenize(palabras[i+1..].to_vec())?;
+            i += temp.len(); //no sé si debe haber un +1?
+            let sub_list = Token::TokensList(temp);
+            res.push(sub_list);
+            
+        }
+        else if palabra == ")" {
+            return Ok(res);
+        }
+        else {
+            return Err(Errors::SyntaxError("Hay Palabras Invalidas".to_string()));
+        }
+        i += 1;
+        
+    }
+    Ok(res) 
 }
 
 #[cfg(test)]
@@ -317,4 +344,5 @@ mod tests {
 
         assert_eq!(resultado, esperado);
     }
+    
 }
