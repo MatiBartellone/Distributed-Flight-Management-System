@@ -24,7 +24,7 @@ fn column(tokens: &mut IntoIter<Token>, order_clauses: &mut Vec<OrderByClause>, 
         },
         Token::Reserved(res) if res == *ASC => {
             if modified { return Err(Errors::SyntaxError(String::from("Cannot use two types of order together, a column is missing")))};
-            let Some(order_clause) = order_clauses.pop() else { return Err(Errors::SyntaxError(format!("No column provided for ASC modifier"))) };
+            if order_clauses.len() == 0 { return Err(Errors::SyntaxError(format!("No column provided for ASC modifier"))) };
             column(tokens, order_clauses, true)
         },
         Token::Reserved(res) if res == *DESC => {
