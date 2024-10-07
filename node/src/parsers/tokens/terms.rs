@@ -1,21 +1,22 @@
-use super::{data_type::DataType, token::Token};
+use super::{data_type::DataType, token::Token, literal::{Literal, to_literal}};
 
+#[derive(Debug, PartialEq)]
 pub enum Term {
     Literal(Literal),
     AritmeticasMath(AritmeticasMath),
     BooleanOperations(BooleanOperations)
 }
 
-struct Literal {
-    valor: String,
-    tipo: DataType,
-}
 
-enum BooleanOperations{
+
+#[derive(Debug, PartialEq)]
+pub enum BooleanOperations{
     Logical(LogicalOperators),
     Comparison(ComparisonOperators)
 }
-enum AritmeticasMath {
+
+#[derive(Debug, PartialEq)]
+pub enum AritmeticasMath {
     Suma,
     Resta,
     Division,
@@ -23,13 +24,15 @@ enum AritmeticasMath {
     Multiplication,
 }
 
-enum LogicalOperators {
+#[derive(Debug, PartialEq)]
+pub enum LogicalOperators {
     Or,
     And,
     Not, 
 }
 
-enum ComparisonOperators {
+#[derive(Debug, PartialEq)]
+pub enum ComparisonOperators {
     Less,
     Equal,
     NotEqual,
@@ -65,12 +68,6 @@ fn to_boolean(word: &str) -> Option<Token> {
     }
 }
 
-fn to_literal(word: &str) -> Option<Token> {
-    //si se puede usar regex, es una pavada
-    //si no se puede, suerte :))
-    None
-}
-
 
 pub fn string_to_term(word: &str) -> Option<Token> {
     if let Some(token) = to_math(word) {
@@ -79,6 +76,8 @@ pub fn string_to_term(word: &str) -> Option<Token> {
     if let Some(token) = to_boolean(word) {
         return  Some(token);
     }
-
+    if let Some(token) = to_literal(word) {
+        return Some(token);
+    }
     None
 }

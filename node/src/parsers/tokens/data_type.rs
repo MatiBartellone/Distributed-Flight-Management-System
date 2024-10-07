@@ -1,5 +1,6 @@
 use super::token::Token;
 
+#[derive(Debug, PartialEq)]
 pub enum DataType {
     Bigint,
     Boolean,
