@@ -49,21 +49,9 @@ impl OptionsExecutable {
 }
 
 impl Executable for OptionsExecutable {
-    fn execute(&self) -> Frame {
+    fn execute(&self, request: Frame) -> Frame {
         let new_body = self.get_string_multimap();
-        let frame = Frame {
-            // TODO: Sacarlo una vez todos los parsers reciban el frame, asi
-            // se le pasa al FrameBuilder el frame viejo.
-            version: 0x03,
-            flags: 0x00,
-            stream: 0x01,
-            opcode: 0x05,
-            length: 0,
-            body: vec![],
-        };
-        // TODO: Sacar el unwrap y manejar el error
-
-        FrameBuilder::build_response_frame(frame, 0x06, new_body).unwrap()
+        FrameBuilder::build_response_frame(request, 0x06, new_body).unwrap()
     }
 }
 
@@ -76,14 +64,23 @@ mod tests {
     const EXPECTED_LENGTH: u32 = 35;
     use super::*;
 
-    fn setup() -> OptionsExecutable {
-        OptionsExecutable::new()
+    fn setup() -> (OptionsExecutable, Frame) {
+        let executable = OptionsExecutable::new();
+        let request = Frame {
+            version: EXPECTED_VERSION,
+            flags: EXPECTED_FLAGS,
+            stream: EXPECTED_STREAM,
+            opcode: 0x05,
+            length: 0,
+            body: Vec::new(),
+        };
+        (executable, request)
     }
 
     #[test]
     fn test_01_options_executable() {
-        let executable = setup();
-        let frame = executable.execute();
+        let (executable, request) = setup();
+        let frame = executable.execute(request);
         assert_eq!(frame.version, EXPECTED_VERSION);
         assert_eq!(frame.flags, EXPECTED_FLAGS);
         assert_eq!(frame.stream, EXPECTED_STREAM);

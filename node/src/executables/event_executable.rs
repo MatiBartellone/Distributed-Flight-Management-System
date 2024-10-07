@@ -4,7 +4,8 @@ use crate::frame::Frame;
 pub struct EventExecutable;
 
 impl Executable for EventExecutable {
-    fn execute(&self) -> Frame {
+    fn execute(&self, _request: Frame) -> Frame {
         todo!()
     }
 }
+

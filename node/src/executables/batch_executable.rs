@@ -4,7 +4,8 @@ use crate::frame::Frame;
 pub struct BatchExecutable;
 
 impl Executable for BatchExecutable {
-    fn execute(&self) -> Frame {
+    fn execute(&self, _request: Frame) -> Frame {
         todo!()
     }
 }
+
