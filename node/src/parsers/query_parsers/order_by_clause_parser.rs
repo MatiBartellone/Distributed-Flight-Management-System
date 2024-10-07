@@ -24,7 +24,7 @@ fn column(tokens: &mut IntoIter<Token>, order_clauses: &mut Vec<OrderByClause>, 
         },
         Token::Reserved(res) if res == *ASC => {
             if modified { return Err(Errors::SyntaxError(String::from("Cannot use two types of order together, a column is missing")))};
-            let Some(order_clause) = order_clauses.pop() else { return Err(Errors::SyntaxError(format!("No column provided for {} modifier", order))) };
+            let Some(order_clause) = order_clauses.pop() else { return Err(Errors::SyntaxError(format!("No column provided for ASC modifier", order))) };
             column(tokens, order_clauses, true)
         },
         Token::Reserved(res) if res == *DESC => {
@@ -35,9 +35,9 @@ fn column(tokens: &mut IntoIter<Token>, order_clauses: &mut Vec<OrderByClause>, 
         _ => Err(Errors::SyntaxError(String::from("Unexpected token in order by clause"))),
     }
 }
-fn change_last_to_desc(order_clauses: &mut Vec<OrderByClause>, order: String) -> Result<(), Errors> {
-    let Some(order_clause) = order_clauses.pop() else { return Err(Errors::SyntaxError(format!("No column provided for {} modifier", order))) };
-    order_clauses.push(OrderByClause::new_with_order(order_clause.column, order));
+fn change_last_to_desc(order_clauses: &mut Vec<OrderByClause>) -> Result<(), Errors> {
+    let Some(order_clause) = order_clauses.pop() else { return Err(Errors::SyntaxError(format!("No column provided for DESC modifier"))) };
+    order_clauses.push(OrderByClause::new_with_order(order_clause.column, DESC.to_string()));
     Ok(())
 }
 #[cfg(test)]
