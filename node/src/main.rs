@@ -10,6 +10,6 @@ fn main() -> Result<(), Errors> {
     frame.validate_request_frame()?;
     let parser = ParserFactory::get_parser(frame.opcode)?;
     let executable = parser.parse(frame.body.as_slice())?;
-    executable.execute(frame);
+    executable.execute(frame)?;
     Ok(())
 }

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::executables::executable::Executable;
 use crate::frame::Frame;
+use crate::utils::errors::Errors;
 
 #[derive(Debug)]
 pub struct StartupExecutable {
@@ -16,7 +17,7 @@ impl StartupExecutable {
 
 impl Executable for StartupExecutable {
     /// Configurate the startup configurations and create a AUTHENTICATE response
-    fn execute(&self, _request: Frame) -> Frame {
+    fn execute(&self, _request: Frame) -> Result<Frame, Errors> {
         todo!()
         // Aplicar configs
         // let auth_class = vec![]; // HAY QUE ELEGIR AUTH CLASS Y PASARLA EN BYTES
