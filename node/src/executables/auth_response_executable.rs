@@ -33,6 +33,6 @@ impl Executable for AuthResponseExecutable {
         }
 
         let response = FrameBuilder::build_response_frame(request, AUTH_CHALLENGE, Vec::new())?;
-        return Ok(response);
+        Ok(response)
     }
 }
