@@ -56,7 +56,7 @@ fn values_list(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<
             query.values_list.push(get_values(list)?);
             values_list(tokens, query)
         },
-        _ if values_list.iter().len() == 0 => Err(Errors::SyntaxError(String::from("No values where provided"))),
+        _ if query.values_list.iter().len() == 0 => Err(Errors::SyntaxError(String::from("No values where provided"))),
         _ => Ok(()),
     }
 }
