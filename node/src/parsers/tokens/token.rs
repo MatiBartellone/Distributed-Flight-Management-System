@@ -43,23 +43,7 @@ fn match_tokenize(palabra: String) -> Option<Token> {
     } else if let Some(token) = string_to_identifier(&palabra) {
         return Some(token);
     }
-    return None;
-}
-
-use Token::*;
-fn len_lista_anidada(tokens: &[Token]) -> usize {
-    let mut i = 0;
-    for token in tokens {
-        match token {
-            TokensList(lista) => {
-                i += len_lista_anidada(lista) + 1;
-            }
-            _ => {
-                i += 1;
-            }
-        }
-    }
-    i
+    None
 }
 
 fn init_sub_list_token(
@@ -69,14 +53,16 @@ fn init_sub_list_token(
 ) -> Result<bool, Errors> {
     if let Some(Token::Reserved(reserv)) = res.last() {
         if reserv == "WHERE" {
-            let temp = tokenize_recursive(&palabras[*i..], close_sub_list_where)?;
-            *i += len_lista_anidada(&temp); //no sé si debe haber un +1?
+            let temp = tokenize_recursive(palabras, close_sub_list_where, i)?;
+            //*i += len_lista_anidada(&temp); //no sé si debe haber un +1?
             res.push(Token::TokensList(temp));
             return Ok(true);
         }
     } else if &palabras[*i] == "(" {
-        let temp = tokenize_recursive(&palabras[*i + 1..], close_sub_list_parentesis)?;
-        *i += len_lista_anidada(&temp) + 1; //no sé si debe haber un +1?
+        *i += 1;
+        let temp = tokenize_recursive(palabras, close_sub_list_parentesis, i)?;
+        *i += 1;
+         //no sé si debe haber un +1?
         res.push(Token::TokensList(temp));
         return Ok(true);
     }
@@ -84,7 +70,7 @@ fn init_sub_list_token(
 }
 
 fn close_sub_list_parentesis(word: &str) -> bool {
-    return word == ")";
+    word == ")"
 }
 
 fn close_sub_list_where(word: &str) -> bool {
@@ -94,20 +80,20 @@ fn close_sub_list_where(word: &str) -> bool {
         && !(word_upper == "AND" || word_upper == "OR" || word_upper == "NOT")
 }
 
-fn tokenize_recursive<F>(palabras: &[String], cierre: F) -> Result<Vec<Token>, Errors>
+fn tokenize_recursive<F>(palabras: &[String], cierre: F, i: &mut usize) -> Result<Vec<Token>, Errors>
 where
     F: Fn(&str) -> bool,
 {
     let mut res = Vec::new();
-    let mut i = 0;
-    while i < palabras.len() {
-        let palabra = &palabras[i];
-        if init_sub_list_token(palabras, &mut i, &mut res)? {
-            i += 1;
+    while *i < palabras.len() {
+        let palabra = &palabras[*i];
+        if init_sub_list_token(palabras, i, &mut res)? {
             continue;
-        } else if cierre(palabra) {
+        } 
+        if cierre(palabra) {
             return Ok(res);
-        } else if let Some(token) = match_tokenize(palabra.to_string()) {
+        } 
+        if let Some(token) = match_tokenize(palabra.to_string()) {
             res.push(token)
         } else {
             return Err(Errors::SyntaxError(format!(
@@ -115,15 +101,15 @@ where
                 palabra, i
             )));
         }
-        i += 1;
+        *i += 1;
     }
     Ok(res)
 }
 
-fn tokenize(palabras: Vec<String>) -> Result<Vec<Token>, Errors> {
+pub fn tokenize(palabras: Vec<String>) -> Result<Vec<Token>, Errors> {
     // Definimos una closure que siempre devuelve false
     let siempre_false = |_: &str| false;
-    tokenize_recursive(&palabras, siempre_false)
+    tokenize_recursive(&palabras, siempre_false, &mut 0)
 }
 
 #[cfg(test)]
@@ -173,6 +159,72 @@ mod tests {
                     ComparisonOperators::Greater,
                 ))), // Asegúrate de tener un enumerador Term para el operador '>'
                 Token::Term(Term::Literal(literal)),
+            ]),
+            Token::Reserved("ORDER".to_string()),
+            Token::Reserved("BY".to_string()),
+            Token::Identifier("name".to_string()),
+        ];
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_tokenize_where_clause2() {
+        let query = vec![
+            "SELECT", "name", "FROM", "users", "WHERE", "(","age", ">", "30", ")", "ORDER", "BY", "name",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+        let result = tokenize(query).unwrap();
+        let literal = Literal::new("30".to_string(), DataType::Bigint);
+        let expected = vec![
+            Token::Reserved("SELECT".to_string()),
+            Token::Identifier("name".to_string()),
+            Token::Reserved("FROM".to_string()),
+            Token::Identifier("users".to_string()),
+            Token::Reserved("WHERE".to_string()),
+            Token::TokensList(vec![
+                Token::TokensList(vec![
+                    Token::Identifier("age".to_string()),
+                    Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
+                        ComparisonOperators::Greater,
+                    ))), // Asegúrate de tener un enumerador Term para el operador '>'
+                    Token::Term(Term::Literal(literal)),
+                ]),
+            ]),
+            Token::Reserved("ORDER".to_string()),
+            Token::Reserved("BY".to_string()),
+            Token::Identifier("name".to_string()),
+        ];
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_tokenize_where_clause3() {
+        let query = vec![
+            "SELECT", "name", "FROM", "users", "WHERE", "(","(","age", ">", "30", ")",")", "ORDER", "BY", "name",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+        let result = tokenize(query).unwrap();
+        let literal = Literal::new("30".to_string(), DataType::Bigint);
+        let expected = vec![
+            Token::Reserved("SELECT".to_string()),
+            Token::Identifier("name".to_string()),
+            Token::Reserved("FROM".to_string()),
+            Token::Identifier("users".to_string()),
+            Token::Reserved("WHERE".to_string()),
+            Token::TokensList(vec![
+                Token::TokensList(vec![
+                    Token::TokensList(vec![
+                        Token::Identifier("age".to_string()),
+                        Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
+                            ComparisonOperators::Greater,
+                        ))), // Asegúrate de tener un enumerador Term para el operador '>'
+                        Token::Term(Term::Literal(literal)),
+                    ]),
+                ]),
             ]),
             Token::Reserved("ORDER".to_string()),
             Token::Reserved("BY".to_string()),
@@ -237,7 +289,7 @@ mod tests {
     fn test_tokenize_with_parentheses2() {
         let query = vec![
             "SELECT", "name", "FROM", "users", "WHERE", "age", ">", "30", "AND", "(", "active",
-            "=", "true", ")",
+            "=", "true", ")", "ORDER"
         ]
         .iter()
         .map(|s| s.to_string())
@@ -271,10 +323,13 @@ mod tests {
                     Token::Term(Term::Literal(literal_boolean)), // Literal para "true"
                 ]),
             ]),
+            Token::Reserved("ORDER".to_string()),
         ];
 
         assert_eq!(result, expected);
     }
+
+    
 
     #[test]
     fn test_tokenize_invalid_query() {
@@ -349,4 +404,52 @@ mod tests {
 
         assert_eq!(result, expected);
     }
+
+    #[test]
+    fn test_tokenize_with_nested_parentheses() {
+        let query = vec![
+            "SELECT", "WHERE", "(", "age", "AND", "(", "active", "OR", 
+            "(", "premium", "AND", "(", "location", ")", ")", ")", "AND", "status", ")"
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+
+        let result = tokenize(query).unwrap();
+        let expected = vec![
+            Token::Reserved("SELECT".to_string()),
+            Token::Reserved("WHERE".to_string()),
+            Token::TokensList(vec![
+                Token::TokensList(vec![
+                    Token::Identifier("age".to_string()),
+                    Token::Term(Term::BooleanOperations(BooleanOperations::Logical(
+                        LogicalOperators::And,
+                    ))), // 'AND' como operación lógica
+                    Token::TokensList(vec![
+                        Token::Identifier("active".to_string()),
+                        Token::Term(Term::BooleanOperations(BooleanOperations::Logical(
+                            LogicalOperators::Or,
+                        ))), // 'OR' como operación lógica
+                        Token::TokensList(vec![
+                            Token::Identifier("premium".to_string()),
+                            Token::Term(Term::BooleanOperations(BooleanOperations::Logical(
+                                LogicalOperators::And,
+                            ))), // 'AND' como operación lógica
+                            Token::TokensList(vec![
+                                Token::Identifier("location".to_string()),
+                            ]),
+                        ]),
+                    ]),
+                    Token::Term(Term::BooleanOperations(BooleanOperations::Logical(
+                        LogicalOperators::And,
+                    ))), 
+                    Token::Identifier("status".to_string()),
+                ]),
+                
+            ]),
+        ];
+
+        assert_eq!(result, expected);
+    }
+
 }

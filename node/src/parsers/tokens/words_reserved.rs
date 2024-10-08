@@ -57,3 +57,9 @@ impl WordsReserved {
         self.words.contains(&word.to_uppercase().as_str())
     }
 }
+
+impl Default for WordsReserved {
+    fn default() -> Self {
+        Self::new()
+    }
+}

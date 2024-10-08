@@ -1,5 +1,4 @@
 use super::{
-    data_type::DataType,
     literal::{to_literal, Literal},
     token::Token,
 };

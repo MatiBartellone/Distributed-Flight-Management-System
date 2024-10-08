@@ -2,7 +2,7 @@ fn caracteres(palabra: &str, inicio: usize, fin: usize) -> String {
     palabra.chars().skip(inicio).take(fin - inicio).collect()
 }
 
-fn inside_comment(input: &str, fin: &str, i: &mut usize, mut dentro: &mut bool) -> () {
+fn inside_comment(input: &str, fin: &str, i: &mut usize, dentro: &mut bool) {
     if *dentro {
         if *i + fin.len() <= input.len() && caracteres(input, *i, *i + fin.len()) == fin {
             *dentro = false;
@@ -13,7 +13,7 @@ fn inside_comment(input: &str, fin: &str, i: &mut usize, mut dentro: &mut bool) 
     }
 }
 
-fn out_comment(input: &str, ini: &str, i: &mut usize, dentro: &mut bool, res: &mut String) -> () {
+fn out_comment(input: &str, ini: &str, i: &mut usize, dentro: &mut bool, res: &mut String) {
     if !*dentro {
         if *i + ini.len() <= input.len() && caracteres(input, *i, *i + ini.len()) == ini {
             *dentro = true;
@@ -145,13 +145,13 @@ fn es_seccion(palabra: &str) -> bool {
     matches!(palabra.chars().next(), Some('$' | '\'' | '"'))
 }
 
-fn normalizar(entrada: &str) -> Vec<String> {
+pub fn normalizar(entrada: &str) -> Vec<String> {
     let entrada = eliminar_comentarios(entrada);
     let secciones = separar_secciones(&entrada);
     let mut normalizada = Vec::new();
     for palabra in secciones.iter() {
-        if !es_seccion(&palabra) {
-            let vocablos = separar_palabras(&palabra);
+        if !es_seccion(palabra) {
+            let vocablos = separar_palabras(palabra);
             for vocablo in vocablos.iter() {
                 normalizada.push(vocablo.to_string());
             }
@@ -165,13 +165,6 @@ fn normalizar(entrada: &str) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn imprimir_vector(v: &Vec<String>) {
-        for item in v.iter() {
-            println!("{}", item);
-        }
-    }
-
     #[test]
     fn test_normalizar_con_secciones() {
         let entrada = r#"hola $hola como estas$ "bien" 'vos' el resto de el string"#;
