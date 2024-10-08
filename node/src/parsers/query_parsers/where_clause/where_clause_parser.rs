@@ -1,4 +1,4 @@
-use super::boolean_expression::BooleanExpression;
+use super::boolean_expression::WhereClause;
 use crate::{
     parsers::{
         query_parsers::where_clause::comparison::ComparisonExpr,
@@ -22,26 +22,26 @@ use std::{iter::Peekable, vec::IntoIter};
 pub struct WhereClauseParser;
 
 impl WhereClauseParser {
-    pub fn parse(tokens: Vec<Token>) -> Result<Option<BooleanExpression>, Errors> {
+    pub fn parse(tokens: Vec<Token>) -> Result<Option<WhereClause>, Errors> {
         Ok(Some(where_clause(&mut tokens.into_iter().peekable())?))
     }
 }
 
 fn where_and_or(
     tokens: &mut Peekable<IntoIter<Token>>,
-    left_expr: BooleanExpression,
-) -> Result<BooleanExpression, Errors> {
+    left_expr: WhereClause,
+) -> Result<WhereClause, Errors> {
     match get_next_value(tokens) {
         Ok(Term(AritmeticasBool(Logical(And)))) => {
             let right_expr = where_clause(tokens)?;
-            Ok(BooleanExpression::And(
+            Ok(WhereClause::And(
                 Box::new(left_expr),
                 Box::new(right_expr),
             ))
         }
         Ok(Term(AritmeticasBool(Logical(Or)))) => {
             let right_expr = where_clause(tokens)?;
-            Ok(BooleanExpression::Or(
+            Ok(WhereClause::Or(
                 Box::new(left_expr),
                 Box::new(right_expr),
             ))
@@ -56,18 +56,18 @@ fn where_and_or(
 fn where_comparision(
     tokens: &mut Peekable<IntoIter<Token>>,
     column_name: String,
-) -> Result<BooleanExpression, Errors> {
+) -> Result<WhereClause, Errors> {
     let operator = get_comparision_operator(tokens)?;
     let literal = get_literal(tokens)?;
     let expression =
-        BooleanExpression::Comparation(ComparisonExpr::new(column_name, &operator, literal));
+        WhereClause::Comparation(ComparisonExpr::new(column_name, &operator, literal));
     where_and_or(tokens, expression)
 }
 
 fn where_tuple(
     tokens: &mut Peekable<IntoIter<Token>>,
     column_names: Vec<Token>,
-) -> Result<BooleanExpression, Errors> {
+) -> Result<WhereClause, Errors> {
     let operator = get_comparision_operator(tokens)?;
     let literals = get_list(tokens)?;
     if column_names.len() != literals.len() {
@@ -86,14 +86,14 @@ fn where_tuple(
 
         tuple.push(expression);
     }
-    let left_expr = BooleanExpression::Tuple(tuple);
+    let left_expr = WhereClause::Tuple(tuple);
     where_and_or(tokens, left_expr)
 }
 
 fn where_list(
     tokens: &mut Peekable<IntoIter<Token>>,
     list: Vec<Token>,
-) -> Result<BooleanExpression, Errors> {
+) -> Result<WhereClause, Errors> {
     match tokens.peek() {
         // [tupla, comparison, tupla, ...]
         Some(Term(AritmeticasBool(Comparison(_)))) => where_tuple(tokens, list),
@@ -105,7 +105,7 @@ fn where_list(
     }
 }
 
-fn where_clause(tokens: &mut Peekable<IntoIter<Token>>) -> Result<BooleanExpression, Errors> {
+fn where_clause(tokens: &mut Peekable<IntoIter<Token>>) -> Result<WhereClause, Errors> {
     match get_next_value(tokens)? {
         // [column_name, comparasion, literal, ...]
         Identifier(column_name) => where_comparision(tokens, column_name),
@@ -114,7 +114,7 @@ fn where_clause(tokens: &mut Peekable<IntoIter<Token>>) -> Result<BooleanExpress
         // [NOT, ...]
         Term(AritmeticasBool(Logical(Not))) => {
             let expression = where_clause(tokens)?;
-            Ok(BooleanExpression::Not(Box::new(expression)))
+            Ok(WhereClause::Not(Box::new(expression)))
         }
         _ => Err(Errors::Invalid(
             "Invalid Syntaxis in WHERE_CLAUSE".to_string(),
@@ -129,12 +129,12 @@ mod tests {
     use crate::parsers::tokens::token::LogicalOperators;
     use crate::parsers::{
         query_parsers::where_clause::{
-            boolean_expression::BooleanExpression, comparison::ComparisonExpr,
+            boolean_expression::WhereClause, comparison::ComparisonExpr,
         },
         tokens::token::{BooleanOperations, ComparisonOperators, DataType, Literal, Term, Token},
     };
 
-    fn test_successful_parser_case(caso: Vec<Token>, expected: Option<BooleanExpression>) {
+    fn test_successful_parser_case(caso: Vec<Token>, expected: Option<WhereClause>) {
         let resultado = WhereClauseParser::parse(caso);
         match resultado {
             Ok(where_clause) => assert_eq!(where_clause, expected, "Resultado inesperado"),
@@ -169,7 +169,7 @@ mod tests {
             })),
         ];
 
-        let expected = Some(BooleanExpression::Comparation(ComparisonExpr::new(
+        let expected = Some(WhereClause::Comparation(ComparisonExpr::new(
             "id".to_string(),
             &ComparisonOperators::Equal,
             Literal {
@@ -206,8 +206,8 @@ mod tests {
             })),
         ];
 
-        let expected = Some(BooleanExpression::And(
-            Box::new(BooleanExpression::Comparation(ComparisonExpr::new(
+        let expected = Some(WhereClause::And(
+            Box::new(WhereClause::Comparation(ComparisonExpr::new(
                 "name".to_string(),
                 &ComparisonOperators::Equal,
                 Literal {
@@ -215,7 +215,7 @@ mod tests {
                     tipo: DataType::Text,
                 },
             ))),
-            Box::new(BooleanExpression::Comparation(ComparisonExpr::new(
+            Box::new(WhereClause::Comparation(ComparisonExpr::new(
                 "id".to_string(),
                 &ComparisonOperators::NotEqual,
                 Literal {
@@ -245,8 +245,8 @@ mod tests {
             })),
         ];
 
-        let expected = Some(BooleanExpression::Not(Box::new(
-            BooleanExpression::Comparation(ComparisonExpr::new(
+        let expected = Some(WhereClause::Not(Box::new(
+            WhereClause::Comparation(ComparisonExpr::new(
                 "is_active".to_string(),
                 &ComparisonOperators::Equal,
                 Literal {
@@ -282,7 +282,7 @@ mod tests {
             ]),
         ];
 
-        let expected = Some(BooleanExpression::Tuple(vec![
+        let expected = Some(WhereClause::Tuple(vec![
             ComparisonExpr::new(
                 "id".to_string(),
                 &ComparisonOperators::Equal,
@@ -383,8 +383,8 @@ mod tests {
         ];
 
         // (id, name) = (5, 'ivan') AND NOT is_active = true OR age < 30
-        let expected = Some(BooleanExpression::And(
-            Box::new(BooleanExpression::Tuple(vec![
+        let expected = Some(WhereClause::And(
+            Box::new(WhereClause::Tuple(vec![
                 ComparisonExpr::new(
                     "id".to_string(),
                     &ComparisonOperators::Equal,
@@ -402,8 +402,8 @@ mod tests {
                     },
                 ),
             ])),
-            Box::new(BooleanExpression::Not(Box::new(BooleanExpression::Or(
-                Box::new(BooleanExpression::Comparation(ComparisonExpr::new(
+            Box::new(WhereClause::Not(Box::new(WhereClause::Or(
+                Box::new(WhereClause::Comparation(ComparisonExpr::new(
                     "is_active".to_string(),
                     &ComparisonOperators::Equal,
                     Literal {
@@ -411,7 +411,7 @@ mod tests {
                         tipo: DataType::Boolean,
                     },
                 ))),
-                Box::new(BooleanExpression::Comparation(ComparisonExpr::new(
+                Box::new(WhereClause::Comparation(ComparisonExpr::new(
                     "age".to_string(),
                     &ComparisonOperators::Less,
                     Literal {

@@ -53,6 +53,26 @@ impl Errors {
             Errors::Unprepared(msg) => join_bytes(UNPREPARED, msg),
         }
     }
+
+    pub fn to_string(&self) -> String {
+        match self {
+            Errors::ServerError(msg) => msg.to_string(),
+            Errors::ProtocolError(msg) =>  msg.to_string(),
+            Errors::BadCredentials(msg) =>  msg.to_string(),
+            Errors::UnavailableException(msg) => msg.to_string(),
+            Errors::Overloaded(msg) =>  msg.to_string(),
+            Errors::IsBootstrapping(msg) =>  msg.to_string(),
+            Errors::TruncateError(msg) =>  msg.to_string(),
+            Errors::WriteTimeout(msg) => msg.to_string(),
+            Errors::ReadTimeout(msg) =>  msg.to_string(),
+            Errors::SyntaxError(msg) =>  msg.to_string(),
+            Errors::Unauthorized(msg) =>  msg.to_string(),
+            Errors::Invalid(msg) =>  msg.to_string(),
+            Errors::ConfigError(msg) =>  msg.to_string(),
+            Errors::AlreadyExists(msg) =>  msg.to_string(),
+            Errors::Unprepared(msg) => msg.to_string(),
+        }
+    }
 }
 
 fn join_bytes(bytes: &[u8], msg: &str) -> Vec<u8> {

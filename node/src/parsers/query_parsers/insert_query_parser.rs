@@ -100,7 +100,7 @@ mod tests {
             Token::TokensList(vec![Token::Identifier(String::from("id")), Token::Identifier(String::from("name"))]),
             Token::Reserved(String::from(VALUES)),
             Token::TokensList(vec![
-                Token::Term(Term::Literal(Literal{ valor: "3".to_string(), tipo: DataType::Bigint })),
+                Token::Term(Term::Literal(Literal{ valor: "3".to_string(), tipo: DataType::Integer })),
                 Token::Term(Term::Literal(Literal{ valor: "Thiago".to_string(), tipo: DataType::Text }))
             ]),
         ];
@@ -109,7 +109,7 @@ mod tests {
             table: "table_name".to_string(),
             headers: vec![String::from("id"), String::from("name")],
             values_list: vec![vec![
-                Literal { valor: "3".to_string(), tipo: DataType::Bigint },
+                Literal { valor: "3".to_string(), tipo: DataType::Integer },
                 Literal { valor: "Thiago".to_string(), tipo: DataType::Text },
             ]],
         };
