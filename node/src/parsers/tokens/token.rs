@@ -1,8 +1,5 @@
-use std::str::FromStr;
-
-use crate::utils::errors::Errors;
-
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum Token {
     Identifier(String),
     Term(Term),
@@ -12,21 +9,23 @@ pub enum Token {
 }
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum Term {
     Literal(Literal),
     AritmeticasMath(AritmeticasMath),
-    AritmeticasBool(BooleanOperations)
+    AritmeticasBool(BooleanOperations),
 }
 
 #[allow(dead_code)]
-#[derive(Debug, PartialOrd, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Literal {
     pub valor: String,
     pub tipo: DataType,
 }
 
 #[allow(dead_code)]
-enum AritmeticasMath {
+#[derive(Debug)]
+pub enum AritmeticasMath {
     Suma,
     Resta,
     Division,
@@ -35,12 +34,14 @@ enum AritmeticasMath {
 }
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum BooleanOperations {
     Logical(LogicalOperators),
     Comparison(ComparisonOperators),
 }
 
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum LogicalOperators {
     Or,
     And,
@@ -48,6 +49,7 @@ pub enum LogicalOperators {
 }
 
 #[allow(dead_code)]
+#[derive(Debug, PartialEq)]
 pub enum ComparisonOperators {
     Less,
     Equal,
@@ -71,34 +73,32 @@ pub enum DataType {
 
 use DataType::*;
 
-pub fn compare_literals <T> (lit1: &Literal, lit2: &Literal, comparison: fn(&T, &T) -> bool) -> Result<bool, Errors>{
-    if lit1.tipo != lit2.tipo {
-        return Err(Errors::ProtocolError(format!("Cannot compare values of different types: {:?} and {:?}", lit1.tipo, lit2.tipo)));
-    }
-    match lit1.tipo {
-        Integer => {
-            let val1: i64 = lit1.valor.parse().map_err(|_| Errors::ProtocolError("Invalid bigint value".to_string()))?;
-            let val2: i64 = lit2.valor.parse().map_err(|_| Errors::ProtocolError("Invalid bigint value".to_string()))?;
-            Ok(comparison(&val1, &val2))
-        },
-        Decimal => {
-            let val1: f64 = lit1.valor.parse().map_err(|_| Errors::ProtocolError("Invalid decimal value".to_string()))?;
-            let val2: f64 = lit2.valor.parse().map_err(|_| Errors::ProtocolError("Invalid decimal value".to_string()))?;
-            Ok(comparison(&val1, &val2))
-        },
-        Text => {
-            let val1: &str = &lit1.valor;
-            let val2: &str = &lit2.valor;
-            Ok(comparison(&val1, &val2))
-        },
-        Boolean => {
-            let val1: bool = lit1.valor.parse().map_err(|_| Errors::ProtocolError("Invalid boolean value".to_string()))?;
-            let val2: bool = lit2.valor.parse().map_err(|_| Errors::ProtocolError("Invalid boolean value".to_string()))?;
-            Ok(comparison(&val1, &val2))
-        },
-        Date => todo!(),
-        Duration => todo!(),
-        Time => todo!(),
+impl PartialOrd for Literal {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self.tipo != other.tipo {
+            return None;
+        }
+        match self.tipo {
+            Integer => {
+                let val1 = self.valor.parse::<i64>().ok()?;
+                let val2 = other.valor.parse::<i64>().ok()?;
+                Some(val1.cmp(&val2))
+            }
+            Boolean => {
+                let val1 = self.valor.parse::<bool>().ok()?;
+                let val2 = other.valor.parse::<bool>().ok()?;
+                Some(val1.cmp(&val2))
+            }
+            Decimal => {
+                let val1 = self.valor.parse::<f64>().ok()?;
+                let val2 = other.valor.parse::<f64>().ok()?;
+                Some(val1.partial_cmp(&val2)?)
+            }
+            Text => Some(self.valor.cmp(&other.valor)),
+            Date => todo!(),
+            Duration => todo!(),
+            Time => todo!(),
+        }
     }
 }
 

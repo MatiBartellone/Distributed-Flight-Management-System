@@ -1,89 +1,111 @@
-use crate::{parsers::{query_parsers::where_clause::comparison::ComparisonExpr, tokens::token::{BooleanOperations, ComparisonOperators, LogicalOperators, Term, Token}}, utils::errors::Errors};
-use crate::parsers::tokens::token::Literal;
 use super::boolean_expression::BooleanExpression;
+use crate::{
+    parsers::{
+        query_parsers::where_clause::comparison::ComparisonExpr,
+        tokens::token::{BooleanOperations, LogicalOperators, Term, Token},
+    },
+    utils::{
+        errors::Errors,
+        token_conversor::{
+            get_comparision_operator, get_identifier_string, get_list, get_literal, get_next_value,
+        },
+    },
+};
 
-use Token::*;
-use Term::*;
 use BooleanOperations::*;
 use LogicalOperators::*;
+use Term::*;
+use Token::*;
 
-use std::{ iter:: Peekable, vec::IntoIter};
+use std::{iter::Peekable, vec::IntoIter};
 
 pub struct WhereClauseParser;
 
 impl WhereClauseParser {
     pub fn parse(tokens: Vec<Token>) -> Result<Option<BooleanExpression>, Errors> {
-        Ok(Some(where_clause(&mut tokens.into_iter())?))
+        Ok(Some(where_clause(&mut tokens.into_iter().peekable())?))
     }
 }
 
-fn where_and_or(tokens: &mut IntoIter<Token>, left_expr: BooleanExpression) -> Result<BooleanExpression, Errors> {
+fn where_and_or(
+    tokens: &mut Peekable<IntoIter<Token>>,
+    left_expr: BooleanExpression,
+) -> Result<BooleanExpression, Errors> {
     match get_next_value(tokens) {
         Ok(Term(AritmeticasBool(Logical(And)))) => {
             let right_expr = where_clause(tokens)?;
-            Ok(BooleanExpression::And(Box::new(left_expr), Box::new(right_expr)))
+            Ok(BooleanExpression::And(
+                Box::new(left_expr),
+                Box::new(right_expr),
+            ))
         }
         Ok(Term(AritmeticasBool(Logical(Or)))) => {
             let right_expr = where_clause(tokens)?;
-            Ok(BooleanExpression::Or(Box::new(left_expr), Box::new(right_expr)))
+            Ok(BooleanExpression::Or(
+                Box::new(left_expr),
+                Box::new(right_expr),
+            ))
         }
         Err(_) => Ok(left_expr),
-        _ => Err(Errors::Invalid("Invalid Syntaxis in WHERE_CLAUSE".to_string()))
+        _ => Err(Errors::Invalid(
+            "Invalid Syntaxis in WHERE_CLAUSE".to_string(),
+        )),
     }
 }
 
-fn where_comparision(tokens: &mut IntoIter<Token>, column_name: String) -> Result<BooleanExpression, Errors> {
+fn where_comparision(
+    tokens: &mut Peekable<IntoIter<Token>>,
+    column_name: String,
+) -> Result<BooleanExpression, Errors> {
     let operator = get_comparision_operator(tokens)?;
     let literal = get_literal(tokens)?;
-    let expression = BooleanExpression::Comparation(ComparisonExpr::new(
-        column_name,
-        operator,
-        literal,
-    ));
+    let expression =
+        BooleanExpression::Comparation(ComparisonExpr::new(column_name, &operator, literal));
     where_and_or(tokens, expression)
 }
 
-fn where_comparisions(tokens: &mut IntoIter<Token>, column_names: Vec<Token>) -> Result<BooleanExpression, Errors> {
+fn where_tuple(
+    tokens: &mut Peekable<IntoIter<Token>>,
+    column_names: Vec<Token>,
+) -> Result<BooleanExpression, Errors> {
     let operator = get_comparision_operator(tokens)?;
     let literals = get_list(tokens)?;
-    if column_names.len() != literals.len(){
+    if column_names.len() != literals.len() {
         return Err(Errors::Invalid("Invalid tuples len".to_string()));
     }
-    let mut column_iter = column_names.into_iter();
-    let mut literal_iter = literals.into_iter();
+    let iterations = column_names.len();
+    let mut column_iter = column_names.into_iter().peekable();
+    let mut literal_iter = literals.into_iter().peekable();
 
     let mut tuple = Vec::new();
-    for _ in 0 .. column_names.len() {
-        let column_name = get_reserved_string(&mut column_iter)?;  
-        let literal = get_literal(&mut literal_iter)?; 
+    for _ in 0..iterations {
+        let column_name = get_identifier_string(&mut column_iter)?;
+        let literal = get_literal(&mut literal_iter)?;
 
-        let expression = ComparisonExpr::new(
-            column_name,
-            operator,
-            literal,
-        );
+        let expression = ComparisonExpr::new(column_name, &operator, literal);
 
         tuple.push(expression);
     }
-    Ok(BooleanExpression::Tuple(tuple)) 
+    let left_expr = BooleanExpression::Tuple(tuple);
+    where_and_or(tokens, left_expr)
 }
 
-fn where_list(tokens: &mut IntoIter<Token>, list: Vec<Token>) -> Result<BooleanExpression, Errors> {
-    let mut peekable_tokens = tokens.peekable();
-    match peekable_tokens.peek() {
+fn where_list(
+    tokens: &mut Peekable<IntoIter<Token>>,
+    list: Vec<Token>,
+) -> Result<BooleanExpression, Errors> {
+    match tokens.peek() {
         // [tupla, comparison, tupla, ...]
-        Some(Term(AritmeticasBool(Comparison(_)))) => where_comparisions(tokens, list),
-        // [lista]
-        None => where_clause(&mut list.into_iter()),
+        Some(Term(AritmeticasBool(Comparison(_)))) => where_tuple(tokens, list),
         // [lista, ...]
         _ => {
-            let left_expr = where_clause(&mut list.into_iter())?;
+            let left_expr = where_clause(&mut list.into_iter().peekable())?;
             where_and_or(tokens, left_expr)
         }
     }
 }
 
-fn where_clause(tokens: &mut IntoIter<Token>) -> Result<BooleanExpression, Errors> {
+fn where_clause(tokens: &mut Peekable<IntoIter<Token>>) -> Result<BooleanExpression, Errors> {
     match get_next_value(tokens)? {
         // [column_name, comparasion, literal, ...]
         Identifier(column_name) => where_comparision(tokens, column_name),
@@ -94,59 +116,340 @@ fn where_clause(tokens: &mut IntoIter<Token>) -> Result<BooleanExpression, Error
             let expression = where_clause(tokens)?;
             Ok(BooleanExpression::Not(Box::new(expression)))
         }
-        _ => Err(Errors::Invalid("Invalid Syntaxis in WHERE_CLAUSE".to_string()))
+        _ => Err(Errors::Invalid(
+            "Invalid Syntaxis in WHERE_CLAUSE".to_string(),
+        )),
     }
 }
 
-fn get_literal(tokens: &mut IntoIter<Token>) -> Result<Literal, Errors> {
-    let token = get_next_value(tokens)?;
-    match token {
-        Term(Term::Literal(literal)) => Ok(literal),
-        _ => Err(Errors::Invalid("Expected a literal".to_string())),
+#[cfg(test)]
+mod tests {
+    use super::WhereClauseParser;
+    use crate::parsers::query_parsers::where_clause::where_clause_parser::Term::AritmeticasBool;
+    use crate::parsers::tokens::token::LogicalOperators;
+    use crate::parsers::{
+        query_parsers::where_clause::{
+            boolean_expression::BooleanExpression, comparison::ComparisonExpr,
+        },
+        tokens::token::{BooleanOperations, ComparisonOperators, DataType, Literal, Term, Token},
+    };
+
+    fn test_successful_parser_case(caso: Vec<Token>, expected: Option<BooleanExpression>) {
+        let resultado = WhereClauseParser::parse(caso);
+        match resultado {
+            Ok(where_clause) => assert_eq!(where_clause, expected, "Resultado inesperado"),
+            Err(e) => panic!("Parser devolvió un error inesperado: {}", e.to_string()),
+        }
     }
-}
 
-fn get_comparision_operator(tokens: &mut IntoIter<Token>) -> Result<ComparisonOperators, Errors> {
-    let token = get_next_value(tokens)?;
-    match token {
-        Term(AritmeticasBool(Comparison(op))) => Ok(op),
-        _ => Err(Errors::Invalid("Expected comparision operator".to_string())),
+    fn test_parser_error_case(caso: Vec<Token>, mensaje_error_esperado: &str) {
+        let resultado = WhereClauseParser::parse(caso);
+        match resultado {
+            Ok(_) => panic!("Se esperaba un error"),
+            Err(e) => assert!(
+                e.to_string().contains(mensaje_error_esperado),
+                "Se esperaba un error que contenga '{}', pero se obtuvo: '{}'",
+                mensaje_error_esperado,
+                e.to_string()
+            ),
+        }
     }
-}
 
-fn get_logical_operator(tokens: &mut IntoIter<Token>) -> Result<LogicalOperators, Errors> {
-    let token = get_next_value(tokens)?;
-    match token {
-        Term(AritmeticasBool(Logical(op))) => Ok(op),
-        _ => Err(Errors::Invalid("Expected logical operator (AND, OR, NOT)".to_string())),
+    #[test]
+    fn test_parser_simple_comparation() {
+        // id = 8
+        let tokens = vec![
+            Token::Identifier("id".to_string()),
+            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
+                ComparisonOperators::Equal,
+            ))),
+            Token::Term(Term::Literal(Literal {
+                valor: "8".to_string(),
+                tipo: DataType::Integer,
+            })),
+        ];
+
+        let expected = Some(BooleanExpression::Comparation(ComparisonExpr::new(
+            "id".to_string(),
+            &ComparisonOperators::Equal,
+            Literal {
+                valor: "8".to_string(),
+                tipo: DataType::Integer,
+            },
+        )));
+
+        test_successful_parser_case(tokens, expected);
     }
-}
 
-fn get_reserved_string(tokens: &mut IntoIter<Token>) -> Result<String ,Errors> {
-    let token = get_next_value(tokens)?;
-    match token {
-        Reserved(string) => Ok(string),
-        _ => Err(Errors::Invalid("Expected tuple".to_string())),
+    #[test]
+    fn test_parser_and_comparison() {
+        // name = Alice AND id != 20
+        let tokens = vec![
+            Token::Identifier("name".to_string()),
+            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
+                ComparisonOperators::Equal,
+            ))),
+            Token::Term(Term::Literal(Literal {
+                valor: "Alice".to_string(),
+                tipo: DataType::Text,
+            })),
+            Token::Term(AritmeticasBool(BooleanOperations::Logical(
+                LogicalOperators::And,
+            ))),
+            Token::Identifier("id".to_string()),
+            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
+                ComparisonOperators::NotEqual,
+            ))),
+            Token::Term(Term::Literal(Literal {
+                valor: "20".to_string(),
+                tipo: DataType::Integer,
+            })),
+        ];
+
+        let expected = Some(BooleanExpression::And(
+            Box::new(BooleanExpression::Comparation(ComparisonExpr::new(
+                "name".to_string(),
+                &ComparisonOperators::Equal,
+                Literal {
+                    valor: "Alice".to_string(),
+                    tipo: DataType::Text,
+                },
+            ))),
+            Box::new(BooleanExpression::Comparation(ComparisonExpr::new(
+                "id".to_string(),
+                &ComparisonOperators::NotEqual,
+                Literal {
+                    valor: "20".to_string(),
+                    tipo: DataType::Integer,
+                },
+            ))),
+        ));
+
+        test_successful_parser_case(tokens, expected);
     }
-}
 
-fn get_list(tokens: &mut IntoIter<Token>) -> Result<Vec<Token>, Errors> {
-    let token = get_next_value(tokens)?;
-    match token {
-        TokensList(token_list) => Ok(token_list),
-        _ => Err(Errors::Invalid("Expected tuple".to_string())),
+    #[test]
+    fn test_parser_not_clause() {
+        // NOT is_active = true
+        let tokens = vec![
+            Token::Term(AritmeticasBool(BooleanOperations::Logical(
+                LogicalOperators::Not,
+            ))),
+            Token::Identifier("is_active".to_string()),
+            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
+                ComparisonOperators::Equal,
+            ))),
+            Token::Term(Term::Literal(Literal {
+                valor: "true".to_string(),
+                tipo: DataType::Boolean,
+            })),
+        ];
+
+        let expected = Some(BooleanExpression::Not(Box::new(
+            BooleanExpression::Comparation(ComparisonExpr::new(
+                "is_active".to_string(),
+                &ComparisonOperators::Equal,
+                Literal {
+                    valor: "true".to_string(),
+                    tipo: DataType::Boolean,
+                },
+            )),
+        )));
+
+        test_successful_parser_case(tokens, expected);
     }
-}
 
-fn get_next_value(tokens: &mut IntoIter<Token>) -> Result<Token, Errors> {
-    tokens.next().ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))
-}
+    #[test]
+    fn test_parser_tuple_comparation() {
+        // (id, name) = (5, 'ivan')
+        let tokens = vec![
+            Token::TokensList(vec![
+                Token::Identifier("id".to_string()),
+                Token::Identifier("name".to_string()),
+            ]),
+            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
+                ComparisonOperators::Equal,
+            ))),
+            Token::TokensList(vec![
+                Token::Term(Term::Literal(Literal {
+                    valor: "5".to_string(),
+                    tipo: DataType::Integer,
+                })),
+                Token::Term(Term::Literal(Literal {
+                    valor: "ivan".to_string(),
+                    tipo: DataType::Text,
+                })),
+            ]),
+        ];
 
-fn peek_next_value(peekable_tokens: &mut Peekable<IntoIter<Token>>) -> Result<&Token, Errors> {
-    peekable_tokens.peek().ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))
-}
+        let expected = Some(BooleanExpression::Tuple(vec![
+            ComparisonExpr::new(
+                "id".to_string(),
+                &ComparisonOperators::Equal,
+                Literal {
+                    valor: "5".to_string(),
+                    tipo: DataType::Integer,
+                },
+            ),
+            ComparisonExpr::new(
+                "name".to_string(),
+                &ComparisonOperators::Equal,
+                Literal {
+                    valor: "ivan".to_string(),
+                    tipo: DataType::Text,
+                },
+            ),
+        ]));
 
-fn iter_is_empty(tokens: &mut IntoIter<Token>) -> bool {
-    let mut peekable = tokens.peekable();
-    peekable.peek().is_none()
+        test_successful_parser_case(tokens, expected);
+    }
+
+    #[test]
+    fn test_parser_invalid_case_missing_comparator() {
+        // age 18
+        let tokens = vec![
+            Token::Identifier("age".to_string()),
+            Token::Term(Term::Literal(Literal {
+                valor: "18".to_string(),
+                tipo: DataType::Integer,
+            })),
+        ];
+
+        test_parser_error_case(tokens, "Expected comparision operator");
+    }
+
+    #[test]
+    fn test_parser_invalid_case_unexpected_token() {
+        // Alice AND
+        let tokens = vec![
+            Token::Term(Term::Literal(Literal {
+                valor: "Alice".to_string(),
+                tipo: DataType::Text,
+            })),
+            Token::Term(AritmeticasBool(BooleanOperations::Logical(
+                LogicalOperators::And,
+            ))),
+        ];
+
+        test_parser_error_case(tokens, "Invalid Syntaxis in WHERE_CLAUSE");
+    }
+
+    #[test]
+    fn test_parser_multiple_operations() {
+        // (id, name) = (5, 'ivan') AND NOT is_active = true OR age < 30
+        let tokens = vec![
+            Token::TokensList(vec![
+                Token::Identifier("id".to_string()),
+                Token::Identifier("name".to_string()),
+            ]),
+            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
+                ComparisonOperators::Equal,
+            ))),
+            Token::TokensList(vec![
+                Token::Term(Term::Literal(Literal {
+                    valor: "5".to_string(),
+                    tipo: DataType::Integer,
+                })),
+                Token::Term(Term::Literal(Literal {
+                    valor: "ivan".to_string(),
+                    tipo: DataType::Text,
+                })),
+            ]),
+            Token::Term(AritmeticasBool(BooleanOperations::Logical(
+                LogicalOperators::And,
+            ))),
+            Token::Term(AritmeticasBool(BooleanOperations::Logical(
+                LogicalOperators::Not,
+            ))),
+            Token::Identifier("is_active".to_string()),
+            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
+                ComparisonOperators::Equal,
+            ))),
+            Token::Term(Term::Literal(Literal {
+                valor: "true".to_string(),
+                tipo: DataType::Boolean,
+            })),
+            Token::Term(AritmeticasBool(BooleanOperations::Logical(
+                LogicalOperators::Or,
+            ))),
+            Token::Identifier("age".to_string()),
+            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
+                ComparisonOperators::Less,
+            ))),
+            Token::Term(Term::Literal(Literal {
+                valor: "30".to_string(),
+                tipo: DataType::Integer,
+            })),
+        ];
+
+        // (id, name) = (5, 'ivan') AND NOT is_active = true OR age < 30
+        let expected = Some(BooleanExpression::And(
+            Box::new(BooleanExpression::Tuple(vec![
+                ComparisonExpr::new(
+                    "id".to_string(),
+                    &ComparisonOperators::Equal,
+                    Literal {
+                        valor: "5".to_string(),
+                        tipo: DataType::Integer,
+                    },
+                ),
+                ComparisonExpr::new(
+                    "name".to_string(),
+                    &ComparisonOperators::Equal,
+                    Literal {
+                        valor: "ivan".to_string(),
+                        tipo: DataType::Text,
+                    },
+                ),
+            ])),
+            Box::new(BooleanExpression::Not(Box::new(BooleanExpression::Or(
+                Box::new(BooleanExpression::Comparation(ComparisonExpr::new(
+                    "is_active".to_string(),
+                    &ComparisonOperators::Equal,
+                    Literal {
+                        valor: "true".to_string(),
+                        tipo: DataType::Boolean,
+                    },
+                ))),
+                Box::new(BooleanExpression::Comparation(ComparisonExpr::new(
+                    "age".to_string(),
+                    &ComparisonOperators::Less,
+                    Literal {
+                        valor: "30".to_string(),
+                        tipo: DataType::Integer,
+                    },
+                ))),
+            )))),
+        ));
+        test_successful_parser_case(tokens, expected);
+    }
+
+    /// Este test lo cree porque no me estaba funcionando algo del peek que capaz despues intento cambiar asi que lo dejo aca
+    #[test]
+    fn test_peek() {
+        let mut tokens = vec![
+            Token::Identifier("id".to_string()),
+            Token::Term(Term::Literal(Literal {
+                valor: "5".to_string(),
+                tipo: DataType::Integer,
+            })),
+            Token::Term(Term::Literal(Literal {
+                valor: "ivan".to_string(),
+                tipo: DataType::Text,
+            })),
+        ]
+        .into_iter()
+        .peekable();
+
+        let peeked = tokens.peek(); // Esto no consume el token
+
+        // Comprobación
+        if let Some(token) = peeked {
+            println!("El siguiente token es: {:?}", token);
+        }
+
+        // Ahora, consume el siguiente token
+        let next = tokens.next();
+        println!("Token consumido: {:?}", next);
+    }
 }
