@@ -1,5 +1,2 @@
 [workspace]
-members = [
-    "node"
-]
-
+members = ["node"]
