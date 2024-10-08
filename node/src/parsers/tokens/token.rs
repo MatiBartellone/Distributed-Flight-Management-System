@@ -12,7 +12,7 @@ pub enum Token {
 }
 
 #[allow(dead_code)]
-enum Term {
+pub enum Term {
     Literal(Literal),
     AritmeticasMath(AritmeticasMath),
     AritmeticasBool(BooleanOperations)
@@ -35,7 +35,7 @@ enum AritmeticasMath {
 }
 
 #[allow(dead_code)]
-enum BooleanOperations {
+pub enum BooleanOperations {
     Logical(LogicalOperators),
     Comparison(ComparisonOperators),
 }
@@ -59,7 +59,7 @@ pub enum ComparisonOperators {
 
 #[allow(dead_code)]
 #[derive(Debug, PartialOrd, PartialEq)]
-enum DataType {
+pub enum DataType {
     Integer,
     Boolean,
     Date,
