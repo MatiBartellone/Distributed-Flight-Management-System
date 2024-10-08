@@ -3,13 +3,13 @@ use std::collections::HashMap;
 use crate::{parsers::tokens::token::Literal, utils::errors::Errors};
 use BooleanExpression::*;
 
-use super::{comparison::Comparison, evaluate::Evaluate};
+use super::{comparison::ComparisonExpr, evaluate::Evaluate};
 
 /// Enum para representar diferentes tipos de expresiones booleanas.
 // #[derive(Debug, PartialEq)]
 pub enum BooleanExpression {
-    Comparation(Comparison),
-    Tuple(Vec<Comparison>),
+    Comparation(ComparisonExpr),
+    Tuple(Vec<ComparisonExpr>),
     And(Box<BooleanExpression>, Box<BooleanExpression>),
     Or(Box<BooleanExpression>, Box<BooleanExpression>),
     Not(Box<BooleanExpression>)
