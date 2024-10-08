@@ -1,11 +1,42 @@
-
 use std::collections::HashSet;
 
 const PALABRAS_RESERVADAS: &[&str] = &[
-    "SELECT", "INSERT", "ALTER", "AND", "ASC", "AS", "BATCH", "BY", "CREATE", "DELETE", 
-    "DESC", "DISTINCT", "DROP", "FROM", "IF", "INTO", "KEY", "KEYS", "KEYSPACE", "KEYSPACES", 
-    "NOT", "NULL", "OR", "PRIMARY", "RENAME", "REPLACE", "SET", "TABLE", "TO", "TRUNCATE", 
-    "UPDATE", "USE", "USING", "VALUES", "WHERE", "WITH"
+    "SELECT",
+    "INSERT",
+    "ALTER",
+    "AND",
+    "ASC",
+    "AS",
+    "BATCH",
+    "BY",
+    "CREATE",
+    "DELETE",
+    "DESC",
+    "DISTINCT",
+    "DROP",
+    "FROM",
+    "IF",
+    "INTO",
+    "KEY",
+    "KEYS",
+    "KEYSPACE",
+    "KEYSPACES",
+    "NOT",
+    "NULL",
+    "OR",
+    "PRIMARY",
+    "RENAME",
+    "REPLACE",
+    "SET",
+    "TABLE",
+    "TO",
+    "TRUNCATE",
+    "UPDATE",
+    "USE",
+    "USING",
+    "VALUES",
+    "WHERE",
+    "WITH",
 ];
 
 struct WordsReserved {
