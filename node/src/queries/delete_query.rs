@@ -1,14 +1,15 @@
+use crate::parsers::query_parsers::where_clause::boolean_expression::BooleanExpression;
 
 pub struct DeleteQuery {
     pub table: String,
-    pub where_clause: Vec<String>,
+    pub where_clause: Option<BooleanExpression>,
 }
 
 impl DeleteQuery {
     pub fn new() -> Self {
-        Self{
+        Self {
             table: String::new(),
-            where_clause: Vec::new(),
+            where_clause: None,
         }
     }
 }

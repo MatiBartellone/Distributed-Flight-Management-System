@@ -53,7 +53,6 @@ impl Parser for AuthResponseParser {
         )))
     }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;

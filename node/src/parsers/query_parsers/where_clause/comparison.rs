@@ -1,35 +1,40 @@
 use std::collections::HashMap;
 
-use crate::{parsers::tokens::token::{compare_literals, ComparisonOperators, Literal}, utils::errors::Errors};
+use crate::{
+    parsers::tokens::token::{compare_literals, ComparisonOperators, Literal},
+    utils::errors::Errors,
+};
 
-use ComparisonOperators::*;
 use super::evaluate::Evaluate;
+use ComparisonOperators::*;
 
-pub struct ComparisonExpr  {
+pub struct ComparisonExpr {
     column_name: String,
     operator: ComparisonOperators,
     literal: Literal,
 }
 
 impl ComparisonExpr {
-    pub fn new(column_name: String, operator: ComparisonOperators,  literal: Literal) -> Self {
-    ComparisonExpr  {
-           column_name,
-           operator,
-           literal
-       }
-   }
+    pub fn new(column_name: String, operator: ComparisonOperators, literal: Literal) -> Self {
+        ComparisonExpr {
+            column_name,
+            operator,
+            literal,
+        }
+    }
 }
 
-
-fn get_column_value<'a>(column_name: &String, row: &'a HashMap<String, Literal>) -> Result<&'a Literal, Errors> {
+fn get_column_value<'a>(
+    column_name: &String,
+    row: &'a HashMap<String, Literal>,
+) -> Result<&'a Literal, Errors> {
     match row.get(column_name) {
         Some(literal) => Ok(literal),
         None => Err(Errors::Invalid(format!("Column {} not found", column_name))),
     }
 }
 
-impl Evaluate for ComparisonExpr  {
+impl Evaluate for ComparisonExpr {
     /// Evalúa una comapracion usando los valores Columna -> Valor de una fila
     fn evaluate(&self, row: &HashMap<String, Literal>) -> Result<bool, Errors> {
         let column_literal = get_column_value(&self.column_name, row)?;
