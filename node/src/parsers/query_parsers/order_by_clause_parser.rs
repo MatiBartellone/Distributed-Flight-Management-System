@@ -1,10 +1,10 @@
-use std::vec::IntoIter;
 use crate::parsers::tokens::token::Token;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::utils::errors::Errors;
+use std::vec::IntoIter;
 
-const ASC : &str = "ASC";
-const DESC  : &str = "DESC";
+const ASC: &str = "ASC";
+const DESC: &str = "DESC";
 pub struct OrderByClauseParser;
 
 impl OrderByClauseParser {
@@ -15,24 +15,56 @@ impl OrderByClauseParser {
     }
 }
 
-fn column(tokens: &mut IntoIter<Token>, order_clauses: &mut Vec<OrderByClause>, modified: bool) -> Result<(), Errors> {
-    let Some(token) = tokens.next() else { return Ok(()) };
+fn column(
+    tokens: &mut IntoIter<Token>,
+    order_clauses: &mut Vec<OrderByClause>,
+    modified: bool,
+) -> Result<(), Errors> {
+    let Some(token) = tokens.next() else {
+        return Ok(());
+    };
     match token {
-        Token::Identifier(identifier)  => {
+        Token::Identifier(identifier) => {
             order_clauses.push(OrderByClause::new(identifier));
             column(tokens, order_clauses, false)
-        },
-        Token::Reserved(res) if res == *DESC || res == *ASC => {
-            if modified { return Err(Errors::SyntaxError(String::from("Cannot use two types of order together, a column is missing")))}
-            change_last_to_desc(order_clauses, res)?;
+        }
+        Token::Reserved(res) if res == *ASC => {
+            if modified {
+                return Err(Errors::SyntaxError(String::from(
+                    "Cannot use two types of order together, a column is missing",
+                )));
+            };
+            if order_clauses.is_empty() {
+                return Err(Errors::SyntaxError(String::from(
+                    "No column provided for ASC modifier",
+                )));
+            };
             column(tokens, order_clauses, true)
-        },
-        _ => Err(Errors::SyntaxError(String::from("Unexpected token in order by clause"))),
+        }
+        Token::Reserved(res) if res == *DESC => {
+            if modified {
+                return Err(Errors::SyntaxError(String::from(
+                    "Cannot use two types of order together, a column is missing",
+                )));
+            }
+            change_last_to_desc(order_clauses)?;
+            column(tokens, order_clauses, true)
+        }
+        _ => Err(Errors::SyntaxError(String::from(
+            "Unexpected token in order by clause",
+        ))),
     }
 }
-fn change_last_to_desc(order_clauses: &mut Vec<OrderByClause>, order: String) -> Result<(), Errors> {
-    let Some(order_clause) = order_clauses.pop() else { return Err(Errors::SyntaxError(format!("No column provided for {} modifier", order))) };
-    order_clauses.push(OrderByClause::new_with_order(order_clause.column, order));
+fn change_last_to_desc(order_clauses: &mut Vec<OrderByClause>) -> Result<(), Errors> {
+    let Some(order_clause) = order_clauses.pop() else {
+        return Err(Errors::SyntaxError(String::from(
+            "No column provided for DESC modifier",
+        )));
+    };
+    order_clauses.push(OrderByClause::new_with_order(
+        order_clause.column,
+        DESC.to_string(),
+    ));
     Ok(())
 }
 #[cfg(test)]
@@ -41,6 +73,32 @@ mod tests {
     use crate::parsers::tokens::token::Token;
     use crate::utils::errors::Errors;
 
+    fn assert_column(n: usize, column: &str, order: &str, order_clauses: &[OrderByClause]) {
+        assert_eq!(order_clauses[n].column, column);
+        assert_eq!(order_clauses[n].order, order);
+    }
+
+    fn assert_one_non_error_column(
+        result: Result<Vec<OrderByClause>, Errors>,
+        column: &str,
+        order: &str,
+    ) {
+        assert!(result.is_ok());
+
+        let order_clauses = result.unwrap();
+        assert_eq!(order_clauses.len(), 1);
+        assert_column(0, column, order, &order_clauses);
+    }
+
+    fn assert_error(result: Result<Vec<OrderByClause>, Errors>, expected: &str) {
+        assert!(result.is_err());
+
+        let error = result.unwrap_err();
+        if let Errors::SyntaxError(msg) = error {
+            assert_eq!(msg, expected);
+        }
+    }
+
     #[test]
     fn test_parse_single_column_asc() {
         let tokens = vec![
@@ -48,26 +106,14 @@ mod tests {
             Token::Reserved(String::from(ASC)),
         ];
         let result = OrderByClauseParser::parse(tokens);
-        assert!(result.is_ok());
-
-        let order_clauses = result.unwrap();
-        assert_eq!(order_clauses.len(), 1);
-        assert_eq!(order_clauses[0].column, "column");
-        assert_eq!(order_clauses[0].order, ASC);
+        assert_one_non_error_column(result, "column", ASC);
     }
 
     #[test]
     fn test_parse_single_column_asc_default() {
-        let tokens = vec![
-            Token::Identifier(String::from("column")),
-        ];
+        let tokens = vec![Token::Identifier(String::from("column"))];
         let result = OrderByClauseParser::parse(tokens);
-        assert!(result.is_ok());
-
-        let order_clauses = result.unwrap();
-        assert_eq!(order_clauses.len(), 1);
-        assert_eq!(order_clauses[0].column, "column");
-        assert_eq!(order_clauses[0].order, ASC);
+        assert_one_non_error_column(result, "column", ASC);
     }
 
     #[test]
@@ -77,12 +123,7 @@ mod tests {
             Token::Reserved(String::from(DESC)),
         ];
         let result = OrderByClauseParser::parse(tokens);
-        assert!(result.is_ok());
-
-        let order_clauses = result.unwrap();
-        assert_eq!(order_clauses.len(), 1);
-        assert_eq!(order_clauses[0].column, "column");
-        assert_eq!(order_clauses[0].order, DESC);
+        assert_one_non_error_column(result, "column", DESC);
     }
 
     #[test]
@@ -99,40 +140,23 @@ mod tests {
 
         let order_clauses = result.unwrap();
         assert_eq!(order_clauses.len(), 3);
-        assert_eq!(order_clauses[0].column, "column1");
-        assert_eq!(order_clauses[0].order, ASC);
-        assert_eq!(order_clauses[1].column, "column2");
-        assert_eq!(order_clauses[1].order, ASC);
-        assert_eq!(order_clauses[2].column, "column3");
-        assert_eq!(order_clauses[2].order, DESC);
+        assert_column(0, "column1", ASC, &order_clauses);
+        assert_column(1, "column2", ASC, &order_clauses);
+        assert_column(2, "column3", DESC, &order_clauses);
     }
 
     #[test]
     fn test_parse_no_column() {
-        let tokens = vec![
-            Token::Reserved(String::from(ASC)),
-        ];
+        let tokens = vec![Token::Reserved(String::from(ASC))];
         let result = OrderByClauseParser::parse(tokens);
-        assert!(result.is_err());
-
-        let error = result.unwrap_err();
-        if let Errors::SyntaxError(msg) = error {
-            assert_eq!(msg, "No column provided for ASC modifier");
-        }
+        assert_error(result, "No column provided for ASC modifier");
     }
 
     #[test]
     fn test_parse_unexpected_token() {
-        let tokens = vec![
-            Token::Reserved(String::from("INVALID_TOKEN")),
-        ];
+        let tokens = vec![Token::Reserved(String::from("INVALID_TOKEN"))];
         let result = OrderByClauseParser::parse(tokens);
-        assert!(result.is_err());
-
-        let error = result.unwrap_err();
-        if let Errors::SyntaxError(msg) = error {
-            assert_eq!(msg, "Unexpected token in order by clause");
-        }
+        assert_error(result, "Unexpected token in order by clause");
     }
 
     #[test]
@@ -143,11 +167,9 @@ mod tests {
             Token::Reserved(String::from(DESC)),
         ];
         let result = OrderByClauseParser::parse(tokens);
-        assert!(result.is_err());
-
-        let error = result.unwrap_err();
-        if let Errors::SyntaxError(msg) = error {
-            assert_eq!(msg, "Cannot use two types of order together, a column is missing");
-        }
+        assert_error(
+            result,
+            "Cannot use two types of order together, a column is missing",
+        );
     }
 }

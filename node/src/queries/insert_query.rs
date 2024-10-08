@@ -10,7 +10,7 @@ pub struct InsertQuery {
 
 impl InsertQuery {
     pub fn new() -> Self {
-        Self{
+        Self {
             table: String::new(),
             headers: Vec::new(),
             values_list: Vec::new(),

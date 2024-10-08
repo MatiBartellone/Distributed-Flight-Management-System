@@ -1,7 +1,3 @@
-use std::str::FromStr;
-
-use crate::utils::errors::Errors;
-
 #[allow(dead_code)]
 pub enum Token {
     Identifier(String),
@@ -10,96 +6,48 @@ pub enum Token {
     DataType(DataType),
     TokensList(Vec<Token>),
 }
-
 #[allow(dead_code)]
 pub enum Term {
     Literal(Literal),
     AritmeticasMath(AritmeticasMath),
-    AritmeticasBool(BooleanOperations)
+    AritmeticasBool(AritmeticasBool),
 }
-
 #[allow(dead_code)]
-#[derive(Debug, PartialOrd, PartialEq)]
+#[derive(PartialEq, Debug)]
 pub struct Literal {
     pub valor: String,
     pub tipo: DataType,
 }
-
 #[allow(dead_code)]
-enum AritmeticasMath {
+pub enum AritmeticasMath {
     Suma,
     Resta,
     Division,
     Resto,
     Multiplication,
 }
-
 #[allow(dead_code)]
-pub enum BooleanOperations {
-    Logical(LogicalOperators),
-    Comparison(ComparisonOperators),
-}
-
-#[allow(dead_code)]
-pub enum LogicalOperators {
+pub enum AritmeticasBool {
     Or,
     And,
     Not,
+    Menor,
+    Igual,
+    Disinto,
+    Mayor,
+    MayorIgual,
+    MenorIgual,
 }
-
 #[allow(dead_code)]
-pub enum ComparisonOperators {
-    Less,
-    Equal,
-    NotEqual,
-    Greater,
-    GreaterOrEqual,
-    LessOrEqual,
-}
-
-#[allow(dead_code)]
-#[derive(Debug, PartialOrd, PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum DataType {
-    Integer,
+    Bigint,
     Boolean,
     Date,
     Decimal,
     Text,
     Duration,
     Time,
-}
-
-use DataType::*;
-
-pub fn compare_literals <T> (lit1: &Literal, lit2: &Literal, comparison: fn(&T, &T) -> bool) -> Result<bool, Errors>{
-    if lit1.tipo != lit2.tipo {
-        return Err(Errors::ProtocolError(format!("Cannot compare values of different types: {:?} and {:?}", lit1.tipo, lit2.tipo)));
-    }
-    match lit1.tipo {
-        Integer => {
-            let val1: i64 = lit1.valor.parse().map_err(|_| Errors::ProtocolError("Invalid bigint value".to_string()))?;
-            let val2: i64 = lit2.valor.parse().map_err(|_| Errors::ProtocolError("Invalid bigint value".to_string()))?;
-            Ok(comparison(&val1, &val2))
-        },
-        Decimal => {
-            let val1: f64 = lit1.valor.parse().map_err(|_| Errors::ProtocolError("Invalid decimal value".to_string()))?;
-            let val2: f64 = lit2.valor.parse().map_err(|_| Errors::ProtocolError("Invalid decimal value".to_string()))?;
-            Ok(comparison(&val1, &val2))
-        },
-        Text => {
-            let val1: &str = &lit1.valor;
-            let val2: &str = &lit2.valor;
-            Ok(comparison(&val1, &val2))
-        },
-        Boolean => {
-            let val1: bool = lit1.valor.parse().map_err(|_| Errors::ProtocolError("Invalid boolean value".to_string()))?;
-            let val2: bool = lit2.valor.parse().map_err(|_| Errors::ProtocolError("Invalid boolean value".to_string()))?;
-            Ok(comparison(&val1, &val2))
-        },
-        Date => todo!(),
-        Duration => todo!(),
-        Time => todo!(),
-    }
 }
 
 // #[allow(dead_code)]
