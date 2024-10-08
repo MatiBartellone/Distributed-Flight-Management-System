@@ -13,22 +13,22 @@ struct Credential {
     pass: String,
 }
 
-pub struct JWTAuthenticator;
+pub struct PasswordAuthenticator;
 
-impl Authenticator for JWTAuthenticator {
+impl Authenticator for PasswordAuthenticator {
     fn validate_credentials(&self, user: String, pass: String) -> Result<bool, Errors> {
         self.access_credentials(&user, &pass)
     }
 }
-impl Default for JWTAuthenticator {
+impl Default for PasswordAuthenticator {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl JWTAuthenticator {
-    pub fn new() -> JWTAuthenticator {
-        JWTAuthenticator {}
+impl PasswordAuthenticator {
+    pub fn new() -> PasswordAuthenticator {
+        PasswordAuthenticator {}
     }
 
     fn access_credentials(&self, user: &str, pass: &str) -> Result<bool, Errors> {
@@ -55,7 +55,7 @@ mod tests {
     // LOS TESTS SE BASAN EN QUE EXISTA EL USER "admin" y PASS "password"
     #[test]
     fn test_valid_credentials() {
-        let authenticator = JWTAuthenticator::new();
+        let authenticator = PasswordAuthenticator::new();
         let result =
             authenticator.validate_credentials("admin".to_string(), "password".to_string());
         assert!(result.is_ok());
@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn test_invalid_password() {
-        let authenticator = JWTAuthenticator::new();
+        let authenticator = PasswordAuthenticator::new();
         let result =
             authenticator.validate_credentials("admin".to_string(), "invalid_password".to_string());
         assert!(result.is_ok());
@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_invalid_username() {
-        let authenticator = JWTAuthenticator::new();
+        let authenticator = PasswordAuthenticator::new();
         let result =
             authenticator.validate_credentials("invalid_user".to_string(), "password".to_string());
         assert!(result.is_ok());

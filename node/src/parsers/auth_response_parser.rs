@@ -1,6 +1,6 @@
 use core::str;
 
-use crate::auth::jwt_authenticator::JWTAuthenticator;
+use crate::auth::password_authenticator::PasswordAuthenticator;
 use crate::executables::auth_response_executable::AuthResponseExecutable;
 use crate::executables::executable::Executable;
 use crate::parsers::parser::Parser;
@@ -49,7 +49,7 @@ impl Parser for AuthResponseParser {
         Ok(Box::new(AuthResponseExecutable::new(
             user,
             password,
-            Box::new(JWTAuthenticator::new()),
+            Box::new(PasswordAuthenticator::new()),
         )))
     }
 }

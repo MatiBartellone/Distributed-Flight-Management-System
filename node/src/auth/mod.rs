@@ -1,3 +1,2 @@
 pub mod authenticator;
-pub mod jwt_authenticator;
-
+pub mod password_authenticator;
