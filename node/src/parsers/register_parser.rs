@@ -10,4 +10,3 @@ impl Parser for RegisterParser {
         Ok(Box::new(RegisterExecutable))
     }
 }
-

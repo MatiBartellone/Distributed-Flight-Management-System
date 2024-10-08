@@ -1,4 +1,3 @@
-
 #[derive(Debug)]
 pub struct OrderByClause {
     pub column: String,
@@ -14,9 +13,6 @@ impl OrderByClause {
     }
 
     pub fn new_with_order(column: String, order: String) -> Self {
-        OrderByClause {
-            column,
-            order
-        }
+        OrderByClause { column, order }
     }
 }

@@ -10,7 +10,7 @@ pub enum Token {
 pub enum Term {
     Literal(Literal),
     AritmeticasMath(AritmeticasMath),
-    AritmeticasBool(AritmeticasBool)
+    AritmeticasBool(AritmeticasBool),
 }
 #[allow(dead_code)]
 #[derive(PartialEq, Debug)]
@@ -30,13 +30,13 @@ pub enum AritmeticasMath {
 pub enum AritmeticasBool {
     Or,
     And,
-    Not, 
+    Not,
     Menor,
     Igual,
     Disinto,
     Mayor,
     MayorIgual,
-    MenorIgual
+    MenorIgual,
 }
 #[allow(dead_code)]
 #[derive(PartialEq, Debug)]
