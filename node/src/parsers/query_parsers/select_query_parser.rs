@@ -1,8 +1,9 @@
-use std::vec::IntoIter;
 use crate::parsers::query_parsers::order_by_clause_parser::OrderByClauseParser;
+use crate::parsers::query_parsers::where_clause_::where_clause_parser::WhereClauseParser;
 use crate::parsers::tokens::token::Token;
 use crate::queries::select_query::SelectQuery;
 use crate::utils::errors::Errors;
+use std::vec::IntoIter;
 
 const FROM: &str = "FROM";
 const WHERE: &str = "WHERE";
@@ -24,7 +25,7 @@ fn columns(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<(), 
         Token::TokensList(list) => {
             query.columns = get_columns(list)?;
             from(tokens, query)
-        },
+        }
         _ => Err(Errors::SyntaxError(String::from(
             "Unexpected token in columns",
         ))),
@@ -67,7 +68,7 @@ fn modifiers(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<()
 fn where_clause(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::TokensList(list) => {
-            //query.where_clause = WhereClauseParser::parse(list)?;
+            query.where_clause = WhereClauseParser::parse(list)?;
             order(tokens, query)
         }
         _ => Err(Errors::SyntaxError(String::from(
@@ -134,11 +135,10 @@ fn get_next_value(tokens: &mut IntoIter<Token>) -> Result<Token, Errors> {
         .ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::parsers::tokens::token::{Token};
     use super::*;
+    use crate::parsers::tokens::token::Token;
 
     fn assert_error(result: Result<SelectQuery, Errors>, expected: &str) {
         assert!(result.is_err());
@@ -172,7 +172,8 @@ mod tests {
     fn test_select_query_parser_missing_from() {
         let tokens = vec![
             Token::TokensList(vec![Token::Identifier(String::from("id"))]),
-            Token::Reserved(String::from("NOT FROM"))];
+            Token::Reserved(String::from("NOT FROM")),
+        ];
         let result = SelectQueryParser::parse(tokens);
         assert_error(result, "Columns not followed by FROM");
     }
