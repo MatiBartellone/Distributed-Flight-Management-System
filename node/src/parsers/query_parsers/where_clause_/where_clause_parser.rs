@@ -3,9 +3,7 @@ use crate::{
     parsers::tokens::token::{BooleanOperations, LogicalOperators, Term, Token},
     utils::{
         errors::Errors,
-        token_conversor::{
-            get_comparision_operator, get_list, get_literal, get_next_value,
-        },
+        token_conversor::{get_comparision_operator, get_list, get_literal, get_next_value},
     },
 };
 
@@ -30,7 +28,7 @@ fn where_and_or(
 ) -> Result<WhereClause, Errors> {
     match get_next_value(tokens) {
         // [left_expre, AND, ...]
-        Ok(Term(AritmeticasBool(Logical(And)))) => Ok(and_expr(left_expr,where_clause(tokens)?)),
+        Ok(Term(AritmeticasBool(Logical(And)))) => Ok(and_expr(left_expr, where_clause(tokens)?)),
         // [left_expre, OR, ...]
         Ok(Term(AritmeticasBool(Logical(Or)))) => Ok(or_expr(left_expr, where_clause(tokens)?)),
         Err(_) => Ok(left_expr),
@@ -95,25 +93,28 @@ fn where_clause(tokens: &mut Peekable<IntoIter<Token>>) -> Result<WhereClause, E
 #[cfg(test)]
 mod tests {
     use super::WhereClauseParser;
-    use crate::parsers::query_parsers::where_clause::where_clause::{and_expr, comparison_expr, not_expr, or_expr, tuple_expr};
+    use crate::parsers::query_parsers::where_clause_::where_clause::{
+        and_expr, comparison_expr, not_expr, or_expr, tuple_expr,
+    };
     use crate::parsers::tokens::token::{create_literal, LogicalOperators};
-    use Token::*;
-    use LogicalOperators::*;
-    use ComparisonOperators::*;
-    use DataType::*;
     use crate::parsers::{
-        query_parsers::where_clause::{
-            where_clause::WhereClause, comparison::ComparisonExpr,
-        },
+        query_parsers::where_clause_::{comparison::ComparisonExpr, where_clause::WhereClause},
         tokens::token::{ComparisonOperators, DataType, Literal, Term, Token},
     };
-    use crate::utils::token_conversor::{create_comparison_operation_token, create_identifier_token, create_logical_operation_token, create_token_literal};
+    use crate::utils::token_conversor::{
+        create_comparison_operation_token, create_identifier_token, create_logical_operation_token,
+        create_token_literal,
+    };
+    use ComparisonOperators::*;
+    use DataType::*;
+    use LogicalOperators::*;
+    use Token::*;
 
     fn test_successful_parser_case(caso: Vec<Token>, expected: Option<WhereClause>) {
         let resultado = WhereClauseParser::parse(caso);
         match resultado {
             Ok(where_clause) => assert_eq!(where_clause, expected, "Resultado inesperado"),
-            Err(e) => panic!("Parser devolvió un error inesperado: {}", e.to_string()),
+            Err(e) => panic!("Parser devolvió un error inesperado: {}", e),
         }
     }
 
@@ -125,7 +126,7 @@ mod tests {
                 e.to_string().contains(mensaje_error_esperado),
                 "Se esperaba un error que contenga '{}', pero se obtuvo: '{}'",
                 mensaje_error_esperado,
-                e.to_string()
+                e
             ),
         }
     }
@@ -136,7 +137,7 @@ mod tests {
         let tokens = vec![
             create_identifier_token("id"),
             create_comparison_operation_token(Equal),
-            create_token_literal("8", Integer)
+            create_token_literal("8", Integer),
         ];
         let expected = Some(comparison_expr("id", Equal, create_literal("8", Integer)));
         test_successful_parser_case(tokens, expected);
@@ -167,15 +168,17 @@ mod tests {
     fn test_parser_not_clause() {
         // NOT is_active = true
         let tokens = vec![
-            create_logical_operation_token( LogicalOperators::Not),
+            create_logical_operation_token(LogicalOperators::Not),
             create_identifier_token("is_active"),
             create_comparison_operation_token(ComparisonOperators::Equal),
             create_token_literal("true", DataType::Boolean),
         ];
 
-        let expected = Some(not_expr(
-            comparison_expr("is_active", ComparisonOperators::Equal, create_literal("true", DataType::Boolean),),
-        ));
+        let expected = Some(not_expr(comparison_expr(
+            "is_active",
+            ComparisonOperators::Equal,
+            create_literal("true", DataType::Boolean),
+        )));
 
         test_successful_parser_case(tokens, expected);
     }
@@ -202,7 +205,7 @@ mod tests {
 
         test_successful_parser_case(tokens, expected);
     }
-    
+
     #[test]
     fn test_parser_invalid_case_missing_comparator() {
         // age 18
@@ -254,13 +257,19 @@ mod tests {
                 ComparisonExpr::new("id".to_string(), &Equal, create_literal("5", Integer)),
                 ComparisonExpr::new("name".to_string(), &Equal, create_literal("ivan", Text)),
             ]),
-            not_expr(
-                or_expr(
-                    comparison_expr("is_active", ComparisonOperators::Equal, create_literal("true", DataType::Boolean)),
-                    comparison_expr("age", ComparisonOperators::Less, create_literal("30", DataType::Integer)
-                )
-            ),
-        )));
+            not_expr(or_expr(
+                comparison_expr(
+                    "is_active",
+                    ComparisonOperators::Equal,
+                    create_literal("true", DataType::Boolean),
+                ),
+                comparison_expr(
+                    "age",
+                    ComparisonOperators::Less,
+                    create_literal("30", DataType::Integer),
+                ),
+            )),
+        ));
 
         test_successful_parser_case(tokens, expected);
     }

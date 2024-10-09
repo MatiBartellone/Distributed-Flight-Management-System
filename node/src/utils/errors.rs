@@ -1,3 +1,5 @@
+use std::fmt::{self, Display, Formatter};
+
 const SERVER_ERROR: &[u8] = &[0x00, 0x00];
 const PROTOCOL_ERROR: &[u8] = &[0x00, 0x0A];
 const BAD_CREDENTIALS: &[u8] = &[0x01, 0x00];
@@ -53,24 +55,26 @@ impl Errors {
             Errors::Unprepared(msg) => join_bytes(UNPREPARED, msg),
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
+impl Display for Errors {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            Errors::ServerError(msg) => msg.to_string(),
-            Errors::ProtocolError(msg) =>  msg.to_string(),
-            Errors::BadCredentials(msg) =>  msg.to_string(),
-            Errors::UnavailableException(msg) => msg.to_string(),
-            Errors::Overloaded(msg) =>  msg.to_string(),
-            Errors::IsBootstrapping(msg) =>  msg.to_string(),
-            Errors::TruncateError(msg) =>  msg.to_string(),
-            Errors::WriteTimeout(msg) => msg.to_string(),
-            Errors::ReadTimeout(msg) =>  msg.to_string(),
-            Errors::SyntaxError(msg) =>  msg.to_string(),
-            Errors::Unauthorized(msg) =>  msg.to_string(),
-            Errors::Invalid(msg) =>  msg.to_string(),
-            Errors::ConfigError(msg) =>  msg.to_string(),
-            Errors::AlreadyExists(msg) =>  msg.to_string(),
-            Errors::Unprepared(msg) => msg.to_string(),
+            Errors::ServerError(msg) => write!(f, "ServerError: {}", msg),
+            Errors::ProtocolError(msg) => write!(f, "ProtocolError: {}", msg),
+            Errors::BadCredentials(msg) => write!(f, "BadCredentials: {}", msg),
+            Errors::UnavailableException(msg) => write!(f, "UnavailableException: {}", msg),
+            Errors::Overloaded(msg) => write!(f, "Overloaded: {}", msg),
+            Errors::IsBootstrapping(msg) => write!(f, "IsBootstrapping: {}", msg),
+            Errors::TruncateError(msg) => write!(f, "TruncateError: {}", msg),
+            Errors::WriteTimeout(msg) => write!(f, "WriteTimeout: {}", msg),
+            Errors::ReadTimeout(msg) => write!(f, "ReadTimeout: {}", msg),
+            Errors::SyntaxError(msg) => write!(f, "SyntaxError: {}", msg),
+            Errors::Unauthorized(msg) => write!(f, "Unauthorized: {}", msg),
+            Errors::Invalid(msg) => write!(f, "Invalid: {}", msg),
+            Errors::ConfigError(msg) => write!(f, "ConfigError: {}", msg),
+            Errors::AlreadyExists(msg) => write!(f, "AlreadyExists: {}", msg),
+            Errors::Unprepared(msg) => write!(f, "Unprepared: {}", msg),
         }
     }
 }

@@ -1,10 +1,10 @@
 use std::{iter::Peekable, vec::IntoIter};
 
-use crate::parsers::tokens::token::{
-    create_literal, BooleanOperations, ComparisonOperators, Literal, LogicalOperators, Term, Token
-};
-use crate::parsers::tokens::token::DataType;
 use crate::parsers::tokens::token::AritmeticasMath;
+use crate::parsers::tokens::token::DataType;
+use crate::parsers::tokens::token::{
+    create_literal, BooleanOperations, ComparisonOperators, Literal, LogicalOperators, Term, Token,
+};
 use BooleanOperations::*;
 use Term::*;
 use Token::*;

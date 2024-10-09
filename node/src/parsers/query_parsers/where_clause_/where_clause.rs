@@ -1,6 +1,12 @@
 use std::collections::HashMap;
 
-use crate::{parsers::tokens::token::{ComparisonOperators, Literal, Token}, utils::{errors::Errors, token_conversor::{get_identifier_string, get_literal}}};
+use crate::{
+    parsers::tokens::token::{ComparisonOperators, Literal, Token},
+    utils::{
+        errors::Errors,
+        token_conversor::{get_identifier_string, get_literal},
+    },
+};
 use WhereClause::*;
 
 use super::{comparison::ComparisonExpr, evaluate::Evaluate};
@@ -37,8 +43,11 @@ impl Evaluate for WhereClause {
     }
 }
 
-
-pub fn comparison_expr(column: &str, operator:  ComparisonOperators, literal: Literal) -> WhereClause {
+pub fn comparison_expr(
+    column: &str,
+    operator: ComparisonOperators,
+    literal: Literal,
+) -> WhereClause {
     Comparison(ComparisonExpr::new(column.to_string(), &operator, literal))
 }
 
@@ -46,7 +55,11 @@ pub fn tuple_expr(exprs: Vec<ComparisonExpr>) -> WhereClause {
     Tuple(exprs)
 }
 
-pub fn build_tuple(column_names: Vec<Token>, literals: Vec<Token>, operator: ComparisonOperators) -> Result<WhereClause, Errors> {
+pub fn build_tuple(
+    column_names: Vec<Token>,
+    literals: Vec<Token>,
+    operator: ComparisonOperators,
+) -> Result<WhereClause, Errors> {
     let iterations = column_names.len();
     let mut column_iter = column_names.into_iter().peekable();
     let mut literal_iter = literals.into_iter().peekable();
@@ -75,13 +88,17 @@ pub fn not_expr(expr: WhereClause) -> WhereClause {
     Not(Box::new(expr))
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::parsers::{query_parsers::where_clause::{comparison::ComparisonExpr, evaluate::Evaluate, where_clause::WhereClause}, tokens::token::{create_literal, ComparisonOperators, DataType, Literal}};
-    use DataType::*;
-    use ComparisonOperators::*;
+    use crate::parsers::{
+        query_parsers::where_clause_::{
+            comparison::ComparisonExpr, evaluate::Evaluate, where_clause::WhereClause,
+        },
+        tokens::token::{create_literal, ComparisonOperators, DataType, Literal},
+    };
     use std::collections::HashMap;
+    use ComparisonOperators::*;
+    use DataType::*;
 
     use super::{and_expr, comparison_expr, not_expr, or_expr, tuple_expr};
 
@@ -106,14 +123,14 @@ mod tests {
         let clause = comparison_expr("id", Equal, create_literal("5", Integer));
         assert_evaluation(row, clause, true);
     }
-    
+
     #[test]
     fn test_comparison_false() {
         let row = setup_row();
         let clause = comparison_expr("id", Equal, create_literal("10", Integer));
         assert_evaluation(row, clause, false);
     }
-    
+
     #[test]
     fn test_tuple_true() {
         let row = setup_row();
@@ -123,7 +140,7 @@ mod tests {
         ]);
         assert_evaluation(row, clause, true);
     }
-    
+
     #[test]
     fn test_tuple_false() {
         let row = setup_row();
@@ -133,7 +150,7 @@ mod tests {
         ]);
         assert_evaluation(row, clause, false);
     }
-    
+
     #[test]
     fn test_and_true() {
         let row = setup_row();
@@ -143,7 +160,7 @@ mod tests {
         );
         assert_evaluation(row, clause, true);
     }
-    
+
     #[test]
     fn test_and_false() {
         let row = setup_row();
@@ -153,7 +170,7 @@ mod tests {
         );
         assert_evaluation(row, clause, false);
     }
-    
+
     #[test]
     fn test_or_true() {
         let row = setup_row();
@@ -163,7 +180,7 @@ mod tests {
         );
         assert_evaluation(row, clause, true);
     }
-    
+
     #[test]
     fn test_or_false() {
         let row = setup_row();
@@ -173,22 +190,26 @@ mod tests {
         );
         assert_evaluation(row, clause, false);
     }
-    
+
     #[test]
     fn test_not_true() {
         let row = setup_row();
-        let clause = not_expr(
-            comparison_expr("is_active", Equal, create_literal("false", Boolean)),
-        );
+        let clause = not_expr(comparison_expr(
+            "is_active",
+            Equal,
+            create_literal("false", Boolean),
+        ));
         assert_evaluation(row, clause, true);
     }
-    
+
     #[test]
     fn test_not_false() {
         let row = setup_row();
-        let clause = not_expr(
-            comparison_expr("is_active", Equal, create_literal("true", Boolean)),
-        );
+        let clause = not_expr(comparison_expr(
+            "is_active",
+            Equal,
+            create_literal("true", Boolean),
+        ));
         assert_evaluation(row, clause, false);
     }
 }
