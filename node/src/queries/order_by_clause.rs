@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(PartialEq, Debug)]
 pub struct OrderByClause {
     pub column: String,
     pub order: String,
