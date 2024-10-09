@@ -4,6 +4,7 @@ use crate::queries::delete_query::DeleteQuery;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
 const FROM: &str = "FROM";
+const WHERE: &str = "WHERE";
 
 pub struct DeleteQueryParser;
 
@@ -28,10 +29,22 @@ fn table(tokens: &mut IntoIter<Token>, query: &mut DeleteQuery) -> Result<(), Er
     match get_next_value(tokens)? {
         Token::Identifier(identifier) => {
             query.table = identifier;
-            where_clause(tokens, query)
+            where_keyword(tokens, query)
         }
         _ => Err(Errors::SyntaxError(String::from(
             "Unexpected token in table_name",
+        ))),
+    }
+}
+
+fn where_keyword(tokens: &mut IntoIter<Token>, query: &mut DeleteQuery) -> Result<(), Errors> {
+    let Some(token) = tokens.next() else {
+        return Ok(());
+    };
+    match token {
+        Token::Reserved(res) if res == *WHERE => where_clause(tokens, query),
+        _ => Err(Errors::SyntaxError(String::from(
+            "WHERE keyword not found",
         ))),
     }
 }
@@ -65,7 +78,7 @@ fn get_next_value(tokens: &mut IntoIter<Token>) -> Result<Token, Errors> {
 
 #[cfg(test)]
 mod tests {
-    use crate::parsers::tokens::token::Token;
+    use crate::parsers::tokens::token::{Token};
     use super::*;
 
     fn assert_error(result: Result<DeleteQuery, Errors>, expected: &str) {
@@ -101,5 +114,28 @@ mod tests {
         ];
         let result = DeleteQueryParser::parse(tokens);
         assert_error(result, "Unexpected token in table_name");
+    }
+
+    #[test]
+    fn test_insert_query_parser_unexpected_in_where() {
+        let tokens = vec![
+            Token::Reserved(String::from(FROM)),
+            Token::Identifier(String::from("table_name")),
+            Token::Reserved(String::from("NOT WHERE")),
+        ];
+        let result = DeleteQueryParser::parse(tokens);
+        assert_error(result, "WHERE keyword not found");
+    }
+
+    #[test]
+    fn test_insert_query_parser_unexpected_in_where_clause() {
+        let tokens = vec![
+            Token::Reserved(String::from(FROM)),
+            Token::Identifier(String::from("table_name")),
+            Token::Reserved(String::from(WHERE)),
+            Token::Reserved(String::from("UNEXPECTED")),
+        ];
+        let result = DeleteQueryParser::parse(tokens);
+        assert_error(result, "Unexpected token in where_clause");
     }
 }

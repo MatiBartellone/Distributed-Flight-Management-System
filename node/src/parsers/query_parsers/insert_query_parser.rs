@@ -127,7 +127,7 @@ mod tests {
             Token::TokensList(vec![
                 Token::Term(Term::Literal(Literal {
                     valor: "3".to_string(),
-                    tipo: DataType::Bigint,
+                    tipo: DataType::Integer,
                 })),
                 Token::Term(Term::Literal(Literal {
                     valor: "Thiago".to_string(),
@@ -142,7 +142,7 @@ mod tests {
             values_list: vec![vec![
                 Literal {
                     valor: "3".to_string(),
-                    tipo: DataType::Bigint,
+                    tipo: DataType::Integer,
                 },
                 Literal {
                     valor: "Thiago".to_string(),

@@ -1,9 +1,9 @@
-use crate::parsers::query_parsers::where_clause::boolean_expression::BooleanExpression;
+use crate::parsers::query_parsers::where_clause::boolean_expression::WhereClause;
 
 #[derive(PartialEq, Debug)]
 pub struct DeleteQuery {
     pub table: String,
-    pub where_clause: Option<BooleanExpression>,
+    pub where_clause: Option<WhereClause>,
 }
 
 impl DeleteQuery {
