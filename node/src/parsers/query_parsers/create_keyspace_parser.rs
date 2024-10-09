@@ -103,3 +103,34 @@ impl CreateKeyspaceParser {
             .ok_or(Errors::SyntaxError(String::from(INVALID_PARAMETERS)))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parsers::tokens::token::{create_literal, DataType, Token};
+
+    #[test]
+    fn test_01_create_keyspace_is_valid() {
+        // TODO: Refactor into smaller funcs while adding more tests
+        let simple_strategy = create_literal("SimpleStrategy", DataType::Text);
+        let one = create_literal("1", DataType::Integer);
+        let tokens = vec![
+            Token::Reserved(String::from(KEYSPACE)),
+            Token::Identifier(String::from("keyspace_name")),
+            Token::Reserved(String::from(WITH)),
+            Token::TokensList(vec![
+                Token::Reserved(String::from("class")),
+                Token::Term(Term::Literal(simple_strategy)),
+                Token::Reserved(String::from("replication_factor")),
+                Token::Term(Term::Literal(one)),
+            ]),
+        ];
+        let parser = CreateKeyspaceParser;
+        let result = parser.parse(tokens);
+        assert!(result.is_ok());
+        let query = result.unwrap();
+        assert_eq!(query.table, "keyspace_name".to_string());
+        assert_eq!(query.replication.get("class").unwrap(), "SimpleStrategy");
+        assert_eq!(query.replication.get("replication_factor").unwrap(), "1");
+    }
+}
