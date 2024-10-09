@@ -1,21 +1,21 @@
 use std::collections::HashMap;
 
 use crate::{parsers::tokens::token::Literal, utils::errors::Errors};
-use BooleanExpression::*;
+use WhereClause::*;
 
 use super::{comparison::ComparisonExpr, evaluate::Evaluate};
 
 /// Enum para representar diferentes tipos de expresiones booleanas.
-// #[derive(Debug, PartialEq)]
-pub enum BooleanExpression {
+#[derive(Debug, PartialEq)]
+pub enum WhereClause {
     Comparation(ComparisonExpr),
     Tuple(Vec<ComparisonExpr>),
-    And(Box<BooleanExpression>, Box<BooleanExpression>),
-    Or(Box<BooleanExpression>, Box<BooleanExpression>),
-    Not(Box<BooleanExpression>),
+    And(Box<WhereClause>, Box<WhereClause>),
+    Or(Box<WhereClause>, Box<WhereClause>),
+    Not(Box<WhereClause>),
 }
 
-impl Evaluate for BooleanExpression {
+impl Evaluate for WhereClause {
     /// Evalúa una expresión booleana usando los valores Columna -> Valor de una fila
     fn evaluate(&self, row: &HashMap<String, Literal>) -> Result<bool, Errors> {
         match self {

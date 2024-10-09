@@ -1,4 +1,5 @@
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum Token {
     Identifier(String),
     Term(Term),
@@ -6,19 +7,24 @@ pub enum Token {
     DataType(DataType),
     TokensList(Vec<Token>),
 }
+
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum Term {
     Literal(Literal),
     AritmeticasMath(AritmeticasMath),
-    AritmeticasBool(AritmeticasBool),
+    AritmeticasBool(BooleanOperations),
 }
+
 #[allow(dead_code)]
-#[derive(PartialEq, Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Literal {
     pub valor: String,
     pub tipo: DataType,
 }
+
 #[allow(dead_code)]
+#[derive(Debug)]
 pub enum AritmeticasMath {
     Suma,
     Resta,
@@ -26,22 +32,37 @@ pub enum AritmeticasMath {
     Resto,
     Multiplication,
 }
+
 #[allow(dead_code)]
-pub enum AritmeticasBool {
+#[derive(Debug)]
+pub enum BooleanOperations {
+    Logical(LogicalOperators),
+    Comparison(ComparisonOperators),
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+pub enum LogicalOperators {
     Or,
     And,
     Not,
-    Menor,
-    Igual,
-    Disinto,
-    Mayor,
-    MayorIgual,
-    MenorIgual,
 }
+
 #[allow(dead_code)]
-#[derive(PartialEq, Debug)]
+#[derive(Debug, PartialEq)]
+pub enum ComparisonOperators {
+    Less,
+    Equal,
+    NotEqual,
+    Greater,
+    GreaterOrEqual,
+    LessOrEqual,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, PartialOrd, PartialEq)]
 pub enum DataType {
-    Bigint,
+    Integer,
     Boolean,
     Date,
     Decimal,
@@ -50,36 +71,33 @@ pub enum DataType {
     Time,
 }
 
-// #[allow(dead_code)]
-// fn eliminar_between(input: &str, fin: &str, ini: &str) -> String {
-//     let mut res = String::new();
-//     let mut dentro_comentario = false;
-//     for (i, c) in input.chars().enumerate() {
-//         if dentro_comentario {
-//             if i + 1 < input.len() && &input[i..i+2] == fin {
-//                 dentro_comentario = false;
-//             }
-//         } else {
-//             if i + 1 < input.len() && &input[i..i+2] == ini {
-//                 dentro_comentario = true;
-//             } else {
-//                 res.push(c);
-//             }
-//         }
-//     }
-//     res
-// }
-//
-// #[allow(dead_code)]
-// fn eliminar_comentarios(input: &str) -> String {
-//     let sin_diagonal = eliminar_between(input, "\n", "//");
-//     let sin_barra = eliminar_between(&sin_diagonal, "\n", "--");
-//     eliminar_between(&sin_barra, "*/", "/*")
-// }
-// #[allow(dead_code)]
-// fn normalizar(entrada: &str) -> Vec<String> {
-//     let entrada = eliminar_comentarios(entrada);
-//     entrada.split_whitespace()
-//         .map(|s| s.to_string())
-//         .collect()
-// }
+use DataType::*;
+
+impl PartialOrd for Literal {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self.tipo != other.tipo {
+            return None;
+        }
+        match self.tipo {
+            Integer => {
+                let val1 = self.valor.parse::<i64>().ok()?;
+                let val2 = other.valor.parse::<i64>().ok()?;
+                Some(val1.cmp(&val2))
+            }
+            Boolean => {
+                let val1 = self.valor.parse::<bool>().ok()?;
+                let val2 = other.valor.parse::<bool>().ok()?;
+                Some(val1.cmp(&val2))
+            }
+            Decimal => {
+                let val1 = self.valor.parse::<f64>().ok()?;
+                let val2 = other.valor.parse::<f64>().ok()?;
+                Some(val1.partial_cmp(&val2)?)
+            }
+            Text => Some(self.valor.cmp(&other.valor)),
+            Date => todo!(),
+            Duration => todo!(),
+            Time => todo!(),
+        }
+    }
+}
