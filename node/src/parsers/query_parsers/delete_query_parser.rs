@@ -1,8 +1,9 @@
-use crate::parsers::query_parsers::where_clause::where_clause_parser::WhereClauseParser;
+use crate::parsers::query_parsers::where_clause_::where_clause_parser::WhereClauseParser;
 use crate::parsers::tokens::token::Token;
 use crate::queries::delete_query::DeleteQuery;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
+
 const FROM: &str = "FROM";
 const WHERE: &str = "WHERE";
 
@@ -43,9 +44,7 @@ fn where_keyword(tokens: &mut IntoIter<Token>, query: &mut DeleteQuery) -> Resul
     };
     match token {
         Token::Reserved(res) if res == *WHERE => where_clause(tokens, query),
-        _ => Err(Errors::SyntaxError(String::from(
-            "WHERE keyword not found",
-        ))),
+        _ => Err(Errors::SyntaxError(String::from("WHERE keyword not found"))),
     }
 }
 
@@ -75,11 +74,10 @@ fn get_next_value(tokens: &mut IntoIter<Token>) -> Result<Token, Errors> {
         .ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::parsers::tokens::token::{Token};
     use super::*;
+    use crate::parsers::tokens::token::Token;
 
     fn assert_error(result: Result<DeleteQuery, Errors>, expected: &str) {
         assert!(result.is_err());
@@ -95,7 +93,7 @@ mod tests {
         ];
         let expected = DeleteQuery {
             table: "table_name".to_string(),
-            where_clause: None
+            where_clause: None,
         };
         assert_eq!(expected, DeleteQueryParser::parse(tokens).unwrap());
     }

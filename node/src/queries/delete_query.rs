@@ -1,4 +1,4 @@
-use crate::parsers::query_parsers::where_clause::boolean_expression::WhereClause;
+use crate::parsers::query_parsers::where_clause_::where_clause::WhereClause;
 
 #[derive(PartialEq, Debug)]
 pub struct DeleteQuery {
@@ -12,5 +12,11 @@ impl DeleteQuery {
             table: String::new(),
             where_clause: None,
         }
+    }
+}
+
+impl Default for DeleteQuery {
+    fn default() -> Self {
+        Self::new()
     }
 }
