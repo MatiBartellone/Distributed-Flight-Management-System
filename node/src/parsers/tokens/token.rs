@@ -23,6 +23,13 @@ pub struct Literal {
     pub tipo: DataType,
 }
 
+pub fn create_literal(value: &str, data_type: DataType) -> Literal {
+    Literal {
+        valor: value.to_string(),
+        tipo: data_type,
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum AritmeticasMath {

@@ -1,13 +1,10 @@
-use super::boolean_expression::WhereClause;
+use super::where_clause::{and_expr, build_tuple, comparison_expr, not_expr, or_expr, WhereClause};
 use crate::{
-    parsers::{
-        query_parsers::where_clause::comparison::ComparisonExpr,
-        tokens::token::{BooleanOperations, LogicalOperators, Term, Token},
-    },
+    parsers::tokens::token::{BooleanOperations, LogicalOperators, Term, Token},
     utils::{
         errors::Errors,
         token_conversor::{
-            get_comparision_operator, get_identifier_string, get_list, get_literal, get_next_value,
+            get_comparision_operator, get_list, get_literal, get_next_value,
         },
     },
 };
@@ -32,22 +29,12 @@ fn where_and_or(
     left_expr: WhereClause,
 ) -> Result<WhereClause, Errors> {
     match get_next_value(tokens) {
-        Ok(Term(AritmeticasBool(Logical(And)))) => {
-            let right_expr = where_clause(tokens)?;
-            Ok(WhereClause::And(
-                Box::new(left_expr),
-                Box::new(right_expr),
-            ))
-        }
-        Ok(Term(AritmeticasBool(Logical(Or)))) => {
-            let right_expr = where_clause(tokens)?;
-            Ok(WhereClause::Or(
-                Box::new(left_expr),
-                Box::new(right_expr),
-            ))
-        }
+        // [left_expre, AND, ...]
+        Ok(Term(AritmeticasBool(Logical(And)))) => Ok(and_expr(left_expr,where_clause(tokens)?)),
+        // [left_expre, OR, ...]
+        Ok(Term(AritmeticasBool(Logical(Or)))) => Ok(or_expr(left_expr, where_clause(tokens)?)),
         Err(_) => Ok(left_expr),
-        _ => Err(Errors::Invalid(
+        _ => Err(Errors::SyntaxError(
             "Invalid Syntaxis in WHERE_CLAUSE".to_string(),
         )),
     }
@@ -59,8 +46,7 @@ fn where_comparision(
 ) -> Result<WhereClause, Errors> {
     let operator = get_comparision_operator(tokens)?;
     let literal = get_literal(tokens)?;
-    let expression =
-        WhereClause::Comparation(ComparisonExpr::new(column_name, &operator, literal));
+    let expression = comparison_expr(&column_name, operator, literal);
     where_and_or(tokens, expression)
 }
 
@@ -71,22 +57,9 @@ fn where_tuple(
     let operator = get_comparision_operator(tokens)?;
     let literals = get_list(tokens)?;
     if column_names.len() != literals.len() {
-        return Err(Errors::Invalid("Invalid tuples len".to_string()));
+        return Err(Errors::SyntaxError("Invalid tuples len".to_string()));
     }
-    let iterations = column_names.len();
-    let mut column_iter = column_names.into_iter().peekable();
-    let mut literal_iter = literals.into_iter().peekable();
-
-    let mut tuple = Vec::new();
-    for _ in 0..iterations {
-        let column_name = get_identifier_string(&mut column_iter)?;
-        let literal = get_literal(&mut literal_iter)?;
-
-        let expression = ComparisonExpr::new(column_name, &operator, literal);
-
-        tuple.push(expression);
-    }
-    let left_expr = WhereClause::Tuple(tuple);
+    let left_expr = build_tuple(column_names, literals, operator)?;
     where_and_or(tokens, left_expr)
 }
 
@@ -112,11 +85,8 @@ fn where_clause(tokens: &mut Peekable<IntoIter<Token>>) -> Result<WhereClause, E
         // [tupla, comparasion, tupla, ...] or [lista, ...]
         TokensList(token_list) => where_list(tokens, token_list),
         // [NOT, ...]
-        Term(AritmeticasBool(Logical(Not))) => {
-            let expression = where_clause(tokens)?;
-            Ok(WhereClause::Not(Box::new(expression)))
-        }
-        _ => Err(Errors::Invalid(
+        Term(AritmeticasBool(Logical(Not))) => Ok(not_expr(where_clause(tokens)?)),
+        _ => Err(Errors::SyntaxError(
             "Invalid Syntaxis in WHERE_CLAUSE".to_string(),
         )),
     }
@@ -125,14 +95,19 @@ fn where_clause(tokens: &mut Peekable<IntoIter<Token>>) -> Result<WhereClause, E
 #[cfg(test)]
 mod tests {
     use super::WhereClauseParser;
-    use crate::parsers::query_parsers::where_clause::where_clause_parser::Term::AritmeticasBool;
-    use crate::parsers::tokens::token::LogicalOperators;
+    use crate::parsers::query_parsers::where_clause::where_clause::{and_expr, comparison_expr, not_expr, or_expr, tuple_expr};
+    use crate::parsers::tokens::token::{create_literal, LogicalOperators};
+    use Token::*;
+    use LogicalOperators::*;
+    use ComparisonOperators::*;
+    use DataType::*;
     use crate::parsers::{
         query_parsers::where_clause::{
-            boolean_expression::WhereClause, comparison::ComparisonExpr,
+            where_clause::WhereClause, comparison::ComparisonExpr,
         },
-        tokens::token::{BooleanOperations, ComparisonOperators, DataType, Literal, Term, Token},
+        tokens::token::{ComparisonOperators, DataType, Literal, Term, Token},
     };
+    use crate::utils::token_conversor::{create_comparison_operation_token, create_identifier_token, create_logical_operation_token, create_token_literal};
 
     fn test_successful_parser_case(caso: Vec<Token>, expected: Option<WhereClause>) {
         let resultado = WhereClauseParser::parse(caso);
@@ -159,70 +134,30 @@ mod tests {
     fn test_parser_simple_comparation() {
         // id = 8
         let tokens = vec![
-            Token::Identifier("id".to_string()),
-            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
-                ComparisonOperators::Equal,
-            ))),
-            Token::Term(Term::Literal(Literal {
-                valor: "8".to_string(),
-                tipo: DataType::Integer,
-            })),
+            create_identifier_token("id"),
+            create_comparison_operation_token(Equal),
+            create_token_literal("8", Integer)
         ];
-
-        let expected = Some(WhereClause::Comparation(ComparisonExpr::new(
-            "id".to_string(),
-            &ComparisonOperators::Equal,
-            Literal {
-                valor: "8".to_string(),
-                tipo: DataType::Integer,
-            },
-        )));
-
+        let expected = Some(comparison_expr("id", Equal, create_literal("8", Integer)));
         test_successful_parser_case(tokens, expected);
     }
 
     #[test]
     fn test_parser_and_comparison() {
-        // name = Alice AND id != 20
+        // name = 'Alice' AND id != 20
         let tokens = vec![
-            Token::Identifier("name".to_string()),
-            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
-                ComparisonOperators::Equal,
-            ))),
-            Token::Term(Term::Literal(Literal {
-                valor: "Alice".to_string(),
-                tipo: DataType::Text,
-            })),
-            Token::Term(AritmeticasBool(BooleanOperations::Logical(
-                LogicalOperators::And,
-            ))),
-            Token::Identifier("id".to_string()),
-            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
-                ComparisonOperators::NotEqual,
-            ))),
-            Token::Term(Term::Literal(Literal {
-                valor: "20".to_string(),
-                tipo: DataType::Integer,
-            })),
+            create_identifier_token("name"),
+            create_comparison_operation_token(Equal),
+            create_token_literal("Alice", Text),
+            create_logical_operation_token(And),
+            create_identifier_token("id"),
+            create_comparison_operation_token(NotEqual),
+            create_token_literal("20", DataType::Integer),
         ];
 
-        let expected = Some(WhereClause::And(
-            Box::new(WhereClause::Comparation(ComparisonExpr::new(
-                "name".to_string(),
-                &ComparisonOperators::Equal,
-                Literal {
-                    valor: "Alice".to_string(),
-                    tipo: DataType::Text,
-                },
-            ))),
-            Box::new(WhereClause::Comparation(ComparisonExpr::new(
-                "id".to_string(),
-                &ComparisonOperators::NotEqual,
-                Literal {
-                    valor: "20".to_string(),
-                    tipo: DataType::Integer,
-                },
-            ))),
+        let expected = Some(and_expr(
+            comparison_expr("name", Equal, create_literal("Alice", DataType::Text)),
+            comparison_expr("id", NotEqual, create_literal("20", DataType::Integer)),
         ));
 
         test_successful_parser_case(tokens, expected);
@@ -232,29 +167,15 @@ mod tests {
     fn test_parser_not_clause() {
         // NOT is_active = true
         let tokens = vec![
-            Token::Term(AritmeticasBool(BooleanOperations::Logical(
-                LogicalOperators::Not,
-            ))),
-            Token::Identifier("is_active".to_string()),
-            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
-                ComparisonOperators::Equal,
-            ))),
-            Token::Term(Term::Literal(Literal {
-                valor: "true".to_string(),
-                tipo: DataType::Boolean,
-            })),
+            create_logical_operation_token( LogicalOperators::Not),
+            create_identifier_token("is_active"),
+            create_comparison_operation_token(ComparisonOperators::Equal),
+            create_token_literal("true", DataType::Boolean),
         ];
 
-        let expected = Some(WhereClause::Not(Box::new(
-            WhereClause::Comparation(ComparisonExpr::new(
-                "is_active".to_string(),
-                &ComparisonOperators::Equal,
-                Literal {
-                    valor: "true".to_string(),
-                    tipo: DataType::Boolean,
-                },
-            )),
-        )));
+        let expected = Some(not_expr(
+            comparison_expr("is_active", ComparisonOperators::Equal, create_literal("true", DataType::Boolean),),
+        ));
 
         test_successful_parser_case(tokens, expected);
     }
@@ -263,56 +184,31 @@ mod tests {
     fn test_parser_tuple_comparation() {
         // (id, name) = (5, 'ivan')
         let tokens = vec![
-            Token::TokensList(vec![
-                Token::Identifier("id".to_string()),
-                Token::Identifier("name".to_string()),
+            TokensList(vec![
+                create_identifier_token("id"),
+                create_identifier_token("name"),
             ]),
-            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
-                ComparisonOperators::Equal,
-            ))),
-            Token::TokensList(vec![
-                Token::Term(Term::Literal(Literal {
-                    valor: "5".to_string(),
-                    tipo: DataType::Integer,
-                })),
-                Token::Term(Term::Literal(Literal {
-                    valor: "ivan".to_string(),
-                    tipo: DataType::Text,
-                })),
+            create_comparison_operation_token(Equal),
+            TokensList(vec![
+                create_token_literal("5", Integer),
+                create_token_literal("ivan", Text),
             ]),
         ];
 
-        let expected = Some(WhereClause::Tuple(vec![
-            ComparisonExpr::new(
-                "id".to_string(),
-                &ComparisonOperators::Equal,
-                Literal {
-                    valor: "5".to_string(),
-                    tipo: DataType::Integer,
-                },
-            ),
-            ComparisonExpr::new(
-                "name".to_string(),
-                &ComparisonOperators::Equal,
-                Literal {
-                    valor: "ivan".to_string(),
-                    tipo: DataType::Text,
-                },
-            ),
+        let expected = Some(tuple_expr(vec![
+            ComparisonExpr::new("id".to_string(), &Equal, create_literal("5", Integer)),
+            ComparisonExpr::new("name".to_string(), &Equal, create_literal("ivan", Text)),
         ]));
 
         test_successful_parser_case(tokens, expected);
     }
-
+    
     #[test]
     fn test_parser_invalid_case_missing_comparator() {
         // age 18
         let tokens = vec![
-            Token::Identifier("age".to_string()),
-            Token::Term(Term::Literal(Literal {
-                valor: "18".to_string(),
-                tipo: DataType::Integer,
-            })),
+            create_identifier_token("age"),
+            create_token_literal("18", Integer),
         ];
 
         test_parser_error_case(tokens, "Expected comparision operator");
@@ -322,13 +218,8 @@ mod tests {
     fn test_parser_invalid_case_unexpected_token() {
         // Alice AND
         let tokens = vec![
-            Token::Term(Term::Literal(Literal {
-                valor: "Alice".to_string(),
-                tipo: DataType::Text,
-            })),
-            Token::Term(AritmeticasBool(BooleanOperations::Logical(
-                LogicalOperators::And,
-            ))),
+            create_token_literal("Alice", Text),
+            create_logical_operation_token(And),
         ];
 
         test_parser_error_case(tokens, "Invalid Syntaxis in WHERE_CLAUSE");
@@ -338,89 +229,39 @@ mod tests {
     fn test_parser_multiple_operations() {
         // (id, name) = (5, 'ivan') AND NOT is_active = true OR age < 30
         let tokens = vec![
-            Token::TokensList(vec![
-                Token::Identifier("id".to_string()),
-                Token::Identifier("name".to_string()),
+            TokensList(vec![
+                create_identifier_token("id"),
+                create_identifier_token("name"),
             ]),
-            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
-                ComparisonOperators::Equal,
-            ))),
-            Token::TokensList(vec![
-                Token::Term(Term::Literal(Literal {
-                    valor: "5".to_string(),
-                    tipo: DataType::Integer,
-                })),
-                Token::Term(Term::Literal(Literal {
-                    valor: "ivan".to_string(),
-                    tipo: DataType::Text,
-                })),
+            create_comparison_operation_token(Equal),
+            TokensList(vec![
+                create_token_literal("5", Integer),
+                create_token_literal("ivan", Text),
             ]),
-            Token::Term(AritmeticasBool(BooleanOperations::Logical(
-                LogicalOperators::And,
-            ))),
-            Token::Term(AritmeticasBool(BooleanOperations::Logical(
-                LogicalOperators::Not,
-            ))),
-            Token::Identifier("is_active".to_string()),
-            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
-                ComparisonOperators::Equal,
-            ))),
-            Token::Term(Term::Literal(Literal {
-                valor: "true".to_string(),
-                tipo: DataType::Boolean,
-            })),
-            Token::Term(AritmeticasBool(BooleanOperations::Logical(
-                LogicalOperators::Or,
-            ))),
-            Token::Identifier("age".to_string()),
-            Token::Term(AritmeticasBool(BooleanOperations::Comparison(
-                ComparisonOperators::Less,
-            ))),
-            Token::Term(Term::Literal(Literal {
-                valor: "30".to_string(),
-                tipo: DataType::Integer,
-            })),
+            create_logical_operation_token(And),
+            create_logical_operation_token(Not),
+            create_identifier_token("is_active"),
+            create_comparison_operation_token(Equal),
+            create_token_literal("true", Boolean),
+            create_logical_operation_token(Or),
+            create_identifier_token("age"),
+            create_comparison_operation_token(Less),
+            create_token_literal("30", Integer),
         ];
 
-        // (id, name) = (5, 'ivan') AND NOT is_active = true OR age < 30
-        let expected = Some(WhereClause::And(
-            Box::new(WhereClause::Tuple(vec![
-                ComparisonExpr::new(
-                    "id".to_string(),
-                    &ComparisonOperators::Equal,
-                    Literal {
-                        valor: "5".to_string(),
-                        tipo: DataType::Integer,
-                    },
-                ),
-                ComparisonExpr::new(
-                    "name".to_string(),
-                    &ComparisonOperators::Equal,
-                    Literal {
-                        valor: "ivan".to_string(),
-                        tipo: DataType::Text,
-                    },
-                ),
-            ])),
-            Box::new(WhereClause::Not(Box::new(WhereClause::Or(
-                Box::new(WhereClause::Comparation(ComparisonExpr::new(
-                    "is_active".to_string(),
-                    &ComparisonOperators::Equal,
-                    Literal {
-                        valor: "true".to_string(),
-                        tipo: DataType::Boolean,
-                    },
-                ))),
-                Box::new(WhereClause::Comparation(ComparisonExpr::new(
-                    "age".to_string(),
-                    &ComparisonOperators::Less,
-                    Literal {
-                        valor: "30".to_string(),
-                        tipo: DataType::Integer,
-                    },
-                ))),
-            )))),
-        ));
+        let expected = Some(and_expr(
+            tuple_expr(vec![
+                ComparisonExpr::new("id".to_string(), &Equal, create_literal("5", Integer)),
+                ComparisonExpr::new("name".to_string(), &Equal, create_literal("ivan", Text)),
+            ]),
+            not_expr(
+                or_expr(
+                    comparison_expr("is_active", ComparisonOperators::Equal, create_literal("true", DataType::Boolean)),
+                    comparison_expr("age", ComparisonOperators::Less, create_literal("30", DataType::Integer)
+                )
+            ),
+        )));
+
         test_successful_parser_case(tokens, expected);
     }
 
@@ -428,12 +269,12 @@ mod tests {
     #[test]
     fn test_peek() {
         let mut tokens = vec![
-            Token::Identifier("id".to_string()),
-            Token::Term(Term::Literal(Literal {
+            Identifier("id".to_string()),
+            Term(Term::Literal(Literal {
                 valor: "5".to_string(),
                 tipo: DataType::Integer,
             })),
-            Token::Term(Term::Literal(Literal {
+            Term(Term::Literal(Literal {
                 valor: "ivan".to_string(),
                 tipo: DataType::Text,
             })),

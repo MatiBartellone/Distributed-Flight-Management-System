@@ -12,7 +12,7 @@ use ComparisonOperators::*;
 pub struct ComparisonExpr {
     column_name: String,
     operator: ComparisonOperators,
-    literal: Literal,
+    literal: Literal
 }
 
 impl ComparisonExpr {
@@ -23,12 +23,12 @@ impl ComparisonExpr {
             NotEqual => NotEqual,
             Greater => Greater,
             GreaterOrEqual => GreaterOrEqual,
-            LessOrEqual => LessOrEqual,
+            LessOrEqual => LessOrEqual
         };
         ComparisonExpr {
             column_name,
             operator,
-            literal,
+            literal
         }
     }
 }
