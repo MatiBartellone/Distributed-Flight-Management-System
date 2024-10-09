@@ -1,10 +1,11 @@
 use crate::queries::order_by_clause::OrderByClause;
 
+#[derive(PartialEq, Debug)]
 pub struct SelectQuery {
     pub table: String,
     pub columns: Vec<String>,
-    pub where_clause: Vec<String>,
-    pub order_clauses: Vec<OrderByClause>,
+    pub where_clause: Option<Vec<String>>,
+    pub order_clauses: Option<Vec<OrderByClause>>,
 }
 
 impl SelectQuery {
@@ -12,8 +13,14 @@ impl SelectQuery {
         Self{
             table: String::new(),
             columns: Vec::new(),
-            where_clause: Vec::new(),
-            order_clauses: Vec::new(),
+            where_clause: None,
+            order_clauses: None,
         }
+    }
+}
+
+impl Default for SelectQuery {
+    fn default() -> Self {
+        Self::new()
     }
 }
