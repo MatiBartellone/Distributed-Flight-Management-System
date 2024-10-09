@@ -1,18 +1,18 @@
-const   SERVER_ERROR : &[u8] = &[0x00, 0x00];
-const PROTOCOL_ERROR : &[u8] = &[0x00, 0x0A];
-const BAD_CREDENTIALS : &[u8] = &[0x01, 0x00];
-const UNAVAILABLE_EXCEPTION : &[u8] = &[0x10, 0x00];
-const OVERLOADED : &[u8] = &[0x10, 0x01];
-const IS_BOOTSTRAPPING : &[u8] = &[0x10, 0x02];
-const TRUNCATE_ERROR : &[u8] = &[0x10, 0x03];
-const WRITE_TIMEOUT : &[u8] = &[0x11, 0x00];
-const READ_TIMEOUT : &[u8] = &[0x12, 0x00];
-const SYNTAX_ERROR : &[u8] = &[0x20, 0x00];
-const UNAUTHORIZED : &[u8] = &[0x21, 0x00];
-const INVALID : &[u8] = &[0x22, 0x00];
-const CONFIG_ERROR : &[u8] = &[0x23, 0x00];
-const ALREADY_EXISTS : &[u8] = &[0x24, 0x00];
-const UNPREPARED : &[u8] = &[0x25, 0x00];
+const SERVER_ERROR: &[u8] = &[0x00, 0x00];
+const PROTOCOL_ERROR: &[u8] = &[0x00, 0x0A];
+const BAD_CREDENTIALS: &[u8] = &[0x01, 0x00];
+const UNAVAILABLE_EXCEPTION: &[u8] = &[0x10, 0x00];
+const OVERLOADED: &[u8] = &[0x10, 0x01];
+const IS_BOOTSTRAPPING: &[u8] = &[0x10, 0x02];
+const TRUNCATE_ERROR: &[u8] = &[0x10, 0x03];
+const WRITE_TIMEOUT: &[u8] = &[0x11, 0x00];
+const READ_TIMEOUT: &[u8] = &[0x12, 0x00];
+const SYNTAX_ERROR: &[u8] = &[0x20, 0x00];
+const UNAUTHORIZED: &[u8] = &[0x21, 0x00];
+const INVALID: &[u8] = &[0x22, 0x00];
+const CONFIG_ERROR: &[u8] = &[0x23, 0x00];
+const ALREADY_EXISTS: &[u8] = &[0x24, 0x00];
+const UNPREPARED: &[u8] = &[0x25, 0x00];
 
 #[derive(Debug)]
 pub enum Errors {

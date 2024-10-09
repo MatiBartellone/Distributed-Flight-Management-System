@@ -10,4 +10,3 @@ impl Parser for EventParser {
         Ok(Box::new(EventExecutable))
     }
 }
-

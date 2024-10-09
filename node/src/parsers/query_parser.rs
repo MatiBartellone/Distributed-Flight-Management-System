@@ -10,4 +10,3 @@ impl Parser for QueryParser {
         Ok(Box::new(QueryExecutable))
     }
 }
-
