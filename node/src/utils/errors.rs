@@ -1,3 +1,5 @@
+use std::fmt::{self, Display, Formatter};
+
 const SERVER_ERROR: &[u8] = &[0x00, 0x00];
 const PROTOCOL_ERROR: &[u8] = &[0x00, 0x0A];
 const BAD_CREDENTIALS: &[u8] = &[0x01, 0x00];
@@ -51,6 +53,28 @@ impl Errors {
             Errors::ConfigError(msg) => join_bytes(CONFIG_ERROR, msg),
             Errors::AlreadyExists(msg) => join_bytes(ALREADY_EXISTS, msg),
             Errors::Unprepared(msg) => join_bytes(UNPREPARED, msg),
+        }
+    }
+}
+
+impl Display for Errors {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            Errors::ServerError(msg) => write!(f, "ServerError: {}", msg),
+            Errors::ProtocolError(msg) => write!(f, "ProtocolError: {}", msg),
+            Errors::BadCredentials(msg) => write!(f, "BadCredentials: {}", msg),
+            Errors::UnavailableException(msg) => write!(f, "UnavailableException: {}", msg),
+            Errors::Overloaded(msg) => write!(f, "Overloaded: {}", msg),
+            Errors::IsBootstrapping(msg) => write!(f, "IsBootstrapping: {}", msg),
+            Errors::TruncateError(msg) => write!(f, "TruncateError: {}", msg),
+            Errors::WriteTimeout(msg) => write!(f, "WriteTimeout: {}", msg),
+            Errors::ReadTimeout(msg) => write!(f, "ReadTimeout: {}", msg),
+            Errors::SyntaxError(msg) => write!(f, "SyntaxError: {}", msg),
+            Errors::Unauthorized(msg) => write!(f, "Unauthorized: {}", msg),
+            Errors::Invalid(msg) => write!(f, "Invalid: {}", msg),
+            Errors::ConfigError(msg) => write!(f, "ConfigError: {}", msg),
+            Errors::AlreadyExists(msg) => write!(f, "AlreadyExists: {}", msg),
+            Errors::Unprepared(msg) => write!(f, "Unprepared: {}", msg),
         }
     }
 }
