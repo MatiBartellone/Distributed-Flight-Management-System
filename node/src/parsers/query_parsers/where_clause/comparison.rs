@@ -60,245 +60,114 @@ impl Evaluate for ComparisonExpr {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-
+    use DataType::*;
+    use ComparisonOperators::*;
     use crate::parsers::{
         query_parsers::where_clause::{comparison::ComparisonExpr, evaluate::Evaluate},
-        tokens::token::{ComparisonOperators, DataType, Literal},
+        tokens::token::{create_literal, ComparisonOperators, DataType, Literal},
     };
+
+    fn create_row_integer() -> HashMap<String, Literal> {
+        let mut row: HashMap<String, Literal> = HashMap::new();
+        row.insert("age".to_string(), create_literal("30", DataType::Integer));
+        row.insert("score".to_string(), create_literal("100", DataType::Integer));
+        row
+    }
+
+    fn create_row_boolean() -> HashMap<String, Literal> {
+        let mut row: HashMap<String, Literal> = HashMap::new();
+        row.insert("is_active".to_string(), create_literal("true", DataType::Boolean));
+        row.insert("has_access".to_string(), create_literal("false", DataType::Boolean));
+        row
+    }
+
+    fn create_row_decimal() -> HashMap<String, Literal> {
+        let mut row: HashMap<String, Literal> = HashMap::new();
+        row.insert("price".to_string(), create_literal("199.99", DataType::Decimal));
+        row.insert("discount".to_string(), create_literal("10.50", DataType::Decimal));
+        row
+    }
+
+    fn create_row_text() -> HashMap<String, Literal> {
+        let mut row: HashMap<String, Literal> = HashMap::new();
+        row.insert("name".to_string(), create_literal("Alice", DataType::Text));
+        row.insert("city".to_string(), create_literal("New York", DataType::Text));
+        row
+    }
+
+    fn assert_multiple_expr_evaluations(
+        exprs: Vec<ComparisonExpr>,
+        row: &HashMap<String, Literal>,
+        expected_results: Vec<bool>,
+    ) {
+        for i in 0..exprs.len() {
+            let result = &exprs.get(i).unwrap().evaluate(row).unwrap();
+            let expected = expected_results.get(i).unwrap();
+            assert_eq!(result, expected, "Test mismatch for expression: {:?}", result);
+        }
+    }
 
     #[test]
     fn test_integer_comparison() {
-        let mut row: HashMap<String, Literal> = HashMap::new();
-        row.insert(
-            "age".to_string(),
-            Literal {
-                valor: "30".to_string(),
-                tipo: DataType::Integer,
-            },
-        );
-        row.insert(
-            "score".to_string(),
-            Literal {
-                valor: "100".to_string(),
-                tipo: DataType::Integer,
-            },
-        );
-
-        let expr = ComparisonExpr::new(
-            "age".to_string(),
-            &ComparisonOperators::Less,
-            Literal {
-                valor: "35".to_string(),
-                tipo: DataType::Integer,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), true);
-
-        let expr = ComparisonExpr::new(
-            "score".to_string(),
-            &ComparisonOperators::GreaterOrEqual,
-            Literal {
-                valor: "95".to_string(),
-                tipo: DataType::Integer,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), true);
-
-        let expr = ComparisonExpr::new(
-            "age".to_string(),
-            &ComparisonOperators::Greater,
-            Literal {
-                valor: "35".to_string(),
-                tipo: DataType::Integer,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), false);
-
-        let expr = ComparisonExpr::new(
-            "score".to_string(),
-            &ComparisonOperators::LessOrEqual,
-            Literal {
-                valor: "50".to_string(),
-                tipo: DataType::Integer,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), false);
+        let row = create_row_integer();
+    
+        let exprs = vec![
+            ComparisonExpr::new("age".to_string(), &Less, create_literal("35", Integer)),
+            ComparisonExpr::new("score".to_string(), &GreaterOrEqual, create_literal("95", Integer)),
+            ComparisonExpr::new("age".to_string(), &Greater, create_literal("35", Integer)),
+            ComparisonExpr::new("score".to_string(), &LessOrEqual, create_literal("50", Integer)),
+        ];
+    
+        let expected_results = vec![true, true, false, false];
+    
+        assert_multiple_expr_evaluations(exprs, &row, expected_results);
     }
-
+    
     #[test]
     fn test_boolean_comparison() {
-        let mut row: HashMap<String, Literal> = HashMap::new();
-        row.insert(
-            "is_active".to_string(),
-            Literal {
-                valor: "true".to_string(),
-                tipo: DataType::Boolean,
-            },
-        );
-        row.insert(
-            "has_access".to_string(),
-            Literal {
-                valor: "false".to_string(),
-                tipo: DataType::Boolean,
-            },
-        );
-
-        let expr = ComparisonExpr::new(
-            "is_active".to_string(),
-            &ComparisonOperators::Equal,
-            Literal {
-                valor: "true".to_string(),
-                tipo: DataType::Boolean,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), true);
-
-        let expr = ComparisonExpr::new(
-            "has_access".to_string(),
-            &ComparisonOperators::NotEqual,
-            Literal {
-                valor: "true".to_string(),
-                tipo: DataType::Boolean,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), true);
-
-        let expr = ComparisonExpr::new(
-            "is_active".to_string(),
-            &ComparisonOperators::Equal,
-            Literal {
-                valor: "false".to_string(),
-                tipo: DataType::Boolean,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), false);
-
-        let expr = ComparisonExpr::new(
-            "has_access".to_string(),
-            &ComparisonOperators::NotEqual,
-            Literal {
-                valor: "false".to_string(),
-                tipo: DataType::Boolean,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), false);
+        let row = create_row_boolean();
+    
+        let exprs = vec![
+            ComparisonExpr::new("is_active".to_string(), &Equal, create_literal("true", Boolean)),
+            ComparisonExpr::new("has_access".to_string(), &NotEqual, create_literal("true", Boolean)),
+            ComparisonExpr::new("is_active".to_string(), &Equal, create_literal("false", Boolean)),
+            ComparisonExpr::new("has_access".to_string(), &NotEqual, create_literal("false", Boolean)),
+        ];
+    
+        let expected_results = vec![true, true, false, false];
+    
+        assert_multiple_expr_evaluations(exprs, &row, expected_results);
     }
-
+    
     #[test]
     fn test_decimal_comparison() {
-        let mut row: HashMap<String, Literal> = HashMap::new();
-        row.insert(
-            "price".to_string(),
-            Literal {
-                valor: "199.99".to_string(),
-                tipo: DataType::Decimal,
-            },
-        );
-        row.insert(
-            "discount".to_string(),
-            Literal {
-                valor: "10.50".to_string(),
-                tipo: DataType::Decimal,
-            },
-        );
-
-        let expr = ComparisonExpr::new(
-            "price".to_string(),
-            &ComparisonOperators::Greater,
-            Literal {
-                valor: "150.00".to_string(),
-                tipo: DataType::Decimal,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), true);
-
-        let expr = ComparisonExpr::new(
-            "discount".to_string(),
-            &ComparisonOperators::LessOrEqual,
-            Literal {
-                valor: "15.00".to_string(),
-                tipo: DataType::Decimal,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), true);
-
-        let expr = ComparisonExpr::new(
-            "price".to_string(),
-            &ComparisonOperators::Less,
-            Literal {
-                valor: "150.00".to_string(),
-                tipo: DataType::Decimal,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), false);
-
-        let expr = ComparisonExpr::new(
-            "discount".to_string(),
-            &ComparisonOperators::Greater,
-            Literal {
-                valor: "15.00".to_string(),
-                tipo: DataType::Decimal,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), false);
+        let row = create_row_decimal();
+    
+        let exprs = vec![
+            ComparisonExpr::new("price".to_string(), &Greater, create_literal("150.00", Decimal)),
+            ComparisonExpr::new("discount".to_string(), &LessOrEqual, create_literal("15.00", Decimal)),
+            ComparisonExpr::new("price".to_string(), &Less, create_literal("150.00", Decimal)),
+            ComparisonExpr::new("discount".to_string(), &Greater, create_literal("15.00", Decimal)),
+        ];
+    
+        let expected_results = vec![true, true, false, false];
+    
+        assert_multiple_expr_evaluations(exprs, &row, expected_results);
     }
-
+    
     #[test]
     fn test_text_comparison() {
-        let mut row: HashMap<String, Literal> = HashMap::new();
-        row.insert(
-            "name".to_string(),
-            Literal {
-                valor: "Alice".to_string(),
-                tipo: DataType::Text,
-            },
-        );
-        row.insert(
-            "city".to_string(),
-            Literal {
-                valor: "New York".to_string(),
-                tipo: DataType::Text,
-            },
-        );
-
-        let expr = ComparisonExpr::new(
-            "name".to_string(),
-            &ComparisonOperators::Equal,
-            Literal {
-                valor: "Alice".to_string(),
-                tipo: DataType::Text,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), true);
-
-        let expr = ComparisonExpr::new(
-            "city".to_string(),
-            &ComparisonOperators::NotEqual,
-            Literal {
-                valor: "Los Angeles".to_string(),
-                tipo: DataType::Text,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), true);
-
-        let expr = ComparisonExpr::new(
-            "name".to_string(),
-            &ComparisonOperators::NotEqual,
-            Literal {
-                valor: "Alice".to_string(),
-                tipo: DataType::Text,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), false);
-
-        let expr = ComparisonExpr::new(
-            "city".to_string(),
-            &ComparisonOperators::Equal,
-            Literal {
-                valor: "New York ".to_string(),
-                tipo: DataType::Text,
-            },
-        );
-        assert_eq!(expr.evaluate(&row).unwrap(), false);
+        let row = create_row_text();
+    
+        let exprs = vec![
+            ComparisonExpr::new("name".to_string(), &Equal, create_literal("Alice", Text)),
+            ComparisonExpr::new("city".to_string(), &NotEqual, create_literal("Los Angeles", Text)),
+            ComparisonExpr::new("name".to_string(), &NotEqual, create_literal("Alice", Text)),
+            ComparisonExpr::new("city".to_string(), &Equal, create_literal("New York", Text)),
+        ];
+    
+        let expected_results = vec![true, true, false, true];
+    
+        assert_multiple_expr_evaluations(exprs, &row, expected_results);
     }
-}
+}    
