@@ -1,7 +1,9 @@
 use std::{iter::Peekable, vec::IntoIter};
 
+use crate::parsers::tokens::token::AritmeticasMath;
+use crate::parsers::tokens::token::DataType;
 use crate::parsers::tokens::token::{
-    BooleanOperations, ComparisonOperators, Literal, LogicalOperators, Term, Token,
+    create_literal, BooleanOperations, ComparisonOperators, Literal, LogicalOperators, Term, Token,
 };
 use BooleanOperations::*;
 use Term::*;
@@ -81,4 +83,37 @@ pub fn peek_next_value(peekable_tokens: &mut Peekable<IntoIter<Token>>) -> Resul
 pub fn iter_is_empty(tokens: &mut Peekable<IntoIter<Token>>) -> bool {
     let mut peekable = tokens.peekable();
     peekable.peek().is_none()
+}
+
+// String to enum Token
+
+// Identifier
+pub fn create_identifier_token(value: &str) -> Token {
+    Token::Identifier(value.to_string())
+}
+
+// Term
+pub fn create_token_literal(value: &str, data_type: DataType) -> Token {
+    Token::Term(Literal(create_literal(value, data_type)))
+}
+
+pub fn create_logical_operation_token(operation: LogicalOperators) -> Token {
+    Token::Term(AritmeticasBool(BooleanOperations::Logical(operation)))
+}
+
+pub fn create_comparison_operation_token(operation: ComparisonOperators) -> Token {
+    Token::Term(AritmeticasBool(BooleanOperations::Comparison(operation)))
+}
+
+// Reserved
+pub fn create_reserved_token(value: &str) -> Token {
+    Token::Reserved(value.to_string())
+}
+
+pub fn create_data_type_token(data_type: DataType) -> Token {
+    Token::DataType(data_type)
+}
+
+pub fn create_aritmeticas_math_token(operation: AritmeticasMath) -> Token {
+    Token::Term(AritmeticasMath(operation))
 }

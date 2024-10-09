@@ -114,43 +114,63 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn test_insert_query_parser_valid() {
-        let tokens = vec![
-            Token::Reserved(String::from(INTO)),
-            Token::Identifier(String::from("table_name")),
+    fn assert_error(result: Result<InsertQuery, Errors>, expected: &str) {
+        assert!(result.is_err());
+        if let Err(Errors::SyntaxError(err)) = result {
+            assert_eq!(err, expected);
+        }
+    }
+
+    fn get_insert_tokens(
+        into: &str,
+        table: &str,
+        hd1: &str,
+        hd2: &str,
+        values: &str,
+        col1: &str,
+        col2: &str,
+    ) -> Vec<Token> {
+        vec![
+            Token::Reserved(String::from(into)),
+            Token::Identifier(String::from(table)),
             Token::TokensList(vec![
-                Token::Identifier(String::from("id")),
-                Token::Identifier(String::from("name")),
+                Token::Identifier(String::from(hd1)),
+                Token::Identifier(String::from(hd2)),
             ]),
-            Token::Reserved(String::from(VALUES)),
+            Token::Reserved(String::from(values)),
             Token::TokensList(vec![
                 Token::Term(Term::Literal(Literal {
-                    valor: "3".to_string(),
+                    valor: col1.to_string(),
                     tipo: DataType::Integer,
                 })),
                 Token::Term(Term::Literal(Literal {
-                    valor: "Thiago".to_string(),
+                    valor: col2.to_string(),
                     tipo: DataType::Text,
                 })),
             ]),
-        ];
-
-        let expected = InsertQuery {
-            table: "table_name".to_string(),
-            headers: vec![String::from("id"), String::from("name")],
+        ]
+    }
+    fn get_insert_query(table: &str, hd1: &str, hd2: &str, col1: &str, col2: &str) -> InsertQuery {
+        InsertQuery {
+            table: table.to_string(),
+            headers: vec![String::from(hd1), String::from(hd2)],
             values_list: vec![vec![
                 Literal {
-                    valor: "3".to_string(),
+                    valor: col1.to_string(),
                     tipo: DataType::Integer,
                 },
                 Literal {
-                    valor: "Thiago".to_string(),
+                    valor: col2.to_string(),
                     tipo: DataType::Text,
                 },
             ]],
-        };
+        }
+    }
 
+    #[test]
+    fn test_insert_query_parser_valid() {
+        let tokens = get_insert_tokens(INTO, "table_name", "id", "name", VALUES, "3", "Thiago");
+        let expected = get_insert_query("table_name", "id", "name", "3", "Thiago");
         assert_eq!(expected, InsertQueryParser::parse(tokens).unwrap());
     }
 
@@ -158,10 +178,7 @@ mod tests {
     fn test_insert_query_parser_missing_into() {
         let tokens = vec![Token::Identifier(String::from("table_name"))];
         let result = InsertQueryParser::parse(tokens);
-        assert!(result.is_err());
-        if let Err(Errors::SyntaxError(err)) = result {
-            assert_eq!(err, "INSERT not followed by INTO");
-        }
+        assert_error(result, "INSERT not followed by INTO");
     }
     #[test]
     fn test_insert_query_parser_unexpected_table_name() {
@@ -173,10 +190,7 @@ mod tests {
             ]),
         ];
         let result = InsertQueryParser::parse(tokens);
-        assert!(result.is_err());
-        if let Err(Errors::SyntaxError(err)) = result {
-            assert_eq!(err, "Unexpected token in table_name");
-        }
+        assert_error(result, "Unexpected token in table_name");
     }
     #[test]
     fn test_insert_query_parser_unexpected_headers() {
@@ -186,10 +200,7 @@ mod tests {
             Token::Reserved(String::from(VALUES)),
         ];
         let result = InsertQueryParser::parse(tokens);
-        assert!(result.is_err());
-        if let Err(Errors::SyntaxError(err)) = result {
-            assert_eq!(err, "Unexpected token in headers");
-        }
+        assert_error(result, "Unexpected token in headers");
     }
     #[test]
     fn test_insert_query_parser_headers_are_not_identifiers() {
@@ -199,28 +210,14 @@ mod tests {
             Token::TokensList(vec![Token::Reserved(String::from("NOT AN IDENTIFIER"))]),
         ];
         let result = InsertQueryParser::parse(tokens);
-        assert!(result.is_err());
-        if let Err(Errors::SyntaxError(err)) = result {
-            assert_eq!(err, "Unexpected token in headers");
-        }
+        assert_error(result, "Unexpected token in headers");
     }
 
     #[test]
     fn test_insert_query_parser_missing_values() {
-        let tokens = vec![
-            Token::Reserved(String::from(INTO)),
-            Token::Identifier(String::from("table_name")),
-            Token::TokensList(vec![
-                Token::Identifier(String::from("id")),
-                Token::Identifier(String::from("name")),
-            ]),
-            Token::Reserved(String::from("not VALUES")),
-        ];
+        let tokens = get_insert_tokens(INTO, "table_name", "id", "name", "NOT VALUES", "", "");
         let result = InsertQueryParser::parse(tokens);
-        assert!(result.is_err());
-        if let Err(Errors::SyntaxError(err)) = result {
-            assert_eq!(err, "headers not followed by VALUES");
-        }
+        assert_error(result, "headers not followed by VALUES");
     }
 
     #[test]
@@ -236,9 +233,6 @@ mod tests {
             Token::TokensList(vec![Token::Reserved(String::from("NOT A LITERAL"))]),
         ];
         let result = InsertQueryParser::parse(tokens);
-        assert!(result.is_err());
-        if let Err(Errors::SyntaxError(err)) = result {
-            assert_eq!(err, "Unexpected token in values");
-        }
+        assert_error(result, "Unexpected token in values");
     }
 }
