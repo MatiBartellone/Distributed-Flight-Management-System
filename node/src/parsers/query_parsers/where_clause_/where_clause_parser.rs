@@ -84,7 +84,7 @@ fn where_clause(tokens: &mut Peekable<IntoIter<Token>>) -> Result<WhereClause, E
         // [column_name, comparasion, literal, ...]
         Identifier(column_name) => where_comparision(tokens, column_name),
         // [tupla, comparasion, tupla, ...] or [lista, ...]
-        TokensList(token_list) => where_list(tokens, token_list),
+        ParenList(token_list) => where_list(tokens, token_list),
         // [NOT, ...]
         Term(BooleanOperations(Logical(Not))) => Ok(not_expr(where_clause(tokens)?)),
         _ => Err(Errors::SyntaxError(
@@ -204,12 +204,12 @@ mod tests {
     fn test_parser_tuple_comparation() {
         // (id, name) = (5, 'ivan')
         let tokens = vec![
-            TokensList(vec![
+            ParenList(vec![
                 create_identifier_token("id"),
                 create_identifier_token("name"),
             ]),
             create_comparison_operation_token(Equal),
-            TokensList(vec![
+            ParenList(vec![
                 create_token_literal("5", Int),
                 create_token_literal("ivan", Text),
             ]),
@@ -253,12 +253,12 @@ mod tests {
     fn test_parser_multiple_operations() {
         // (id, name) = (5, 'ivan') AND NOT is_active = true OR age < 30
         let tokens = vec![
-            TokensList(vec![
+            ParenList(vec![
                 create_identifier_token("id"),
                 create_identifier_token("name"),
             ]),
             create_comparison_operation_token(Equal),
-            TokensList(vec![
+            ParenList(vec![
                 create_token_literal("5", Int),
                 create_token_literal("ivan", Text),
             ]),

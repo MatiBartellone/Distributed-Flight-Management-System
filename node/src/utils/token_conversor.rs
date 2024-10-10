@@ -53,7 +53,7 @@ pub fn get_reserved_string(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Str
 pub fn get_list(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Vec<Token>, Errors> {
     let token = get_next_value(tokens)?;
     match token {
-        Token::TokensList(token_list) => Ok(token_list),
+        Token::ParenList(token_list) => Ok(token_list),
         _ => Err(Errors::Invalid("Expected List".to_string())),
     }
 }

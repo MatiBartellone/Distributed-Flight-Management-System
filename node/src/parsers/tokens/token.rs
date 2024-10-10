@@ -11,7 +11,9 @@ pub enum Token {
     Term(Term),
     Reserved(String),
     DataType(DataType),
-    TokensList(Vec<Token>),
+    ParenList(Vec<Token>),
+    IterateToken(Vec<Token>),
+    BraceList(Vec<Token>),
     Symbol(String),
 }
 
@@ -52,6 +54,33 @@ fn match_tokenize(word: String) -> Option<Token> {
     None
 }
 
+fn sub_list_token(
+    words: &[String],
+    i: &mut usize,
+    res: &mut Vec<Token>,
+    reserved: String
+) -> Result<bool, Errors> {
+    if reserved == WHERE {
+        let temp = tokenize_recursive(words, close_sub_list_where, i)?;
+        res.push(Token::ParenList(temp));
+        return Ok(true);
+    } else if reserved == SELECT {
+        let temp = tokenize_recursive(words, close_sub_list_select, i)?;
+        res.push(Token::ParenList(temp));
+        return Ok(true);
+    } else if reserved == BY {
+        let temp = tokenize_recursive(words, close_sub_list_order_by, i)?;
+        res.push(Token::ParenList(temp));
+        return Ok(true);
+    } else if reserved == SET {
+        let temp = tokenize_recursive(words, close_sub_list_select, i)?;
+        res.push(Token::ParenList(temp));
+        return Ok(true);
+    }
+    Ok(false)
+}
+
+
 fn init_sub_list_token(
     words: &[String],
     i: &mut usize,
@@ -59,21 +88,7 @@ fn init_sub_list_token(
 ) -> Result<bool, Errors> {
     //Nos fijamos que fue lo ultimo YA LEIDO
     if let Some(Token::Reserved(reserved)) = res.last() {
-        if reserved == WHERE {
-            let temp = tokenize_recursive(words, close_sub_list_where, i)?;
-            res.push(Token::TokensList(temp));
-            return Ok(true);
-        } else if reserved == SELECT {
-            let temp = tokenize_recursive(words, close_sub_list_select, i)?;
-            res.push(Token::TokensList(temp));
-            return Ok(true);
-        } else if reserved == BY {
-            let temp = tokenize_recursive(words, close_sub_list_order_by, i)?;
-            res.push(Token::TokensList(temp));
-            return Ok(true);
-        } else if reserved == SET {
-            let temp = tokenize_recursive(words, close_sub_list_select, i)?;
-            res.push(Token::TokensList(temp));
+        if sub_list_token(words, i, res, reserved.to_string())? {
             return Ok(true);
         }
     } //Nos fijamos la word ACTUAL
@@ -81,7 +96,7 @@ fn init_sub_list_token(
         *i += 1;
         let temp = tokenize_recursive(words, close_sub_list_parentheses, i)?;
         *i += 1;
-        res.push(Token::TokensList(temp));
+        res.push(Token::ParenList(temp));
         return Ok(true);
     } else if words[*i] == OPEN_BRACE {
         let mut temp = Vec::new();
@@ -91,7 +106,7 @@ fn init_sub_list_token(
         temp.extend(sub_temp);
         temp.push(Token::Symbol(CLOSE_BRACE.to_string()));
         *i += 1;
-        res.push(Token::TokensList(temp));
+        res.push(Token::ParenList(temp));
         return Ok(true);
     }
     Ok(false)
@@ -175,7 +190,7 @@ mod tests {
         let result = tokenize(query).unwrap();
         let expected = vec![
             Token::Reserved("SELECT".to_string()),
-            Token::TokensList(vec![Token::Identifier("name".to_string())]),
+            Token::ParenList(vec![Token::Identifier("name".to_string())]),
             Token::Reserved("FROM".to_string()),
             Token::Identifier("users".to_string()),
         ];
@@ -195,7 +210,7 @@ mod tests {
 
         let expected = vec![
             Token::Reserved("SELECT".to_string()),
-            Token::TokensList(vec![
+            Token::ParenList(vec![
                 Token::Identifier("name".to_string()),
                 Token::Identifier("dni".to_string()),
             ]),
@@ -205,7 +220,7 @@ mod tests {
             get_age_greater_than_30(),
             Token::Reserved("ORDER".to_string()),
             Token::Reserved("BY".to_string()),
-            Token::TokensList(vec![
+            Token::ParenList(vec![
                 Token::Identifier("name".to_string()),
                 Token::Identifier("dni".to_string()),
             ]),
@@ -215,7 +230,7 @@ mod tests {
 
     fn get_age_greater_than_30() -> Token {
         let literal = Literal::new("30".to_string(), DataType::Int);
-        Token::TokensList(vec![
+        Token::ParenList(vec![
             Token::Identifier("age".to_string()),
             Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
                 ComparisonOperators::Greater,
@@ -236,14 +251,14 @@ mod tests {
         let result = tokenize(query).unwrap();
         let expected = vec![
             Token::Reserved("SELECT".to_string()),
-            Token::TokensList(vec![Token::Identifier("name".to_string())]),
+            Token::ParenList(vec![Token::Identifier("name".to_string())]),
             Token::Reserved("FROM".to_string()),
             Token::Identifier("users".to_string()),
             Token::Reserved("WHERE".to_string()),
-            Token::TokensList(vec![get_age_greater_than_30()]),
+            Token::ParenList(vec![get_age_greater_than_30()]),
             Token::Reserved("ORDER".to_string()),
             Token::Reserved("BY".to_string()),
-            Token::TokensList(vec![
+            Token::ParenList(vec![
                 Token::Identifier("name".to_string()),
                 Token::Identifier("dni".to_string()),
             ]),
@@ -263,14 +278,14 @@ mod tests {
         let result = tokenize(query).unwrap();
         let expected = vec![
             Token::Reserved("SELECT".to_string()),
-            Token::TokensList(vec![Token::Identifier("name".to_string())]),
+            Token::ParenList(vec![Token::Identifier("name".to_string())]),
             Token::Reserved("FROM".to_string()),
             Token::Identifier("users".to_string()),
             Token::Reserved("WHERE".to_string()),
-            Token::TokensList(vec![Token::TokensList(vec![get_age_greater_than_30()])]),
+            Token::ParenList(vec![Token::ParenList(vec![get_age_greater_than_30()])]),
             Token::Reserved("ORDER".to_string()),
             Token::Reserved("BY".to_string()),
-            Token::TokensList(vec![Token::Identifier("name".to_string())]),
+            Token::ParenList(vec![Token::Identifier("name".to_string())]),
         ];
         assert_eq!(result, expected);
     }
@@ -291,11 +306,11 @@ mod tests {
         let literal_text = Literal::new("ivan".to_string(), DataType::Text);
         let expected = vec![
             Token::Reserved("SELECT".to_string()),
-            Token::TokensList(vec![Token::Identifier("name".to_string())]),
+            Token::ParenList(vec![Token::Identifier("name".to_string())]),
             Token::Reserved("FROM".to_string()),
             Token::Identifier("users".to_string()),
             Token::Reserved("WHERE".to_string()),
-            Token::TokensList(vec![
+            Token::ParenList(vec![
                 Token::Identifier("age".to_string()),
                 Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
                     ComparisonOperators::Greater,
@@ -322,7 +337,7 @@ mod tests {
 
     fn get_active_equals_true() -> Token {
         let literal_boolean = Literal::new("true".to_string(), DataType::Boolean);
-        Token::TokensList(vec![
+        Token::ParenList(vec![
             Token::Identifier("active".to_string()),
             Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
                 ComparisonOperators::Equal,
@@ -345,11 +360,11 @@ mod tests {
         let literal_bigint = Literal::new("30".to_string(), DataType::Int);
         let expected = vec![
             Token::Reserved("SELECT".to_string()),
-            Token::TokensList(vec![Token::Identifier("name".to_string())]),
+            Token::ParenList(vec![Token::Identifier("name".to_string())]),
             Token::Reserved("FROM".to_string()),
             Token::Identifier("users".to_string()),
             Token::Reserved("WHERE".to_string()),
-            Token::TokensList(vec![
+            Token::ParenList(vec![
                 Token::Identifier("age".to_string()),
                 Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
                     ComparisonOperators::Greater,
@@ -408,13 +423,13 @@ mod tests {
             Token::Reserved("INSERT".to_string()),
             Token::Reserved("INTO".to_string()),
             Token::Identifier("tAbla".to_string()),
-            Token::TokensList(vec![
+            Token::ParenList(vec![
                 Token::Identifier("columna1".to_string()),
                 Token::Symbol(",".to_string()),
                 Token::Identifier("columna2".to_string()),
             ]),
             Token::Reserved("VALUES".to_string()),
-            Token::TokensList(vec![
+            Token::ParenList(vec![
                 Token::Term(Term::Literal(literal_1)),
                 Token::Symbol(",".to_string()),
                 Token::Term(Term::Literal(literal_2)),
@@ -438,24 +453,24 @@ mod tests {
         let result = tokenize(query).unwrap();
         let expected = vec![
             Token::Reserved("SELECT".to_string()),
-            Token::TokensList(vec![]),
+            Token::ParenList(vec![]),
             Token::Reserved("WHERE".to_string()),
-            Token::TokensList(vec![Token::TokensList(vec![
+            Token::ParenList(vec![Token::ParenList(vec![
                 Token::Identifier("age".to_string()),
                 Token::Term(Term::BooleanOperations(BooleanOperations::Logical(
                     LogicalOperators::And,
                 ))), // 'AND' como operación lógica
-                Token::TokensList(vec![
+                Token::ParenList(vec![
                     Token::Identifier("active".to_string()),
                     Token::Term(Term::BooleanOperations(BooleanOperations::Logical(
                         LogicalOperators::Or,
                     ))), // 'OR' como operación lógica
-                    Token::TokensList(vec![
+                    Token::ParenList(vec![
                         Token::Identifier("premium".to_string()),
                         Token::Term(Term::BooleanOperations(BooleanOperations::Logical(
                             LogicalOperators::And,
                         ))), // 'AND' como operación lógica
-                        Token::TokensList(vec![Token::Identifier("location".to_string())]),
+                        Token::ParenList(vec![Token::Identifier("location".to_string())]),
                     ]),
                 ]),
                 Token::Term(Term::BooleanOperations(BooleanOperations::Logical(
@@ -491,7 +506,7 @@ mod tests {
             Token::Reserved("UPDATE".to_string()),
             Token::Identifier("tAbla".to_string()),
             Token::Reserved("SET".to_string()),
-            Token::TokensList(vec![
+            Token::ParenList(vec![
                 Token::Identifier("columna1".to_string()),
                 Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
                     ComparisonOperators::Equal,
@@ -499,7 +514,7 @@ mod tests {
                 Token::Term(Term::Literal(literal)),
             ]),
             Token::Reserved("WHERE".to_string()),
-            Token::TokensList(vec![
+            Token::ParenList(vec![
                 Token::Identifier("id".to_string()),
                 Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
                     ComparisonOperators::Greater,
@@ -524,7 +539,7 @@ mod tests {
             Token::Reserved("FROM".to_string()),
             Token::Identifier("tAbla".to_string()),
             Token::Reserved("WHERE".to_string()),
-            Token::TokensList(vec![
+            Token::ParenList(vec![
                 Token::Identifier("id".to_string()),
                 Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
                     ComparisonOperators::Equal,
@@ -566,7 +581,7 @@ mod tests {
             Token::Reserved("CREATE".to_string()),
             Token::Reserved("TABLE".to_string()),
             Token::Identifier("tAbla".to_string()),
-            Token::TokensList(vec![
+            Token::ParenList(vec![
                 Token::Identifier("columna1".to_string()),
                 Token::Identifier("TEXT".to_string()),
                 Token::Symbol(",".to_string()),
@@ -576,7 +591,7 @@ mod tests {
                 Token::Identifier("columna3".to_string()),
                 Token::Reserved("PRIMARY".to_string()),
                 Token::Reserved("KEY".to_string()),
-                Token::TokensList(vec![Token::Identifier("columna1".to_string())]),
+                Token::ParenList(vec![Token::Identifier("columna1".to_string())]),
             ]),
         ];
 
@@ -717,7 +732,7 @@ mod tests {
     }
 
     fn get_replication_options() -> Token {
-        Token::TokensList(vec![
+        Token::ParenList(vec![
             Token::Symbol("{".to_string()),
             Token::Term(Term::Literal(Literal::new(
                 "class".to_string(),

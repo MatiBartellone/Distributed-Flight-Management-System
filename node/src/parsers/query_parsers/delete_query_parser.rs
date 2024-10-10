@@ -53,7 +53,7 @@ fn where_clause(tokens: &mut IntoIter<Token>, query: &mut DeleteQuery) -> Result
         return Ok(());
     };
     match token {
-        Token::TokensList(list) => {
+        Token::ParenList(list) => {
             query.where_clause = WhereClauseParser::parse(list)?;
             let None = tokens.next() else {
                 return Err(Errors::SyntaxError(String::from(
