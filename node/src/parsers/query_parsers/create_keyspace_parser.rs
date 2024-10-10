@@ -77,12 +77,9 @@ impl CreateKeyspaceParser {
 
         for current_token in (0..list.len()).step_by(2) {
             match (&list[current_token], &list[current_token + 1]) {
-                (Token::Reserved(key), Token::Term(term)) => match term {
-                    Term::Literal(literal) => {
-                        replication.insert(key.to_string(), literal.valor.to_string());
-                    }
-                    _ => return Err(Errors::SyntaxError(String::from(INVALID_PARAMETERS))),
-                },
+                (Token::Reserved(key), Token::Term(Term::Literal(literal))) => {
+                    replication.insert(key.to_string(), literal.valor.to_string());
+                }
                 _ => return Err(Errors::SyntaxError(String::from(INVALID_PARAMETERS))),
             }
         }
@@ -90,7 +87,7 @@ impl CreateKeyspaceParser {
         Ok(replication)
     }
 
-    fn check_even_parameters(&self, list: &Vec<Token>) -> Result<(), Errors> {
+    fn check_even_parameters(&self, list: &[Token]) -> Result<(), Errors> {
         if list.len() % 2 != 0 {
             return Err(Errors::SyntaxError(String::from(INVALID_PARAMETERS)));
         }
