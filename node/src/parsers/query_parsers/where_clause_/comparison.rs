@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    parsers::tokens::token::{ComparisonOperators, Literal},
+    parsers::tokens::{literal::Literal, terms::ComparisonOperators},
     utils::errors::Errors,
 };
 
@@ -22,8 +22,8 @@ impl ComparisonExpr {
             Equal => Equal,
             NotEqual => NotEqual,
             Greater => Greater,
-            GreaterOrEqual => GreaterOrEqual,
-            LessOrEqual => LessOrEqual,
+            GreaterEqual => GreaterEqual,
+            LesserEqual => LesserEqual,
         };
         ComparisonExpr {
             column_name,
@@ -51,28 +51,33 @@ impl Evaluate for ComparisonExpr {
             NotEqual => Ok(column_literal != &self.literal),
             Less => Ok(column_literal < &self.literal),
             Greater => Ok(column_literal > &self.literal),
-            LessOrEqual => Ok(column_literal <= &self.literal),
-            GreaterOrEqual => Ok(column_literal >= &self.literal),
+            LesserEqual => Ok(column_literal <= &self.literal),
+            GreaterEqual => Ok(column_literal >= &self.literal),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::parsers::{
-        query_parsers::where_clause_::{comparison::ComparisonExpr, evaluate::Evaluate},
-        tokens::token::{create_literal, ComparisonOperators, DataType, Literal},
+    use crate::parsers::query_parsers::where_clause_::{
+        comparison::ComparisonExpr, evaluate::Evaluate,
     };
+    use crate::parsers::tokens::data_type::DataType;
+    use crate::parsers::tokens::literal::Literal;
+    use crate::parsers::tokens::terms::ComparisonOperators;
     use std::collections::HashMap;
     use ComparisonOperators::*;
     use DataType::*;
 
     fn create_row_integer() -> HashMap<String, Literal> {
         let mut row: HashMap<String, Literal> = HashMap::new();
-        row.insert("age".to_string(), create_literal("30", DataType::Integer));
+        row.insert(
+            "age".to_string(),
+            Literal::new("30".to_string(), DataType::Int),
+        );
         row.insert(
             "score".to_string(),
-            create_literal("100", DataType::Integer),
+            Literal::new("100".to_string(), DataType::Int),
         );
         row
     }
@@ -81,11 +86,11 @@ mod tests {
         let mut row: HashMap<String, Literal> = HashMap::new();
         row.insert(
             "is_active".to_string(),
-            create_literal("true", DataType::Boolean),
+            Literal::new("true".to_string(), DataType::Boolean),
         );
         row.insert(
             "has_access".to_string(),
-            create_literal("false", DataType::Boolean),
+            Literal::new("false".to_string(), DataType::Boolean),
         );
         row
     }
@@ -94,21 +99,24 @@ mod tests {
         let mut row: HashMap<String, Literal> = HashMap::new();
         row.insert(
             "price".to_string(),
-            create_literal("199.99", DataType::Decimal),
+            Literal::new("199.99".to_string(), DataType::Decimal),
         );
         row.insert(
             "discount".to_string(),
-            create_literal("10.50", DataType::Decimal),
+            Literal::new("10.50".to_string(), DataType::Decimal),
         );
         row
     }
 
     fn create_row_text() -> HashMap<String, Literal> {
         let mut row: HashMap<String, Literal> = HashMap::new();
-        row.insert("name".to_string(), create_literal("Alice", DataType::Text));
+        row.insert(
+            "name".to_string(),
+            Literal::new("Alice".to_string(), DataType::Text),
+        );
         row.insert(
             "city".to_string(),
-            create_literal("New York", DataType::Text),
+            Literal::new("New York".to_string(), DataType::Text),
         );
         row
     }
@@ -134,17 +142,25 @@ mod tests {
         let row = create_row_integer();
 
         let exprs = vec![
-            ComparisonExpr::new("age".to_string(), &Less, create_literal("35", Integer)),
             ComparisonExpr::new(
-                "score".to_string(),
-                &GreaterOrEqual,
-                create_literal("95", Integer),
+                "age".to_string(),
+                &Less,
+                Literal::new("35".to_string(), Int),
             ),
-            ComparisonExpr::new("age".to_string(), &Greater, create_literal("35", Integer)),
             ComparisonExpr::new(
                 "score".to_string(),
-                &LessOrEqual,
-                create_literal("50", Integer),
+                &GreaterEqual,
+                Literal::new("95".to_string(), Int),
+            ),
+            ComparisonExpr::new(
+                "age".to_string(),
+                &Greater,
+                Literal::new("35".to_string(), Int),
+            ),
+            ComparisonExpr::new(
+                "score".to_string(),
+                &LesserEqual,
+                Literal::new("50".to_string(), Int),
             ),
         ];
 
@@ -161,22 +177,22 @@ mod tests {
             ComparisonExpr::new(
                 "is_active".to_string(),
                 &Equal,
-                create_literal("true", Boolean),
+                Literal::new("true".to_string(), Boolean),
             ),
             ComparisonExpr::new(
                 "has_access".to_string(),
                 &NotEqual,
-                create_literal("true", Boolean),
+                Literal::new("true".to_string(), Boolean),
             ),
             ComparisonExpr::new(
                 "is_active".to_string(),
                 &Equal,
-                create_literal("false", Boolean),
+                Literal::new("false".to_string(), Boolean),
             ),
             ComparisonExpr::new(
                 "has_access".to_string(),
                 &NotEqual,
-                create_literal("false", Boolean),
+                Literal::new("false".to_string(), Boolean),
             ),
         ];
 
@@ -193,22 +209,22 @@ mod tests {
             ComparisonExpr::new(
                 "price".to_string(),
                 &Greater,
-                create_literal("150.00", Decimal),
+                Literal::new("150.00".to_string(), Decimal),
             ),
             ComparisonExpr::new(
                 "discount".to_string(),
-                &LessOrEqual,
-                create_literal("15.00", Decimal),
+                &LesserEqual,
+                Literal::new("15.00".to_string(), Decimal),
             ),
             ComparisonExpr::new(
                 "price".to_string(),
                 &Less,
-                create_literal("150.00", Decimal),
+                Literal::new("150.00".to_string(), Decimal),
             ),
             ComparisonExpr::new(
                 "discount".to_string(),
                 &Greater,
-                create_literal("15.00", Decimal),
+                Literal::new("15.00".to_string(), Decimal),
             ),
         ];
 
@@ -222,14 +238,26 @@ mod tests {
         let row = create_row_text();
 
         let exprs = vec![
-            ComparisonExpr::new("name".to_string(), &Equal, create_literal("Alice", Text)),
+            ComparisonExpr::new(
+                "name".to_string(),
+                &Equal,
+                Literal::new("Alice".to_string(), Text),
+            ),
             ComparisonExpr::new(
                 "city".to_string(),
                 &NotEqual,
-                create_literal("Los Angeles", Text),
+                Literal::new("Los Angeles".to_string(), Text),
             ),
-            ComparisonExpr::new("name".to_string(), &NotEqual, create_literal("Alice", Text)),
-            ComparisonExpr::new("city".to_string(), &Equal, create_literal("New York", Text)),
+            ComparisonExpr::new(
+                "name".to_string(),
+                &NotEqual,
+                Literal::new("Alice".to_string(), Text),
+            ),
+            ComparisonExpr::new(
+                "city".to_string(),
+                &Equal,
+                Literal::new("New York".to_string(), Text),
+            ),
         ];
 
         let expected_results = vec![true, true, false, true];
