@@ -1,20 +1,18 @@
 use std::{iter::Peekable, vec::IntoIter};
 
-use crate::parsers::tokens::token::AritmeticasMath;
-use crate::parsers::tokens::token::DataType;
-use crate::parsers::tokens::token::{
-    create_literal, BooleanOperations, ComparisonOperators, Literal, LogicalOperators, Term, Token,
+use crate::parsers::tokens::{
+    data_type::DataType,
+    literal::Literal,
+    terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term},
+    token::Token,
 };
-use BooleanOperations::*;
-use Term::*;
-use Token::*;
 
 use super::errors::Errors;
 
 pub fn get_literal(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Literal, Errors> {
     let token = get_next_value(tokens)?;
     match token {
-        Term(Term::Literal(literal)) => Ok(literal),
+        Token::Term(Term::Literal(literal)) => Ok(literal),
         _ => Err(Errors::Invalid("Expected a literal".to_string())),
     }
 }
@@ -24,7 +22,7 @@ pub fn get_comparision_operator(
 ) -> Result<ComparisonOperators, Errors> {
     let token = get_next_value(tokens)?;
     match token {
-        Term(AritmeticasBool(Comparison(op))) => Ok(op),
+        Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(op))) => Ok(op),
         e => Err(Errors::Invalid(format!(
             "Expected comparision operator but has {:?}",
             e
@@ -37,7 +35,7 @@ pub fn get_logical_operator(
 ) -> Result<LogicalOperators, Errors> {
     let token = get_next_value(tokens)?;
     match token {
-        Term(AritmeticasBool(Logical(op))) => Ok(op),
+        Token::Term(Term::BooleanOperations(BooleanOperations::Logical(op))) => Ok(op),
         _ => Err(Errors::Invalid(
             "Expected logical operator (AND, OR, NOT)".to_string(),
         )),
@@ -47,7 +45,7 @@ pub fn get_logical_operator(
 pub fn get_reserved_string(tokens: &mut Peekable<IntoIter<Token>>) -> Result<String, Errors> {
     let token = get_next_value(tokens)?;
     match token {
-        Reserved(string) => Ok(string),
+        Token::Reserved(string) => Ok(string),
         _ => Err(Errors::Invalid("Expected Reserved".to_string())),
     }
 }
@@ -55,7 +53,7 @@ pub fn get_reserved_string(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Str
 pub fn get_list(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Vec<Token>, Errors> {
     let token = get_next_value(tokens)?;
     match token {
-        TokensList(token_list) => Ok(token_list),
+        Token::ParenList(token_list) => Ok(token_list),
         _ => Err(Errors::Invalid("Expected List".to_string())),
     }
 }
@@ -63,7 +61,7 @@ pub fn get_list(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Vec<Token>, Er
 pub fn get_identifier_string(tokens: &mut Peekable<IntoIter<Token>>) -> Result<String, Errors> {
     let token = get_next_value(tokens)?;
     match token {
-        Identifier(string) => Ok(string),
+        Token::Identifier(string) => Ok(string),
         _ => Err(Errors::Invalid("Expected Identifier".to_string())),
     }
 }
@@ -94,15 +92,19 @@ pub fn create_identifier_token(value: &str) -> Token {
 
 // Term
 pub fn create_token_literal(value: &str, data_type: DataType) -> Token {
-    Token::Term(Literal(create_literal(value, data_type)))
+    Token::Term(Term::Literal(Literal::new(value.to_string(), data_type)))
 }
 
 pub fn create_logical_operation_token(operation: LogicalOperators) -> Token {
-    Token::Term(AritmeticasBool(BooleanOperations::Logical(operation)))
+    Token::Term(Term::BooleanOperations(BooleanOperations::Logical(
+        operation,
+    )))
 }
 
 pub fn create_comparison_operation_token(operation: ComparisonOperators) -> Token {
-    Token::Term(AritmeticasBool(BooleanOperations::Comparison(operation)))
+    Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
+        operation,
+    )))
 }
 
 // Reserved
@@ -114,6 +116,6 @@ pub fn create_data_type_token(data_type: DataType) -> Token {
     Token::DataType(data_type)
 }
 
-pub fn create_aritmeticas_math_token(operation: AritmeticasMath) -> Token {
-    Token::Term(AritmeticasMath(operation))
+pub fn create_aritmeticas_math_token(operation: ArithMath) -> Token {
+    Token::Term(Term::ArithMath(operation))
 }
