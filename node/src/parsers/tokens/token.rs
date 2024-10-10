@@ -31,7 +31,7 @@ pub fn create_literal(value: &str, data_type: DataType) -> Literal {
 }
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum AritmeticasMath {
     Suma,
     Resta,

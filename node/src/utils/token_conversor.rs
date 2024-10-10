@@ -19,6 +19,19 @@ pub fn get_literal(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Literal, Er
     }
 }
 
+pub fn get_arithmetic_math(
+    tokens: &mut Peekable<IntoIter<Token>>,
+) -> Result<AritmeticasMath, Errors> {
+    let token = get_next_value(tokens)?;
+    match token {
+        Term(AritmeticasMath(op)) => Ok(op),
+        e => Err(Errors::Invalid(format!(
+            "Expected comparision operator but has {:?}",
+            e
+        ))),
+    }
+}
+
 pub fn get_comparision_operator(
     tokens: &mut Peekable<IntoIter<Token>>,
 ) -> Result<ComparisonOperators, Errors> {
