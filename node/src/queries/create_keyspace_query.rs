@@ -5,6 +5,12 @@ pub struct CreateKeyspaceQuery {
     pub replication: HashMap<String, String>,
 }
 
+impl Default for CreateKeyspaceQuery {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CreateKeyspaceQuery {
     pub fn new() -> Self {
         Self {
