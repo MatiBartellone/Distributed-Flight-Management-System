@@ -1,6 +1,7 @@
-use crate::parsers::tokens::token::DataType;
+use crate::parsers::tokens::data_type::DataType;
 use std::collections::HashMap;
 
+#[derive(PartialEq, Debug)]
 pub struct CreateTableQuery {
     pub table_name: String,
     pub columns: HashMap<String, DataType>,
@@ -14,5 +15,11 @@ impl CreateTableQuery {
             columns: HashMap::new(),
             primary_key: String::new(),
         }
+    }
+}
+
+impl Default for CreateTableQuery {
+    fn default() -> Self {
+        Self::new()
     }
 }

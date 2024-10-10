@@ -1,7 +1,7 @@
 use super::data_type::{string_to_data_type, DataType};
+use super::reserved_words::WordsReserved;
 use super::symbols::Symbols;
 use super::terms::{string_to_term, Term};
-use super::reserved_words::WordsReserved;
 use crate::utils::constants::*;
 use crate::utils::errors::Errors;
 
@@ -58,7 +58,7 @@ fn sub_list_token(
     words: &[String],
     i: &mut usize,
     res: &mut Vec<Token>,
-    reserved: String
+    reserved: String,
 ) -> Result<bool, Errors> {
     if reserved == WHERE {
         let temp = tokenize_recursive(words, close_sub_list_where, i)?;
@@ -79,7 +79,6 @@ fn sub_list_token(
     }
     Ok(false)
 }
-
 
 fn init_sub_list_token(
     words: &[String],
@@ -167,8 +166,7 @@ where
 
 pub fn tokenize(words: Vec<String>) -> Result<Vec<Token>, Errors> {
     // Definimos una closure que siempre devuelve false
-    let fn_false = |
-        _: &str| false;
+    let fn_false = |_: &str| false;
     tokenize_recursive(&words, fn_false, &mut 0)
 }
 
