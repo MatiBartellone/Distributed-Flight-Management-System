@@ -2,7 +2,7 @@ use super::token::Token;
 
 #[derive(Debug, PartialEq)]
 pub enum DataType {
-    Bigint,
+    Int,
     Boolean,
     Date,
     Decimal,
@@ -13,7 +13,7 @@ pub enum DataType {
 
 pub fn string_to_data_type(word: &str) -> Option<Token> {
     match word {
-        "bigint" => Some(Token::DataType(DataType::Bigint)),
+        "int" => Some(Token::DataType(DataType::Int)),
         "boolean" => Some(Token::DataType(DataType::Boolean)),
         "date" => Some(Token::DataType(DataType::Date)),
         "decimal" => Some(Token::DataType(DataType::Decimal)),

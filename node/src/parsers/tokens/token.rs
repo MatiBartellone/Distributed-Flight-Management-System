@@ -1,4 +1,5 @@
 use super::data_type::{string_to_data_type, DataType};
+use super::symbols::Symbols;
 use super::terms::{string_to_term, Term};
 use super::words_reserved::WordsReserved;
 use crate::utils::errors::Errors;
@@ -10,6 +11,7 @@ pub enum Token {
     Reserved(String),
     DataType(DataType),
     TokensList(Vec<Token>),
+    Symbol(String),
 }
 
 fn string_to_identifier(word: &str) -> Option<Token> {
@@ -34,15 +36,18 @@ fn string_to_identifier(word: &str) -> Option<Token> {
 
 fn match_tokenize(palabra: String) -> Option<Token> {
     let reservadas = WordsReserved::new();
+    let symbols = Symbols::new();
     if let Some(token) = string_to_term(&palabra) {
         return Some(token);
     } else if reservadas.is_reserved(&palabra) {
         return Some(Token::Reserved(palabra.to_ascii_uppercase()));
     } else if let Some(token) = string_to_data_type(&palabra) {
         return Some(token);
+    } else if symbols.is_symbol(&palabra) {
+        return  Some(Token::Symbol(palabra));
     } else if let Some(token) = string_to_identifier(&palabra) {
         return Some(token);
-    }
+    } 
     None
 }
 
@@ -51,22 +56,64 @@ fn init_sub_list_token(
     i: &mut usize,
     res: &mut Vec<Token>,
 ) -> Result<bool, Errors> {
+    //Nos fijamos que fue lo ultimo YA LEIDO
     if let Some(Token::Reserved(reserv)) = res.last() {
         if reserv == "WHERE" {
             let temp = tokenize_recursive(palabras, close_sub_list_where, i)?;
-            //*i += len_lista_anidada(&temp); //no sé si debe haber un +1?
             res.push(Token::TokensList(temp));
             return Ok(true);
         }
-    } else if &palabras[*i] == "(" {
+        else if reserv == "SELECT" {
+            let temp = tokenize_recursive(palabras, close_sub_list_select, i)?;
+            res.push(Token::TokensList(temp));
+            return Ok(true);
+        }
+        else if reserv == "BY" {
+            let temp = tokenize_recursive(palabras, close_sub_list_order_by, i)?;
+            res.push(Token::TokensList(temp));
+            return Ok(true);
+        }
+        else if reserv == "SET" {
+            let temp = tokenize_recursive(palabras, close_sub_list_select, i)?;
+            res.push(Token::TokensList(temp));
+            return Ok(true);
+        }   
+    }//Nos fijamos la palabra ACTUAL
+    if &palabras[*i] == "(" {
         *i += 1;
         let temp = tokenize_recursive(palabras, close_sub_list_parentesis, i)?;
         *i += 1;
-         //no sé si debe haber un +1?
+        res.push(Token::TokensList(temp));
+        return Ok(true);
+    } else if &palabras[*i] == "{" {
+        let mut temp = Vec::new();
+        temp.push(Token::Symbol("{".to_string()));
+        *i += 1;
+        let sub_temp = tokenize_recursive(palabras, close_sub_list_key_icon, i)?;
+        temp.extend(sub_temp);
+        temp.push(Token::Symbol("}".to_string()));
+        *i += 1;
         res.push(Token::TokensList(temp));
         return Ok(true);
     }
     Ok(false)
+}
+
+fn close_sub_list_order_by(word: &str) -> bool {
+    let reservadas = WordsReserved::new();
+    let word_upper = word.to_ascii_uppercase();
+    reservadas.is_reserved(&word_upper)
+        && !(word_upper == "ASC" || word_upper == "DESC")
+}
+
+fn close_sub_list_key_icon(word: &str) -> bool {
+    word == "}"
+}
+
+fn close_sub_list_select(word: &str) -> bool {
+    let reservadas = WordsReserved::new();
+    let word_upper = word.to_ascii_uppercase();
+    reservadas.is_reserved(&word_upper)
 }
 
 fn close_sub_list_parentesis(word: &str) -> bool {
@@ -123,14 +170,17 @@ mod tests {
 
     #[test]
     fn test_tokenize_simple_select() {
-        let query = vec!["SELECT", "name", "FROM", "users"]
+        let query = ["SELECT", "name", "FROM", "users"]
             .iter()
             .map(|s| s.to_string())
             .collect::<Vec<String>>();
         let result = tokenize(query).unwrap();
         let expected = vec![
             Token::Reserved("SELECT".to_string()),
-            Token::Identifier("name".to_string()),
+            Token::TokensList(vec![
+                Token::Identifier("name".to_string()),
+               
+            ]),
             Token::Reserved("FROM".to_string()),
             Token::Identifier("users".to_string()),
         ];
@@ -140,16 +190,20 @@ mod tests {
     #[test]
     fn test_tokenize_where_clause() {
         let query = vec![
-            "SELECT", "name", "FROM", "users", "WHERE", "age", ">", "30", "ORDER", "BY", "name",
+            "SELECT", "name", "dni", "FROM", "users", "WHERE", "age", ">", "30", "ORDER", "BY", "name", "dni"
         ]
         .iter()
         .map(|s| s.to_string())
         .collect::<Vec<String>>();
         let result = tokenize(query).unwrap();
-        let literal = Literal::new("30".to_string(), DataType::Bigint);
+        let literal = Literal::new("30".to_string(), DataType::Int);
         let expected = vec![
             Token::Reserved("SELECT".to_string()),
-            Token::Identifier("name".to_string()),
+            Token::TokensList(vec![
+                Token::Identifier("name".to_string()),
+                Token::Identifier("dni".to_string()),
+               
+            ]),
             Token::Reserved("FROM".to_string()),
             Token::Identifier("users".to_string()),
             Token::Reserved("WHERE".to_string()),
@@ -162,24 +216,30 @@ mod tests {
             ]),
             Token::Reserved("ORDER".to_string()),
             Token::Reserved("BY".to_string()),
-            Token::Identifier("name".to_string()),
+            Token::TokensList(vec![
+                Token::Identifier("name".to_string()),
+                Token::Identifier("dni".to_string()),
+               
+            ]),
         ];
         assert_eq!(result, expected);
     }
 
     #[test]
-    fn test_tokenize_where_clause2() {
+    fn test_tokenize_where_clause_with_parentheses() {
         let query = vec![
-            "SELECT", "name", "FROM", "users", "WHERE", "(","age", ">", "30", ")", "ORDER", "BY", "name",
+            "SELECT", "name", "FROM", "users", "WHERE", "(","age", ">", "30", ")", "ORDER", "BY", "name", "dni"
         ]
         .iter()
         .map(|s| s.to_string())
         .collect::<Vec<String>>();
         let result = tokenize(query).unwrap();
-        let literal = Literal::new("30".to_string(), DataType::Bigint);
+        let literal = Literal::new("30".to_string(), DataType::Int);
         let expected = vec![
             Token::Reserved("SELECT".to_string()),
-            Token::Identifier("name".to_string()),
+            Token::TokensList(vec![
+                Token::Identifier("name".to_string()),
+            ]),
             Token::Reserved("FROM".to_string()),
             Token::Identifier("users".to_string()),
             Token::Reserved("WHERE".to_string()),
@@ -194,13 +254,17 @@ mod tests {
             ]),
             Token::Reserved("ORDER".to_string()),
             Token::Reserved("BY".to_string()),
-            Token::Identifier("name".to_string()),
+            Token::TokensList(vec![
+                Token::Identifier("name".to_string()),
+                Token::Identifier("dni".to_string()),
+               
+            ]),
         ];
         assert_eq!(result, expected);
     }
 
     #[test]
-    fn test_tokenize_where_clause3() {
+    fn test_tokenize_where_clause_hard() {
         let query = vec![
             "SELECT", "name", "FROM", "users", "WHERE", "(","(","age", ">", "30", ")",")", "ORDER", "BY", "name",
         ]
@@ -208,10 +272,12 @@ mod tests {
         .map(|s| s.to_string())
         .collect::<Vec<String>>();
         let result = tokenize(query).unwrap();
-        let literal = Literal::new("30".to_string(), DataType::Bigint);
+        let literal = Literal::new("30".to_string(), DataType::Int);
         let expected = vec![
             Token::Reserved("SELECT".to_string()),
-            Token::Identifier("name".to_string()),
+            Token::TokensList(vec![
+                Token::Identifier("name".to_string()),
+            ]),
             Token::Reserved("FROM".to_string()),
             Token::Identifier("users".to_string()),
             Token::Reserved("WHERE".to_string()),
@@ -228,7 +294,9 @@ mod tests {
             ]),
             Token::Reserved("ORDER".to_string()),
             Token::Reserved("BY".to_string()),
-            Token::Identifier("name".to_string()),
+            Token::TokensList(vec![
+                Token::Identifier("name".to_string()),       
+            ]),
         ];
         assert_eq!(result, expected);
     }
@@ -245,12 +313,14 @@ mod tests {
 
         let result = tokenize(query).unwrap();
 
-        let literal_bigint = Literal::new("30".to_string(), DataType::Bigint);
+        let literal_bigint = Literal::new("30".to_string(), DataType::Int);
         let literal_boolean = Literal::new("true".to_string(), DataType::Boolean);
         let literal_text = Literal::new("ivan".to_string(), DataType::Text);
         let expected = vec![
             Token::Reserved("SELECT".to_string()),
-            Token::Identifier("name".to_string()),
+            Token::TokensList(vec![
+                Token::Identifier("name".to_string()),
+            ]),
             Token::Reserved("FROM".to_string()),
             Token::Identifier("users".to_string()),
             Token::Reserved("WHERE".to_string()),
@@ -286,7 +356,7 @@ mod tests {
     }
 
     #[test]
-    fn test_tokenize_with_parentheses2() {
+    fn test_tokenize_with_twice_parentheses() {
         let query = vec![
             "SELECT", "name", "FROM", "users", "WHERE", "age", ">", "30", "AND", "(", "active",
             "=", "true", ")", "ORDER"
@@ -297,12 +367,14 @@ mod tests {
 
         let result = tokenize(query).unwrap();
 
-        let literal_bigint = Literal::new("30".to_string(), DataType::Bigint);
+        let literal_bigint = Literal::new("30".to_string(), DataType::Int);
         let literal_boolean = Literal::new("true".to_string(), DataType::Boolean);
 
         let expected = vec![
             Token::Reserved("SELECT".to_string()),
-            Token::Identifier("name".to_string()),
+            Token::TokensList(vec![
+                Token::Identifier("name".to_string()),   
+            ]),
             Token::Reserved("FROM".to_string()),
             Token::Identifier("users".to_string()),
             Token::Reserved("WHERE".to_string()),
@@ -333,7 +405,7 @@ mod tests {
 
     #[test]
     fn test_tokenize_invalid_query() {
-        let query = vec![
+        let query = [
             "SELECT", "name", "FROM", "users", "WHERE", "age", "???", // Un token inválido
         ]
         .iter()
@@ -345,64 +417,38 @@ mod tests {
     }
 
     #[test]
-    fn test_tokenize_insert_with_parentheses() {
+    fn test_tokenize_insert() {
+
         let query = vec![
-            "INSERT",
-            "INTO",
-            "peliculas",
-            "(",
-            "id",
-            ",",
-            "titulo",
-            ",",
-            "año",
-            ",",
-            "genero",
-            ")",
-            "VALUES",
-            "(",
-            "'1'",
-            ",",
-            "'El Padrino'",
-            ",",
-            "1972",
-            ",",
-            "'Drama'",
-            ")",
-        ]
-        .iter()
+            "INSERT", "INTO", "\"tAbla\"", "(", "columna1", ",", "columna2", ")",
+            "VALUES", "(", "'valor1'", ",", "'valor2'", ")",
+        ].iter()
         .map(|s| s.to_string())
         .collect::<Vec<String>>();
 
-        let result = tokenize(query).unwrap();
+        let literal_1 = Literal::new("valor1".to_string(), DataType::Text);
+        let literal_2 = Literal::new("valor2".to_string(), DataType::Text);
 
-        let literal_bigint = Literal::new("1972".to_string(), DataType::Bigint);
-        let literal_string_id = Literal::new("1".to_string(), DataType::Text); // Literal para el ID
-        let literal_string_title = Literal::new("El Padrino".to_string(), DataType::Text);
-        let literal_string_genre = Literal::new("Drama".to_string(), DataType::Text);
-
-        let expected = vec![
+        let expected_tokens = vec![
             Token::Reserved("INSERT".to_string()),
             Token::Reserved("INTO".to_string()),
-            Token::Identifier("peliculas".to_string()),
+            Token::Identifier("tAbla".to_string()),
             Token::TokensList(vec![
-                // Columnas
-                Token::Identifier("id".to_string()),
-                Token::Identifier("titulo".to_string()),
-                Token::Identifier("año".to_string()),
-                Token::Identifier("genero".to_string()),
+                Token::Identifier("columna1".to_string()),
+                Token::Symbol(",".to_string()),
+                Token::Identifier("columna2".to_string()),
             ]),
             Token::Reserved("VALUES".to_string()),
             Token::TokensList(vec![
-                // Valores
-                Token::Term(Term::Literal(literal_string_id)), // Literal para "1"
-                Token::Term(Term::Literal(literal_string_title)), // Literal para "El Padrino"
-                Token::Term(Term::Literal(literal_bigint)),    // Literal para "1972"
-                Token::Term(Term::Literal(literal_string_genre)), // Literal para "Drama"
+                Token::Term(Term::Literal(literal_1)),
+                Token::Symbol(",".to_string()),
+                Token::Term(Term::Literal(literal_2))
             ]),
+
         ];
 
-        assert_eq!(result, expected);
+        let result = tokenize(query).unwrap();
+        assert_eq!(result, expected_tokens);
     }
 
     #[test]
@@ -418,6 +464,8 @@ mod tests {
         let result = tokenize(query).unwrap();
         let expected = vec![
             Token::Reserved("SELECT".to_string()),
+            Token::TokensList(vec![
+            ]),
             Token::Reserved("WHERE".to_string()),
             Token::TokensList(vec![
                 Token::TokensList(vec![
@@ -450,6 +498,233 @@ mod tests {
         ];
 
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_tokenize_update() {
+        let query = [
+            "UPDATE", "\"tAbla\"", "SET", "columna1", "=", "'nuevo_valor'", 
+            "WHERE", "id", ">", "10"
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+
+        let literal = Literal::new("nuevo_valor".to_string(), DataType::Text);
+        let expected_tokens = vec![
+            Token::Reserved("UPDATE".to_string()),
+            Token::Identifier("tAbla".to_string()),
+            Token::Reserved("SET".to_string()),
+            Token::TokensList(vec![
+                Token::Identifier("columna1".to_string()),
+                Token::Term(Term::BooleanOperations(
+                    BooleanOperations::Comparison(ComparisonOperators::Equal))),
+                Token::Term(Term::Literal(literal)),
+            ]),
+            Token::Reserved("WHERE".to_string()),
+            Token::TokensList(vec![
+                Token::Identifier("id".to_string()),
+                Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
+                    ComparisonOperators::Greater,
+                ))),
+                Token::Term(Term::Literal(Literal::new("10".to_string(), DataType::Int))),
+            ]),
+        ];
+
+        let result = tokenize(query).unwrap();
+        assert_eq!(result, expected_tokens);
+    }
+
+        #[test]
+    fn test_tokenize_delete() {
+        let query = [
+            "DELETE", "FROM", "\"tAbla\"", "WHERE", "id", "=", "5"
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+
+        let expected_tokens = vec![
+            Token::Reserved("DELETE".to_string()),
+            Token::Reserved("FROM".to_string()),
+            Token::Identifier("tAbla".to_string()),
+            Token::Reserved("WHERE".to_string()),
+            Token::TokensList(vec![
+                Token::Identifier("id".to_string()),
+                Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
+                    ComparisonOperators::Equal,
+                ))),
+                Token::Term(Term::Literal(Literal::new("5".to_string(), DataType::Int))),
+            ]),
+        ];
+
+        let result = tokenize(query).unwrap();
+        assert_eq!(result, expected_tokens);
+    }
+
+    #[test]
+    fn test_tokenize_create_table() {
+        let query = vec![
+            "CREATE", "TABLE", "\"tAbla\"", "(",
+            "\"columna1\"", "TEXT", ",",
+            "\"columna2\"", "INT", ",",
+            "\"columna3\"", "PRIMARY", "KEY", "(", "\"columna1\"", ")",
+            ")"
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+
+        let expected_tokens = vec![
+            Token::Reserved("CREATE".to_string()),
+            Token::Reserved("TABLE".to_string()),
+            Token::Identifier("tAbla".to_string()),
+            Token::TokensList(vec![
+                Token::Identifier("columna1".to_string()),
+                Token::Identifier("TEXT".to_string()),
+                Token::Symbol(",".to_string()),
+                Token::Identifier("columna2".to_string()),
+                Token::Identifier("INT".to_string()),
+                Token::Symbol(",".to_string()),
+                    Token::Identifier("columna3".to_string()),
+                    Token::Reserved("PRIMARY".to_string()),
+                    Token::Reserved("KEY".to_string()),
+                    Token::TokensList(vec![
+                        Token::Identifier("columna1".to_string()),
+                    ]),
+            ]),
+        ];
+
+        let result = tokenize(query).unwrap();
+        assert_eq!(result, expected_tokens);
+    }
+
+    #[test]
+    fn test_tokenize_create_keyspace() {
+        let query = vec![
+            "CREATE", "KEYSPACE", "\"miKeyspace\"", "WITH", "REPLICATION", "=", "{", 
+            "'class'", ":", "'SimpleStrategy'" , ",", "'replication_factor'", ":", "1", "}"
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+
+        let expected_tokens = vec![
+            Token::Reserved("CREATE".to_string()),
+            Token::Reserved("KEYSPACE".to_string()),
+            Token::Identifier("miKeyspace".to_string()),
+            Token::Reserved("WITH".to_string()),
+            Token::Reserved("REPLICATION".to_string()),
+            Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(ComparisonOperators::Equal))),
+            Token::TokensList(vec![
+                Token::Symbol("{".to_string()),
+                Token::Term(Term::Literal(Literal::new("class".to_string(), DataType::Text))),
+                Token::Symbol(":".to_string()),
+                Token::Term(Term::Literal(Literal::new("SimpleStrategy".to_string(), DataType::Text))),
+                Token::Symbol(",".to_string()),
+                Token::Term(Term::Literal(Literal::new("replication_factor".to_string(), DataType::Text))),
+                Token::Symbol(":".to_string()),
+                Token::Term(Term::Literal(Literal::new("1".to_string(), DataType::Int))),
+                Token::Symbol("}".to_string()),
+            ]),
+        ];
+
+        let result = tokenize(query).unwrap();
+        assert_eq!(result, expected_tokens);
+    }
+
+    #[test]
+    fn test_tokenize_drop_table() {
+        let query = [
+            "DROP", "TABLE", "\"users\""
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+    
+        let expected_tokens = vec![
+            Token::Reserved("DROP".to_string()),
+            Token::Reserved("TABLE".to_string()),
+            Token::Identifier("users".to_string()), // Asegúrate de manejar las comillas adecuadamente en tu implementación
+        ];
+    
+        let result = tokenize(query).unwrap();
+        assert_eq!(result, expected_tokens);
+    }
+
+    #[test]
+    fn test_tokenize_drop_keyspace() {
+        let query = [
+            "DROP", "KEYSPACE", "\"my_keyspace\""
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+
+        let expected_tokens = vec![
+            Token::Reserved("DROP".to_string()),
+            Token::Reserved("KEYSPACE".to_string()),
+            Token::Identifier("my_keyspace".to_string()), // Igualmente, asegúrate de manejar las comillas adecuadamente
+        ];
+
+        let result = tokenize(query).unwrap();
+        assert_eq!(result, expected_tokens);
+    }
+
+    #[test]
+    fn test_tokenize_alter_table() {
+        let query = [
+            "ALTER", "TABLE", "\"users\"", "ADD", "\"age\"", "INT"
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+
+        let expected_tokens = vec![
+            Token::Reserved("ALTER".to_string()),
+            Token::Reserved("TABLE".to_string()),
+            Token::Identifier("users".to_string()), // Manejo de comillas
+            Token::Reserved("ADD".to_string()),
+            Token::Identifier("age".to_string()), // Manejo de comillas
+            Token::Identifier("INT".to_string()), // Tipo de dato
+        ];
+
+        let result = tokenize(query).unwrap();
+        assert_eq!(result, expected_tokens);
+    }
+
+    #[test]
+    fn test_tokenize_alter_keyspace() {
+        let query = vec![
+            "ALTER", "KEYSPACE", "\"my_keyspace\"", "WITH", "REPLICATION", "=", "{", 
+            "'class'", ":", "'SimpleStrategy'" , ",", "'replication_factor'", ":", "1", "}"
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+
+        let expected_tokens = vec![
+            Token::Reserved("ALTER".to_string()),
+            Token::Reserved("KEYSPACE".to_string()),
+            Token::Identifier("my_keyspace".to_string()), // Manejo de comillas
+            Token::Reserved("WITH".to_string()),
+            Token::Reserved("REPLICATION".to_string()),
+            Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(ComparisonOperators::Equal))),
+            Token::TokensList(vec![
+                Token::Symbol("{".to_string()),
+                Token::Term(Term::Literal(Literal::new("class".to_string(), DataType::Text))),
+                Token::Symbol(":".to_string()),
+                Token::Term(Term::Literal(Literal::new("SimpleStrategy".to_string(), DataType::Text))),
+                Token::Symbol(",".to_string()),
+                Token::Term(Term::Literal(Literal::new("replication_factor".to_string(), DataType::Text))),
+                Token::Symbol(":".to_string()),
+                Token::Term(Term::Literal(Literal::new("1".to_string(), DataType::Int))),
+                Token::Symbol("}".to_string()),
+            ]),
+        ];
+
+        let result = tokenize(query).unwrap();
+        assert_eq!(result, expected_tokens);
     }
 
 }

@@ -4,6 +4,7 @@ const PALABRAS_RESERVADAS: &[&str] = &[
     "SELECT",
     "INSERT",
     "ALTER",
+    "ADD",
     "AND",
     "ASC",
     "AS",
@@ -38,6 +39,7 @@ const PALABRAS_RESERVADAS: &[&str] = &[
     "WHERE",
     "WITH",
     "ORDER",
+    "REPLICATION"
 ];
 
 pub struct WordsReserved {

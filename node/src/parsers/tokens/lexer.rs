@@ -132,7 +132,8 @@ fn separar_palabras(query: &str) -> Vec<String> {
         .replace(">", " > ")
         .replace("(", " ( ")
         .replace(")", " ) ")
-        .replace(")", " , ")
+        .replace("{", " { ")
+        .replace("{", " } ")
         .replace(";", "");
     query.split_whitespace().map(|s| s.to_string()).collect()
 }
