@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 pub struct CreateKeyspaceQuery {
-    pub table: String,
+    pub keyspace: String,
     pub replication: HashMap<String, String>,
 }
 
@@ -14,7 +14,7 @@ impl Default for CreateKeyspaceQuery {
 impl CreateKeyspaceQuery {
     pub fn new() -> Self {
         Self {
-            table: String::new(),
+            keyspace: String::new(),
             replication: HashMap::<String, String>::new(),
         }
     }

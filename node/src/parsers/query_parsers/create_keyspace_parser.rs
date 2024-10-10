@@ -16,29 +16,29 @@ pub struct CreateKeyspaceParser;
 impl CreateKeyspaceParser {
     pub fn parse(&self, tokens: Vec<Token>) -> Result<CreateKeyspaceQuery, Errors> {
         let mut create_keyspace_query = CreateKeyspaceQuery::new();
-        self.keyspace(&mut tokens.into_iter(), &mut create_keyspace_query)?;
+        self.keyspace_keyword(&mut tokens.into_iter(), &mut create_keyspace_query)?;
         Ok(create_keyspace_query)
     }
 
-    fn keyspace(
+    fn keyspace_keyword(
         &self,
         tokens: &mut IntoIter<Token>,
         query: &mut CreateKeyspaceQuery,
     ) -> Result<(), Errors> {
         match self.get_next_value(tokens)? {
-            Token::Reserved(keyspace) if keyspace == *KEYSPACE => self.table(tokens, query),
+            Token::Reserved(keyspace) if keyspace == *KEYSPACE => self.keyspace_name(tokens, query),
             _ => Err(Errors::SyntaxError(String::from(INVALID_CREATE))),
         }
     }
 
-    fn table(
+    fn keyspace_name(
         &self,
         tokens: &mut IntoIter<Token>,
         query: &mut CreateKeyspaceQuery,
     ) -> Result<(), Errors> {
         match self.get_next_value(tokens)? {
             Token::Identifier(identifier) => {
-                query.table = identifier;
+                query.keyspace = identifier;
                 self.with(tokens, query)
             }
             _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_TOKEN))),
@@ -126,7 +126,7 @@ mod tests {
         let result = parser.parse(tokens);
         assert!(result.is_ok());
         let query = result.unwrap();
-        assert_eq!(query.table, "keyspace_name".to_string());
+        assert_eq!(query.keyspace, "keyspace_name".to_string());
         assert_eq!(query.replication.get("class").unwrap(), "SimpleStrategy");
         assert_eq!(query.replication.get("replication_factor").unwrap(), "1");
     }
