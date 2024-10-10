@@ -168,19 +168,19 @@ mod tests {
     fn test_standardize_with_sections() {
         let input = r#"hola $hola como estas$ "bien" 'vos' el resto de el string"#;
         let resultado = standardize(input);
-        let esperado = vec![
-            "hola".to_string(),
-            "$hola como estas$".to_string(),
-            "\"bien\"".to_string(),
-            "'vos'".to_string(),
-            "el".to_string(),
-            "resto".to_string(),
-            "de".to_string(),
-            "el".to_string(),
-            "string".to_string(),
+        let expected = vec![
+            "hola",
+            "$hola como estas$",
+            "\"bien\"",
+            "'vos'",
+            "el",
+            "resto",
+            "de",
+            "el",
+            "string",
         ];
         //imprimir_vector(&resultado);
-        assert_eq!(resultado, esperado);
+        assert_eq!(resultado, expected);
     }
 
     #[test]
@@ -190,10 +190,10 @@ mod tests {
                          'string'"#;
         let resultado = standardize(input);
         let esperado = vec![
-            "hola".to_string(),
-            "$esto es$".to_string(),
-            "\"un\"".to_string(),
-            "'string'".to_string(),
+            "hola",
+            "$esto es$",
+            "\"un\"",
+            "'string'",
         ];
         assert_eq!(resultado, esperado);
     }
@@ -201,14 +201,14 @@ mod tests {
     #[test]
     fn test_standardize_with_spaces() {
         let input = r#"$palabra1$    $palabra2$  "string con espacios" 'otro string'"#;
-        let resultado = standardize(input);
-        let esperado = vec![
-            "$palabra1$".to_string(),
-            "$palabra2$".to_string(),
-            "\"string con espacios\"".to_string(),
-            "'otro string'".to_string(),
+        let result = standardize(input);
+        let expected = vec![
+            "$palabra1$",
+            "$palabra2$",
+            "\"string con espacios\"",
+            "'otro string'",
         ];
-        assert_eq!(resultado, esperado);
+        assert_eq!(result, expected);
     }
 
     #[test]
@@ -241,15 +241,15 @@ mod tests {
         let resultado = standardize(input);
 
         let esperado = vec![
-            "SELECT".to_string(),
-            "name,".to_string(),
-            "age".to_string(),
-            "FROM".to_string(),
-            "users".to_string(),
-            "WHERE".to_string(),
-            "age".to_string(),
-            ">".to_string(),  // Operador >
-            "25".to_string(), // El punto y coma se mantiene al final
+            "SELECT",
+            "name,",
+            "age",
+            "FROM",
+            "users",
+            "WHERE",
+            "age",
+            ">",  // Operador >
+            "25", // El punto y coma se mantiene al final
         ];
 
         assert_eq!(resultado, esperado);
@@ -272,23 +272,23 @@ mod tests {
         let resultado = standardize(input);
 
         let esperado = vec![
-            "SELECT".to_string(),
-            "name,".to_string(),
-            "age".to_string(),
-            "FROM".to_string(),
-            "users".to_string(),
-            "WHERE".to_string(),
-            "age".to_string(),
-            "_GE_".to_string(), // Para el operador >=
-            "30".to_string(),
-            "AND".to_string(),
-            "age".to_string(),
-            "=".to_string(),
-            "age".to_string(),
-            "+".to_string(), // Para el operador +
-            "2".to_string(),
-            "LIMIT".to_string(),
-            "10".to_string(),
+            "SELECT",
+            "name,",
+            "age",
+            "FROM",
+            "users",
+            "WHERE",
+            "age",
+            "_GE_", // Para el operador >=
+            "30",
+            "AND",
+            "age",
+            "=",
+            "age",
+            "+", // Para el operador +
+            "2",
+            "LIMIT",
+            "10",
         ];
 
         assert_eq!(resultado, esperado);

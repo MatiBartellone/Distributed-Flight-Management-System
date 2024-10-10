@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-const PALABRAS_RESERVADAS: &[&str] = &[
+const RESERVED_WORDS: &[&str] = &[
     "SELECT",
     "INSERT",
     "ALTER",
@@ -39,7 +39,7 @@ const PALABRAS_RESERVADAS: &[&str] = &[
     "WHERE",
     "WITH",
     "ORDER",
-    "REPLICATION"
+    "REPLICATION",
 ];
 
 pub struct WordsReserved {
@@ -49,7 +49,7 @@ pub struct WordsReserved {
 impl WordsReserved {
     pub fn new() -> Self {
         let mut set = HashSet::new();
-        for &word in PALABRAS_RESERVADAS {
+        for &word in RESERVED_WORDS {
             set.insert(word);
         }
         WordsReserved { words: set }
@@ -63,6 +63,5 @@ impl WordsReserved {
 impl Default for WordsReserved {
     fn default() -> Self {
         Self::new()
-
     }
 }

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    parsers::tokens::{terms::ComparisonOperators, literal::Literal},
+    parsers::tokens::{literal::Literal, terms::ComparisonOperators},
     utils::errors::Errors,
 };
 
@@ -59,7 +59,9 @@ impl Evaluate for ComparisonExpr {
 
 #[cfg(test)]
 mod tests {
-    use crate::parsers::query_parsers::where_clause_::{comparison::ComparisonExpr, evaluate::Evaluate};
+    use crate::parsers::query_parsers::where_clause_::{
+        comparison::ComparisonExpr, evaluate::Evaluate,
+    };
     use crate::parsers::tokens::data_type::DataType;
     use crate::parsers::tokens::literal::Literal;
     use crate::parsers::tokens::terms::ComparisonOperators;
@@ -69,7 +71,10 @@ mod tests {
 
     fn create_row_integer() -> HashMap<String, Literal> {
         let mut row: HashMap<String, Literal> = HashMap::new();
-        row.insert("age".to_string(), Literal::new("30".to_string(), DataType::Int));
+        row.insert(
+            "age".to_string(),
+            Literal::new("30".to_string(), DataType::Int),
+        );
         row.insert(
             "score".to_string(),
             Literal::new("100".to_string(), DataType::Int),
@@ -105,7 +110,10 @@ mod tests {
 
     fn create_row_text() -> HashMap<String, Literal> {
         let mut row: HashMap<String, Literal> = HashMap::new();
-        row.insert("name".to_string(), Literal::new("Alice".to_string(), DataType::Text));
+        row.insert(
+            "name".to_string(),
+            Literal::new("Alice".to_string(), DataType::Text),
+        );
         row.insert(
             "city".to_string(),
             Literal::new("New York".to_string(), DataType::Text),
@@ -134,13 +142,21 @@ mod tests {
         let row = create_row_integer();
 
         let exprs = vec![
-            ComparisonExpr::new("age".to_string(), &Less, Literal::new("35".to_string(), Int)),
+            ComparisonExpr::new(
+                "age".to_string(),
+                &Less,
+                Literal::new("35".to_string(), Int),
+            ),
             ComparisonExpr::new(
                 "score".to_string(),
                 &GreaterOrEqual,
                 Literal::new("95".to_string(), Int),
             ),
-            ComparisonExpr::new("age".to_string(), &Greater, Literal::new("35".to_string(), Int)),
+            ComparisonExpr::new(
+                "age".to_string(),
+                &Greater,
+                Literal::new("35".to_string(), Int),
+            ),
             ComparisonExpr::new(
                 "score".to_string(),
                 &LessOrEqual,
@@ -222,14 +238,26 @@ mod tests {
         let row = create_row_text();
 
         let exprs = vec![
-            ComparisonExpr::new("name".to_string(), &Equal, Literal::new("Alice".to_string(), Text)),
+            ComparisonExpr::new(
+                "name".to_string(),
+                &Equal,
+                Literal::new("Alice".to_string(), Text),
+            ),
             ComparisonExpr::new(
                 "city".to_string(),
                 &NotEqual,
                 Literal::new("Los Angeles".to_string(), Text),
             ),
-            ComparisonExpr::new("name".to_string(), &NotEqual, Literal::new("Alice".to_string(), Text)),
-            ComparisonExpr::new("city".to_string(), &Equal, Literal::new("New York".to_string(), Text)),
+            ComparisonExpr::new(
+                "name".to_string(),
+                &NotEqual,
+                Literal::new("Alice".to_string(), Text),
+            ),
+            ComparisonExpr::new(
+                "city".to_string(),
+                &Equal,
+                Literal::new("New York".to_string(), Text),
+            ),
         ];
 
         let expected_results = vec![true, true, false, true];

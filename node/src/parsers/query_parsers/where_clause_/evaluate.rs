@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{utils::errors::Errors, parsers::tokens::literal::Literal};
+use crate::{parsers::tokens::literal::Literal, utils::errors::Errors};
 
 /// Trait para evaluar expresiones booleanas en función de una fila de Literales.
 pub trait Evaluate {

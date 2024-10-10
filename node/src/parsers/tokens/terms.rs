@@ -6,7 +6,7 @@ use super::{
 #[derive(Debug, PartialEq)]
 pub enum Term {
     Literal(Literal),
-    AritmeticasMath(AritmeticasMath),
+    ArithMath(ArithMath),
     BooleanOperations(BooleanOperations),
 }
 
@@ -17,11 +17,11 @@ pub enum BooleanOperations {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum AritmeticasMath {
+pub enum ArithMath {
     Suma,
-    Resta,
+    Sub,
     Division,
-    Resto,
+    Rest,
     Multiplication,
 }
 
@@ -44,14 +44,14 @@ pub enum ComparisonOperators {
 
 fn to_math(word: &str) -> Option<Token> {
     match word {
-        "+" => Some(Token::Term(Term::AritmeticasMath(AritmeticasMath::Suma))),
-        "-" => Some(Token::Term(Term::AritmeticasMath(AritmeticasMath::Resta))),
-        "/" => Some(Token::Term(Term::AritmeticasMath(
-            AritmeticasMath::Division,
+        "+" => Some(Token::Term(Term::ArithMath(ArithMath::Suma))),
+        "-" => Some(Token::Term(Term::ArithMath(ArithMath::Sub))),
+        "/" => Some(Token::Term(Term::ArithMath(
+            ArithMath::Division,
         ))),
-        "%" => Some(Token::Term(Term::AritmeticasMath(AritmeticasMath::Resto))),
-        "*" => Some(Token::Term(Term::AritmeticasMath(
-            AritmeticasMath::Multiplication,
+        "%" => Some(Token::Term(Term::ArithMath(ArithMath::Rest))),
+        "*" => Some(Token::Term(Term::ArithMath(
+            ArithMath::Multiplication,
         ))),
         _ => None,
     }

@@ -1,7 +1,11 @@
 use std::{iter::Peekable, vec::IntoIter};
 
-
-use crate::parsers::tokens::{token::Token, data_type::DataType, literal::Literal, terms::{Term, LogicalOperators, BooleanOperations, ComparisonOperators, AritmeticasMath}};
+use crate::parsers::tokens::{
+    data_type::DataType,
+    literal::Literal,
+    terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term},
+    token::Token,
+};
 
 use super::errors::Errors;
 
@@ -92,11 +96,15 @@ pub fn create_token_literal(value: &str, data_type: DataType) -> Token {
 }
 
 pub fn create_logical_operation_token(operation: LogicalOperators) -> Token {
-    Token::Term(Term::BooleanOperations(BooleanOperations::Logical(operation)))
+    Token::Term(Term::BooleanOperations(BooleanOperations::Logical(
+        operation,
+    )))
 }
 
 pub fn create_comparison_operation_token(operation: ComparisonOperators) -> Token {
-    Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(operation)))
+    Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
+        operation,
+    )))
 }
 
 // Reserved
@@ -108,6 +116,6 @@ pub fn create_data_type_token(data_type: DataType) -> Token {
     Token::DataType(data_type)
 }
 
-pub fn create_aritmeticas_math_token(operation: AritmeticasMath) -> Token {
-    Token::Term(Term::AritmeticasMath(operation))
+pub fn create_aritmeticas_math_token(operation: ArithMath) -> Token {
+    Token::Term(Term::ArithMath(operation))
 }

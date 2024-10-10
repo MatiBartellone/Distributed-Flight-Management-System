@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use crate::{
+    parsers::tokens::{literal::Literal, terms::ComparisonOperators, token::Token},
     utils::{
         errors::Errors,
         token_conversor::{get_identifier_string, get_literal},
-    }, parsers::tokens::{literal::Literal, token::Token, terms::ComparisonOperators},
+    },
 };
 use WhereClause::*;
 
@@ -90,12 +91,12 @@ pub fn not_expr(expr: WhereClause) -> WhereClause {
 #[cfg(test)]
 mod tests {
     use crate::parsers::query_parsers::where_clause_::{
-            comparison::ComparisonExpr, evaluate::Evaluate, where_clause::WhereClause,
-        };
-    use crate::parsers::tokens::terms::ComparisonOperators;
-    use crate::parsers::tokens::literal::Literal;
+        comparison::ComparisonExpr, evaluate::Evaluate, where_clause::WhereClause,
+    };
     use crate::parsers::tokens::data_type::DataType;
-    
+    use crate::parsers::tokens::literal::Literal;
+    use crate::parsers::tokens::terms::ComparisonOperators;
+
     use std::collections::HashMap;
     use ComparisonOperators::*;
     use DataType::*;
@@ -113,7 +114,10 @@ mod tests {
         let mut row = HashMap::new();
         row.insert("id".to_string(), Literal::new("5".to_string(), Int));
         row.insert("age".to_string(), Literal::new("30".to_string(), Int));
-        row.insert("is_active".to_string(), Literal::new("true".to_string(), Boolean));
+        row.insert(
+            "is_active".to_string(),
+            Literal::new("true".to_string(), Boolean),
+        );
         row
     }
 
@@ -136,7 +140,11 @@ mod tests {
         let row = setup_row();
         let clause = tuple_expr(vec![
             ComparisonExpr::new("id".to_string(), &Equal, Literal::new("5".to_string(), Int)),
-            ComparisonExpr::new("age".to_string(), &Equal, Literal::new("30".to_string(), Int)),
+            ComparisonExpr::new(
+                "age".to_string(),
+                &Equal,
+                Literal::new("30".to_string(), Int),
+            ),
         ]);
         assert_evaluation(row, clause, true);
     }
@@ -146,7 +154,11 @@ mod tests {
         let row = setup_row();
         let clause = tuple_expr(vec![
             ComparisonExpr::new("id".to_string(), &Equal, Literal::new("5".to_string(), Int)),
-            ComparisonExpr::new("age".to_string(), &Equal, Literal::new("40".to_string(), Int)),
+            ComparisonExpr::new(
+                "age".to_string(),
+                &Equal,
+                Literal::new("40".to_string(), Int),
+            ),
         ]);
         assert_evaluation(row, clause, false);
     }
