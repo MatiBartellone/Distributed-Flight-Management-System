@@ -1,3 +1,4 @@
+
 use super::data_type::{string_to_data_type, DataType};
 use super::symbols::Symbols;
 use super::terms::{string_to_term, Term};
@@ -147,6 +148,34 @@ where
                 "Hay Palabras Invalidas; word '{}' '{}'",
                 word, i
             )));
+
+use DataType::*;
+
+impl PartialOrd for Literal {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self.tipo != other.tipo {
+            return None;
+        }
+        match self.tipo {
+            Integer => {
+                let val1 = self.valor.parse::<i64>().ok()?;
+                let val2 = other.valor.parse::<i64>().ok()?;
+                Some(val1.cmp(&val2))
+            }
+            Boolean => {
+                let val1 = self.valor.parse::<bool>().ok()?;
+                let val2 = other.valor.parse::<bool>().ok()?;
+                Some(val1.cmp(&val2))
+            }
+            Decimal => {
+                let val1 = self.valor.parse::<f64>().ok()?;
+                let val2 = other.valor.parse::<f64>().ok()?;
+                Some(val1.partial_cmp(&val2)?)
+            }
+            Text => Some(self.valor.cmp(&other.valor)),
+            Date => todo!(),
+            Duration => todo!(),
+            Time => todo!(),
         }
         *i += 1;
     }

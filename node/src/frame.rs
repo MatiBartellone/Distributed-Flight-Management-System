@@ -1,6 +1,7 @@
 use crate::utils::bytes_cursor::BytesCursor;
 use crate::utils::errors::Errors;
 
+#[derive(Debug, PartialEq)]
 pub struct Frame {
     pub version: u8,
     pub flags: u8,
@@ -28,11 +29,10 @@ impl Frame {
             length,
             body,
         };
-        frame.validate_request_frame()?;
         Ok(frame)
     }
 
-    fn validate_request_frame(&self) -> Result<(), Errors> {
+    pub fn validate_request_frame(&self) -> Result<(), Errors> {
         if self.version != 0x03 {
             return Err(Errors::ProtocolError(format!(
                 "Version {} is incorrect",

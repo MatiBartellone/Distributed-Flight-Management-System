@@ -63,5 +63,6 @@ impl WordsReserved {
 impl Default for WordsReserved {
     fn default() -> Self {
         Self::new()
+
     }
 }
