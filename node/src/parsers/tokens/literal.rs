@@ -90,7 +90,6 @@ impl PartialOrd for Literal {
             Duration => todo!(),
             Time => todo!(),
         }
-        *i += 1;
     }
     Ok(res)
 }
