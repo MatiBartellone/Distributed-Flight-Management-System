@@ -34,62 +34,62 @@ fn string_to_identifier(word: &str) -> Option<Token> {
     None
 }
 
-fn match_tokenize(palabra: String) -> Option<Token> {
+fn match_tokenize(word: String) -> Option<Token> {
     let reservadas = WordsReserved::new();
     let symbols = Symbols::new();
-    if let Some(token) = string_to_term(&palabra) {
+    if let Some(token) = string_to_term(&word) {
         return Some(token);
-    } else if reservadas.is_reserved(&palabra) {
-        return Some(Token::Reserved(palabra.to_ascii_uppercase()));
-    } else if let Some(token) = string_to_data_type(&palabra) {
+    } else if reservadas.is_reserved(&word) {
+        return Some(Token::Reserved(word.to_ascii_uppercase()));
+    } else if let Some(token) = string_to_data_type(&word) {
         return Some(token);
-    } else if symbols.is_symbol(&palabra) {
-        return  Some(Token::Symbol(palabra));
-    } else if let Some(token) = string_to_identifier(&palabra) {
+    } else if symbols.is_symbol(&word) {
+        return  Some(Token::Symbol(word));
+    } else if let Some(token) = string_to_identifier(&word) {
         return Some(token);
     } 
     None
 }
 
 fn init_sub_list_token(
-    palabras: &[String],
+    words: &[String],
     i: &mut usize,
     res: &mut Vec<Token>,
 ) -> Result<bool, Errors> {
     //Nos fijamos que fue lo ultimo YA LEIDO
     if let Some(Token::Reserved(reserv)) = res.last() {
         if reserv == "WHERE" {
-            let temp = tokenize_recursive(palabras, close_sub_list_where, i)?;
+            let temp = tokenize_recursive(words, close_sub_list_where, i)?;
             res.push(Token::TokensList(temp));
             return Ok(true);
         }
         else if reserv == "SELECT" {
-            let temp = tokenize_recursive(palabras, close_sub_list_select, i)?;
+            let temp = tokenize_recursive(words, close_sub_list_select, i)?;
             res.push(Token::TokensList(temp));
             return Ok(true);
         }
         else if reserv == "BY" {
-            let temp = tokenize_recursive(palabras, close_sub_list_order_by, i)?;
+            let temp = tokenize_recursive(words, close_sub_list_order_by, i)?;
             res.push(Token::TokensList(temp));
             return Ok(true);
         }
         else if reserv == "SET" {
-            let temp = tokenize_recursive(palabras, close_sub_list_select, i)?;
+            let temp = tokenize_recursive(words, close_sub_list_select, i)?;
             res.push(Token::TokensList(temp));
             return Ok(true);
         }   
-    }//Nos fijamos la palabra ACTUAL
-    if &palabras[*i] == "(" {
+    }//Nos fijamos la word ACTUAL
+    if &words[*i] == "(" {
         *i += 1;
-        let temp = tokenize_recursive(palabras, close_sub_list_parentesis, i)?;
+        let temp = tokenize_recursive(words, close_sub_list_parentesis, i)?;
         *i += 1;
         res.push(Token::TokensList(temp));
         return Ok(true);
-    } else if &palabras[*i] == "{" {
+    } else if &words[*i] == "{" {
         let mut temp = Vec::new();
         temp.push(Token::Symbol("{".to_string()));
         *i += 1;
-        let sub_temp = tokenize_recursive(palabras, close_sub_list_key_icon, i)?;
+        let sub_temp = tokenize_recursive(words, close_sub_list_key_icon, i)?;
         temp.extend(sub_temp);
         temp.push(Token::Symbol("}".to_string()));
         *i += 1;
@@ -127,25 +127,25 @@ fn close_sub_list_where(word: &str) -> bool {
         && !(word_upper == "AND" || word_upper == "OR" || word_upper == "NOT")
 }
 
-fn tokenize_recursive<F>(palabras: &[String], cierre: F, i: &mut usize) -> Result<Vec<Token>, Errors>
+fn tokenize_recursive<F>(words: &[String], cierre: F, i: &mut usize) -> Result<Vec<Token>, Errors>
 where
     F: Fn(&str) -> bool,
 {
     let mut res = Vec::new();
-    while *i < palabras.len() {
-        let palabra = &palabras[*i];
-        if init_sub_list_token(palabras, i, &mut res)? {
+    while *i < words.len() {
+        let word = &words[*i];
+        if init_sub_list_token(words, i, &mut res)? {
             continue;
         } 
-        if cierre(palabra) {
+        if cierre(word) {
             return Ok(res);
         } 
-        if let Some(token) = match_tokenize(palabra.to_string()) {
+        if let Some(token) = match_tokenize(word.to_string()) {
             res.push(token)
         } else {
             return Err(Errors::SyntaxError(format!(
-                "Hay Palabras Invalidas; palabra '{}' '{}'",
-                palabra, i
+                "Hay Palabras Invalidas; word '{}' '{}'",
+                word, i
             )));
         }
         *i += 1;
@@ -153,10 +153,10 @@ where
     Ok(res)
 }
 
-pub fn tokenize(palabras: Vec<String>) -> Result<Vec<Token>, Errors> {
+pub fn tokenize(words: Vec<String>) -> Result<Vec<Token>, Errors> {
     // Definimos una closure que siempre devuelve false
-    let siempre_false = |_: &str| false;
-    tokenize_recursive(&palabras, siempre_false, &mut 0)
+    let fn_false = |_: &str| false;
+    tokenize_recursive(&words, fn_false, &mut 0)
 }
 
 #[cfg(test)]
