@@ -62,6 +62,39 @@ pub fn to_literal(word: &str) -> Option<Token> {
     None
 }
 
+use DataType::*;
+
+impl PartialOrd for Literal {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self.tipo != other.tipo {
+            return None;
+        }
+        match self.tipo {
+            Int => {
+                let val1 = self.valor.parse::<i64>().ok()?;
+                let val2 = other.valor.parse::<i64>().ok()?;
+                Some(val1.cmp(&val2))
+            }
+            Boolean => {
+                let val1 = self.valor.parse::<bool>().ok()?;
+                let val2 = other.valor.parse::<bool>().ok()?;
+                Some(val1.cmp(&val2))
+            }
+            Decimal => {
+                let val1 = self.valor.parse::<f64>().ok()?;
+                let val2 = other.valor.parse::<f64>().ok()?;
+                Some(val1.partial_cmp(&val2)?)
+            }
+            Text => Some(self.valor.cmp(&other.valor)),
+            Date => todo!(),
+            Duration => todo!(),
+            Time => todo!(),
+        }
+        *i += 1;
+    }
+    Ok(res)
+}
+
 
 #[cfg(test)]
 mod tests {

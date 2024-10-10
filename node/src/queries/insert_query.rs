@@ -1,5 +1,4 @@
-use crate::parsers::tokens::token::Literal;
-use crate::queries::query::Query;
+use crate::{queries::query::Query, parsers::tokens::literal::Literal};
 
 #[derive(PartialEq, Debug)]
 pub struct InsertQuery {

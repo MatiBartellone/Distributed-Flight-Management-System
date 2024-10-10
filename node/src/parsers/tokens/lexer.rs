@@ -1,12 +1,14 @@
-fn characters(word: &str, inicio: usize, fin: usize) -> String {
-    word.chars().skip(inicio).take(fin - inicio).collect()
+use crate::utils::constants::*;
+
+fn characters(word: &str, start: usize, end: usize) -> String {
+    word.chars().skip(start).take(end - start).collect()
 }
 
-fn inside_comment_fn(input: &str, fin: &str, i: &mut usize, inside: &mut bool) {
+fn inside_comment_fn(input: &str, end: &str, i: &mut usize, inside: &mut bool) {
     if *inside {
-        if *i + fin.len() <= input.len() && characters(input, *i, *i + fin.len()) == fin {
+        if *i + end.len() <= input.len() && characters(input, *i, *i + end.len()) == end {
             *inside = false;
-            *i += fin.len();
+            *i += end.len();
         } else {
             *i += 1;
         }
@@ -27,18 +29,18 @@ fn out_comment(input: &str, ini: &str, i: &mut usize, inside: &mut bool, res: &m
     }
 }
 
-fn remove_between(input: &str, fin: &str, ini: &str) -> String {
+fn remove_between(input: &str, end: &str, ini: &str) -> String {
     let mut res = String::new();
     let mut inside_comment = false;
     let mut i = 0;
     while i < input.len() {
-        inside_comment_fn(input, fin, &mut i, &mut inside_comment);
+        inside_comment_fn(input, end, &mut i, &mut inside_comment);
         out_comment(input, ini, &mut i, &mut inside_comment, &mut res);
     }
     res
 }
 
-fn inside_seccion(
+fn inside_section_fn(
     c: char,
     section: &mut String,
     res: &mut Vec<String>,
@@ -56,7 +58,7 @@ fn inside_seccion(
     }
 }
 
-fn out_seccion(
+fn out_section(
     c: char,
     section: &mut String,
     res: &mut Vec<String>,
@@ -64,7 +66,7 @@ fn out_seccion(
     delimiter: &mut Option<char>,
 ) {
     match c {
-        '$' | '"' | '\'' => {
+        DOLLAR | DOUBLE_QUOTE | SINGLE_QUOTE => {
             if !section.is_empty() {
                 res.push(section.clone());
                 section.clear();
@@ -80,14 +82,14 @@ fn out_seccion(
 //me separa todas las partes que esten entre $, ' o ""
 //hola $hola como estas$ "bien" 'vos' el resto de el string
 //queda como ["hola ", "$hola como estas$", " "bien" ", "'vos' el resto de el string"]
-fn divide_secciones(input: &str) -> Vec<String> {
+fn divide_sections(input: &str) -> Vec<String> {
     let mut res = Vec::new();
     let mut section = String::new();
     let mut delimiter: Option<char> = None;
     let mut inside_section = false;
     for c in input.chars() {
         if inside_section {
-            inside_seccion(
+            inside_section_fn(
                 c,
                 &mut section,
                 &mut res,
@@ -95,7 +97,7 @@ fn divide_secciones(input: &str) -> Vec<String> {
                 &mut delimiter,
             );
         } else {
-            out_seccion(
+            out_section(
                 c,
                 &mut section,
                 &mut res,
@@ -110,8 +112,8 @@ fn divide_secciones(input: &str) -> Vec<String> {
     res
 }
 
-//Elimina todos los comentarios de la query
-fn remove_comentarios(input: &str) -> String {
+//Elimina todos los comments de la query
+fn remove_comments(input: &str) -> String {
     let without_diagonal = remove_between(input, "\n", "//");
     let without_bar = remove_between(&without_diagonal, "\n", "--");
     remove_between(&without_bar, "*/", "/*")
@@ -139,16 +141,12 @@ fn divide_words(query: &str) -> Vec<String> {
 }
 
 fn is_section(word: &str) -> bool {
-    // if let Some(primer_caracter) = word.chars().next() {
-    //     return primer_caracter == '$' || primer_caracter == '\'' || primer_caracter == '"';
-    // }
-    // false
     matches!(word.chars().next(), Some('$' | '\'' | '"'))
 }
 
 pub fn standardize(input: &str) -> Vec<String> {
-    let input = remove_comentarios(input);
-    let sections = divide_secciones(&input);
+    let input = remove_comments(input);
+    let sections = divide_sections(&input);
     let mut standard = Vec::new();
     for word in sections.iter() {
         if !is_section(word) {
@@ -167,7 +165,7 @@ pub fn standardize(input: &str) -> Vec<String> {
 mod tests {
     use super::*;
     #[test]
-    fn test_normalizar_con_secciones() {
+    fn test_standardize_with_sections() {
         let input = r#"hola $hola como estas$ "bien" 'vos' el resto de el string"#;
         let resultado = standardize(input);
         let esperado = vec![
@@ -186,7 +184,7 @@ mod tests {
     }
 
     #[test]
-    fn test_normalizar_con_comentarios() {
+    fn test_standardize_with_comments() {
         let input = r#"hola // comentario
                          $esto es$ "un" -- otro comentario
                          'string'"#;
@@ -201,7 +199,7 @@ mod tests {
     }
 
     #[test]
-    fn test_normalizar_con_espacios() {
+    fn test_standardize_with_spaces() {
         let input = r#"$palabra1$    $palabra2$  "string con espacios" 'otro string'"#;
         let resultado = standardize(input);
         let esperado = vec![
@@ -214,26 +212,26 @@ mod tests {
     }
 
     #[test]
-    fn test_normalizar_solo_comentarios() {
+    fn test_standardize_only_comments() {
         let input = r#"//comentario
                          -- otro comentario
                          /* aaaa 
                          aaaa */
                          "#;
         let resultado = standardize(input);
-        let esperado: Vec<String> = vec![]; // Sin sections, solo comentarios
+        let esperado: Vec<String> = vec![]; // Sin sections, solo comments
         assert_eq!(resultado, esperado);
     }
 
     #[test]
-    fn test_normalizar_vacio() {
+    fn test_standardize_empty() {
         let input = "";
         let resultado = standardize(input);
         let esperado: Vec<String> = vec![];
         assert_eq!(resultado, esperado);
     }
     #[test]
-    fn test_normalizar_con_comentario_bloque() {
+    fn test_standardize_with_block_comment() {
         let input = r#"
             SELECT name, age /* Esto es un 
             comentario en bloque */
@@ -258,7 +256,7 @@ mod tests {
     }
 
     #[test]
-    fn test_normalizar_query_cassandra() {
+    fn test_standardize_cassandra_query() {
         let input = r#"
             // Este es un comentario
             SELECT name, age 

@@ -4,6 +4,7 @@ use super::symbols::Symbols;
 use super::terms::{string_to_term, Term};
 use super::words_reserved::WordsReserved;
 use crate::utils::errors::Errors;
+use crate::utils::constants::*;
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -59,40 +60,40 @@ fn init_sub_list_token(
 ) -> Result<bool, Errors> {
     //Nos fijamos que fue lo ultimo YA LEIDO
     if let Some(Token::Reserved(reserv)) = res.last() {
-        if reserv == "WHERE" {
+        if reserv == WHERE {
             let temp = tokenize_recursive(words, close_sub_list_where, i)?;
             res.push(Token::TokensList(temp));
             return Ok(true);
         }
-        else if reserv == "SELECT" {
+        else if reserv == SELECT {
             let temp = tokenize_recursive(words, close_sub_list_select, i)?;
             res.push(Token::TokensList(temp));
             return Ok(true);
         }
-        else if reserv == "BY" {
+        else if reserv == BY {
             let temp = tokenize_recursive(words, close_sub_list_order_by, i)?;
             res.push(Token::TokensList(temp));
             return Ok(true);
         }
-        else if reserv == "SET" {
+        else if reserv == SET {
             let temp = tokenize_recursive(words, close_sub_list_select, i)?;
             res.push(Token::TokensList(temp));
             return Ok(true);
         }   
     }//Nos fijamos la word ACTUAL
-    if &words[*i] == "(" {
+    if &words[*i] == OPEN_PAREN {
         *i += 1;
         let temp = tokenize_recursive(words, close_sub_list_parentesis, i)?;
         *i += 1;
         res.push(Token::TokensList(temp));
         return Ok(true);
-    } else if &words[*i] == "{" {
+    } else if &words[*i] == OPEN_BRACE {
         let mut temp = Vec::new();
-        temp.push(Token::Symbol("{".to_string()));
+        temp.push(Token::Symbol(OPEN_BRACE.to_string()));
         *i += 1;
         let sub_temp = tokenize_recursive(words, close_sub_list_key_icon, i)?;
         temp.extend(sub_temp);
-        temp.push(Token::Symbol("}".to_string()));
+        temp.push(Token::Symbol(CLOSE_BRACE.to_string()));
         *i += 1;
         res.push(Token::TokensList(temp));
         return Ok(true);
@@ -104,11 +105,11 @@ fn close_sub_list_order_by(word: &str) -> bool {
     let reservadas = WordsReserved::new();
     let word_upper = word.to_ascii_uppercase();
     reservadas.is_reserved(&word_upper)
-        && !(word_upper == "ASC" || word_upper == "DESC")
+    && !(word_upper == ASC || word_upper == DESC)
 }
 
 fn close_sub_list_key_icon(word: &str) -> bool {
-    word == "}"
+    word == CLOSE_BRACE
 }
 
 fn close_sub_list_select(word: &str) -> bool {
@@ -118,14 +119,14 @@ fn close_sub_list_select(word: &str) -> bool {
 }
 
 fn close_sub_list_parentesis(word: &str) -> bool {
-    word == ")"
+    word == CLOSE_PAREN
 }
 
 fn close_sub_list_where(word: &str) -> bool {
     let reservadas = WordsReserved::new();
     let word_upper = word.to_ascii_uppercase();
     reservadas.is_reserved(&word_upper)
-        && !(word_upper == "AND" || word_upper == "OR" || word_upper == "NOT")
+        && !(word_upper == AND || word_upper == OR || word_upper == NOT)
 }
 
 fn tokenize_recursive<F>(words: &[String], cierre: F, i: &mut usize) -> Result<Vec<Token>, Errors>
@@ -148,39 +149,12 @@ where
                 "Hay Palabras Invalidas; word '{}' '{}'",
                 word, i
             )));
-
-use DataType::*;
-
-impl PartialOrd for Literal {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        if self.tipo != other.tipo {
-            return None;
-        }
-        match self.tipo {
-            Integer => {
-                let val1 = self.valor.parse::<i64>().ok()?;
-                let val2 = other.valor.parse::<i64>().ok()?;
-                Some(val1.cmp(&val2))
-            }
-            Boolean => {
-                let val1 = self.valor.parse::<bool>().ok()?;
-                let val2 = other.valor.parse::<bool>().ok()?;
-                Some(val1.cmp(&val2))
-            }
-            Decimal => {
-                let val1 = self.valor.parse::<f64>().ok()?;
-                let val2 = other.valor.parse::<f64>().ok()?;
-                Some(val1.partial_cmp(&val2)?)
-            }
-            Text => Some(self.valor.cmp(&other.valor)),
-            Date => todo!(),
-            Duration => todo!(),
-            Time => todo!(),
         }
         *i += 1;
     }
     Ok(res)
 }
+
 
 pub fn tokenize(words: Vec<String>) -> Result<Vec<Token>, Errors> {
     // Definimos una closure que siempre devuelve false

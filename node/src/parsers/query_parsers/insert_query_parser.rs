@@ -1,4 +1,6 @@
-use crate::parsers::tokens::token::{Literal, Term, Token};
+use crate::parsers::tokens::literal::Literal;
+use crate::parsers::tokens::terms::Term;
+use crate::parsers::tokens::token::Token;
 use crate::queries::insert_query::InsertQuery;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
@@ -110,7 +112,7 @@ fn get_next_value(tokens: &mut IntoIter<Token>) -> Result<Token, Errors> {
 
 #[cfg(test)]
 mod tests {
-    use crate::parsers::tokens::token::{DataType, Token};
+    use crate::parsers::tokens::{token::Token, literal::Literal, terms::Term, data_type::DataType};
 
     use super::*;
 
@@ -139,14 +141,9 @@ mod tests {
             ]),
             Token::Reserved(String::from(values)),
             Token::TokensList(vec![
-                Token::Term(Term::Literal(Literal {
-                    valor: col1.to_string(),
-                    tipo: DataType::Integer,
-                })),
-                Token::Term(Term::Literal(Literal {
-                    valor: col2.to_string(),
-                    tipo: DataType::Text,
-                })),
+                Token::Term(Term::Literal(Literal::new(col1.to_string(), DataType::Int))),
+                Token::Term(Term::Literal(Literal::new(col2.to_string(), DataType::Text),
+                )),
             ]),
         ]
     }
@@ -155,14 +152,8 @@ mod tests {
             table: table.to_string(),
             headers: vec![String::from(hd1), String::from(hd2)],
             values_list: vec![vec![
-                Literal {
-                    valor: col1.to_string(),
-                    tipo: DataType::Integer,
-                },
-                Literal {
-                    valor: col2.to_string(),
-                    tipo: DataType::Text,
-                },
+                Literal::new( col1.to_string(),DataType::Int),
+                Literal::new(col2.to_string(), DataType::Text)
             ]],
         }
     }

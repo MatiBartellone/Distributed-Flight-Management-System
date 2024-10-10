@@ -1,0 +1,16 @@
+pub const DOLLAR: char = '$';
+pub const DOUBLE_QUOTE: char = '"';
+pub const SINGLE_QUOTE: char = '\'';
+pub const WHERE: &str = "WHERE";
+pub const SELECT: &str = "SELECT";
+pub const BY: &str = "BY";
+pub const SET: &str = "SET";
+pub const OPEN_PAREN: &str = "(";
+pub const CLOSE_PAREN: &str = ")";
+pub const OPEN_BRACE: &str = "{";
+pub const CLOSE_BRACE: &str = "}";
+pub const ASC: &str = "ASC";
+pub const DESC: &str = "DESC";
+pub const AND: &str = "AND";
+pub const OR: &str = "OR";
+pub const NOT: &str = "NOT";

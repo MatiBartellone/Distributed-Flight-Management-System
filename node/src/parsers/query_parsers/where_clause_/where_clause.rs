@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
 use crate::{
-    parsers::tokens::token::{ComparisonOperators, Literal, Token},
     utils::{
         errors::Errors,
         token_conversor::{get_identifier_string, get_literal},
-    },
+    }, parsers::tokens::{literal::Literal, token::Token, terms::ComparisonOperators},
 };
 use WhereClause::*;
 
@@ -90,12 +89,13 @@ pub fn not_expr(expr: WhereClause) -> WhereClause {
 
 #[cfg(test)]
 mod tests {
-    use crate::parsers::{
-        query_parsers::where_clause_::{
+    use crate::parsers::query_parsers::where_clause_::{
             comparison::ComparisonExpr, evaluate::Evaluate, where_clause::WhereClause,
-        },
-        tokens::token::{create_literal, ComparisonOperators, DataType, Literal},
-    };
+        };
+    use crate::parsers::tokens::terms::ComparisonOperators;
+    use crate::parsers::tokens::literal::Literal;
+    use crate::parsers::tokens::data_type::DataType;
+    
     use std::collections::HashMap;
     use ComparisonOperators::*;
     use DataType::*;
@@ -111,23 +111,23 @@ mod tests {
 
     fn setup_row() -> HashMap<String, Literal> {
         let mut row = HashMap::new();
-        row.insert("id".to_string(), create_literal("5", Integer));
-        row.insert("age".to_string(), create_literal("30", Integer));
-        row.insert("is_active".to_string(), create_literal("true", Boolean));
+        row.insert("id".to_string(), Literal::new("5".to_string(), Int));
+        row.insert("age".to_string(), Literal::new("30".to_string(), Int));
+        row.insert("is_active".to_string(), Literal::new("true".to_string(), Boolean));
         row
     }
 
     #[test]
     fn test_comparison_true() {
         let row = setup_row();
-        let clause = comparison_expr("id", Equal, create_literal("5", Integer));
+        let clause = comparison_expr("id", Equal, Literal::new("5".to_string(), Int));
         assert_evaluation(row, clause, true);
     }
 
     #[test]
     fn test_comparison_false() {
         let row = setup_row();
-        let clause = comparison_expr("id", Equal, create_literal("10", Integer));
+        let clause = comparison_expr("id", Equal, Literal::new("10".to_string(), Int));
         assert_evaluation(row, clause, false);
     }
 
@@ -135,8 +135,8 @@ mod tests {
     fn test_tuple_true() {
         let row = setup_row();
         let clause = tuple_expr(vec![
-            ComparisonExpr::new("id".to_string(), &Equal, create_literal("5", Integer)),
-            ComparisonExpr::new("age".to_string(), &Equal, create_literal("30", Integer)),
+            ComparisonExpr::new("id".to_string(), &Equal, Literal::new("5".to_string(), Int)),
+            ComparisonExpr::new("age".to_string(), &Equal, Literal::new("30".to_string(), Int)),
         ]);
         assert_evaluation(row, clause, true);
     }
@@ -145,8 +145,8 @@ mod tests {
     fn test_tuple_false() {
         let row = setup_row();
         let clause = tuple_expr(vec![
-            ComparisonExpr::new("id".to_string(), &Equal, create_literal("5", Integer)),
-            ComparisonExpr::new("age".to_string(), &Equal, create_literal("40", Integer)),
+            ComparisonExpr::new("id".to_string(), &Equal, Literal::new("5".to_string(), Int)),
+            ComparisonExpr::new("age".to_string(), &Equal, Literal::new("40".to_string(), Int)),
         ]);
         assert_evaluation(row, clause, false);
     }
@@ -155,8 +155,8 @@ mod tests {
     fn test_and_true() {
         let row = setup_row();
         let clause = and_expr(
-            comparison_expr("id", Equal, create_literal("5", Integer)),
-            comparison_expr("age", Equal, create_literal("30", Integer)),
+            comparison_expr("id", Equal, Literal::new("5".to_string(), Int)),
+            comparison_expr("age", Equal, Literal::new("30".to_string(), Int)),
         );
         assert_evaluation(row, clause, true);
     }
@@ -165,8 +165,8 @@ mod tests {
     fn test_and_false() {
         let row = setup_row();
         let clause = and_expr(
-            comparison_expr("id", Equal, create_literal("5", Integer)),
-            comparison_expr("age", Equal, create_literal("40", Integer)),
+            comparison_expr("id", Equal, Literal::new("5".to_string(), Int)),
+            comparison_expr("age", Equal, Literal::new("40".to_string(), Int)),
         );
         assert_evaluation(row, clause, false);
     }
@@ -175,8 +175,8 @@ mod tests {
     fn test_or_true() {
         let row = setup_row();
         let clause = or_expr(
-            comparison_expr("id", Equal, create_literal("5", Integer)),
-            comparison_expr("age", Equal, create_literal("40", Integer)),
+            comparison_expr("id", Equal, Literal::new("5".to_string(), Int)),
+            comparison_expr("age", Equal, Literal::new("40".to_string(), Int)),
         );
         assert_evaluation(row, clause, true);
     }
@@ -185,8 +185,8 @@ mod tests {
     fn test_or_false() {
         let row = setup_row();
         let clause = or_expr(
-            comparison_expr("id", Equal, create_literal("10", Integer)),
-            comparison_expr("age", Equal, create_literal("40", Integer)),
+            comparison_expr("id", Equal, Literal::new("10".to_string(), Int)),
+            comparison_expr("age", Equal, Literal::new("40".to_string(), Int)),
         );
         assert_evaluation(row, clause, false);
     }
@@ -197,7 +197,7 @@ mod tests {
         let clause = not_expr(comparison_expr(
             "is_active",
             Equal,
-            create_literal("false", Boolean),
+            Literal::new("false".to_string(), Boolean),
         ));
         assert_evaluation(row, clause, true);
     }
@@ -208,7 +208,7 @@ mod tests {
         let clause = not_expr(comparison_expr(
             "is_active",
             Equal,
-            create_literal("true", Boolean),
+            Literal::new("true".to_string(), Boolean),
         ));
         assert_evaluation(row, clause, false);
     }
