@@ -38,8 +38,8 @@ pub enum ComparisonOperators {
     Equal,
     NotEqual,
     Greater,
-    GreaterOrEqual,
-    LessOrEqual,
+    GreaterEqual,
+    LesserEqual,
 }
 
 fn to_math(word: &str) -> Option<Token> {
@@ -81,10 +81,10 @@ fn to_boolean(word: &str) -> Option<Token> {
             BooleanOperations::Comparison(ComparisonOperators::Greater),
         ))),
         "_GE_" => Some(Token::Term(Term::BooleanOperations(
-            BooleanOperations::Comparison(ComparisonOperators::GreaterOrEqual),
+            BooleanOperations::Comparison(ComparisonOperators::GreaterEqual),
         ))),
         "_LE_" => Some(Token::Term(Term::BooleanOperations(
-            BooleanOperations::Comparison(ComparisonOperators::LessOrEqual),
+            BooleanOperations::Comparison(ComparisonOperators::LesserEqual),
         ))),
         _ => None,
     }

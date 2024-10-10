@@ -22,8 +22,8 @@ impl ComparisonExpr {
             Equal => Equal,
             NotEqual => NotEqual,
             Greater => Greater,
-            GreaterOrEqual => GreaterOrEqual,
-            LessOrEqual => LessOrEqual,
+            GreaterEqual => GreaterEqual,
+            LesserEqual => LesserEqual,
         };
         ComparisonExpr {
             column_name,
@@ -51,8 +51,8 @@ impl Evaluate for ComparisonExpr {
             NotEqual => Ok(column_literal != &self.literal),
             Less => Ok(column_literal < &self.literal),
             Greater => Ok(column_literal > &self.literal),
-            LessOrEqual => Ok(column_literal <= &self.literal),
-            GreaterOrEqual => Ok(column_literal >= &self.literal),
+            LesserEqual => Ok(column_literal <= &self.literal),
+            GreaterEqual => Ok(column_literal >= &self.literal),
         }
     }
 }
@@ -149,7 +149,7 @@ mod tests {
             ),
             ComparisonExpr::new(
                 "score".to_string(),
-                &GreaterOrEqual,
+                &GreaterEqual,
                 Literal::new("95".to_string(), Int),
             ),
             ComparisonExpr::new(
@@ -159,7 +159,7 @@ mod tests {
             ),
             ComparisonExpr::new(
                 "score".to_string(),
-                &LessOrEqual,
+                &LesserEqual,
                 Literal::new("50".to_string(), Int),
             ),
         ];
@@ -213,7 +213,7 @@ mod tests {
             ),
             ComparisonExpr::new(
                 "discount".to_string(),
-                &LessOrEqual,
+                &LesserEqual,
                 Literal::new("15.00".to_string(), Decimal),
             ),
             ComparisonExpr::new(
