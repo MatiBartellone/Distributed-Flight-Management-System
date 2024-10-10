@@ -120,23 +120,22 @@ fn remove_comments(input: &str) -> String {
 }
 
 fn divide_words(query: &str) -> Vec<String> {
-    let query = query.replace("\n", " ").replace("\t", " ");
+    let query = query.replace("\n", SPACE).replace("\t", SPACE);
     let query = query
-        .replace(">=", " _GE_ ") //Greater Equal (para que no se separen con los otros replace)
-        .replace("<=", " _LE_ ") //Less Equal
-        .replace("!=", " _DF_ ")
-        .replace("<=", " _LE_ ")
-        .replace("+", " + ")
-        .replace("-", " - ")
-        .replace("/", " / ")
-        .replace("%", " % ")
-        .replace("<", " < ")
-        .replace(">", " > ")
-        .replace("(", " ( ")
-        .replace(")", " ) ")
-        .replace("{", " { ")
-        .replace("{", " } ")
-        .replace(";", "");
+        .replace(">=", GE)      // Greater Equal
+        .replace("<=", LE)      // Less Equal
+        .replace("!=", DF)      // Different
+        .replace("+", PLUS)     // Plus
+        .replace("-", MINUS)    // Minus
+        .replace("/", DIV)      // Division
+        .replace("%", MOD)      // Modulus
+        .replace("<", LT)       // Less Than
+        .replace(">", GT)       // Greater Than
+        .replace("(", OPEN_PAREN)   // Open Parenthesis
+        .replace(")", CLOSE_PAREN)  // Close Parenthesis
+        .replace("{", OPEN_BRACE)   // Open Brace
+        .replace("}", CLOSE_BRACE)  // Close Brace
+        .replace(";", EMPTY);          // Remove semicolon
     query.split_whitespace().map(|s| s.to_string()).collect()
 }
 
