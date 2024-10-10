@@ -19,6 +19,19 @@ pub fn get_literal(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Literal, Er
     }
 }
 
+pub fn get_sublist(
+    tokens: &mut Peekable<IntoIter<Token>>,
+) -> Result<Vec<Token>, Errors> {
+    let token = get_next_value(tokens)?;
+    match token {
+        TokensList(list) => Ok(list),
+        e => Err(Errors::Invalid(format!(
+            "Expected Sub List but has {:?}",
+            e
+        ))),
+    }
+}
+
 pub fn get_arithmetic_math(
     tokens: &mut Peekable<IntoIter<Token>>,
 ) -> Result<AritmeticasMath, Errors> {
@@ -103,6 +116,12 @@ pub fn iter_is_empty(tokens: &mut Peekable<IntoIter<Token>>) -> bool {
 // Identifier
 pub fn create_identifier_token(value: &str) -> Token {
     Token::Identifier(value.to_string())
+}
+
+// Token list
+
+pub fn create_list_token(list: Vec<Token>) -> Token {
+    Token::TokensList(list)
 }
 
 // Term

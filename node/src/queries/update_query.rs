@@ -1,19 +1,13 @@
 use std::collections::HashMap;
 
-use crate::parsers::{query_parsers::where_clause_::where_clause::WhereClause, tokens::token::{AritmeticasMath, Literal}};
+use super::{if_clause::IfClause, set_logic::assigmente_value::AssignmentValue, where_logic::where_clause::WhereClause};
 
 #[derive(PartialEq, Debug)]
 pub struct UpdateQuery {
     pub table: String,
-    pub changes: HashMap<String, AssigmentValue>,
-    pub where_clause: Option<WhereClause>
-}
-
-#[derive(Debug, PartialEq)]
-pub enum AssigmentValue {
-    Simple(Literal),
-    Column(String),
-    Arithmetic(String, AritmeticasMath, Literal),
+    pub changes: HashMap<String, AssignmentValue>,
+    pub where_clause: Option<WhereClause>,
+    pub if_clause: Option<IfClause>
 }
 
 impl UpdateQuery {
@@ -22,6 +16,7 @@ impl UpdateQuery {
             table: String::new(),
             changes: HashMap::new(),
             where_clause: None,
+            if_clause: None
         }
     }
 }

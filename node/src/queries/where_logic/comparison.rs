@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
-    parsers::tokens::token::{ComparisonOperators, Literal},
-    utils::errors::Errors,
+    parsers::tokens::token::{ComparisonOperators, Literal}, queries::evaluate::Evaluate, utils::errors::Errors
 };
 
-use super::evaluate::Evaluate;
 use ComparisonOperators::*;
 
 #[derive(Debug, PartialEq)]
@@ -59,13 +57,13 @@ impl Evaluate for ComparisonExpr {
 
 #[cfg(test)]
 mod tests {
-    use crate::parsers::{
-        query_parsers::where_clause_::{comparison::ComparisonExpr, evaluate::Evaluate},
-        tokens::token::{create_literal, ComparisonOperators, DataType, Literal},
-    };
     use std::collections::HashMap;
     use ComparisonOperators::*;
     use DataType::*;
+
+    use crate::{parsers::tokens::token::{create_literal, ComparisonOperators, DataType, Literal}, queries::evaluate::Evaluate};
+
+    use super::ComparisonExpr;
 
     fn create_row_integer() -> HashMap<String, Literal> {
         let mut row: HashMap<String, Literal> = HashMap::new();
