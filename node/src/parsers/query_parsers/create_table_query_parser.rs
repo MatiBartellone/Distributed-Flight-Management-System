@@ -8,6 +8,18 @@ const TABLE: &str = "TABLE";
 const PRIMARY: &str = "PRIMARY";
 const KEY: &str = "KEY";
 const COMMA: &str = ",";
+const TABLE_ERR: &str = "CREATE not followed by TABLE";
+const UNEXPECTED_TABLE_ERR: &str = "Unexpected token in table name";
+const NOTHING_AFTER_CL_ERR: &str = "Nothing should follow the column list";
+const UNEXPECTED_COLUMN_ERR: &str = "Unexpected token in column definition";
+const COMMA_MISSING_PR_ERR: &str = "Comma missing after PRIMARY KEY";
+const MISSING_KEY_ERR: &str = "PRIMARY not followed by KEY";
+const UNEXPECTED_PK_ERR: &str = "Unexpected token in primary key list";
+const ONE_PK_PAR_ERR: &str = "Primary key between parenthesis must be 1";
+const MISSING_DT_ERR: &str = "Missing data type";
+const SHORT_QUERY_ERR: &str = "Query lacks parameters";
+const ONE_DEF_PK_ERR: &str = "Primary key must be defined only once";
+const PK_NOT_DEF_ERR: &str = "Primary key column not defined";
 
 pub struct CreateTableQueryParser;
 
@@ -23,9 +35,7 @@ impl CreateTableQueryParser {
 fn table(tokens: &mut IntoIter<Token>, query: &mut CreateTableQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Reserved(res) if res == *TABLE => table_name(tokens, query),
-        _ => Err(Errors::SyntaxError(String::from(
-            "CREATE not followed by TABLE",
-        ))),
+        _ => Err(Errors::SyntaxError(String::from(TABLE_ERR))),
     }
 }
 fn table_name(tokens: &mut IntoIter<Token>, query: &mut CreateTableQuery) -> Result<(), Errors> {
@@ -34,9 +44,7 @@ fn table_name(tokens: &mut IntoIter<Token>, query: &mut CreateTableQuery) -> Res
             query.table_name = identifier;
             column_list(tokens, query)
         }
-        _ => Err(Errors::SyntaxError(String::from(
-            "Unexpected token in table name",
-        ))),
+        _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_TABLE_ERR))),
     }
 }
 
@@ -45,15 +53,11 @@ fn column_list(tokens: &mut IntoIter<Token>, query: &mut CreateTableQuery) -> Re
         Token::ParenList(list) => {
             column(&mut list.into_iter(), query)?;
             let None = tokens.next() else {
-                return Err(Errors::SyntaxError(String::from(
-                    "Nothing should follow the column list",
-                )));
+                return Err(Errors::SyntaxError(String::from(NOTHING_AFTER_CL_ERR)));
             };
             Ok(())
         }
-        _ => Err(Errors::SyntaxError(String::from(
-            "Unexpected token in column definition",
-        ))),
+        _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_COLUMN_ERR))),
     }
 }
 
@@ -69,9 +73,7 @@ fn column(tokens: &mut IntoIter<Token>, query: &mut CreateTableQuery) -> Result<
             try_primary_key(tokens, query, identifier)
         }
         Token::Reserved(res) if res == *PRIMARY => key(tokens, query),
-        _ => Err(Errors::SyntaxError(String::from(
-            "Unexpected token in column definition",
-        ))),
+        _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_COLUMN_ERR))),
     }
 }
 
@@ -86,9 +88,7 @@ fn try_primary_key(
     match token {
         Token::Symbol(s) if s == *COMMA => column(tokens, query),
         Token::Reserved(res) if res == *PRIMARY => primary_key_def(tokens, query, primary_key),
-        _ => Err(Errors::SyntaxError(String::from(
-            "Unexpected token in column definition",
-        ))),
+        _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_COLUMN_ERR))),
     }
 }
 
@@ -102,22 +102,16 @@ fn primary_key_def(
             set_primary_key(query, primary_key)?;
             match get_next_value(tokens)? {
                 Token::Symbol(s) if s == *COMMA => column(tokens, query),
-                _ => Err(Errors::SyntaxError(String::from(
-                    "Comma missing after PRIMARY KEY",
-                ))),
+                _ => Err(Errors::SyntaxError(String::from(COMMA_MISSING_PR_ERR))),
             }
         }
-        _ => Err(Errors::SyntaxError(String::from(
-            "PRIMARY not followed by KEY",
-        ))),
+        _ => Err(Errors::SyntaxError(String::from(MISSING_KEY_ERR))),
     }
 }
 fn key(tokens: &mut IntoIter<Token>, query: &mut CreateTableQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Reserved(res) if res == *KEY => primary_key_list(tokens, query),
-        _ => Err(Errors::SyntaxError(String::from(
-            "PRIMARY not followed by KEY",
-        ))),
+        _ => Err(Errors::SyntaxError(String::from(MISSING_KEY_ERR))),
     }
 }
 
@@ -128,37 +122,31 @@ fn primary_key_list(
     match get_next_value(tokens)? {
         Token::ParenList(list) => {
             if list.len() != 1 {
-                return Err(Errors::SyntaxError(String::from(
-                    "Primary key between parenthesis must be 1",
-                )));
+                return Err(Errors::SyntaxError(String::from(ONE_PK_PAR_ERR)));
             };
             match list.first() {
                 Some(Token::Identifier(identifier)) => {
                     set_primary_key(query, identifier.to_string())?;
                     Ok(())
                 }
-                _ => Err(Errors::SyntaxError(String::from(
-                    "Unexpected token in primary key list",
-                ))),
+                _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_PK_ERR))),
             }
         }
-        _ => Err(Errors::SyntaxError(String::from(
-            "Unexpected token in primary key list",
-        ))),
+        _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_PK_ERR))),
     }
 }
 
 fn get_data_type(tokens: &mut IntoIter<Token>) -> Result<DataType, Errors> {
     match tokens.next() {
         Some(Token::DataType(data_type)) => Ok(data_type),
-        _ => Err(Errors::SyntaxError(String::from("Missing data type"))),
+        _ => Err(Errors::SyntaxError(String::from(MISSING_DT_ERR))),
     }
 }
 
 fn get_next_value(tokens: &mut IntoIter<Token>) -> Result<Token, Errors> {
     tokens
         .next()
-        .ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))
+        .ok_or(Errors::SyntaxError(String::from(SHORT_QUERY_ERR)))
 }
 
 fn set_primary_key(query: &mut CreateTableQuery, primary_key: String) -> Result<(), Errors> {
@@ -166,19 +154,15 @@ fn set_primary_key(query: &mut CreateTableQuery, primary_key: String) -> Result<
         query.primary_key = primary_key;
         return Ok(());
     }
-    Err(Errors::SyntaxError(String::from(
-        "Primary key must be defined only once",
-    )))
+    Err(Errors::SyntaxError(String::from(ONE_DEF_PK_ERR)))
 }
 
 fn check_primary_key(query: &mut CreateTableQuery) -> Result<(), Errors> {
     if !query.columns.contains_key(query.primary_key.as_str()) {
-        return Err(Errors::SyntaxError(String::from(
-            "Primary key column not defined",
-        )));
+        return Err(Errors::SyntaxError(String::from(PK_NOT_DEF_ERR)));
     }
     if query.primary_key.is_empty() {
-        return Err(Errors::SyntaxError(String::from("Primary key not defined")));
+        return Err(Errors::SyntaxError(String::from(PK_NOT_DEF_ERR)));
     }
     Ok(())
 }
@@ -225,7 +209,7 @@ mod tests {
                 Token::Symbol(String::from(COMMA)),
                 Token::Reserved(String::from(PRIMARY)),
                 Token::Reserved(String::from(KEY)),
-                Token::ParenList(vec![Token::Identifier(String::from(primary_key)),])
+                Token::ParenList(vec![Token::Identifier(String::from(primary_key))]),
             ]),
         ]
     }
@@ -243,30 +227,47 @@ mod tests {
 
     #[test]
     fn test_create_table_valid_1() {
-        let tokens = get_valid_tokens_1(Token::Identifier(String::from("id")), Token::DataType(DataType::Int));
+        let tokens = get_valid_tokens_1(
+            Token::Identifier(String::from("id")),
+            Token::DataType(DataType::Int),
+        );
         let expected = get_valid_query();
         assert_eq!(expected, CreateTableQueryParser::parse(tokens).unwrap());
     }
 
     #[test]
     fn test_create_table_valid_2() {
-        let tokens = get_valid_tokens_2(Token::Identifier(String::from("id")), Token::DataType(DataType::Int), "id");
+        let tokens = get_valid_tokens_2(
+            Token::Identifier(String::from("id")),
+            Token::DataType(DataType::Int),
+            "id",
+        );
         let expected = get_valid_query();
         assert_eq!(expected, CreateTableQueryParser::parse(tokens).unwrap());
     }
 
     #[test]
     fn test_create_table_equal_primary_key_definitions() {
-        let tokens_1 = get_valid_tokens_1(Token::Identifier(String::from("id")), Token::DataType(DataType::Int));
-        let tokens_2 = get_valid_tokens_2(Token::Identifier(String::from("id")), Token::DataType(DataType::Int), "id");
-        assert_eq!(CreateTableQueryParser::parse(tokens_1).unwrap(), CreateTableQueryParser::parse(tokens_2).unwrap());
+        let tokens_1 = get_valid_tokens_1(
+            Token::Identifier(String::from("id")),
+            Token::DataType(DataType::Int),
+        );
+        let tokens_2 = get_valid_tokens_2(
+            Token::Identifier(String::from("id")),
+            Token::DataType(DataType::Int),
+            "id",
+        );
+        assert_eq!(
+            CreateTableQueryParser::parse(tokens_1).unwrap(),
+            CreateTableQueryParser::parse(tokens_2).unwrap()
+        );
     }
 
     #[test]
     fn test_create_table_missing_table_keyword() {
         let tokens = vec![Token::Identifier(String::from("NOT TABLE"))];
         let result = CreateTableQueryParser::parse(tokens);
-        assert_error(result, "CREATE not followed by TABLE");
+        assert_error(result, TABLE_ERR);
     }
 
     #[test]
@@ -276,7 +277,7 @@ mod tests {
             Token::Reserved(String::from("UNEXPECTED")),
         ];
         let result = CreateTableQueryParser::parse(tokens);
-        assert_error(result, "Unexpected token in table name");
+        assert_error(result, UNEXPECTED_TABLE_ERR);
     }
 
     #[test]
@@ -287,28 +288,38 @@ mod tests {
             Token::Identifier(String::from("UNEXPECTED")),
         ];
         let result = CreateTableQueryParser::parse(tokens);
-        assert_error(result, "Unexpected token in column definition");
+        assert_error(result, UNEXPECTED_COLUMN_ERR);
     }
 
     #[test]
     fn test_create_table_unexpected_column_definition_not_an_identifier() {
-        let tokens = get_valid_tokens_1(Token::Reserved(String::from("UNEXPECTED")), Token::DataType(DataType::Text));
+        let tokens = get_valid_tokens_1(
+            Token::Reserved(String::from("UNEXPECTED")),
+            Token::DataType(DataType::Text),
+        );
         let result = CreateTableQueryParser::parse(tokens);
-        assert_error(result, "Unexpected token in column definition");
+        assert_error(result, UNEXPECTED_COLUMN_ERR);
     }
 
     #[test]
     fn test_create_table_missing_data_type() {
-        let tokens = get_valid_tokens_1(Token::Identifier(String::from("id")), Token::Symbol(String::from(COMMA)));
+        let tokens = get_valid_tokens_1(
+            Token::Identifier(String::from("id")),
+            Token::Symbol(String::from(COMMA)),
+        );
         let result = CreateTableQueryParser::parse(tokens);
-        assert_error(result, "Missing data type");
+        assert_error(result, MISSING_DT_ERR);
     }
 
     #[test]
     fn test_create_table_none_existant_primary_key() {
-        let tokens = get_valid_tokens_2(Token::Identifier(String::from("id")), Token::DataType(DataType::Int), "NOT EXISTENT");
+        let tokens = get_valid_tokens_2(
+            Token::Identifier(String::from("id")),
+            Token::DataType(DataType::Int),
+            "NOT EXISTENT",
+        );
         let result = CreateTableQueryParser::parse(tokens);
-        assert_error(result, "Primary key column not defined");
+        assert_error(result, PK_NOT_DEF_ERR);
     }
 
     #[test]
@@ -329,7 +340,7 @@ mod tests {
             ]),
         ];
         let result = CreateTableQueryParser::parse(tokens);
-        assert_error(result, "Primary key must be defined only once");
+        assert_error(result, ONE_DEF_PK_ERR);
     }
 
     #[test]
@@ -343,6 +354,30 @@ mod tests {
             ]),
         ];
         let result = CreateTableQueryParser::parse(tokens);
-        assert_error(result, "Primary key column not defined");
+        assert_error(result, PK_NOT_DEF_ERR);
+    }
+
+    #[test]
+    fn test_create_table_more_than_one_id_in_pk_parentheses() {
+        let tokens = vec![
+            Token::Reserved(String::from(TABLE)),
+            Token::Identifier(String::from("table_name")),
+            Token::ParenList(vec![
+                Token::Identifier(String::from("id")),
+                Token::DataType(DataType::Int),
+                Token::Symbol(String::from(COMMA)),
+                Token::Identifier(String::from("name")),
+                Token::DataType(DataType::Text),
+                Token::Symbol(String::from(COMMA)),
+                Token::Reserved(String::from(PRIMARY)),
+                Token::Reserved(String::from(KEY)),
+                Token::ParenList(vec![
+                    Token::Identifier(String::from("id")),
+                    Token::Identifier(String::from("name")),
+                ]),
+            ]),
+        ];
+        let result = CreateTableQueryParser::parse(tokens);
+        assert_error(result, ONE_PK_PAR_ERR);
     }
 }
