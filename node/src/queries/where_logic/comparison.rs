@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 
 use crate::{
-    parsers::tokens::{literal::Literal, terms::ComparisonOperators},
-    utils::errors::Errors,
+    parsers::tokens::{literal::Literal, terms::ComparisonOperators}, queries::evaluate::Evaluate, utils::errors::Errors
 };
 
-use super::evaluate::Evaluate;
 use ComparisonOperators::*;
 
 #[derive(Debug, PartialEq)]
@@ -59,17 +57,17 @@ impl Evaluate for ComparisonExpr {
 
 #[cfg(test)]
 mod tests {
-    use crate::parsers::query_parsers::where_clause_::{
-        comparison::ComparisonExpr, evaluate::Evaluate,
-    };
     use crate::parsers::tokens::data_type::DataType;
     use crate::parsers::tokens::literal::Literal;
     use crate::parsers::tokens::terms::ComparisonOperators;
+    use crate::queries::evaluate::Evaluate;
     use std::collections::HashMap;
     use ComparisonOperators::*;
     use DataType::*;
 
-    fn create_row_integer() -> HashMap<String, Literal> {
+    use super::ComparisonExpr;
+
+    fn create_row_int() -> HashMap<String, Literal> {
         let mut row: HashMap<String, Literal> = HashMap::new();
         row.insert(
             "age".to_string(),
@@ -138,8 +136,8 @@ mod tests {
     }
 
     #[test]
-    fn test_integer_comparison() {
-        let row = create_row_integer();
+    fn test_int_comparison() {
+        let row = create_row_int();
 
         let exprs = vec![
             ComparisonExpr::new(

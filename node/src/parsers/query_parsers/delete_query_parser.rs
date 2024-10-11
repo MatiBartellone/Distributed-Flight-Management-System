@@ -1,12 +1,10 @@
-use crate::parsers::query_parsers::where_clause_::where_clause_parser::WhereClauseParser;
 use crate::parsers::tokens::token::Token;
 use crate::queries::delete_query::DeleteQuery;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
 
-const FROM: &str = "FROM";
-const WHERE: &str = "WHERE";
-
+use super::where_clause_parser::WhereClauseParser;
+use crate::utils::constants::*;
 pub struct DeleteQueryParser;
 
 impl DeleteQueryParser {
@@ -54,7 +52,7 @@ fn where_clause(tokens: &mut IntoIter<Token>, query: &mut DeleteQuery) -> Result
     };
     match token {
         Token::ParenList(list) => {
-            query.where_clause = WhereClauseParser::parse(list)?;
+            query.where_clause = Some(WhereClauseParser::parse(list)?);
             let None = tokens.next() else {
                 return Err(Errors::SyntaxError(String::from(
                     "Nothing should follow a where-clause",

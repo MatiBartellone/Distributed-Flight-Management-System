@@ -1,11 +1,10 @@
 use std::{iter::Peekable, vec::IntoIter};
 
 use crate::parsers::tokens::{
-    data_type::DataType,
-    literal::Literal,
-    terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term},
-    token::Token,
+    data_type::DataType, literal::Literal, terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term}, token::Token
 };
+use Token::*;
+use Term::*;
 
 use super::errors::Errors;
 
@@ -14,6 +13,32 @@ pub fn get_literal(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Literal, Er
     match token {
         Token::Term(Term::Literal(literal)) => Ok(literal),
         _ => Err(Errors::Invalid("Expected a literal".to_string())),
+    }
+}
+
+pub fn get_sublist(
+    tokens: &mut Peekable<IntoIter<Token>>,
+) -> Result<Vec<Token>, Errors> {
+    let token = get_next_value(tokens)?;
+    match token {
+        IterateToken(list) => Ok(list),
+        e => Err(Errors::Invalid(format!(
+            "Expected Sub List but has {:?}",
+            e
+        ))),
+    }
+}
+
+pub fn get_arithmetic_math(
+    tokens: &mut Peekable<IntoIter<Token>>,
+) -> Result<ArithMath, Errors> {
+    let token = get_next_value(tokens)?;
+    match token {
+        Term(ArithMath(op)) => Ok(op),
+        e => Err(Errors::Invalid(format!(
+            "Expected comparision operator but has {:?}",
+            e
+        ))),
     }
 }
 
@@ -90,6 +115,20 @@ pub fn create_identifier_token(value: &str) -> Token {
     Token::Identifier(value.to_string())
 }
 
+// Lists
+
+pub fn create_iterate_list_token(list: Vec<Token>) -> Token {
+    Token::IterateToken(list)
+}
+
+pub fn create_paren_list_token(list: Vec<Token>) -> Token {
+    Token::ParenList(list)
+}
+
+pub fn create_brace_list_token(list: Vec<Token>) -> Token {
+    Token::BraceList(list)
+}
+
 // Term
 pub fn create_token_literal(value: &str, data_type: DataType) -> Token {
     Token::Term(Term::Literal(Literal::new(value.to_string(), data_type)))
@@ -118,4 +157,10 @@ pub fn create_data_type_token(data_type: DataType) -> Token {
 
 pub fn create_aritmeticas_math_token(operation: ArithMath) -> Token {
     Token::Term(Term::ArithMath(operation))
+}
+
+// Symbol
+
+pub fn create_symbol_token(symbol: &str) -> Token {
+    Token::Symbol(symbol.to_string())
 }

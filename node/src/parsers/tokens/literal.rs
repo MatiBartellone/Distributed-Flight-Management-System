@@ -62,6 +62,13 @@ pub fn to_literal(word: &str) -> Option<Token> {
     None
 }
 
+pub fn create_literal(value: &str, data_type: DataType) -> Literal {
+    Literal {
+        value: value.to_string(),
+        data_type,
+    }
+}
+
 use DataType::*;
 
 impl PartialOrd for Literal {

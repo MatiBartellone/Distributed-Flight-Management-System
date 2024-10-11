@@ -16,7 +16,7 @@ const CONFIG_ERROR: &[u8] = &[0x23, 0x00];
 const ALREADY_EXISTS: &[u8] = &[0x24, 0x00];
 const UNPREPARED: &[u8] = &[0x25, 0x00];
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Errors {
     ServerError(String),
     ProtocolError(String),
