@@ -11,3 +11,4 @@ pub mod order_by_clause;
 pub mod query;
 pub mod select_query;
 pub mod update_query;
+pub mod cql_query;

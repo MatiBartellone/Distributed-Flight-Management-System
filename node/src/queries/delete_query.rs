@@ -1,4 +1,6 @@
-use crate::parsers::query_parsers::where_clause_::where_clause::WhereClause;
+use crate::{parsers::query_parsers::where_clause_::where_clause::WhereClause, utils::errors::Errors};
+
+use super::query::Query;
 
 #[derive(PartialEq, Debug)]
 pub struct DeleteQuery {
@@ -18,5 +20,11 @@ impl DeleteQuery {
 impl Default for DeleteQuery {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Query for DeleteQuery {
+    fn run(&self) -> Result<(), Errors> {
+        todo!()
     }
 }

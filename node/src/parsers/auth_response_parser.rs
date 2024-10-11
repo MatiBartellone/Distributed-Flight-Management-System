@@ -7,7 +7,7 @@ use crate::parsers::parser::Parser;
 use crate::utils::bytes_cursor::BytesCursor;
 use crate::utils::errors::Errors;
 
-pub struct AuthResponseParser {}
+pub struct AuthResponseParser;
 
 impl AuthResponseParser {
     fn valid_credentials(&self, body: &[u8]) -> Result<Option<Vec<u8>>, Errors> {
