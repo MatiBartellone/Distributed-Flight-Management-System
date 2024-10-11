@@ -1,11 +1,12 @@
 use std::{iter::Peekable, vec::IntoIter};
 use BooleanOperations::*;
 use LogicalOperators::*;
-use Term::*;
 use Token::*;
+use Term::*;
 use IfClause::Exist;
 
-use crate::parsers::tokens::token::{BooleanOperations, LogicalOperators, Term, Token};
+use crate::parsers::tokens::terms::{BooleanOperations, Term, LogicalOperators};
+use crate::parsers::tokens::token::Token;
 use crate::queries::if_clause::{and_if, comparison_if, not_if, or_if, IfClause};
 use crate::utils::errors::Errors;
 use crate::utils::token_conversor::{get_comparision_operator, get_literal, get_next_value};
@@ -26,9 +27,9 @@ fn if_and_or(
 ) -> Result<IfClause, Errors> {
     match get_next_value(tokens) {
         // [left_expre, AND, ...]
-        Ok(Term(AritmeticasBool(Logical(And)))) => Ok(and_if(left_expr, if_clause(tokens)?)),
+        Ok(Term(BooleanOperations(Logical(And)))) => Ok(and_if(left_expr, if_clause(tokens)?)),
         // [left_expre, OR, ...]
-        Ok(Term(AritmeticasBool(Logical(Or)))) => Ok(or_if(left_expr, if_clause(tokens)?)),
+        Ok(Term(BooleanOperations(Logical(Or)))) => Ok(or_if(left_expr, if_clause(tokens)?)),
         // [left_expre]
         Err(_) => Ok(left_expr),
         _ => Err(Errors::SyntaxError(
@@ -54,7 +55,7 @@ fn if_clause(tokens: &mut Peekable<IntoIter<Token>>) -> Result<IfClause, Errors>
         // [exists, ...]
         Reserved(exists) if exists == *EXISTS => if_and_or(tokens, Exist),
         // [NOT, ...]
-        Term(AritmeticasBool(Logical(Not))) => Ok(not_if(if_clause(tokens)?)),
+        Term(BooleanOperations(Logical(Not))) => Ok(not_if(if_clause(tokens)?)),
         _ => Err(Errors::SyntaxError(
             "Invalid Syntaxis in IF_CLAUSE".to_string(),
         )),
@@ -64,7 +65,7 @@ fn if_clause(tokens: &mut Peekable<IntoIter<Token>>) -> Result<IfClause, Errors>
 
 #[cfg(test)]
 mod tests {
-    use crate::{parsers::tokens::token::{create_literal, ComparisonOperators, DataType, LogicalOperators, Token}, queries::if_clause::{and_if, comparison_if, not_if, IfClause}, utils::token_conversor::{create_comparison_operation_token, create_identifier_token, create_logical_operation_token, create_reserved_token, create_token_literal}};
+    use crate::{parsers::tokens::{data_type::DataType, literal::create_literal, terms::{ComparisonOperators, LogicalOperators}, token::Token}, queries::if_clause::{and_if, comparison_if, not_if, IfClause}, utils::token_conversor::{create_comparison_operation_token, create_identifier_token, create_logical_operation_token, create_reserved_token, create_token_literal}};
     use LogicalOperators::*;
     use ComparisonOperators::*;
     use DataType::*;
@@ -118,9 +119,9 @@ mod tests {
         let tokens = vec![
             create_identifier_token("id"),
             create_comparison_operation_token(Equal),
-            create_token_literal("8", Integer),
+            create_token_literal("8", Int),
         ];
-        let expected = Some(comparison_if("id", Equal, create_literal("8", Integer)));
+        let expected = Some(comparison_if("id", Equal, create_literal("8", Int)));
         test_successful_parser_case(tokens, expected);
     }
 
@@ -134,12 +135,12 @@ mod tests {
             create_logical_operation_token(And),
             create_identifier_token("id"),
             create_comparison_operation_token(NotEqual),
-            create_token_literal("20", DataType::Integer),
+            create_token_literal("20", DataType::Int),
         ];
 
         let expected = Some(and_if(
             comparison_if("name", Equal, create_literal("Alice", Text)),
-            comparison_if("id", NotEqual, create_literal("20", Integer)),
+            comparison_if("id", NotEqual, create_literal("20", Int)),
         ));
 
         test_successful_parser_case(tokens, expected);
@@ -170,20 +171,20 @@ mod tests {
         let tokens = vec![
             create_identifier_token("id"),
             create_comparison_operation_token(Equal),
-            create_token_literal("8", Integer),
+            create_token_literal("8", Int),
             create_logical_operation_token(And),
             create_reserved_token("EXISTS"),
             create_logical_operation_token(And),
             create_identifier_token("age"),
             create_comparison_operation_token(Greater),
-            create_token_literal("30", Integer),
+            create_token_literal("30", Int),
         ];
         
         let expected = Some(and_if(
-                comparison_if("id", Equal, create_literal("8", Integer)),
+                comparison_if("id", Equal, create_literal("8", Int)),
                 and_if(
                     IfClause::Exist,
-                    comparison_if("age", Greater, create_literal("30", Integer)),
+                    comparison_if("age", Greater, create_literal("30", Int)),
                 ),
             ),
         );
@@ -198,7 +199,7 @@ mod tests {
             create_reserved_token("EXISTS"),
             create_identifier_token("id"),
             create_comparison_operation_token(Equal),
-            create_token_literal("8", Integer),
+            create_token_literal("8", Int),
         ];
         test_parser_error_case(tokens, "Invalid Syntaxis in IF_CLAUSE");
     }
@@ -208,7 +209,7 @@ mod tests {
         // age 18
         let tokens = vec![
             create_identifier_token("age"),
-            create_token_literal("18", Integer),
+            create_token_literal("18", Int),
         ];
 
         test_parser_error_case(tokens, "Expected comparision operator");

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{parsers::tokens::token::{ComparisonOperators, Literal}, queries::{evaluate::Evaluate, where_logic::comparison::ComparisonExpr}, utils::errors::Errors};
+use crate::{parsers::tokens::{literal::Literal, terms::ComparisonOperators}, queries::{evaluate::Evaluate, where_logic::comparison::ComparisonExpr}, utils::errors::Errors};
 
 #[derive(Debug, PartialEq)]
 pub enum IfClause {

@@ -1,4 +1,6 @@
-use crate::parsers::tokens::token::{Literal, Term, Token};
+use crate::parsers::tokens::literal::Literal;
+use crate::parsers::tokens::terms::Term;
+use crate::parsers::tokens::token::Token;
 use crate::queries::insert_query::InsertQuery;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
@@ -38,7 +40,7 @@ fn table(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Er
 }
 fn headers(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
-        Token::TokensList(list) => {
+        Token::ParenList(list) => {
             query.headers = get_headers(list)?;
             values(tokens, query)
         }
@@ -62,7 +64,7 @@ fn values_list(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<
         return Ok(());
     };
     match token {
-        Token::TokensList(list) => {
+        Token::ParenList(list) => {
             query.values_list.push(get_values(list)?);
             values_list(tokens, query)
         }
@@ -110,7 +112,9 @@ fn get_next_value(tokens: &mut IntoIter<Token>) -> Result<Token, Errors> {
 
 #[cfg(test)]
 mod tests {
-    use crate::parsers::tokens::token::{DataType, Token};
+    use crate::parsers::tokens::{
+        data_type::DataType, literal::Literal, terms::Term, token::Token,
+    };
 
     use super::*;
 
@@ -133,20 +137,17 @@ mod tests {
         vec![
             Token::Reserved(String::from(into)),
             Token::Identifier(String::from(table)),
-            Token::TokensList(vec![
+            Token::ParenList(vec![
                 Token::Identifier(String::from(hd1)),
                 Token::Identifier(String::from(hd2)),
             ]),
             Token::Reserved(String::from(values)),
-            Token::TokensList(vec![
-                Token::Term(Term::Literal(Literal {
-                    valor: col1.to_string(),
-                    tipo: DataType::Integer,
-                })),
-                Token::Term(Term::Literal(Literal {
-                    valor: col2.to_string(),
-                    tipo: DataType::Text,
-                })),
+            Token::ParenList(vec![
+                Token::Term(Term::Literal(Literal::new(col1.to_string(), DataType::Int))),
+                Token::Term(Term::Literal(Literal::new(
+                    col2.to_string(),
+                    DataType::Text,
+                ))),
             ]),
         ]
     }
@@ -155,14 +156,8 @@ mod tests {
             table: table.to_string(),
             headers: vec![String::from(hd1), String::from(hd2)],
             values_list: vec![vec![
-                Literal {
-                    valor: col1.to_string(),
-                    tipo: DataType::Integer,
-                },
-                Literal {
-                    valor: col2.to_string(),
-                    tipo: DataType::Text,
-                },
+                Literal::new(col1.to_string(), DataType::Int),
+                Literal::new(col2.to_string(), DataType::Text),
             ]],
         }
     }
@@ -184,7 +179,7 @@ mod tests {
     fn test_insert_query_parser_unexpected_table_name() {
         let tokens = vec![
             Token::Reserved(String::from(INTO)),
-            Token::TokensList(vec![
+            Token::ParenList(vec![
                 Token::Identifier(String::from("id")),
                 Token::Identifier(String::from("name")),
             ]),
@@ -207,7 +202,7 @@ mod tests {
         let tokens = vec![
             Token::Reserved(String::from(INTO)),
             Token::Identifier(String::from("table_name")),
-            Token::TokensList(vec![Token::Reserved(String::from("NOT AN IDENTIFIER"))]),
+            Token::ParenList(vec![Token::Reserved(String::from("NOT AN IDENTIFIER"))]),
         ];
         let result = InsertQueryParser::parse(tokens);
         assert_error(result, "Unexpected token in headers");
@@ -225,12 +220,12 @@ mod tests {
         let tokens = vec![
             Token::Reserved(String::from(INTO)),
             Token::Identifier(String::from("table_name")),
-            Token::TokensList(vec![
+            Token::ParenList(vec![
                 Token::Identifier(String::from("id")),
                 Token::Identifier(String::from("name")),
             ]),
             Token::Reserved(String::from(VALUES)),
-            Token::TokensList(vec![Token::Reserved(String::from("NOT A LITERAL"))]),
+            Token::ParenList(vec![Token::Reserved(String::from("NOT A LITERAL"))]),
         ];
         let result = InsertQueryParser::parse(tokens);
         assert_error(result, "Unexpected token in values");

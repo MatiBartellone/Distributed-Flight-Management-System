@@ -3,7 +3,7 @@ use Token::*;
 use ComparisonOperators::*;
 use Term::*;
 use std::{iter::Peekable, vec::IntoIter};
-use crate::{parsers::tokens::token::{ComparisonOperators, Term, Token}, queries::set_logic::assigmente_value::AssignmentValue, utils::{errors::Errors, token_conversor::{get_arithmetic_math, get_comparision_operator, get_next_value}}};
+use crate::{parsers::tokens::{terms::{ComparisonOperators, Term}, token::Token}, queries::set_logic::assigmente_value::AssignmentValue, utils::{errors::Errors, token_conversor::{get_arithmetic_math, get_comparision_operator, get_next_value}}};
 
 pub struct SetClauseParser;
 
@@ -42,7 +42,7 @@ fn assignment(tokens: &mut Peekable<IntoIter<Token>>, changes: &mut HashMap<Stri
 fn column_asssigment(tokens: &mut Peekable<IntoIter<Token>>, changes: &mut HashMap<String, AssignmentValue>, column_name: String, other_column: String) -> Result<(), Errors> {
     match tokens.peek() {
         // [column_name, = , other_column, +|-, literal]
-        Some(Term(AritmeticasMath(_))) =>
+        Some(Term(ArithMath(_))) =>
             arithmetic_assigment(tokens, changes, column_name, other_column),
         // [column_name, = , other_column]
         _ => {
@@ -68,8 +68,9 @@ mod tests {
     use std::collections::HashMap;
     use ComparisonOperators::*;
     use DataType::*;
-    use AritmeticasMath::*;
-    use crate::{parsers::{query_parsers::set_clause_parser::SetClauseParser, tokens::token::{create_literal, AritmeticasMath, ComparisonOperators, DataType, Token}}, queries::set_logic::assigmente_value::AssignmentValue, utils::{errors::Errors, token_conversor::{create_aritmeticas_math_token, create_comparison_operation_token, create_identifier_token, create_token_literal}}};
+    use ArithMath::*;
+
+    use crate::{parsers::{query_parsers::set_clause_parser::SetClauseParser, tokens::{data_type::DataType, literal::create_literal, terms::{ArithMath, ComparisonOperators}, token::Token}}, queries::set_logic::assigmente_value::AssignmentValue, utils::{errors::Errors, token_conversor::{create_aritmeticas_math_token, create_comparison_operation_token, create_identifier_token, create_token_literal}}};
 
     fn test_successful_set_clause_parser_case(tokens: Vec<Token>, expected_changes: HashMap<String, AssignmentValue>) {
         let result = SetClauseParser::parse(tokens);
@@ -91,11 +92,11 @@ mod tests {
         let tokens = vec![
             create_identifier_token("age"),
             create_comparison_operation_token(Equal),
-            create_token_literal("30", Integer),
+            create_token_literal("30", Int),
         ];
 
         let mut expected_changes = HashMap::new();
-        expected_changes.insert("age".to_string(), AssignmentValue::Simple(create_literal("30", Integer)));
+        expected_changes.insert("age".to_string(), AssignmentValue::Simple(create_literal("30", Int)));
 
         test_successful_set_clause_parser_case(tokens, expected_changes);
     }
@@ -123,13 +124,13 @@ mod tests {
             create_comparison_operation_token(Equal),
             create_identifier_token("height"),
             create_aritmeticas_math_token(Suma),
-            create_token_literal("10", Integer),
+            create_token_literal("10", Int),
         ];
 
         let mut expected_changes = HashMap::new();
         expected_changes.insert(
             "age".to_string(),
-            AssignmentValue::Arithmetic("height".to_string(), Suma, create_literal("10", Integer)),
+            AssignmentValue::Arithmetic("height".to_string(), Suma, create_literal("10", Int)),
         );
 
         test_successful_set_clause_parser_case(tokens, expected_changes);
@@ -140,7 +141,7 @@ mod tests {
         // age 30
         let tokens = vec![
             create_identifier_token("age"),
-            create_token_literal("30", Integer),
+            create_token_literal("30", Int),
         ];
 
         let expected_error = Errors::SyntaxError("= should follow a SET assignment".to_string());

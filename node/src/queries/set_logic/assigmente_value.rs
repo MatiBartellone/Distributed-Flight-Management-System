@@ -1,9 +1,8 @@
-use crate::parsers::tokens::token::{AritmeticasMath, Literal};
-
+use crate::parsers::tokens::{literal::Literal, terms::ArithMath};
 
 #[derive(Debug, PartialEq)]
 pub enum AssignmentValue {
     Simple(Literal),
     Column(String),
-    Arithmetic(String, AritmeticasMath, Literal),
+    Arithmetic(String, ArithMath, Literal),
 }
