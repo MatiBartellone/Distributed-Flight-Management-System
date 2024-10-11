@@ -3,6 +3,7 @@ use crate::{
     parsers::tokens::token::Token, queries::create_keyspace_query::CreateKeyspaceQuery,
     utils::errors::Errors,
 };
+use std::iter::Peekable;
 use std::{collections::HashMap, vec::IntoIter};
 
 const INVALID_PARAMETERS: &str = "Query lacks parameters";
@@ -10,19 +11,23 @@ const KEYSPACE: &str = "KEYSPACE";
 const WITH: &str = "WITH";
 const INVALID_CREATE: &str = "CREATE not followed by KEYSPACE";
 const UNEXPECTED_TOKEN: &str = "Unexpected token in table_name";
+const COMMA: &str = ",";
 
 pub struct CreateKeyspaceParser;
 
 impl CreateKeyspaceParser {
     pub fn parse(&self, tokens: Vec<Token>) -> Result<CreateKeyspaceQuery, Errors> {
         let mut create_keyspace_query = CreateKeyspaceQuery::new();
-        self.keyspace_keyword(&mut tokens.into_iter(), &mut create_keyspace_query)?;
+        self.keyspace_keyword(
+            &mut tokens.into_iter().peekable(),
+            &mut create_keyspace_query,
+        )?;
         Ok(create_keyspace_query)
     }
 
     fn keyspace_keyword(
         &self,
-        tokens: &mut IntoIter<Token>,
+        tokens: &mut Peekable<IntoIter<Token>>,
         query: &mut CreateKeyspaceQuery,
     ) -> Result<(), Errors> {
         match self.get_next_value(tokens)? {
@@ -33,7 +38,7 @@ impl CreateKeyspaceParser {
 
     fn keyspace_name(
         &self,
-        tokens: &mut IntoIter<Token>,
+        tokens: &mut Peekable<IntoIter<Token>>,
         query: &mut CreateKeyspaceQuery,
     ) -> Result<(), Errors> {
         match self.get_next_value(tokens)? {
@@ -47,7 +52,7 @@ impl CreateKeyspaceParser {
 
     fn with(
         &self,
-        tokens: &mut IntoIter<Token>,
+        tokens: &mut Peekable<IntoIter<Token>>,
         query: &mut CreateKeyspaceQuery,
     ) -> Result<(), Errors> {
         match self.get_next_value(tokens)? {
@@ -58,43 +63,46 @@ impl CreateKeyspaceParser {
 
     fn replication(
         &self,
-        tokens: &mut IntoIter<Token>,
+        tokens: &mut Peekable<IntoIter<Token>>,
         query: &mut CreateKeyspaceQuery,
     ) -> Result<(), Errors> {
         match self.get_next_value(tokens)? {
             Token::TokensList(list) => {
-                query.replication = self.build_replication_map(list)?;
+                let mut token_list = list.into_iter().peekable();
+                query.replication = self.build_replication_map(&mut token_list)?;
                 Ok(())
             }
             _ => Err(Errors::SyntaxError(String::from(INVALID_PARAMETERS))),
         }
     }
 
-    fn build_replication_map(&self, list: Vec<Token>) -> Result<HashMap<String, String>, Errors> {
+    fn build_replication_map(
+        &self,
+        tokens_list: &mut Peekable<IntoIter<Token>>,
+    ) -> Result<HashMap<String, String>, Errors> {
         let mut replication = HashMap::<String, String>::new();
-
-        self.check_even_parameters(&list)?;
-
-        for current_token in (0..list.len()).step_by(2) {
-            match (&list[current_token], &list[current_token + 1]) {
-                (Token::Reserved(key), Token::Term(Term::Literal(literal))) => {
-                    replication.insert(key.to_string(), literal.valor.to_string());
-                }
-                _ => return Err(Errors::SyntaxError(String::from(INVALID_PARAMETERS))),
-            }
-        }
+        match self.get_next_value(tokens_list)? {
+            Token::Term(Term::Literal(literal)) => self.check_comma(tokens_list, &mut replication),
+            _ => Err(Errors::SyntaxError(String::from(INVALID_PARAMETERS))),
+        };
 
         Ok(replication)
     }
 
-    fn check_even_parameters(&self, list: &[Token]) -> Result<(), Errors> {
-        if list.len() % 2 != 0 {
-            return Err(Errors::SyntaxError(String::from(INVALID_PARAMETERS)));
+    fn check_comma(
+        &self,
+        tokens: &mut Peekable<IntoIter<Token>>,
+        replication: &mut HashMap<String, String>,
+    ) -> Result<HashMap<String, String>, Errors> {
+        match self.get_next_value(tokens)? {
+            Ok(Symbol(s)) if s == *COMMA && tokens.peek().is_some() => {
+                self.build_replication_map(tokens)
+            }
+            _ => Ok(replication),
         }
-        Ok(())
     }
 
-    fn get_next_value(&self, tokens: &mut IntoIter<Token>) -> Result<Token, Errors> {
+    fn get_next_value(&self, tokens: &mut Peekable<IntoIter<Token>>) -> Result<Token, Errors> {
         tokens
             .next()
             .ok_or(Errors::SyntaxError(String::from(INVALID_PARAMETERS)))
