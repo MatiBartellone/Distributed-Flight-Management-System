@@ -4,10 +4,7 @@ use std::{iter::Peekable, vec::IntoIter};
 use crate::{parsers::tokens::token::Token, queries::update_query::UpdateQuery, utils::{errors::Errors, token_conversor::{get_next_value, get_sublist}}};
 
 use super::{if_clause_parser::IfClauseParser, set_clause_parser::SetClauseParser, where_clause_parser::WhereClauseParser};
-
-const SET: &str = "SET";
-const WHERE: &str = "WHERE";
-const IF: &str = "IF";
+use crate::utils::constants::*;
 
 pub struct UpdateQueryParser;
 

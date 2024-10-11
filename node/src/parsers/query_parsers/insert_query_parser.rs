@@ -4,10 +4,7 @@ use crate::parsers::tokens::token::Token;
 use crate::queries::insert_query::InsertQuery;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
-
-const INTO: &str = "INTO";
-const VALUES: &str = "VALUES";
-
+use crate::utils::constants::*;
 pub struct InsertQueryParser;
 
 impl InsertQueryParser {

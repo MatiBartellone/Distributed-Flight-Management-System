@@ -3,13 +3,8 @@ use crate::parsers::tokens::token::Token;
 use crate::queries::select_query::SelectQuery;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
-
+use crate::utils::constants::*;
 use super::where_clause_parser::WhereClauseParser;
-
-const FROM: &str = "FROM";
-const WHERE: &str = "WHERE";
-const ORDER: &str = "ORDER";
-const BY: &str = "BY";
 
 pub struct SelectQueryParser;
 

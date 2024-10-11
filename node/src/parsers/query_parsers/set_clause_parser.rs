@@ -4,8 +4,7 @@ use ComparisonOperators::*;
 use Term::*;
 use std::{iter::Peekable, vec::IntoIter};
 use crate::{parsers::tokens::{terms::{ComparisonOperators, Term}, token::Token}, queries::set_logic::assigmente_value::AssignmentValue, utils::{errors::Errors, token_conversor::{get_arithmetic_math, get_comparision_operator, get_next_value}}};
-
-const COMMA: &str = ",";
+use crate::utils::constants::*;
 
 pub struct SetClauseParser;
 

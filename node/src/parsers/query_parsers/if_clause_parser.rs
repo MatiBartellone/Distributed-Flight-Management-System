@@ -10,8 +10,7 @@ use crate::parsers::tokens::token::Token;
 use crate::queries::if_clause::{and_if, comparison_if, not_if, or_if, IfClause};
 use crate::utils::errors::Errors;
 use crate::utils::token_conversor::{get_comparision_operator, get_literal, get_next_value};
-
-const EXISTS: &str = "EXISTS";
+use crate::utils::constants::*;
 
 pub struct IfClauseParser;
 
