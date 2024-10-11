@@ -54,13 +54,15 @@ fn match_tokenize(word: String) -> Option<Token> {
     None
 }
 
+
+
 fn sub_list_token(
     words: &[String],
     i: &mut usize,
     res: &mut Vec<Token>,
-    reserved: String
+    reserved: String,
 ) -> Result<bool, Errors> {
-    let mut temp = Vec::new();
+    let temp;
     if reserved == WHERE {
         temp = tokenize_recursive(words, close_sub_list_where, i)?;
     } else if reserved == SELECT {
@@ -69,7 +71,7 @@ fn sub_list_token(
         temp = tokenize_recursive(words, close_sub_list_order_by, i)?;
     } else if reserved == SET {
         temp = tokenize_recursive(words, close_sub_list_select, i)?;
-    } else if reserved == SET {
+    } else if reserved == IF {
         temp = tokenize_recursive(words, close_sub_list_if, i)?;
     } else {
         return Ok(false);
