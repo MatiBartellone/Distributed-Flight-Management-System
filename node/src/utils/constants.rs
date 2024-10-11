@@ -25,3 +25,5 @@ pub const LT: &str = " < ";
 pub const GT: &str = " > ";
 pub const EMPTY: &str = "";
 pub const SPACE: &str = " ";
+pub const EXISTS: &str = "EXISTS";
+pub const IF: &str = "IF";

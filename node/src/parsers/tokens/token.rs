@@ -54,30 +54,30 @@ fn match_tokenize(word: String) -> Option<Token> {
     None
 }
 
+
+
 fn sub_list_token(
     words: &[String],
     i: &mut usize,
     res: &mut Vec<Token>,
-    reserved: String
+    reserved: String,
 ) -> Result<bool, Errors> {
+    let temp;
     if reserved == WHERE {
-        let temp = tokenize_recursive(words, close_sub_list_where, i)?;
-        res.push(Token::IterateToken(temp));
-        return Ok(true);
+        temp = tokenize_recursive(words, close_sub_list_where, i)?;
     } else if reserved == SELECT {
-        let temp = tokenize_recursive(words, close_sub_list_select, i)?;
-        res.push(Token::IterateToken(temp));
-        return Ok(true);
+        temp = tokenize_recursive(words, close_sub_list_select, i)?;
     } else if reserved == BY {
-        let temp = tokenize_recursive(words, close_sub_list_order_by, i)?;
-        res.push(Token::IterateToken(temp));
-        return Ok(true);
+        temp = tokenize_recursive(words, close_sub_list_order_by, i)?;
     } else if reserved == SET {
-        let temp = tokenize_recursive(words, close_sub_list_select, i)?;
-        res.push(Token::IterateToken(temp));
-        return Ok(true);
+        temp = tokenize_recursive(words, close_sub_list_select, i)?;
+    } else if reserved == IF {
+        temp = tokenize_recursive(words, close_sub_list_if, i)?;
+    } else {
+        return Ok(false);
     }
-    Ok(false)
+    res.push(Token::IterateToken(temp));
+    Ok(true)
 }
 
 
@@ -134,6 +134,15 @@ fn close_sub_list_where(word: &str) -> bool {
     reserved.is_reserved(&word_upper)
         && !(word_upper == AND || word_upper == OR || word_upper == NOT)
 }
+
+fn close_sub_list_if(word: &str) -> bool {
+    let reserved = WordsReserved::new();
+    let word_upper = word.to_ascii_uppercase();
+    reserved.is_reserved(&word_upper)
+        && !(word_upper == AND || word_upper == OR || word_upper == NOT || word_upper == EXISTS)
+}
+
+
 
 fn tokenize_recursive<F>(words: &[String], closure: F, i: &mut usize) -> Result<Vec<Token>, Errors>
 where
