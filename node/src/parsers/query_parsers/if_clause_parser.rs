@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn test_if_clause_not_exists() {
-        // IF NOT EXISTS
+        // NOT EXISTS
         let tokens = vec![
             create_logical_operation_token(Not),
             create_reserved_token("EXISTS"),

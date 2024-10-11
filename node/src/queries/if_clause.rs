@@ -14,10 +14,9 @@ pub enum IfClause {
 use IfClause::*;
 
 impl Evaluate for IfClause {
-    /// Evalúa una expresión booleana usando los valores Columna -> Valor de una fila
     fn evaluate(&self, row: &HashMap<String, Literal>) -> Result<bool, Errors> {
         match self {
-            Comparison(comparacion) => comparacion.evaluate(row),
+            Comparison(comparison) => comparison.evaluate(row),
             And(expr1, expr2) => Ok(expr1.evaluate(row)? && expr2.evaluate(row)?),
             Or(expr1, expr2) => Ok(expr1.evaluate(row)? || expr2.evaluate(row)?),
             Not(expr) => Ok(!expr.evaluate(row)?),

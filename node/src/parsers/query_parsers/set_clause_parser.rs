@@ -102,7 +102,7 @@ mod tests {
 
     #[test]
     fn test_set_clause_parser_column_assignment() {
-        // age = height;
+        // age = height
         let tokens = vec![
             create_identifier_token("age"),
             create_comparison_operation_token(Equal),
@@ -117,7 +117,7 @@ mod tests {
 
     #[test]
     fn test_set_clause_parser_arithmetic_assignment() {
-        // age = height + 10;
+        // age = height + 10
         let tokens = vec![
             create_identifier_token("age"),
             create_comparison_operation_token(Equal),
@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn test_set_clause_parser_invalid_syntax() {
-        // age 30; // falta el operador '='
+        // age 30
         let tokens = vec![
             create_identifier_token("age"),
             create_token_literal("30", Integer),
@@ -149,7 +149,7 @@ mod tests {
 
     #[test]
     fn test_set_clause_parser_invalid_assignment() {
-        // age = height +; // operador aritmético incompleto
+        // age = height +
         let tokens = vec![
             create_identifier_token("age"),
             create_comparison_operation_token(Equal),

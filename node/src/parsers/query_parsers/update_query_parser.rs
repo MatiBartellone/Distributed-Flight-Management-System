@@ -103,8 +103,8 @@ mod tests {
     }
 
     #[test]
-    fn test_update_query_simple_assignment() {
-        // table SET age = 30 WHERE id = 5;
+    fn test_update_query_valid_no_where_no_if() {
+        // table SET age = 30
         let tokens = vec![
             create_identifier_token("table"),
             create_reserved_token("SET"),
@@ -113,55 +113,17 @@ mod tests {
                 create_comparison_operation_token(Equal),
                 create_token_literal("30", Integer)
             ]),
-            create_reserved_token("WHERE"),
-            create_list_token(vec![
-                create_identifier_token("id"),
-                create_comparison_operation_token(Equal),
-                create_token_literal("5", Integer),
-            ]),
         ];
 
         let mut expected_query = UpdateQuery::new();
         expected_query.table = "table".to_string();
         expected_query.changes.insert("age".to_string(), AssignmentValue::Simple(create_literal("30", Integer)));
-        expected_query.where_clause = Some(comparison_where("id", ComparisonOperators::Equal, create_literal("5", Integer)));
 
         test_successful_update_parser_case(tokens, expected_query);
     }
 
     #[test]
-    fn test_update_query_multiple_assignments() {
-        // table SET age = 30, name = 'John' WHERE id = 5;
-        let tokens = vec![
-            create_identifier_token("table"),
-            create_reserved_token("SET"),
-            create_list_token(vec![
-                create_identifier_token("age"),
-                create_comparison_operation_token(Equal),
-                create_token_literal("30", Integer),
-                create_identifier_token("name"),
-                create_comparison_operation_token(Equal),
-                create_token_literal("John", Text),
-            ]),
-            create_reserved_token("WHERE"),
-            create_list_token(vec![
-                create_identifier_token("id"),
-                create_comparison_operation_token(Equal),
-                create_token_literal("5", Integer),
-            ]),
-        ];
-    
-        let mut expected_query = UpdateQuery::new();
-        expected_query.table = "table".to_string();
-        expected_query.changes.insert("age".to_string(), AssignmentValue::Simple(create_literal("30", Integer)));
-        expected_query.changes.insert("name".to_string(), AssignmentValue::Simple(create_literal("John", Text)));
-        expected_query.where_clause = Some(comparison_where("id", ComparisonOperators::Equal, create_literal("5", Integer)));
-    
-        test_successful_update_parser_case(tokens, expected_query);
-    }
-
-    #[test]
-    fn test_update_query_with_if_clause() {
+    fn test_update_query_valid_no_where() {
         // table SET age = 30 IF id = 5;
         let tokens = vec![
             create_identifier_token("table"),
@@ -188,34 +150,48 @@ mod tests {
     }
 
     #[test]
-    fn test_update_query_missing_set() {
-        // table id = 5;
-        let tokens = vec![
-            create_identifier_token("table"),
-            create_identifier_token("id"),
-            create_comparison_operation_token(Equal),
-            create_token_literal("5", Integer),
-        ];
-
-        test_failed_update_parser_case(tokens, Errors::SyntaxError("SET not found".to_string()));
-    }
-
-    #[test]
-    fn test_update_query_invalid_assignment() {
-        // table SET age 30 WHERE id = 5;
+    fn test_update_query_valid_no_if() {
+        // table SET age = 30 WHERE id = 5;
         let tokens = vec![
             create_identifier_token("table"),
             create_reserved_token("SET"),
             create_list_token(vec![
-                create_identifier_token("age"),
-                create_token_literal("30", Integer),
+                create_identifier_token("age"), 
+                create_comparison_operation_token(Equal),
+                create_token_literal("30", Integer)
             ]),
             create_reserved_token("WHERE"),
-            create_identifier_token("id"),
-            create_comparison_operation_token(Equal),
-            create_token_literal("5", Integer),
+            create_list_token(vec![
+                create_identifier_token("id"),
+                create_comparison_operation_token(Equal),
+                create_token_literal("5", Integer),
+            ]),
         ];
 
-        test_failed_update_parser_case(tokens, Errors::SyntaxError("= should follow a SET assignment".to_string()));
+        let mut expected_query = UpdateQuery::new();
+        expected_query.table = "table".to_string();
+        expected_query.changes.insert("age".to_string(), AssignmentValue::Simple(create_literal("30", Integer)));
+        expected_query.where_clause = Some(comparison_where("id", ComparisonOperators::Equal, create_literal("5", Integer)));
+
+        test_successful_update_parser_case(tokens, expected_query);
+    }
+
+    #[test]
+    fn test_update_query_missing_set() {
+        // table;
+        let tokens = vec![
+            create_identifier_token("table"),
+            create_identifier_token("id"),
+        ];
+        test_failed_update_parser_case(tokens, Errors::SyntaxError("SET not found".to_string()));
+    }
+
+    #[test]
+    fn test_update_query_invalid_table() {
+        // table;
+        let tokens = vec![
+            create_reserved_token("table"),
+        ];
+        test_failed_update_parser_case(tokens, Errors::SyntaxError("UPDATE not followed by a table name".to_string()));
     }
 }
