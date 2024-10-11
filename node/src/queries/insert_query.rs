@@ -1,4 +1,4 @@
-use crate::{parsers::tokens::literal::Literal, queries::query::Query};
+use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
 
 #[derive(PartialEq, Debug)]
 pub struct InsertQuery {
@@ -27,3 +27,5 @@ impl Default for InsertQuery {
         Self::new()
     }
 }
+
+
