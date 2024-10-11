@@ -1,4 +1,4 @@
-use crate::parsers::tokens::token::Term;
+use crate::parsers::tokens::terms::Term;
 use crate::{
     parsers::tokens::token::Token, queries::create_keyspace_query::CreateKeyspaceQuery,
     utils::errors::Errors,
@@ -11,7 +11,11 @@ const KEYSPACE: &str = "KEYSPACE";
 const WITH: &str = "WITH";
 const INVALID_CREATE: &str = "CREATE not followed by KEYSPACE";
 const UNEXPECTED_TOKEN: &str = "Unexpected token in table_name";
+const MISSING_COLON: &str = "Missing colon for separating parameters in replication";
+const MISSING_KEY: &str = "Missing key for replication";
+const MISSING_VALUE: &str = "Missing value for replication";
 const COMMA: &str = ",";
+const COLON: &str = ":";
 
 pub struct CreateKeyspaceParser;
 
@@ -30,7 +34,8 @@ impl CreateKeyspaceParser {
         tokens: &mut Peekable<IntoIter<Token>>,
         query: &mut CreateKeyspaceQuery,
     ) -> Result<(), Errors> {
-        match self.get_next_value(tokens)? {
+        let token = self.get_next_value(tokens)?;
+        match token {
             Token::Reserved(keyspace) if keyspace == *KEYSPACE => self.keyspace_name(tokens, query),
             _ => Err(Errors::SyntaxError(String::from(INVALID_CREATE))),
         }
@@ -67,9 +72,11 @@ impl CreateKeyspaceParser {
         query: &mut CreateKeyspaceQuery,
     ) -> Result<(), Errors> {
         match self.get_next_value(tokens)? {
-            Token::TokensList(list) => {
+            Token::BraceList(list) => {
                 let mut token_list = list.into_iter().peekable();
-                query.replication = self.build_replication_map(&mut token_list)?;
+                let replication_map = HashMap::<String, String>::new();
+                query.replication = replication_map;
+                self.build_replication_map(&mut token_list, &mut query.replication)?;
                 Ok(())
             }
             _ => Err(Errors::SyntaxError(String::from(INVALID_PARAMETERS))),
@@ -79,26 +86,66 @@ impl CreateKeyspaceParser {
     fn build_replication_map(
         &self,
         tokens_list: &mut Peekable<IntoIter<Token>>,
-    ) -> Result<HashMap<String, String>, Errors> {
-        let mut replication = HashMap::<String, String>::new();
-        match self.get_next_value(tokens_list)? {
-            Token::Term(Term::Literal(literal)) => self.check_comma(tokens_list, &mut replication),
-            _ => Err(Errors::SyntaxError(String::from(INVALID_PARAMETERS))),
-        };
+        replication: &mut HashMap<String, String>,
+    ) -> Result<(), Errors> {
+        self.check_key_literal(tokens_list, replication)
+    }
 
-        Ok(replication)
+    fn check_key_literal(
+        &self,
+        tokens_list: &mut Peekable<IntoIter<Token>>,
+        replication: &mut HashMap<String, String>,
+    ) -> Result<(), Errors> {
+        match self.get_next_value(tokens_list)? {
+            Token::Reserved(key) => self.check_colon(tokens_list, key, replication),
+            _ => Err(Errors::SyntaxError(String::from(MISSING_KEY))),
+        }
+    }
+
+    fn check_colon(
+        &self,
+        tokens_list: &mut Peekable<IntoIter<Token>>,
+        key: String,
+        replication: &mut HashMap<String, String>,
+    ) -> Result<(), Errors> {
+        match self.get_next_value(tokens_list)? {
+            Token::Symbol(s) if s == COLON => {
+                self.check_value_literal(tokens_list, key, replication)
+            }
+            _ => Err(Errors::SyntaxError(String::from(MISSING_COLON))),
+        }
+    }
+
+    fn check_value_literal(
+        &self,
+        tokens: &mut Peekable<IntoIter<Token>>,
+        key: String,
+        replication: &mut HashMap<String, String>,
+    ) -> Result<(), Errors> {
+        match self.get_next_value(tokens)? {
+            Token::Term(Term::Literal(value)) => {
+                replication.insert(key, value.value);
+
+                if tokens.peek().is_some() {
+                    self.check_comma(tokens, replication)
+                } else {
+                    Ok(())
+                }
+            }
+            _ => Err(Errors::SyntaxError(String::from(MISSING_VALUE))),
+        }
     }
 
     fn check_comma(
         &self,
         tokens: &mut Peekable<IntoIter<Token>>,
         replication: &mut HashMap<String, String>,
-    ) -> Result<HashMap<String, String>, Errors> {
+    ) -> Result<(), Errors> {
         match self.get_next_value(tokens)? {
-            Ok(Symbol(s)) if s == *COMMA && tokens.peek().is_some() => {
-                self.build_replication_map(tokens)
+            Token::Symbol(s) if s == *COMMA && tokens.peek().is_some() => {
+                self.check_key_literal(tokens, replication)
             }
-            _ => Ok(replication),
+            _ => Ok(()),
         }
     }
 
@@ -111,29 +158,37 @@ impl CreateKeyspaceParser {
 
 #[cfg(test)]
 mod tests {
+    use crate::parsers::tokens::{data_type::DataType, literal::Literal};
+
     use super::*;
-    use crate::parsers::tokens::token::{create_literal, DataType, Token};
 
     #[test]
     fn test_01_create_keyspace_is_valid() {
-        // TODO: Refactor into smaller funcs while adding more tests
-        let simple_strategy = create_literal("SimpleStrategy", DataType::Text);
-        let one = create_literal("1", DataType::Integer);
-        let tokens = vec![
-            Token::Reserved(String::from(KEYSPACE)),
-            Token::Identifier(String::from("keyspace_name")),
-            Token::Reserved(String::from(WITH)),
-            Token::TokensList(vec![
-                Token::Reserved(String::from("class")),
-                Token::Term(Term::Literal(simple_strategy)),
-                Token::Reserved(String::from("replication_factor")),
-                Token::Term(Term::Literal(one)),
+        let vec = vec![
+            Token::Reserved("KEYSPACE".to_string()),
+            Token::Identifier("keyspace_name".to_string()),
+            Token::Reserved("WITH".to_string()),
+            Token::BraceList(vec![
+                Token::Reserved("class".to_string()),
+                Token::Symbol(":".to_string()),
+                Token::Term(Term::Literal(Literal::new(
+                    "SimpleStrategy".to_string(),
+                    DataType::Text,
+                ))),
+                Token::Symbol(",".to_string()),
+                Token::Reserved("replication_factor".to_string()),
+                Token::Symbol(":".to_string()),
+                Token::Term(Term::Literal(Literal::new("1".to_string(), DataType::Int))),
             ]),
         ];
+        let tokens = vec;
+
         let parser = CreateKeyspaceParser;
         let result = parser.parse(tokens);
-        assert!(result.is_ok());
+
         let query = result.unwrap();
+        //        assert!(result.is_ok());
+
         assert_eq!(query.keyspace, "keyspace_name".to_string());
         assert_eq!(query.replication.get("class").unwrap(), "SimpleStrategy");
         assert_eq!(query.replication.get("replication_factor").unwrap(), "1");

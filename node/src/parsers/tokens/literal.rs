@@ -2,7 +2,7 @@ use super::{data_type::DataType, terms::Term, token::Token};
 
 #[derive(Debug, PartialEq)]
 pub struct Literal {
-    value: String,
+    pub value: String,
     data_type: DataType,
 }
 
