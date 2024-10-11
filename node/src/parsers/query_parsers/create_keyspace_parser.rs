@@ -12,6 +12,7 @@ const WITH: &str = "WITH";
 const INVALID_CREATE: &str = "CREATE not followed by KEYSPACE";
 const UNEXPECTED_TOKEN: &str = "Unexpected token in table_name";
 const MISSING_COLON: &str = "Missing colon for separating parameters in replication";
+const MISSING_WITH: &str = "Missing WITH keyword";
 const MISSING_KEY: &str = "Missing key for replication";
 const MISSING_VALUE: &str = "Missing value for replication";
 const COMMA: &str = ",";
@@ -62,7 +63,7 @@ impl CreateKeyspaceParser {
     ) -> Result<(), Errors> {
         match self.get_next_value(tokens)? {
             Token::Reserved(with) if with == *WITH => self.replication(tokens, query),
-            _ => Err(Errors::SyntaxError(String::from(INVALID_PARAMETERS))),
+            _ => Err(Errors::SyntaxError(String::from(MISSING_WITH))),
         }
     }
 
@@ -79,6 +80,7 @@ impl CreateKeyspaceParser {
                 self.build_replication_map(&mut token_list, &mut query.replication)?;
                 Ok(())
             }
+
             _ => Err(Errors::SyntaxError(String::from(INVALID_PARAMETERS))),
         }
     }
@@ -108,7 +110,8 @@ impl CreateKeyspaceParser {
         key: String,
         replication: &mut HashMap<String, String>,
     ) -> Result<(), Errors> {
-        match self.get_next_value(tokens_list)? {
+        let tok = self.get_next_value(tokens_list)?;
+        match tok {
             Token::Symbol(s) if s == COLON => {
                 self.check_value_literal(tokens_list, key, replication)
             }
@@ -161,36 +164,172 @@ mod tests {
     use crate::parsers::tokens::{data_type::DataType, literal::Literal};
 
     use super::*;
+    const KEYSPACE_NAME: &str = "keyspace_name";
+    const CLASS: &str = "class";
+    const SIMPLE_STRATEGY: &str = "SimpleStrategy";
+    const REPLICATION_FACTOR_KEWORD: &str = "replication_factor";
+    const REPLICATION_FACTOR_VALUE: &str = "1";
+
+    fn create_tokens() -> Vec<Token> {
+        vec![
+            Token::Reserved(KEYSPACE.to_string()),
+            Token::Identifier(KEYSPACE_NAME.to_string()),
+            Token::Reserved(WITH.to_string()),
+        ]
+    }
+
+    fn create_brace_list() -> Vec<Token> {
+        vec![Token::BraceList(vec![
+            Token::Reserved(CLASS.to_string()),
+            Token::Symbol(COLON.to_string()),
+            Token::Term(Term::Literal(Literal::new(
+                SIMPLE_STRATEGY.to_string(),
+                DataType::Text,
+            ))),
+            Token::Symbol(COMMA.to_string()),
+            Token::Reserved(REPLICATION_FACTOR_KEWORD.to_string()),
+            Token::Symbol(COLON.to_string()),
+            Token::Term(Term::Literal(Literal::new(
+                REPLICATION_FACTOR_VALUE.to_string(),
+                DataType::Int,
+            ))),
+        ])]
+    }
 
     #[test]
     fn test_01_create_keyspace_is_valid() {
-        let vec = vec![
-            Token::Reserved("KEYSPACE".to_string()),
-            Token::Identifier("keyspace_name".to_string()),
-            Token::Reserved("WITH".to_string()),
-            Token::BraceList(vec![
-                Token::Reserved("class".to_string()),
-                Token::Symbol(":".to_string()),
-                Token::Term(Term::Literal(Literal::new(
-                    "SimpleStrategy".to_string(),
-                    DataType::Text,
-                ))),
-                Token::Symbol(",".to_string()),
-                Token::Reserved("replication_factor".to_string()),
-                Token::Symbol(":".to_string()),
-                Token::Term(Term::Literal(Literal::new("1".to_string(), DataType::Int))),
-            ]),
-        ];
-        let tokens = vec;
+        let mut tokens = create_tokens();
+        let barace_list = create_brace_list();
+
+        tokens.extend(barace_list);
 
         let parser = CreateKeyspaceParser;
         let result = parser.parse(tokens);
 
-        let query = result.unwrap();
-        //        assert!(result.is_ok());
+        assert!(result.is_ok());
 
-        assert_eq!(query.keyspace, "keyspace_name".to_string());
-        assert_eq!(query.replication.get("class").unwrap(), "SimpleStrategy");
-        assert_eq!(query.replication.get("replication_factor").unwrap(), "1");
+        let query = result.unwrap();
+        assert_eq!(query.keyspace, KEYSPACE_NAME.to_string());
+        assert_eq!(query.replication.get(CLASS).unwrap(), SIMPLE_STRATEGY);
+        assert_eq!(
+            query.replication.get(REPLICATION_FACTOR_KEWORD).unwrap(),
+            REPLICATION_FACTOR_VALUE
+        );
+    }
+    #[test]
+    fn test_02_create_keyspace_missing_keyspace_keyword_should_error() {
+        let tokens = vec![
+            Token::Identifier(KEYSPACE_NAME.to_string()),
+            Token::Reserved(WITH.to_string()),
+        ];
+
+        let parser = CreateKeyspaceParser;
+        let result = parser.parse(tokens);
+
+        assert!(result.is_err());
+        if let Err(Errors::SyntaxError(msg)) = result {
+            assert_eq!(msg, INVALID_CREATE);
+        } else {
+            panic!("El error no es del tipo Errors::SyntaxError");
+        }
+    }
+    #[test]
+    fn test_03_create_keyspace_missing_with_keyword_should_error() {
+        let mut tokens = vec![
+            Token::Reserved(KEYSPACE.to_string()),
+            Token::Identifier(KEYSPACE_NAME.to_string()),
+        ];
+
+        let barace_list = create_brace_list();
+
+        tokens.extend(barace_list);
+        let parser = CreateKeyspaceParser;
+        let result = parser.parse(tokens);
+
+        assert!(result.is_err());
+        if let Err(Errors::SyntaxError(msg)) = result {
+            assert_eq!(msg, MISSING_WITH);
+        } else {
+            panic!("El error no es del tipo Errors::SyntaxError");
+        }
+    }
+    #[test]
+    fn test_04_create_keyspace_missing_brace_list_should_error() {
+        let tokens = create_tokens();
+        let parser = CreateKeyspaceParser;
+        let result = parser.parse(tokens);
+
+        assert!(result.is_err());
+        if let Err(Errors::SyntaxError(msg)) = result {
+            assert_eq!(msg, INVALID_PARAMETERS);
+        } else {
+            panic!("El error no es del tipo Errors::SyntaxError");
+        }
+    }
+    #[test]
+    fn test_05_create_keyspace_missing_key_in_brace_list_should_error() {
+        let mut tokens = create_tokens();
+        let barace_list = vec![Token::BraceList(vec![
+            Token::Symbol(COLON.to_string()),
+            Token::Term(Term::Literal(Literal::new(
+                SIMPLE_STRATEGY.to_string(),
+                DataType::Text,
+            ))),
+        ])];
+
+        tokens.extend(barace_list);
+        let parser = CreateKeyspaceParser;
+        let result = parser.parse(tokens);
+
+        assert!(result.is_err());
+        if let Err(Errors::SyntaxError(msg)) = result {
+            assert_eq!(msg, MISSING_KEY);
+        } else {
+            panic!("El error no es del tipo Errors::SyntaxError");
+        }
+    }
+    #[test]
+    fn test_06_create_keyspace_missing_value_in_brace_list_should_error() {
+        let mut tokens = create_tokens();
+        let barace_list = vec![Token::BraceList(vec![
+            Token::Reserved(CLASS.to_string()),
+            Token::Symbol(COLON.to_string()),
+            Token::Symbol(COMMA.to_string()),
+        ])];
+
+        tokens.extend(barace_list);
+        let parser = CreateKeyspaceParser;
+        let result = parser.parse(tokens);
+
+        assert!(result.is_err());
+        if let Err(Errors::SyntaxError(msg)) = result {
+            assert_eq!(msg, MISSING_VALUE);
+        } else {
+            panic!("El error no es del tipo Errors::SyntaxError");
+        }
+    }
+
+    #[test]
+    fn test_07_create_keyspace_missing_colon_in_brace_list_should_error() {
+        let mut tokens = create_tokens();
+        let barace_list = vec![Token::BraceList(vec![
+            Token::Reserved(CLASS.to_string()),
+            Token::Term(Term::Literal(Literal::new(
+                SIMPLE_STRATEGY.to_string(),
+                DataType::Text,
+            ))),
+            Token::Symbol(COMMA.to_string()),
+        ])];
+
+        tokens.extend(barace_list);
+        let parser = CreateKeyspaceParser;
+        let result = parser.parse(tokens);
+
+        assert!(result.is_err());
+        if let Err(Errors::SyntaxError(msg)) = result {
+            assert_eq!(msg, MISSING_COLON);
+        } else {
+            panic!("El error no es del tipo Errors::SyntaxError");
+        }
     }
 }
