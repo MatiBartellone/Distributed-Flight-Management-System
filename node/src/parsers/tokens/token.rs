@@ -77,7 +77,7 @@ fn sub_list_token(
         return Ok(false);
     }
     res.push(Token::IterateToken(temp));
-    return Ok(true);
+    Ok(true)
 }
 
 
