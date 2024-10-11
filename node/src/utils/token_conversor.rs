@@ -1,10 +1,7 @@
 use std::{iter::Peekable, vec::IntoIter};
 
 use crate::parsers::tokens::{
-    data_type::DataType,
-    literal::Literal,
-    terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term},
-    token::Token,
+    data_type::DataType, literal::Literal, terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term}, token::Token
 };
 use Token::*;
 use Term::*;
@@ -160,4 +157,10 @@ pub fn create_data_type_token(data_type: DataType) -> Token {
 
 pub fn create_aritmeticas_math_token(operation: ArithMath) -> Token {
     Token::Term(Term::ArithMath(operation))
+}
+
+// Symbol
+
+pub fn create_symbol_token(symbol: &str) -> Token {
+    Token::Symbol(symbol.to_string())
 }

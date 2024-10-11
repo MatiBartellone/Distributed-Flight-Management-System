@@ -5,6 +5,8 @@ use Term::*;
 use std::{iter::Peekable, vec::IntoIter};
 use crate::{parsers::tokens::{terms::{ComparisonOperators, Term}, token::Token}, queries::set_logic::assigmente_value::AssignmentValue, utils::{errors::Errors, token_conversor::{get_arithmetic_math, get_comparision_operator, get_next_value}}};
 
+const COMMA: &str = ",";
+
 pub struct SetClauseParser;
 
 impl SetClauseParser {
@@ -31,7 +33,7 @@ fn assignment(tokens: &mut Peekable<IntoIter<Token>>, changes: &mut HashMap<Stri
         // [column_name, = , literal]
         Term(Literal(value)) => {
             changes.insert(column_name, AssignmentValue::Simple(value));
-            values(tokens, changes)
+            check_comma(tokens, changes)
         }
         // [column_name, = , other_column, ...]
         Identifier(other_column) => column_asssigment(tokens, changes, column_name, other_column),
@@ -47,7 +49,7 @@ fn column_asssigment(tokens: &mut Peekable<IntoIter<Token>>, changes: &mut HashM
         // [column_name, = , other_column]
         _ => {
             changes.insert(column_name, AssignmentValue::Column(other_column));
-            values(tokens, changes)
+            check_comma(tokens, changes)
         }
     }
 }
@@ -57,9 +59,16 @@ fn arithmetic_assigment(tokens: &mut Peekable<IntoIter<Token>>, changes: &mut Ha
     match get_next_value(tokens)? {
         Term(Literal(literal)) => {
             changes.insert(column_name, AssignmentValue::Arithmetic(other_column, op, literal));
-            values(tokens, changes)
+            check_comma(tokens, changes)
         }
         _ => Err(Errors::SyntaxError("Expected a numeric literal after the arithmetic operator".to_string())),
+    }
+}
+
+fn check_comma(tokens: &mut Peekable<IntoIter<Token>>, changes: &mut HashMap<String, AssignmentValue>) -> Result<(), Errors>  {
+    match get_next_value(tokens) {
+        Ok(Symbol(s)) if s == *COMMA && tokens.peek().is_some() => values(tokens, changes),
+        _ => Ok(())
     }
 }
 
@@ -69,21 +78,31 @@ mod tests {
     use ComparisonOperators::*;
     use DataType::*;
     use ArithMath::*;
+    use AssignmentValue::*;
 
-    use crate::{parsers::{query_parsers::set_clause_parser::SetClauseParser, tokens::{data_type::DataType, literal::create_literal, terms::{ArithMath, ComparisonOperators}, token::Token}}, queries::set_logic::assigmente_value::AssignmentValue, utils::{errors::Errors, token_conversor::{create_aritmeticas_math_token, create_comparison_operation_token, create_identifier_token, create_token_literal}}};
+    use crate::{parsers::{query_parsers::set_clause_parser::SetClauseParser, tokens::{data_type::DataType, literal::create_literal, terms::{ArithMath, ComparisonOperators}, token::Token}}, queries::set_logic::assigmente_value::AssignmentValue, utils::token_conversor::{create_aritmeticas_math_token, create_comparison_operation_token, create_identifier_token, create_symbol_token, create_token_literal}};
 
-    fn test_successful_set_clause_parser_case(tokens: Vec<Token>, expected_changes: HashMap<String, AssignmentValue>) {
-        let result = SetClauseParser::parse(tokens);
-        assert!(result.is_ok(), "El parser falló en un caso exitoso.");
-        let changes = result.unwrap();
-        assert_eq!(changes, expected_changes, "Los cambios generados no coinciden con los esperados.");
+    use super::COMMA;
+
+    fn test_successful_parser_case(caso: Vec<Token>, expected:HashMap<String, AssignmentValue>) {
+        let resultado = SetClauseParser::parse(caso);
+        match resultado {
+            Ok(if_clause) => assert_eq!(if_clause, expected, "Resultado inesperado"),
+            Err(e) => panic!("Parser devolvió un error inesperado: {}", e),
+        }
     }
 
-    fn test_failed_set_clause_parser_case(tokens: Vec<Token>, expected_error: Errors) {
-        let result = SetClauseParser::parse(tokens);
-        assert!(result.is_err(), "El parser no falló cuando debía.");
-        let error = result.unwrap_err();
-        assert_eq!(error, expected_error, "El error recibido no coincide con el esperado.");
+    fn test_parser_error_case(caso: Vec<Token>, mensaje_error_esperado: &str) {
+        let resultado = SetClauseParser::parse(caso);
+        match resultado {
+            Ok(_) => panic!("Se esperaba un error"),
+            Err(e) => assert!(
+                e.to_string().contains(mensaje_error_esperado),
+                "Se esperaba un error que contenga '{}', pero se obtuvo: '{}'",
+                mensaje_error_esperado,
+                e
+            ),
+        }
     }
 
     #[test]
@@ -96,9 +115,9 @@ mod tests {
         ];
 
         let mut expected_changes = HashMap::new();
-        expected_changes.insert("age".to_string(), AssignmentValue::Simple(create_literal("30", Int)));
+        expected_changes.insert("age".to_string(), Simple(create_literal("30", Int)));
 
-        test_successful_set_clause_parser_case(tokens, expected_changes);
+        test_successful_parser_case(tokens, expected_changes);
     }
 
     #[test]
@@ -111,9 +130,9 @@ mod tests {
         ];
 
         let mut expected_changes = HashMap::new();
-        expected_changes.insert("age".to_string(), AssignmentValue::Column("height".to_string()));
+        expected_changes.insert("age".to_string(), Column("height".to_string()));
 
-        test_successful_set_clause_parser_case(tokens, expected_changes);
+        test_successful_parser_case(tokens, expected_changes);
     }
 
     #[test]
@@ -130,10 +149,46 @@ mod tests {
         let mut expected_changes = HashMap::new();
         expected_changes.insert(
             "age".to_string(),
-            AssignmentValue::Arithmetic("height".to_string(), Suma, create_literal("10", Int)),
+            Arithmetic("height".to_string(), Suma, create_literal("10", Int)),
         );
 
-        test_successful_set_clause_parser_case(tokens, expected_changes);
+        test_successful_parser_case(tokens, expected_changes);
+    }
+
+    #[test]
+    fn test_set_clause_parser_complex_assignment() {
+        // SET age = 30, height = weight + 10, name = 'John', score = level
+        let tokens = vec![
+            create_identifier_token("age"),
+            create_comparison_operation_token(Equal),
+            create_token_literal("30", Int),
+            create_symbol_token(COMMA),
+            create_identifier_token("height"),
+            create_comparison_operation_token(Equal),
+            create_identifier_token("weight"),
+            create_aritmeticas_math_token(Suma),
+            create_token_literal("10", Int),
+            create_symbol_token(COMMA),
+            create_identifier_token("name"),
+            create_comparison_operation_token(Equal),
+            create_token_literal("'John'", Text),
+            create_symbol_token(COMMA),
+            create_identifier_token("score"),
+            create_comparison_operation_token(Equal),
+            create_identifier_token("level"),
+        ];
+
+        let mut expected_changes = HashMap::new();
+        
+        expected_changes.insert("age".to_string(), Simple(create_literal("30", Int)));
+        expected_changes.insert(
+            "height".to_string(), 
+            Arithmetic("weight".to_string(), Suma, create_literal("10", Int))
+        );
+        expected_changes.insert("name".to_string(), Simple(create_literal("'John'", Text)));
+        expected_changes.insert("score".to_string(), Column("level".to_string()));
+
+        test_successful_parser_case(tokens, expected_changes);
     }
 
     #[test]
@@ -144,8 +199,8 @@ mod tests {
             create_token_literal("30", Int),
         ];
 
-        let expected_error = Errors::SyntaxError("= should follow a SET assignment".to_string());
-        test_failed_set_clause_parser_case(tokens, expected_error);
+        let expected_error = "= should follow a SET assignment";
+        test_parser_error_case(tokens, expected_error);
     }
 
     #[test]
@@ -158,7 +213,7 @@ mod tests {
             create_aritmeticas_math_token(Suma),
         ];
 
-        let expected_error = Errors::SyntaxError("Query lacks parameters".to_string());
-        test_failed_set_clause_parser_case(tokens, expected_error);
+        let expected_error = "Query lacks parameters";
+        test_parser_error_case(tokens, expected_error);
     }
 }
