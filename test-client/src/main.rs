@@ -8,9 +8,21 @@ use test_client::frame::Frame;
 
 fn main() {
 
+    print!("connecto to node (1) or (2):");
+    io::stdout().flush().unwrap();
+    let mut node = String::new();
+    io::stdin().read_line(&mut node)
+        .expect("Error reading node");
+    let node = node.trim();
 
+    let mut socket;
 
-    let socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080);
+    match node {
+        "1" => socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
+        "2" => socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8081),
+        _ => socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
+    }
+
     let startup_bytes = vec![
         0x03,
         0x00,
@@ -21,14 +33,15 @@ fn main() {
         0x00, 0x0B, b'C', b'Q', b'L', b'_', b'V', b'E', b'R', b'S', b'I', b'O', b'N', // "CQL_VERSION"
         0x00, 0x05, b'3', b'.', b'0', b'.', b'0', // "3.0.0"
     ];
-    let mut auth_response_bytes = vec![
+    let auth_response_bytes = vec![
         0x03,
         0x00,
         0x00,0x01,
         0x0F,
-        0x00, 0x00, 0x00, 0x0D,
+        0x00, 0x00, 0x00, 0x12,
+        0x00, 0x00, 0x00, 0x0E,
+        b'a', b'd', b'm', b'i', b'n', b':', b'p', b'a', b's', b's', b'w', b'o', b'r', b'd',
     ];
-    auth_response_bytes.extend_from_slice("user:password".as_bytes());
 
     let options_bytes = vec![
         0x03,
@@ -50,22 +63,29 @@ fn main() {
                 "options" => {stream.write_all(options_bytes.as_slice()).expect("Error writing to socket");}
                 _ => { continue; }
             }
+            stream.flush().expect("sds");
             let mut buf = [0; 1024];
             match stream.read(&mut buf) {
                 Ok(n) => {
                     if n > 0 {
                         let frame = Frame::parse_frame(&buf[..n]).expect("Error parsing frame");
                         dbg!(&frame);
+                        if frame.opcode == 0x00 {
+                            let mut cursor = BytesCursor::new(frame.body.as_slice());
+                            dbg!(cursor.read_long_string());
+                        }
                     }
                 }
                 Err(e) => {
                     println!("Error leyendo del socket: {}", e);
                 }
             }
+            stream.flush().expect("sds");
 
 
             //let mut cursor = BytesCursor::new(frame.body.as_slice());
             //dbg!(cursor.read_string_map());
+            input.clear();
         }
     }
 }

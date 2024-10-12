@@ -2,7 +2,10 @@ use node::frame::Frame;
 use node::parsers::parser_factory::ParserFactory;
 use node::utils::errors::Errors;
 use std::io::{self, Read, Write};
-use std::net::TcpListener;
+use std::net::{TcpListener, TcpStream};
+use std::thread;
+use node::response_builders::error_builder::ErrorBuilder;
+use node::response_builders::frame_builder::FrameBuilder;
 
 fn main() {
     print!("node's ip: ");
@@ -12,50 +15,53 @@ fn main() {
         .expect("Error reading ip");
     let ip = ip.trim();
 
-    //let ip = "127.0.0.1:8080";
     let listener = TcpListener::bind(ip).expect("Error binding socket");
+    println!("Servidor escuchando en {}", ip);
 
-    match listener.accept() {
-        Ok((mut stream, _)) => {
-            // Mover la conexión a un thread si es necesario
-            loop {
-                let mut buffer = [0; 1024];
-                println!("Esperando datos...");
+    for incoming in listener.incoming() {
+        match incoming {
+            Ok(stream) => {
+                println!("Cliente conectado: {:?}", stream.peer_addr());
 
-                match stream.read(&mut buffer) {
-                    Ok(0) => {
-                        // El cliente ha cerrado la conexión
-                        println!("Cliente desconectado");
-                        break;
-                    }
-                    Ok(n) => {
-                        // Solo ejecuta la lógica si se reciben bytes válidos
-                        if n > 0 {
-                            println!("Recibidos {} bytes", n);
-                            // Ejecutar la lógica de la solicitud
-                            match execute_request(buffer[..n].to_vec()) {
-                                Ok(response) => {
-                                    stream.write_all(response.as_slice()).expect("Error writing response");
-                                    // No es necesario el flush aquí si el write_all completa correctamente
-                                }
-                                Err(e) => {
-                                    println!("Error ejecutando solicitud: {}", e);
-                                }
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        println!("Error leyendo del socket: {}", e);
-                        break; // Sal del bucle si hay un error en la lectura
-                    }
-                }
+                // Mover la conexión a un hilo
+                thread::spawn(move || {
+                    handle_client(stream);
+                });
             }
-        }
-        Err(e) => {
-            println!("Error aceptando la conexión: {}", e);
+            Err(e) => {
+                println!("Error aceptando la conexión: {}", e);
+            }
         }
     }
 
+}
+
+fn handle_client(mut stream: TcpStream) {
+    let mut buffer = [0; 1024];
+    loop {
+        match stream.read(&mut buffer) {
+            Ok(0) => {
+                println!("Cliente desconectado");
+                break;
+            }
+            Ok(_) => {
+                match execute_request(buffer.to_vec()) {
+                    Ok(response) => {
+                        stream.write_all(response.as_slice()).expect("Error writing response");
+
+                    }
+                    Err(e) => {
+                        let frame = ErrorBuilder::build_error_frame(Frame::parse_frame(buffer.as_slice()).unwrap(), e).unwrap();
+                        stream.write_all(frame.to_bytes().as_slice()).expect("Error writing response");
+                    }
+                }
+            }
+            Err(e) => {
+                println!("Error leyendo del socket: {}", e);
+                break; // Sal del bucle si hay un error en la lectura
+            }
+        }
+    }
 }
 
 fn execute_request(bytes: Vec<u8>) -> Result<Vec<u8>, Errors> {
