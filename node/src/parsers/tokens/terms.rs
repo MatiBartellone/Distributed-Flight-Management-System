@@ -46,13 +46,9 @@ fn to_math(word: &str) -> Option<Token> {
     match word {
         "+" => Some(Token::Term(Term::ArithMath(ArithMath::Suma))),
         "-" => Some(Token::Term(Term::ArithMath(ArithMath::Sub))),
-        "/" => Some(Token::Term(Term::ArithMath(
-            ArithMath::Division,
-        ))),
+        "/" => Some(Token::Term(Term::ArithMath(ArithMath::Division))),
         "%" => Some(Token::Term(Term::ArithMath(ArithMath::Rest))),
-        "*" => Some(Token::Term(Term::ArithMath(
-            ArithMath::Multiplication,
-        ))),
+        "*" => Some(Token::Term(Term::ArithMath(ArithMath::Multiplication))),
         _ => None,
     }
 }
