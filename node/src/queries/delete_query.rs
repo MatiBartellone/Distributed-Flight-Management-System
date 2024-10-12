@@ -2,6 +2,7 @@ use crate::{parsers::query_parsers::where_clause_::where_clause::WhereClause, ut
 
 use super::query::Query;
 
+
 #[derive(PartialEq, Debug)]
 pub struct DeleteQuery {
     pub table: String,

@@ -2,7 +2,7 @@ use super::{data_type::DataType, terms::Term, token::Token};
 
 #[derive(Debug, PartialEq)]
 pub struct Literal {
-    value: String,
+    pub value: String,
     data_type: DataType,
 }
 
@@ -60,6 +60,13 @@ pub fn to_literal(word: &str) -> Option<Token> {
     //si se puede usar regex, es una pavada
     //si no se puede, suerte :))
     None
+}
+
+pub fn create_literal(value: &str, data_type: DataType) -> Literal {
+    Literal {
+        value: value.to_string(),
+        data_type,
+    }
 }
 
 use DataType::*;

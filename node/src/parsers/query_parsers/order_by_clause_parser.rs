@@ -2,9 +2,8 @@ use crate::parsers::tokens::token::Token;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
+use crate::utils::constants::*;
 
-const ASC: &str = "ASC";
-const DESC: &str = "DESC";
 pub struct OrderByClauseParser;
 
 impl OrderByClauseParser {
