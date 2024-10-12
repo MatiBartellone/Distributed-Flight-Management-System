@@ -1,15 +1,14 @@
 use std::collections::HashMap;
 
 use crate::{
-    parsers::tokens::{literal::Literal, terms::ComparisonOperators, token::Token},
-    utils::{
+    parsers::tokens::{literal::Literal, terms::ComparisonOperators, token::Token}, queries::evaluate::Evaluate, utils::{
         errors::Errors,
         token_conversor::{get_identifier_string, get_literal},
-    },
+    }
 };
 use WhereClause::*;
 
-use super::{comparison::ComparisonExpr, evaluate::Evaluate};
+use super::comparison::ComparisonExpr;
 
 /// Enum para representar diferentes tipos de expresiones booleanas.
 #[derive(Debug, PartialEq)]
@@ -43,7 +42,7 @@ impl Evaluate for WhereClause {
     }
 }
 
-pub fn comparison_expr(
+pub fn comparison_where(
     column: &str,
     operator: ComparisonOperators,
     literal: Literal,
@@ -76,23 +75,20 @@ pub fn build_tuple(
     Ok(tuple_expr(tuple))
 }
 
-pub fn and_expr(left: WhereClause, right: WhereClause) -> WhereClause {
+pub fn and_where(left: WhereClause, right: WhereClause) -> WhereClause {
     And(Box::new(left), Box::new(right))
 }
 
-pub fn or_expr(left: WhereClause, right: WhereClause) -> WhereClause {
+pub fn or_where(left: WhereClause, right: WhereClause) -> WhereClause {
     Or(Box::new(left), Box::new(right))
 }
 
-pub fn not_expr(expr: WhereClause) -> WhereClause {
+pub fn not_where(expr: WhereClause) -> WhereClause {
     Not(Box::new(expr))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::parsers::query_parsers::where_clause_::{
-        comparison::ComparisonExpr, evaluate::Evaluate, where_clause::WhereClause,
-    };
     use crate::parsers::tokens::data_type::DataType;
     use crate::parsers::tokens::literal::Literal;
     use crate::parsers::tokens::terms::ComparisonOperators;
@@ -101,7 +97,9 @@ mod tests {
     use ComparisonOperators::*;
     use DataType::*;
 
-    use super::{and_expr, comparison_expr, not_expr, or_expr, tuple_expr};
+    use crate::queries::{evaluate::Evaluate, where_logic::comparison::ComparisonExpr};
+
+    use super::{and_where, comparison_where, not_where, or_where, tuple_expr, WhereClause};
 
     fn assert_evaluation(row: HashMap<String, Literal>, clause: WhereClause, expected: bool) {
         match clause.evaluate(&row) {
@@ -124,14 +122,14 @@ mod tests {
     #[test]
     fn test_comparison_true() {
         let row = setup_row();
-        let clause = comparison_expr("id", Equal, Literal::new("5".to_string(), Int));
+        let clause = comparison_where("id", Equal, Literal::new("5".to_string(), Int));
         assert_evaluation(row, clause, true);
     }
 
     #[test]
     fn test_comparison_false() {
         let row = setup_row();
-        let clause = comparison_expr("id", Equal, Literal::new("10".to_string(), Int));
+        let clause = comparison_where("id", Equal, Literal::new("10".to_string(), Int));
         assert_evaluation(row, clause, false);
     }
 
@@ -166,9 +164,9 @@ mod tests {
     #[test]
     fn test_and_true() {
         let row = setup_row();
-        let clause = and_expr(
-            comparison_expr("id", Equal, Literal::new("5".to_string(), Int)),
-            comparison_expr("age", Equal, Literal::new("30".to_string(), Int)),
+        let clause = and_where(
+            comparison_where("id", Equal, Literal::new("5".to_string(), Int)),
+            comparison_where("age", Equal, Literal::new("30".to_string(), Int)),
         );
         assert_evaluation(row, clause, true);
     }
@@ -176,9 +174,9 @@ mod tests {
     #[test]
     fn test_and_false() {
         let row = setup_row();
-        let clause = and_expr(
-            comparison_expr("id", Equal, Literal::new("5".to_string(), Int)),
-            comparison_expr("age", Equal, Literal::new("40".to_string(), Int)),
+        let clause = and_where(
+            comparison_where("id", Equal, Literal::new("5".to_string(), Int)),
+            comparison_where("age", Equal, Literal::new("40".to_string(), Int)),
         );
         assert_evaluation(row, clause, false);
     }
@@ -186,9 +184,9 @@ mod tests {
     #[test]
     fn test_or_true() {
         let row = setup_row();
-        let clause = or_expr(
-            comparison_expr("id", Equal, Literal::new("5".to_string(), Int)),
-            comparison_expr("age", Equal, Literal::new("40".to_string(), Int)),
+        let clause = or_where(
+            comparison_where("id", Equal, Literal::new("5".to_string(), Int)),
+            comparison_where("age", Equal, Literal::new("40".to_string(), Int)),
         );
         assert_evaluation(row, clause, true);
     }
@@ -196,9 +194,9 @@ mod tests {
     #[test]
     fn test_or_false() {
         let row = setup_row();
-        let clause = or_expr(
-            comparison_expr("id", Equal, Literal::new("10".to_string(), Int)),
-            comparison_expr("age", Equal, Literal::new("40".to_string(), Int)),
+        let clause = or_where(
+            comparison_where("id", Equal, Literal::new("10".to_string(), Int)),
+            comparison_where("age", Equal, Literal::new("40".to_string(), Int)),
         );
         assert_evaluation(row, clause, false);
     }
@@ -206,7 +204,7 @@ mod tests {
     #[test]
     fn test_not_true() {
         let row = setup_row();
-        let clause = not_expr(comparison_expr(
+        let clause = not_where(comparison_where(
             "is_active",
             Equal,
             Literal::new("false".to_string(), Boolean),
@@ -217,7 +215,7 @@ mod tests {
     #[test]
     fn test_not_false() {
         let row = setup_row();
-        let clause = not_expr(comparison_expr(
+        let clause = not_where(comparison_where(
             "is_active",
             Equal,
             Literal::new("true".to_string(), Boolean),

@@ -1,14 +1,10 @@
 use crate::parsers::query_parsers::order_by_clause_parser::OrderByClauseParser;
-use crate::parsers::query_parsers::where_clause_::where_clause_parser::WhereClauseParser;
 use crate::parsers::tokens::token::Token;
 use crate::queries::select_query::SelectQuery;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
-
-const FROM: &str = "FROM";
-const WHERE: &str = "WHERE";
-const ORDER: &str = "ORDER";
-const BY: &str = "BY";
+use crate::utils::constants::*;
+use super::where_clause_parser::WhereClauseParser;
 
 pub struct SelectQueryParser;
 
@@ -68,7 +64,7 @@ fn modifiers(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<()
 fn where_clause(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::IterateToken(list) => {
-            query.where_clause = WhereClauseParser::parse(list)?;
+            query.where_clause = Some(WhereClauseParser::parse(list)?);
             order(tokens, query)
         }
         _ => Err(Errors::SyntaxError(String::from(
