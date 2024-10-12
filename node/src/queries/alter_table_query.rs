@@ -7,7 +7,7 @@ pub struct AlterTableQuery {
     pub second_column: String,
     pub data: DataType,
 }
-
+#[derive(Debug, PartialEq)]
 pub enum Operations {
     ADD,
     ALTER,

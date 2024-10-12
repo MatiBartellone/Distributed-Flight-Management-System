@@ -20,6 +20,10 @@ const DROP: &str = "DROP";
 pub struct AlterTableParser;
 
 impl AlterTableParser {
+    pub fn new() -> AlterTableParser {
+        AlterTableParser {}
+    }
+
     pub fn parse(&self, tokens: Vec<Token>) -> Result<AlterTableQuery, Errors> {
         let mut alter_table_query = AlterTableQuery::new();
         self.table(&mut tokens.into_iter().peekable(), &mut alter_table_query)?;
@@ -160,5 +164,97 @@ impl AlterTableParser {
             Token::Identifier(column_name) => Ok(column_name),
             _ => Err(Errors::SyntaxError(UNEXPECTED_TOKEN.to_string())),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parsers::tokens::{data_type::DataType, token::Token};
+    const TABLE: &str = "TABLE";
+    const TABLE_NAME: &str = "table_name";
+    const FIRST_COLUMN: &str = "first_column";
+    const SECOND_COLUMN: &str = "second_column";
+    #[test]
+    fn test_01_alter_table_using_add_is_valid() {
+        let tokens = vec![
+            Token::Reserved(TABLE.to_string()),
+            Token::Identifier(TABLE_NAME.to_string()),
+            Token::Reserved(ADD.to_string()),
+            Token::Identifier(FIRST_COLUMN.to_string()),
+            Token::DataType(DataType::Text),
+        ];
+
+        let alter_table_parser = AlterTableParser::new();
+        let result = alter_table_parser.parse(tokens);
+
+        assert!(result.is_ok());
+        let query = result.unwrap();
+
+        assert_eq!(query.table_name, TABLE_NAME);
+        assert_eq!(query.first_column, FIRST_COLUMN);
+        assert_eq!(query.operation, Some(Operations::ADD));
+    }
+    #[test]
+    fn test_02_alter_table_using_alter_is_valid() {
+        let tokens = vec![
+            Token::Reserved(TABLE.to_string()),
+            Token::Identifier(TABLE_NAME.to_string()),
+            Token::Reserved(ALTER.to_string()),
+            Token::Identifier(FIRST_COLUMN.to_string()),
+            Token::Reserved(TYPE.to_string()),
+            Token::DataType(DataType::Text),
+        ];
+
+        let alter_table_parser = AlterTableParser::new();
+        let result = alter_table_parser.parse(tokens);
+
+        assert!(result.is_ok());
+        let query = result.unwrap();
+
+        assert_eq!(query.table_name, TABLE_NAME);
+        assert_eq!(query.first_column, FIRST_COLUMN);
+        assert_eq!(query.operation, Some(Operations::ALTER));
+    }
+    #[test]
+    fn test_03_alter_table_using_rename_is_valid() {
+        let tokens = vec![
+            Token::Reserved(TABLE.to_string()),
+            Token::Identifier(TABLE_NAME.to_string()),
+            Token::Reserved(RENAME.to_string()),
+            Token::Identifier(FIRST_COLUMN.to_string()),
+            Token::Reserved(TO.to_string()),
+            Token::Identifier(SECOND_COLUMN.to_string()),
+        ];
+
+        let alter_table_parser = AlterTableParser::new();
+        let result = alter_table_parser.parse(tokens);
+
+        assert!(result.is_ok());
+        let query = result.unwrap();
+
+        assert_eq!(query.table_name, TABLE_NAME);
+        assert_eq!(query.first_column, FIRST_COLUMN);
+        assert_eq!(query.second_column, SECOND_COLUMN);
+        assert_eq!(query.operation, Some(Operations::RENAME));
+    }
+    #[test]
+    fn test_04_alter_table_using_drop_is_valid() {
+        let tokens = vec![
+            Token::Reserved(TABLE.to_string()),
+            Token::Identifier(TABLE_NAME.to_string()),
+            Token::Reserved(DROP.to_string()),
+            Token::Identifier(FIRST_COLUMN.to_string()),
+        ];
+
+        let alter_table_parser = AlterTableParser::new();
+        let result = alter_table_parser.parse(tokens);
+
+        assert!(result.is_ok());
+        let query = result.unwrap();
+
+        assert_eq!(query.table_name, TABLE_NAME);
+        assert_eq!(query.first_column, FIRST_COLUMN);
+        assert_eq!(query.operation, Some(Operations::DROP));
     }
 }
