@@ -17,7 +17,7 @@ impl InsertQuery {
     }
 }
 impl Query for InsertQuery {
-    fn run() {
+    fn run(&mut self) {
         unimplemented!()
     }
 }

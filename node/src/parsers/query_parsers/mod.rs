@@ -6,3 +6,6 @@ pub mod update_query_parser;
 pub mod where_clause_parser;
 pub mod if_clause_parser;
 pub mod set_clause_parser;
+pub mod drop_query_parser;
+pub mod drop_keyspace_parser;
+pub mod drop_table_parser;
