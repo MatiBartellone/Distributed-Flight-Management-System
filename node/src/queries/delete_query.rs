@@ -1,6 +1,6 @@
-use crate::{parsers::query_parsers::where_clause_::where_clause::WhereClause, utils::errors::Errors};
+use crate::utils::errors::Errors;
 
-use super::query::Query;
+use super::{query::Query, where_logic::where_clause::WhereClause};
 
 
 #[derive(PartialEq, Debug)]
