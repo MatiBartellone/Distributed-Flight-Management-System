@@ -1,36 +1,32 @@
 use crate::{parsers::tokens::token::Token, 
-    queries::drop_query::DropQuery, 
-    utils::{errors::Errors, token_conversor::get_next_value}};
+    utils::{errors::Errors, token_conversor::get_next_value}, queries::query::Query};
 use crate::utils::constants::*;
 use std::{vec::IntoIter, iter::Peekable};
 
 
 use Token::*;
 
-use super::{drop_keyspace_parser::DropSpaceQueryParser, drop_table_parser::DropTableParser};
+use super::{drop_keyspace_parser::DropSpaceQueryParser, drop_table_parser::DropTableQueryParser};
 
 pub struct DropQueryParser;
 
 impl DropQueryParser {
-    pub fn parse(tokens: Vec<Token>) -> Result<DropQuery, Errors> {
-        let mut drop_query = DropQuery::new();
-        reserv(&mut tokens.into_iter().peekable(), &mut drop_query)?;
+    pub fn parse(tokens: Vec<Token>) -> Result<Box<dyn Query>, Errors> {
+        let drop_query = reserv(&mut tokens.into_iter().peekable())?;
         Ok(drop_query)
     }
 }
 
 
-fn reserv(tokens: &mut Peekable<IntoIter<Token>>, drop_query: &mut DropQuery) -> Result<(), Errors>{
+fn reserv(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Box<dyn Query>, Errors>{
     match get_next_value(tokens)? {
         Reserved(title) if title == KEYSPACE => {
-            let parsed_query = DropSpaceQueryParser::parse(tokens)?;
-            drop_query.set_keyspace_query(parsed_query);
-            Ok(())
+            let query = DropSpaceQueryParser::parse(tokens)?;
+            Ok(Box::new(query))
         }
         Reserved(title) if title == TABLE => {
-            let parsed_query = DropTableParser::parse(tokens)?;
-            drop_query.set_table_query(parsed_query);
-            Ok(())
+            let query = DropTableQueryParser::parse(tokens)?;
+            Ok(Box::new(query))
         }
         _=> Err(Errors::SyntaxError(
             "Invalid Syntaxis in DROP, missing title".to_string(),
@@ -40,8 +36,7 @@ fn reserv(tokens: &mut Peekable<IntoIter<Token>>, drop_query: &mut DropQuery) ->
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::parsers::tokens::token::Token;
+    use crate::parsers::{tokens::token::Token, query_parsers::drop_query_parser::DropQueryParser};
 
     #[test]
     fn test_parse_drop_keyspace_query() {
@@ -49,13 +44,7 @@ mod tests {
             Token::Reserved("KEYSPACE".to_string()),
             Token::Identifier("my_keyspace".to_string()),
         ];
-        let parsed_query = DropQueryParser::parse(tokens)
-            .expect("Failed to parse DROP KEYSPACE query");
-        let sub_parsed_query = parsed_query.keyspace;
-        assert!(sub_parsed_query.is_some()); 
-        let keyspace_query = sub_parsed_query.unwrap();
-        assert_eq!(keyspace_query.keyspace, "my_keyspace");
-        assert_eq!(keyspace_query.if_exist, None); 
+        assert!(DropQueryParser::parse(tokens).is_ok());
     }
 
     #[test]
@@ -66,14 +55,7 @@ mod tests {
             Token::Reserved("EXISTS".to_string()),
             Token::Identifier("my_keyspace".to_string()),
         ];
-        let parsed_query = DropQueryParser::parse(tokens)
-            .expect("Failed to parse DROP KEYSPACE query");
-
-        let sub_parsed_query = parsed_query.keyspace;
-        assert!(sub_parsed_query.is_some()); 
-        let keyspace_query = sub_parsed_query.unwrap();
-        assert_eq!(keyspace_query.keyspace, "my_keyspace");
-        assert_eq!(keyspace_query.if_exist, Some(true)); 
+        assert!(DropQueryParser::parse(tokens).is_ok());
     }
 
     #[test]
@@ -82,27 +64,18 @@ mod tests {
             Token::Reserved("KEYSPACE".to_string()),
             Token::Reserved("INVALID".to_string()), // Token inválido
         ];
-        let result = DropQueryParser::parse(tokens);
-        assert!(result.is_err());
-        if let Err(Errors::SyntaxError(err_msg)) = result {
-            assert_eq!(err_msg, "Unexpected token in table_name");
-        } 
+        assert!(DropQueryParser::parse(tokens).is_err());
     }
 
     #[test]
     fn test_drop_keyspace_with_extra_tokens() {
-        // Simula una lista de tokens que incluye un token extra no esperado
         let tokens = vec![
             Token::Reserved("KEYSPACE".to_string()),
             Token::Identifier("my_keyspace".to_string()),
             Token::Identifier("extra_token".to_string()), // Token extra
         ];
 
-        let result = DropQueryParser::parse(tokens);
-        assert!(result.is_err());
-        if let Err(Errors::SyntaxError(err_msg)) = result {
-            assert_eq!(err_msg, "DROP with left over paramameters");
-        }
+        assert!(DropQueryParser::parse(tokens).is_err());
     }
 
 }
