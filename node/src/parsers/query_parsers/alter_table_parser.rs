@@ -5,6 +5,9 @@ use crate::{
     queries::alter_table_query::{AlterTableQuery, Operations},
     utils::errors::Errors,
 };
+
+use crate::utils::token_conversor::get_next_value;
+
 const MISSING_KEYWORD: &str = "Missing keyword following table name";
 const UNEXPECTED_TOKEN: &str = "Unexpected token";
 const TO: &str = "TO";
@@ -28,7 +31,7 @@ impl AlterTableParser {
         tokens: &mut Peekable<IntoIter<Token>>,
         query: &mut AlterTableQuery,
     ) -> Result<(), Errors> {
-        match self.get_next_token(tokens)? {
+        match get_next_value(tokens)? {
             Token::Reserved(table) if table == TABLE => self.table_name(tokens, query),
             _ => Err(Errors::SyntaxError(UNEXPECTED_TOKEN.to_string())),
         }
@@ -39,7 +42,7 @@ impl AlterTableParser {
         tokens: &mut Peekable<IntoIter<Token>>,
         query: &mut AlterTableQuery,
     ) -> Result<(), Errors> {
-        match self.get_next_token(tokens)? {
+        match get_next_value(tokens)? {
             Token::Identifier(table_name) => {
                 query.table_name = table_name;
                 self.keyword(tokens, query)
@@ -58,7 +61,7 @@ impl AlterTableParser {
         let rename = RENAME.to_string();
         let drop = DROP.to_string();
 
-        match self.get_next_token(tokens)? {
+        match get_next_value(tokens)? {
             Token::Reserved(keyword) if keyword == add => self.add(tokens, query),
             Token::Reserved(keyword) if keyword == alter => self.alter(tokens, query),
             Token::Reserved(keyword) if keyword == rename => self.rename(tokens, query),
@@ -95,7 +98,7 @@ impl AlterTableParser {
         tokens: &mut Peekable<IntoIter<Token>>,
         query: &mut AlterTableQuery,
     ) -> Result<(), Errors> {
-        match self.get_next_token(tokens)? {
+        match get_next_value(tokens)? {
             Token::Reserved(keyword) if keyword == TYPE => self.data_type(tokens, query),
             _ => Err(Errors::SyntaxError(UNEXPECTED_TOKEN.to_string())),
         }
@@ -106,7 +109,7 @@ impl AlterTableParser {
         tokens: &mut Peekable<IntoIter<Token>>,
         query: &mut AlterTableQuery,
     ) -> Result<(), Errors> {
-        let text = self.get_next_token(tokens)?;
+        let text = get_next_value(tokens)?;
         match text {
             Token::DataType(data) => {
                 query.data = data;
@@ -132,7 +135,7 @@ impl AlterTableParser {
         tokens: &mut Peekable<IntoIter<Token>>,
         query: &mut AlterTableQuery,
     ) -> Result<(), Errors> {
-        match self.get_next_token(tokens)? {
+        match get_next_value(tokens)? {
             Token::Reserved(keyword) if keyword == TO => {
                 let second_column = self.column_name(tokens)?;
                 query.second_column = second_column;
@@ -153,15 +156,9 @@ impl AlterTableParser {
     }
 
     fn column_name(&self, tokens: &mut Peekable<IntoIter<Token>>) -> Result<String, Errors> {
-        match self.get_next_token(tokens)? {
+        match get_next_value(tokens)? {
             Token::Identifier(column_name) => Ok(column_name),
             _ => Err(Errors::SyntaxError(UNEXPECTED_TOKEN.to_string())),
         }
-    }
-
-    fn get_next_token(&self, tokens: &mut Peekable<IntoIter<Token>>) -> Result<Token, Errors> {
-        tokens
-            .next()
-            .ok_or(Errors::SyntaxError("Unexpected end of query".to_string()))
     }
 }
