@@ -20,21 +20,28 @@ fn main() {
             // Mover la conexión a un thread si es necesario
             loop {
                 let mut buffer = [0; 1024];
-                println!("holaaa");
+                println!("Esperando datos...");
+
                 match stream.read(&mut buffer) {
                     Ok(0) => {
                         // El cliente ha cerrado la conexión
                         println!("Cliente desconectado");
                         break;
                     }
-                    Ok(_) => {
-                        // Ejecutar la lógica de la solicitud
-                        match execute_request(buffer.to_vec()) {
-                            Ok(response) => {
-                                stream.write_all(response.as_slice()).expect("Error writing response");
-                                stream.flush().expect("Error flushing stream");
+                    Ok(n) => {
+                        // Solo ejecuta la lógica si se reciben bytes válidos
+                        if n > 0 {
+                            println!("Recibidos {} bytes", n);
+                            // Ejecutar la lógica de la solicitud
+                            match execute_request(buffer[..n].to_vec()) {
+                                Ok(response) => {
+                                    stream.write_all(response.as_slice()).expect("Error writing response");
+                                    // No es necesario el flush aquí si el write_all completa correctamente
+                                }
+                                Err(e) => {
+                                    println!("Error ejecutando solicitud: {}", e);
+                                }
                             }
-                            Err(e) => { println!("Error ejecutando solicitud: {}", e) }
                         }
                     }
                     Err(e) => {
