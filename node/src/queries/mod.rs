@@ -16,6 +16,3 @@ pub mod set_logic;
 pub mod update_query;
 pub mod use_query;
 pub mod where_logic;
-pub mod set_logic;
-pub mod evaluate;
-pub mod if_clause;
