@@ -22,7 +22,7 @@ impl SelectQueryParser {
 
 fn columns(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
-        Token::ParenList(list) => {
+        Token::IterateToken(list) => {
             query.columns = get_columns(list)?;
             from(tokens, query)
         }
