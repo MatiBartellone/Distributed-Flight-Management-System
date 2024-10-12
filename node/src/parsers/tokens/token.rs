@@ -1,7 +1,7 @@
 use super::data_type::{string_to_data_type, DataType};
+use super::reserved_words::WordsReserved;
 use super::symbols::Symbols;
 use super::terms::{string_to_term, Term};
-use super::reserved_words::WordsReserved;
 use crate::utils::constants::*;
 use crate::utils::errors::Errors;
 
@@ -54,8 +54,6 @@ fn match_tokenize(word: String) -> Option<Token> {
     None
 }
 
-
-
 fn sub_list_token(
     words: &[String],
     i: &mut usize,
@@ -79,7 +77,6 @@ fn sub_list_token(
     res.push(Token::IterateToken(temp));
     Ok(true)
 }
-
 
 fn init_sub_list_token(
     words: &[String],
@@ -142,8 +139,6 @@ fn close_sub_list_if(word: &str) -> bool {
         && !(word_upper == AND || word_upper == OR || word_upper == NOT || word_upper == EXISTS)
 }
 
-
-
 fn tokenize_recursive<F>(words: &[String], closure: F, i: &mut usize) -> Result<Vec<Token>, Errors>
 where
     F: Fn(&str) -> bool,
@@ -172,8 +167,7 @@ where
 
 pub fn tokenize(words: Vec<String>) -> Result<Vec<Token>, Errors> {
     // Definimos una closure que siempre devuelve false
-    let fn_false = |
-        _: &str| false;
+    let fn_false = |_: &str| false;
     tokenize_recursive(&words, fn_false, &mut 0)
 }
 
@@ -236,13 +230,13 @@ mod tests {
     fn get_age_greater_than_30(paren_list: bool) -> Token {
         let literal = Literal::new("30".to_string(), DataType::Int);
         if paren_list {
-             return Token::ParenList(vec![
+            return Token::ParenList(vec![
                 Token::Identifier("age".to_string()),
                 Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
                     ComparisonOperators::Greater,
                 ))),
                 Token::Term(Term::Literal(literal)),
-            ])
+            ]);
         }
         Token::IterateToken(vec![
             Token::Identifier("age".to_string()),

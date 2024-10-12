@@ -95,7 +95,7 @@ fn by(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<(), Error
 
 fn order_clause(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
-        Token::ParenList(list) => {
+        Token::IterateToken(list) => {
             query.order_clauses = Some(OrderByClauseParser::parse(list)?);
             let None = tokens.next() else {
                 return Err(Errors::SyntaxError(String::from(
