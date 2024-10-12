@@ -18,6 +18,7 @@ impl OptionsParser {
 
 impl Parser for OptionsParser {
     fn parse(&self, body: &[u8]) -> Result<Box<dyn Executable>, Errors> {
+
         self.validate_empty_body(body)?;
 
         let executable = OptionsExecutable::new();
