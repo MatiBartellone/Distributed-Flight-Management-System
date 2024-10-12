@@ -177,6 +177,7 @@ impl AlterTableParser {
 mod tests {
     use super::*;
     use crate::parsers::tokens::{data_type::DataType, token::Token};
+    const QUERY_LACKS_PARAMETERS: &str = "Query lacks parameters";
     const TABLE: &str = "TABLE";
     const TABLE_NAME: &str = "table_name";
     const FIRST_COLUMN: &str = "first_column";
@@ -262,5 +263,169 @@ mod tests {
         assert_eq!(query.table_name, TABLE_NAME);
         assert_eq!(query.first_column, FIRST_COLUMN);
         assert_eq!(query.operation, Some(Operations::DROP));
+    }
+    #[test]
+    fn test_05_alter_table_missing_table_keyword_should_error() {
+        let tokens = vec![
+            Token::Identifier(TABLE_NAME.to_string()),
+            Token::Reserved(ADD.to_string()),
+            Token::Identifier(FIRST_COLUMN.to_string()),
+            Token::DataType(DataType::Text),
+        ];
+
+        let alter_table_parser = AlterTableParser::new();
+        let result = alter_table_parser.parse(tokens);
+
+        assert!(result.is_err());
+
+        if let Err(Errors::SyntaxError(msg)) = result {
+            assert_eq!(msg, UNEXPECTED_TOKEN);
+        } else {
+            panic!("El error no es del tipo Errors::SyntaxError");
+        }
+    }
+    #[test]
+    fn test_06_alter_table_missing_table_name_should_error() {
+        let tokens = vec![
+            Token::Reserved(TABLE.to_string()),
+            Token::Reserved(ADD.to_string()),
+            Token::Identifier(FIRST_COLUMN.to_string()),
+            Token::DataType(DataType::Text),
+        ];
+
+        let alter_table_parser = AlterTableParser::new();
+        let result = alter_table_parser.parse(tokens);
+
+        assert!(result.is_err());
+
+        if let Err(Errors::SyntaxError(msg)) = result {
+            assert_eq!(msg, UNEXPECTED_TOKEN);
+        } else {
+            panic!("El error no es del tipo Errors::SyntaxError");
+        }
+    }
+    #[test]
+    fn test_07_alter_table_missing_option_should_error() {
+        let tokens = vec![
+            Token::Reserved(TABLE.to_string()),
+            Token::Identifier(TABLE_NAME.to_string()),
+            Token::Identifier(FIRST_COLUMN.to_string()),
+        ];
+
+        let alter_table_parser = AlterTableParser::new();
+        let result = alter_table_parser.parse(tokens);
+
+        assert!(result.is_err());
+
+        if let Err(Errors::SyntaxError(msg)) = result {
+            assert_eq!(msg, MISSING_KEYWORD);
+        } else {
+            panic!("El error no es del tipo Errors::SyntaxError");
+        }
+    }
+
+    #[test]
+    fn test_08_alter_table_missing_type_keyword_in_alter_option_should_error() {
+        let tokens = vec![
+            Token::Reserved(TABLE.to_string()),
+            Token::Identifier(TABLE_NAME.to_string()),
+            Token::Reserved(ALTER.to_string()),
+            Token::Identifier(FIRST_COLUMN.to_string()),
+            Token::DataType(DataType::Text),
+        ];
+
+        let alter_table_parser = AlterTableParser::new();
+        let result = alter_table_parser.parse(tokens);
+
+        assert!(result.is_err());
+
+        if let Err(Errors::SyntaxError(msg)) = result {
+            assert_eq!(msg, UNEXPECTED_TOKEN);
+        } else {
+            panic!("El error no es del tipo Errors::SyntaxError");
+        }
+    }
+    #[test]
+    fn test_09_alter_table_missing_to_keyword_in_rename_option_should_error() {
+        let tokens = vec![
+            Token::Reserved(TABLE.to_string()),
+            Token::Identifier(TABLE_NAME.to_string()),
+            Token::Reserved(RENAME.to_string()),
+            Token::Identifier(FIRST_COLUMN.to_string()),
+            Token::Identifier(SECOND_COLUMN.to_string()),
+        ];
+
+        let alter_table_parser = AlterTableParser::new();
+        let result = alter_table_parser.parse(tokens);
+
+        assert!(result.is_err());
+
+        if let Err(Errors::SyntaxError(msg)) = result {
+            assert_eq!(msg, UNEXPECTED_TOKEN);
+        } else {
+            panic!("El error no es del tipo Errors::SyntaxError");
+        }
+    }
+    #[test]
+    fn test_10_alter_table_missing_column_in_drop_option_should_error() {
+        let tokens = vec![
+            Token::Reserved(TABLE.to_string()),
+            Token::Identifier(TABLE_NAME.to_string()),
+            Token::Reserved(DROP.to_string()),
+        ];
+
+        let alter_table_parser = AlterTableParser::new();
+        let result = alter_table_parser.parse(tokens);
+
+        assert!(result.is_err());
+
+        if let Err(Errors::SyntaxError(msg)) = result {
+            assert_eq!(msg, QUERY_LACKS_PARAMETERS);
+        } else {
+            panic!("El error no es del tipo Errors::SyntaxError");
+        }
+    }
+
+    #[test]
+    fn test_11_alter_table_missing_type_in_alter_option_should_error() {
+        let tokens = vec![
+            Token::Reserved(TABLE.to_string()),
+            Token::Identifier(TABLE_NAME.to_string()),
+            Token::Reserved(ALTER.to_string()),
+            Token::Identifier(FIRST_COLUMN.to_string()),
+            Token::Reserved(TYPE.to_string()),
+        ];
+
+        let alter_table_parser = AlterTableParser::new();
+        let result = alter_table_parser.parse(tokens);
+
+        assert!(result.is_err());
+
+        if let Err(Errors::SyntaxError(msg)) = result {
+            assert_eq!(msg, QUERY_LACKS_PARAMETERS);
+        } else {
+            panic!("El error no es del tipo Errors::SyntaxError");
+        }
+    }
+    #[test]
+    fn test_12_alter_table_missing_column_to_renmae_in_rename_option_should_error() {
+        let tokens = vec![
+            Token::Reserved(TABLE.to_string()),
+            Token::Identifier(TABLE_NAME.to_string()),
+            Token::Reserved(RENAME.to_string()),
+            Token::Identifier(FIRST_COLUMN.to_string()),
+            Token::Reserved(TO.to_string()),
+        ];
+
+        let alter_table_parser = AlterTableParser::new();
+        let result = alter_table_parser.parse(tokens);
+
+        assert!(result.is_err());
+
+        if let Err(Errors::SyntaxError(msg)) = result {
+            assert_eq!(msg, QUERY_LACKS_PARAMETERS);
+        } else {
+            panic!("El error no es del tipo Errors::SyntaxError");
+        }
     }
 }
