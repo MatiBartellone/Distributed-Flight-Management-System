@@ -1,4 +1,7 @@
 use super::where_logic::where_clause::WhereClause;
+use crate::utils::errors::Errors;
+
+use super::query::Query;
 
 #[derive(PartialEq, Debug)]
 pub struct DeleteQuery {
