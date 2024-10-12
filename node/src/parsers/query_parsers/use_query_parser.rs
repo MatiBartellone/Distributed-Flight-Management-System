@@ -1,8 +1,8 @@
 use std::{iter::Peekable, vec::IntoIter};
 
+use crate::utils::token_conversor::get_next_value;
 use crate::{parsers::tokens::token::Token, queries::use_query::UseQuery, utils::errors::Errors};
 
-const MISSING_KEYSPACE: &str = "Missing keyspace name";
 const UNEXPECTED_TOKEN: &str = "Unexpected token in keyspace_name";
 
 pub struct UseQueryParser;
@@ -19,19 +19,13 @@ impl UseQueryParser {
         tokens: &mut Peekable<IntoIter<Token>>,
         query: &mut UseQuery,
     ) -> Result<(), Errors> {
-        match self.get_next_token(tokens)? {
+        match get_next_value(tokens)? {
             Token::Identifier(identifier) => {
                 query.keyspace_name = identifier;
                 Ok(())
             }
             _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_TOKEN))),
         }
-    }
-
-    fn get_next_token(&self, tokens: &mut Peekable<IntoIter<Token>>) -> Result<Token, Errors> {
-        tokens
-            .next()
-            .ok_or(Errors::SyntaxError(String::from(MISSING_KEYSPACE)))
     }
 }
 
@@ -42,6 +36,7 @@ mod tests {
 
     const KEYSPACE_NAME: &str = "keyspace_name";
     const UNEXPECTED: &str = "UNEXPECTED";
+    const PARAMETERS_MISSING: &str = "Query lacks parameters";
 
     #[test]
     fn test_01_use_keyspace_is_valid() {
@@ -59,7 +54,7 @@ mod tests {
         assert!(result.is_err());
 
         if let Err(Errors::SyntaxError(msg)) = result {
-            assert_eq!(msg, MISSING_KEYSPACE);
+            assert_eq!(msg, PARAMETERS_MISSING);
         } else {
             panic!("El error no es del tipo Errors::SyntaxError");
         }
