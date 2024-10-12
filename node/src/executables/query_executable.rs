@@ -6,21 +6,22 @@ use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
 use crate::utils::parser_constants::RESULT;
 
-pub struct QueryExecutable{
+pub struct QueryExecutable {
     query: Box<dyn Query>,
-    _consistency: ConsistencyLevel
+    consistency: ConsistencyLevel,
 }
 
 impl QueryExecutable {
-    pub fn new(query: Box<dyn Executable>, consistency: ConsistencyLevel) -> QueryExecutable {
-        QueryExecutable { query, _consistency: consistency 
-        }
+    pub fn new(query: Box<dyn Query>, consistency: ConsistencyLevel) -> QueryExecutable {
+        QueryExecutable { query, consistency }
     }
 }
 
 impl Executable for QueryExecutable {
     fn execute(&self, request: Frame) -> Result<Frame, Errors> {
+        let _ = self.consistency;
         self.query.run()?;
         FrameBuilder::build_response_frame(request, RESULT, Vec::new())
     }
 }
+
