@@ -19,6 +19,12 @@ const RENAME: &str = "RENAME";
 const DROP: &str = "DROP";
 pub struct AlterTableParser;
 
+impl Default for AlterTableParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AlterTableParser {
     pub fn new() -> AlterTableParser {
         AlterTableParser {}

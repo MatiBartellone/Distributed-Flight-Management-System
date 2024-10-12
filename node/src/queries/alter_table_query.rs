@@ -16,6 +16,12 @@ pub enum Operations {
     WITH,
 }
 
+impl Default for AlterTableQuery {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AlterTableQuery {
     pub fn new() -> AlterTableQuery {
         AlterTableQuery {
