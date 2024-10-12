@@ -6,7 +6,7 @@ use std::{vec::IntoIter, iter::Peekable};
 
 use Token::*;
 
-use super::{drop_keyspace_parser::DropSpaceQueryParser, drop_table_parser::DropTableQueryParser};
+use super::{drop_keyspace_parser::DropKeySpaceQueryParser, drop_table_parser::DropTableQueryParser};
 
 pub struct DropQueryParser;
 
@@ -21,7 +21,7 @@ impl DropQueryParser {
 fn reserv(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Box<dyn Query>, Errors>{
     match get_next_value(tokens)? {
         Reserved(title) if title == KEYSPACE => {
-            let query = DropSpaceQueryParser::parse(tokens)?;
+            let query = DropKeySpaceQueryParser::parse(tokens)?;
             Ok(Box::new(query))
         }
         Reserved(title) if title == TABLE => {

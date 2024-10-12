@@ -5,9 +5,9 @@ use crate::utils::constants::*;
 use std::{vec::IntoIter, iter::Peekable};
 
 
-pub struct DropSpaceQueryParser;
+pub struct DropKeySpaceQueryParser;
 
-impl DropSpaceQueryParser {
+impl DropKeySpaceQueryParser {
     pub fn parse(tokens: &mut Peekable<IntoIter<Token>>) -> Result<DropKeySpaceQuery, Errors> {
         let mut drop_query = DropKeySpaceQuery::new();
         identifier(tokens, &mut drop_query, false)?;
@@ -65,7 +65,7 @@ mod tests {
             Token::Identifier("my_keyspace".to_string()),
         ];
         let mut token_iter = tokens.into_iter().peekable();
-        let result = DropSpaceQueryParser::parse(&mut token_iter);
+        let result = DropKeySpaceQueryParser::parse(&mut token_iter);
 
         // Verificamos que el resultado sea exitoso
         assert!(result.is_ok());
@@ -83,7 +83,7 @@ mod tests {
             Token::Identifier("my_keyspace".to_string()),
         ];
         let mut token_iter = tokens.into_iter().peekable();
-        let result = DropSpaceQueryParser::parse(&mut token_iter);
+        let result = DropKeySpaceQueryParser::parse(&mut token_iter);
 
         // Verificamos que el resultado sea exitoso y contenga IF EXISTS
         assert!(result.is_ok());
@@ -99,7 +99,7 @@ mod tests {
             Token::Reserved("INVALID".to_string()), // Token inválido
         ];
         let mut token_iter = tokens.into_iter().peekable();
-        let result = DropSpaceQueryParser::parse(&mut token_iter);
+        let result = DropKeySpaceQueryParser::parse(&mut token_iter);
 
         // Verificamos que devuelva un error de sintaxis
         assert!(result.is_err());
@@ -118,7 +118,7 @@ mod tests {
             Token::Identifier("extra_token".to_string()), // Token extra no esperado
         ];
         let mut token_iter = tokens.into_iter().peekable();
-        let result = DropSpaceQueryParser::parse(&mut token_iter);
+        let result = DropKeySpaceQueryParser::parse(&mut token_iter);
 
         // Verificamos que devuelva un error por los parámetros sobrantes
         assert!(result.is_err());
@@ -137,7 +137,7 @@ mod tests {
             Token::Reserved("INVALID".to_string()), // Token inválido después de IF
         ];
         let mut token_iter = tokens.into_iter().peekable();
-        let result = DropSpaceQueryParser::parse(&mut token_iter);
+        let result = DropKeySpaceQueryParser::parse(&mut token_iter);
 
         // Verificamos que devuelva un error de sintaxis en el IF
         assert!(result.is_err());
