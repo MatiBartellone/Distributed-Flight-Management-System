@@ -10,25 +10,46 @@ pub struct DropKeySpaceQueryParser;
 impl DropKeySpaceQueryParser {
     pub fn parse(tokens: &mut Peekable<IntoIter<Token>>) -> Result<DropKeySpaceQuery, Errors> {
         let mut drop_query = DropKeySpaceQuery::new();
-        identifier(tokens, &mut drop_query, false)?;
+        frok(tokens, &mut drop_query)?;
         Ok(drop_query)
     }
 }
 
-fn identifier(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropKeySpaceQuery, is_final: bool) -> Result<(), Errors> {
+fn frok(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropKeySpaceQuery) -> Result<(), Errors> {
+    match tokens.peek() {
+        Some(Token::Identifier(_)) => table(tokens, query),
+        Some(Token::Reserved(_)) => ifa(tokens, query),
+        _ => {
+            Err(Errors::SyntaxError(String::from(
+                "Unexpected token in table_name",
+            )))
+        }
+    }
+}
+
+fn table(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropKeySpaceQuery) -> Result<(), Errors> {
     match get_next_value(tokens)?{
         Token::Identifier(title) => {
             query.keyspace = title;
             finish(tokens)
         }
-        Token::Reserved(res) if res == *IF && !is_final => exists(tokens, query) ,
         _ => {
-            println!("aa");
             Err(Errors::SyntaxError(String::from(
             "Unexpected token in table_name",
         )))},
     }
 }
+
+fn ifa(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropKeySpaceQuery) -> Result<(), Errors> {
+    match get_next_value(tokens)?{
+        Token::Reserved(res) if res == *IF => exists(tokens, query) ,
+        _ => {
+            Err(Errors::SyntaxError(String::from(
+            "Unexpected token in table_name",
+        )))},
+    }
+}
+
 
 fn finish(tokens: &mut Peekable<IntoIter<Token>>) -> Result<(), Errors> {
     if tokens.next().is_none(){
@@ -43,7 +64,7 @@ fn exists(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropKeySpaceQuery)
     match get_next_value(tokens)? {
         Token::Reserved(res) if res == *EXISTS => {
             query.if_exist = Some(true);
-            identifier(tokens, query, true)
+            table(tokens, query)
         }
         _ => Err(Errors::SyntaxError(String::from(
             "Unexpected token after IF",
