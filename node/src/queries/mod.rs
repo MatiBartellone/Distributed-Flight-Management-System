@@ -16,4 +16,3 @@ pub mod set_logic;
 pub mod update_query;
 pub mod use_query;
 pub mod where_logic;
-

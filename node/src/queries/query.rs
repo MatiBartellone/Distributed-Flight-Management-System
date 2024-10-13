@@ -1,3 +1,3 @@
 pub trait Query {
-    fn run();
+    fn run(&mut self);
 }
