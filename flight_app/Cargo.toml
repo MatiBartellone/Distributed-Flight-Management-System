@@ -1,0 +1,9 @@
+[package]
+name = "flight_app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gtk = "0.15"
+glib = "0.15"
+gdk = "0.15"
