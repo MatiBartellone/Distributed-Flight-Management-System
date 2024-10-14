@@ -13,3 +13,4 @@ pub mod drop_query_parser;
 pub mod drop_keyspace_parser;
 pub mod drop_table_parser;
 pub mod use_query_parser;
+pub mod create_query_parser;

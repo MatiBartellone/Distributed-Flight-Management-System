@@ -4,11 +4,9 @@ use crate::queries::create_table_query::CreateTableQuery;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
 
-const TABLE: &str = "TABLE";
 const PRIMARY: &str = "PRIMARY";
 const KEY: &str = "KEY";
 const COMMA: &str = ",";
-const TABLE_ERR: &str = "CREATE not followed by TABLE";
 const UNEXPECTED_TABLE_ERR: &str = "Unexpected token in table name";
 const NOTHING_AFTER_CL_ERR: &str = "Nothing should follow the column list";
 const UNEXPECTED_COLUMN_ERR: &str = "Unexpected token in column definition";
@@ -26,18 +24,12 @@ pub struct CreateTableQueryParser;
 impl CreateTableQueryParser {
     pub fn parse(tokens: Vec<Token>) -> Result<CreateTableQuery, Errors> {
         let mut create_table_query = CreateTableQuery::new();
-        table(&mut tokens.into_iter(), &mut create_table_query)?;
+        table_name(&mut tokens.into_iter(), &mut create_table_query)?;
         check_primary_key(&mut create_table_query)?;
         Ok(create_table_query)
     }
 }
 
-fn table(tokens: &mut IntoIter<Token>, query: &mut CreateTableQuery) -> Result<(), Errors> {
-    match get_next_value(tokens)? {
-        Token::Reserved(res) if res == *TABLE => table_name(tokens, query),
-        _ => Err(Errors::SyntaxError(String::from(TABLE_ERR))),
-    }
-}
 fn table_name(tokens: &mut IntoIter<Token>, query: &mut CreateTableQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Identifier(identifier) => {
@@ -182,7 +174,6 @@ mod tests {
 
     fn get_valid_tokens_1(col1: Token, type1: Token) -> Vec<Token> {
         vec![
-            Token::Reserved(String::from(TABLE)),
             Token::Identifier(String::from("table_name")),
             Token::ParenList(vec![
                 col1,
@@ -198,7 +189,6 @@ mod tests {
     }
     fn get_valid_tokens_2(col1: Token, type1: Token, primary_key: &str) -> Vec<Token> {
         vec![
-            Token::Reserved(String::from(TABLE)),
             Token::Identifier(String::from("table_name")),
             Token::ParenList(vec![
                 col1,
@@ -264,16 +254,8 @@ mod tests {
     }
 
     #[test]
-    fn test_create_table_missing_table_keyword() {
-        let tokens = vec![Token::Identifier(String::from("NOT TABLE"))];
-        let result = CreateTableQueryParser::parse(tokens);
-        assert_error(result, TABLE_ERR);
-    }
-
-    #[test]
     fn test_create_table_unexpected_table_name() {
         let tokens = vec![
-            Token::Reserved(String::from(TABLE)),
             Token::Reserved(String::from("UNEXPECTED")),
         ];
         let result = CreateTableQueryParser::parse(tokens);
@@ -283,7 +265,6 @@ mod tests {
     #[test]
     fn test_create_table_unexpected_column_definition() {
         let tokens = vec![
-            Token::Reserved(String::from(TABLE)),
             Token::Identifier(String::from("table_name")),
             Token::Identifier(String::from("UNEXPECTED")),
         ];
@@ -325,7 +306,6 @@ mod tests {
     #[test]
     fn test_create_table_more_than_one_primary_key() {
         let tokens = vec![
-            Token::Reserved(String::from(TABLE)),
             Token::Identifier(String::from("table_name")),
             Token::ParenList(vec![
                 Token::Identifier(String::from("id")),
@@ -346,7 +326,6 @@ mod tests {
     #[test]
     fn test_create_table_not_defined_primary_key() {
         let tokens = vec![
-            Token::Reserved(String::from(TABLE)),
             Token::Identifier(String::from("table_name")),
             Token::ParenList(vec![
                 Token::Identifier(String::from("id")),
@@ -360,7 +339,6 @@ mod tests {
     #[test]
     fn test_create_table_more_than_one_id_in_pk_parentheses() {
         let tokens = vec![
-            Token::Reserved(String::from(TABLE)),
             Token::Identifier(String::from("table_name")),
             Token::ParenList(vec![
                 Token::Identifier(String::from("id")),

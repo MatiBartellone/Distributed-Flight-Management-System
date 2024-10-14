@@ -7,6 +7,7 @@ use crate::utils::errors::Errors;
 use crate::utils::token_conversor::get_next_value;
 
 use super::query_parsers::alter_table_parser::AlterTableParser;
+use super::query_parsers::create_query_parser::CreateQueryParser;
 use super::query_parsers::delete_query_parser::DeleteQueryParser;
 use super::query_parsers::drop_query_parser::DropQueryParser;
 use super::query_parsers::insert_query_parser::InsertQueryParser;
@@ -50,7 +51,7 @@ fn query_parser(tokens: Vec<Token>) -> Result<Box<dyn Query>, Errors> {
                 "USE" => Ok(Box::new(UseQueryParser.parse(tokens)?)),
                 "ALTER" => Ok(Box::new(AlterTableParser.parse(tokens)?)),
                 "DROP" => DropQueryParser::parse(tokens),
-                // "CREATE" => CreateQueryParser::parse(tokens),
+                "CREATE" => CreateQueryParser::parse(tokens),
                 _ => Err(Errors::SyntaxError(format!("Unknown query type: {}", res))),
             }
         },
