@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-const WORDS_SYMBOLS: &[&str] = &["{", "}", ",", ":"];
+const WORDS_SYMBOLS: &[&str] = &[",", ":"];
 
 pub struct Symbols {
     words: HashSet<&'static str>,

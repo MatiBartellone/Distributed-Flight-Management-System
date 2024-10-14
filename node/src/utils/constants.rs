@@ -32,3 +32,5 @@ pub const INTO: &str = "INTO";
 pub const VALUES: &str = "VALUES";
 pub const ORDER: &str = "ORDER";
 pub const COMMA: &str = ",";
+pub const KEYSPACE: &str = "KEYSPACE";
+pub const TABLE: &str = "TABLE";

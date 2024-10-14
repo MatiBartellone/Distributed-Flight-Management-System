@@ -6,9 +6,13 @@ use crate::utils::bytes_cursor::BytesCursor;
 use crate::utils::errors::Errors;
 use crate::utils::token_conversor::get_next_value;
 
+use super::query_parsers::alter_table_parser::AlterTableParser;
 use super::query_parsers::delete_query_parser::DeleteQueryParser;
+use super::query_parsers::drop_query_parser::DropQueryParser;
 use super::query_parsers::insert_query_parser::InsertQueryParser;
 use super::query_parsers::select_query_parser::SelectQueryParser;
+use super::query_parsers::update_query_parser::UpdateQueryParser;
+use super::query_parsers::use_query_parser::UseQueryParser;
 use super::tokens::lexer::standardize;
 use super::tokens::token::{tokenize, Token};
 use Token::*;
@@ -41,10 +45,12 @@ fn query_parser(tokens: Vec<Token>) -> Result<Box<dyn Query>, Errors> {
             match res.as_str() {
                 "SELECT" => Ok(Box::new(SelectQueryParser::parse(tokens)?)),
                 "INSERT" => Ok(Box::new(InsertQueryParser::parse(tokens)?)),
-                //"UPDATE" => Ok(Box::new(UpdateQueryParser::parse(tokens)?)),
+                "UPDATE" => Ok(Box::new(UpdateQueryParser::parse(tokens)?)),
                 "DELETE" => Ok(Box::new(DeleteQueryParser::parse(tokens)?)),
-                //"DROP" => DropQueryParser::parse(tokens),
-                // ...
+                "USE" => Ok(Box::new(UseQueryParser.parse(tokens)?)),
+                "ALTER" => Ok(Box::new(AlterTableParser.parse(tokens)?)),
+                "DROP" => DropQueryParser::parse(tokens),
+                // "CREATE" => CreateQueryParser::parse(tokens),
                 _ => Err(Errors::SyntaxError(format!("Unknown query type: {}", res))),
             }
         },
