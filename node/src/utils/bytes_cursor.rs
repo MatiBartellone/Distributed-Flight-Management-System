@@ -2,6 +2,8 @@ use crate::utils::errors::Errors;
 use std::collections::HashMap;
 use std::io::{Cursor, Read};
 
+use super::consistency_level::ConsistencyLevel;
+
 pub struct BytesCursor {
     cursor: Cursor<Vec<u8>>,
 }
@@ -83,6 +85,11 @@ impl BytesCursor {
         let bytes = self.read_exact(length)?;
         String::from_utf8(bytes)
             .map_err(|_| Errors::ProtocolError(String::from("Invalid UTF-8 string")))
+    }
+
+    pub fn read_consistency(&mut self) -> Result<ConsistencyLevel, Errors> {
+        let value = self.read_short()?;
+        ConsistencyLevel::from_i16(value)
     }
 
     pub fn read_string_map(&mut self) -> Result<HashMap<String, String>, Errors> {

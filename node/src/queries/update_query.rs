@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use super::{if_clause::IfClause, set_logic::assigmente_value::AssignmentValue, where_logic::where_clause::WhereClause};
+use crate::utils::errors::Errors;
+
+use super::{if_clause::IfClause, query::Query, set_logic::assigmente_value::AssignmentValue, where_logic::where_clause::WhereClause};
 
 #[derive(PartialEq, Debug)]
 pub struct UpdateQuery {
@@ -24,5 +26,11 @@ impl UpdateQuery {
 impl Default for UpdateQuery {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Query for UpdateQuery {
+    fn run(&self) -> Result<(), Errors> {
+        todo!()
     }
 }

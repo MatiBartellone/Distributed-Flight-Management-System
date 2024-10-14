@@ -18,7 +18,7 @@ impl SelectQueryParser {
 
 fn columns(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
-        Token::ParenList(list) => {
+        Token::IterateToken(list) => {
             query.columns = get_columns(list)?;
             from(tokens, query)
         }
@@ -145,7 +145,7 @@ mod tests {
     #[test]
     fn test_select_query_parser_valid_no_where_no_order() {
         let tokens = vec![
-            Token::ParenList(vec![Token::Identifier(String::from("id"))]),
+            Token::IterateToken(vec![Token::Identifier(String::from("id"))]),
             Token::Reserved(String::from(FROM)),
             Token::Identifier(String::from("table_name")),
         ];
@@ -167,7 +167,7 @@ mod tests {
     #[test]
     fn test_select_query_parser_missing_from() {
         let tokens = vec![
-            Token::ParenList(vec![Token::Identifier(String::from("id"))]),
+            Token::IterateToken(vec![Token::Identifier(String::from("id"))]),
             Token::Reserved(String::from("NOT FROM")),
         ];
         let result = SelectQueryParser::parse(tokens);
@@ -176,7 +176,7 @@ mod tests {
     #[test]
     fn test_select_query_parser_unexpected_table_name() {
         let tokens = vec![
-            Token::ParenList(vec![Token::Identifier(String::from("id"))]),
+            Token::IterateToken(vec![Token::Identifier(String::from("id"))]),
             Token::Reserved(String::from(FROM)),
             Token::Reserved(String::from("UNEXPECTEDS")),
         ];
@@ -186,7 +186,7 @@ mod tests {
     #[test]
     fn test_select_query_parser_unexpected_modifiers() {
         let tokens = vec![
-            Token::ParenList(vec![Token::Identifier(String::from("id"))]),
+            Token::IterateToken(vec![Token::Identifier(String::from("id"))]),
             Token::Reserved(String::from(FROM)),
             Token::Identifier(String::from("table_name")),
             Token::Reserved(String::from("Unexpected")),
@@ -197,7 +197,7 @@ mod tests {
     #[test]
     fn test_select_query_parser_unexpected_token_in_where_clause() {
         let tokens = vec![
-            Token::ParenList(vec![Token::Identifier(String::from("id"))]),
+            Token::IterateToken(vec![Token::Identifier(String::from("id"))]),
             Token::Reserved(String::from(FROM)),
             Token::Identifier(String::from("table_name")),
             Token::Reserved(String::from(WHERE)),
@@ -210,7 +210,7 @@ mod tests {
     #[test]
     fn test_select_query_parser_missing_by_after_order() {
         let tokens = vec![
-            Token::ParenList(vec![Token::Identifier(String::from("id"))]),
+            Token::IterateToken(vec![Token::Identifier(String::from("id"))]),
             Token::Reserved(String::from(FROM)),
             Token::Identifier(String::from("table_name")),
             Token::Reserved(String::from(ORDER)),
@@ -222,7 +222,7 @@ mod tests {
     #[test]
     fn test_select_query_parser_unexpected_token_in_order_clause() {
         let tokens = vec![
-            Token::ParenList(vec![Token::Identifier(String::from("id"))]),
+            Token::IterateToken(vec![Token::Identifier(String::from("id"))]),
             Token::Reserved(String::from(FROM)),
             Token::Identifier(String::from("table_name")),
             Token::Reserved(String::from(ORDER)),

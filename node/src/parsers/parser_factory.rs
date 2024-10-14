@@ -24,7 +24,7 @@ impl ParserFactory {
             REGISTER => Ok(Box::new(RegisterParser)),
             EVENT => Ok(Box::new(EventParser)),
             BATCH => Ok(Box::new(BatchParser)),
-            AUTH_RESPONSE => Ok(Box::new(AuthResponseParser {})),
+            AUTH_RESPONSE => Ok(Box::new(AuthResponseParser)),
             _ => Err(Errors::ProtocolError(format!(
                 "Opcode {} is invalid",
                 opcode
