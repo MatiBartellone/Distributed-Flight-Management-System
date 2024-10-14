@@ -25,7 +25,7 @@ impl Default for DeleteQuery {
 }
 
 impl Query for DeleteQuery {
-    fn run(&self) -> Result<(), Errors> {
+    fn run(&self) -> Result<String, Errors> {
         todo!()
     }
 }

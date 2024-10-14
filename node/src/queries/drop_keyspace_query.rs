@@ -1,6 +1,6 @@
-
 use crate::{queries::query::Query, utils::errors::Errors};
 
+#[derive(PartialEq, Debug)]
 pub struct DropKeySpaceQuery {
     pub keyspace: String,
     pub if_exist: Option<bool>,
@@ -18,7 +18,7 @@ impl DropKeySpaceQuery {
 }
 
 impl Query for DropKeySpaceQuery {
-    fn run(&self) -> Result<(), Errors> {
+    fn run(&self) -> Result<String, Errors> {
         unimplemented!()
     }
 }

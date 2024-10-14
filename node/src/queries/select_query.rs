@@ -31,7 +31,7 @@ impl Default for SelectQuery {
 }
 
 impl Query for SelectQuery {
-    fn run(&self) -> Result<(), Errors> {
+    fn run(&self) -> Result<String, Errors> {
         todo!()
     }
 }

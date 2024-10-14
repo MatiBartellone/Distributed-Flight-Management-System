@@ -1,8 +1,7 @@
 use std::collections::HashMap;
-
 use crate::{parsers::tokens::{literal::Literal, terms::ComparisonOperators}, queries::{evaluate::Evaluate, where_logic::comparison::ComparisonExpr}, utils::errors::Errors};
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum IfClause {
     Exist,
     Comparison(ComparisonExpr),

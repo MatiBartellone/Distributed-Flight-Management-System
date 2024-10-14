@@ -2,6 +2,7 @@ use crate::utils::errors::Errors;
 
 use super::query::Query;
 
+#[derive(PartialEq, Debug)]
 pub struct UseQuery {
     pub keyspace_name: String,
 }
@@ -21,7 +22,7 @@ impl Default for UseQuery {
 }
 
 impl Query for UseQuery {
-    fn run(&self) -> Result<(), Errors> {
+    fn run(&self) -> Result<String, Errors> {
         todo!()
     }
 }

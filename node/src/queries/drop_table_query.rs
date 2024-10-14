@@ -1,6 +1,6 @@
-
 use crate::{queries::query::Query, utils::errors::Errors};
 
+#[derive(PartialEq, Debug)]
 pub struct DropTableQuery {
     pub table: String,
     pub if_exist: Option<bool>,
@@ -18,7 +18,7 @@ impl DropTableQuery {
 }
 
 impl Query for DropTableQuery {
-    fn run(&self) -> Result<(), Errors> {
+    fn run(&self) -> Result<String, Errors> {
         unimplemented!()
     }
 }

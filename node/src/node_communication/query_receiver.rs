@@ -1,10 +1,8 @@
-use std::error::Error;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
-use crate::frame::Frame;
 use crate::node_communication::query_serializer::QuerySerializer;
-use crate::response_builders::error_builder::ErrorBuilder;
+use crate::queries::query::Query;
 use crate::utils::errors::Errors;
 
 pub struct QueryReceiver {}
@@ -17,33 +15,32 @@ impl QueryReceiver {
             match incoming {
                 Ok(stream) => {
                     thread::spawn(move || {
-                        if let Ok(response) = self.handle_query(&stream) {
-                            self.respond_to_request(stream, response);
+                        if let Ok(response) = handle_query(&stream) {
+                            respond_to_request(stream, response);
                         } else {
-                            self.respond_to_request(stream, String::from("error"));
+                            respond_to_request(stream, String::from("error"));
                         };
                     });
                 },
-                Err(e) => {}
+                Err(_) => {}
             }
         }
     }
-
-    fn handle_query(&self, mut stream: &TcpStream) -> Result<String, Errors> {
+}
+    fn handle_query(mut stream: &TcpStream) -> Result<String, Errors> {
         let mut buffer = [0; 1024];
         match stream.read(&mut buffer) {
             Ok(_) => {
-                let query = QuerySerializer::deserialize(&buffer);
+                let query = QuerySerializer::deserialize(&buffer)?;
                 let response = query.run()?;
                 Ok(response)
             }
-            Err(e) => {
+            Err(_) => {
                 Err(Errors::ServerError(String::from("")))
             }
         }
     }
 
-    fn respond_to_request(&self, mut stream: TcpStream, response: String) {
+    fn respond_to_request(mut stream: TcpStream, response: String) {
         stream.write(response.as_bytes()).unwrap();
     }
-}

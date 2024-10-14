@@ -2,6 +2,7 @@ use crate::{parsers::tokens::data_type::DataType, utils::errors::Errors};
 
 use super::query::Query;
 
+#[derive(PartialEq, Debug)]
 pub struct AlterTableQuery {
     pub table_name: String,
     pub operation: Option<Operations>,
@@ -37,7 +38,7 @@ impl AlterTableQuery {
 }
 
 impl Query for AlterTableQuery {
-    fn run(&self) -> Result<(), Errors> {
+    fn run(&self) -> Result<String, Errors> {
         todo!()
     }
 }

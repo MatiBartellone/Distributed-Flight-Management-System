@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+#[derive(PartialEq, Debug)]
 pub struct CreateKeyspaceQuery {
     pub keyspace: String,
     pub replication: HashMap<String, String>,
