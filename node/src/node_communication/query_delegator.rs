@@ -3,25 +3,27 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
+use crate::frame::Frame;
 use crate::queries::query::Query;
+use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
-use crate::node_communication::query_serializer::QuerySerializer;
+//use crate::node_communication::query_serializer::QuerySerializer;
 
 
 const REPLICATION : i32 = 3;
 pub struct QueryDelegator{
     node: i32,
-    serialized_query: Vec<u8>,
-    consistency: i32
+    request_frame: Frame,
+    consistency: ConsistencyLevel
 }
 
 impl QueryDelegator {
-    pub fn new(node: i32, query: Box<dyn Query>, consistency: i32) -> Result<Self, Errors> {
-        Ok(Self{
+    pub fn new(node: i32, request_frame: Frame, consistency: ConsistencyLevel) -> Self {
+        Self{
             node,
-            serialized_query: QuerySerializer::serialize(&query)?,
+            request_frame,
             consistency
-        })
+        }
     }
 
     // pub fn send(&self) -> Result<String, Errors> {
@@ -37,17 +39,17 @@ impl QueryDelegator {
     //     }
     //     Ok(self.get_response(responses)?)
     // }
-    pub fn send(&self, consistency: usize) -> Result<String, Errors> {
-        let serialized_query = self.serialized_query.clone();
+    pub fn send(&self, consistency: usize) -> Result<Frame, Errors> {
+        let request_frame = self.request_frame.clone();
         let responses = Arc::new(Mutex::new(Vec::new()));
         let (tx, rx) = mpsc::channel();
         let mut handles = Vec::new();
 
         for ip in self.get_nodes_ip()? {
-            let serialized_query = serialized_query.clone();
+            let request_frame = request_frame.clone();
             let tx = tx.clone();
             let handle = thread::spawn(move || {
-                if let Ok(response) = QueryDelegator::send_to_node(ip, serialized_query) {
+                if let Ok(response) = QueryDelegator::send_to_node(ip, request_frame) {
                     if tx.send(response).is_ok() {
                     }
                 }
@@ -79,16 +81,19 @@ impl QueryDelegator {
         Ok(ips)
     }
 
-    fn send_to_node(ip: String, serialized_query: Vec<u8>) -> Result<String, Errors>  {
+    fn send_to_node(ip: String, request_frame: Frame) -> Result<Frame, Errors>  {
         match TcpStream::connect(ip) {
             Ok(mut stream) => {
-                if stream.write(&serialized_query.as_slice()).is_err() {
+                if stream.write(request_frame.to_bytes().as_slice()).is_err() {
                     return Err(Errors::ServerError(String::from("Unable to send query to node")));
                 };
                 stream.flush().expect("");
                 let mut buf = [0; 1024];
                 match stream.read(&mut buf) {
-                    Ok(_) => Ok(String::from_utf8_lossy(&buf).to_string()),
+                    Ok(n) => {
+                        let frame = Frame::parse_frame(&buf[..n]).expect("Error parsing frame");
+                        Ok(frame)
+                    }
                     Err(_) => Err(Errors::ServerError(String::from("Unable to read from node")))
                 }
             },
@@ -98,15 +103,15 @@ impl QueryDelegator {
         }
     }
 
-    fn get_response(&self, responses: Vec<String>) -> Result<String, Errors> {
+    fn get_response(&self, responses: Vec<Frame>) -> Result<Frame, Errors> {
         let Some(response) = responses.first() else {
             return Err(Errors::ServerError(String::from("No response found")));
         };
         for r in &responses {
-            if String::cmp(&r, response) != Ordering::Equal {
+            if r != response {
                 // READ REPAIR
             }
         }
-        Ok(response.to_string())
+        Ok(response.clone())
     }
 }

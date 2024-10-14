@@ -5,7 +5,6 @@ use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
 use node::response_builders::error_builder::ErrorBuilder;
-use node::response_builders::frame_builder::FrameBuilder;
 
 fn main() {
     print!("node's ip: ");

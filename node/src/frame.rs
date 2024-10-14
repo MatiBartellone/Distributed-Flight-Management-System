@@ -1,7 +1,7 @@
 use crate::utils::bytes_cursor::BytesCursor;
 use crate::utils::errors::Errors;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Frame {
     pub version: u8,
     pub flags: u8,

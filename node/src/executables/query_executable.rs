@@ -21,6 +21,6 @@ impl Executable for QueryExecutable {
     fn execute(&self, request: Frame) -> Result<Frame, Errors> {
         let _ = self.consistency;
         self.query.run()?;
-        FrameBuilder::build_response_frame(request, RESULT, Vec::new())
+        FrameBuilder::build_response_frame(request, RESULT, "query_response".as_bytes().to_vec())
     }
 }

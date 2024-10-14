@@ -1,8 +1,6 @@
-use serde::{Deserialize, Serialize};
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
 
 
-#[derive(PartialEq, Debug, Serialize, Deserialize)]
 pub struct InsertQuery {
     pub table: String,
     pub headers: Vec<String>,
