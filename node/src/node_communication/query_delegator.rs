@@ -39,7 +39,7 @@ impl QueryDelegator {
     //     }
     //     Ok(self.get_response(responses)?)
     // }
-    pub fn send(&self, consistency: usize) -> Result<Frame, Errors> {
+    pub fn send(&self) -> Result<Frame, Errors> {
         let request_frame = self.request_frame.clone();
         let responses = Arc::new(Mutex::new(Vec::new()));
         let (tx, rx) = mpsc::channel();
@@ -58,7 +58,7 @@ impl QueryDelegator {
         }
 
         // Recibir respuestas hasta alcanzar la consistencia
-        for _ in 0..consistency {
+        for _ in 0..self.consistency.get_consistency(3) {
             if let Ok(response) = rx.recv() {
                 let mut res = responses.lock().unwrap();
                 res.push(response);
@@ -74,6 +74,7 @@ impl QueryDelegator {
     }
 
     fn get_nodes_ip(&self) -> Result<Vec<String>, Errors> {
+        return Ok(vec!["127.0.0.2:8080".to_string()]);
         let mut ips: Vec<String> = Vec::new();
         for node in self.node..self.node + REPLICATION {
             //ips.push(get_ip(node))      EXTRAE DE METADATA ACCESS

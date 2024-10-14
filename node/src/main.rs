@@ -1,10 +1,14 @@
+use std::fs::File;
 use node::frame::Frame;
 use node::parsers::parser_factory::ParserFactory;
 use node::utils::errors::Errors;
 use std::io::{self, Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::{IpAddr, TcpListener, TcpStream};
 use std::thread;
+use node::executables::query_executable::Node;
 use node::response_builders::error_builder::ErrorBuilder;
+
+
 
 fn main() {
     print!("node's ip: ");
@@ -14,8 +18,13 @@ fn main() {
         .expect("Error reading ip");
     let ip = ip.trim();
 
-    let listener = TcpListener::bind(ip).expect("Error binding socket");
-    println!("Servidor escuchando en {}", ip);
+    let node = Node::new(ip.to_string(), 8080);
+    node.write_to_file("src/node_info.json");
+
+
+    let listener = TcpListener::bind(node.get_full_ip()).expect("Error binding socket");
+    println!("Servidor escuchando en {}", node.get_full_ip());
+
 
     for incoming in listener.incoming() {
         match incoming {

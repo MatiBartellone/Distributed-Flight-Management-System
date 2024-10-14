@@ -23,6 +23,6 @@ impl Default for UseQuery {
 
 impl Query for UseQuery {
     fn run(&self) -> Result<String, Errors> {
-        todo!()
+        Ok("response_from_second_node".to_string())
     }
 }

@@ -19,7 +19,7 @@ fn main() {
 
     match node {
         "1" => socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
-        "2" => socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8081),
+        "2" => socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 2)), 8080),
         _ => socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
     }
 
@@ -50,6 +50,17 @@ fn main() {
         0x05,
     ];
 
+    let query_bytes = vec![
+        0x03,
+        0x00,
+        0x00,0x01,
+        0x07,
+        0x00, 0x00, 0x00, 0x0C,
+        0x00, 0x00, 0x00, 0x06,
+        b'U', b'S', b'E', b' ', b'k', b'p',
+        0x00, 0x01
+    ];
+
 
     //let mut addrs_iter = ip.to_socket_addrs().expect("Invalid socket address");
     if let Ok(mut stream) = TcpStream::connect(socket) {
@@ -61,6 +72,7 @@ fn main() {
                 "startup" => {stream.write_all(startup_bytes.as_slice()).expect("Error writing to socket");}
                 "auth_response" => {stream.write_all(auth_response_bytes.as_slice()).expect("Error writing to socket");}
                 "options" => {stream.write_all(options_bytes.as_slice()).expect("Error writing to socket");}
+                "query" => {stream.write_all(query_bytes.as_slice()).expect("Error writing to socket");}
                 _ => { continue; }
             }
             stream.flush().expect("sds");
