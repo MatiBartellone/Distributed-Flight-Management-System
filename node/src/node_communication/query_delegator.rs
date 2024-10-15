@@ -1,10 +1,8 @@
-use std::cmp::Ordering;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use crate::frame::Frame;
-use crate::queries::query::Query;
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
 //use crate::node_communication::query_serializer::QuerySerializer;
@@ -58,7 +56,7 @@ impl QueryDelegator {
         }
 
         // Recibir respuestas hasta alcanzar la consistencia
-        for _ in 0..self.consistency.get_consistency(3) {
+        for _ in 0..self.consistency.get_consistency(REPLICATION as usize) {
             if let Ok(response) = rx.recv() {
                 let mut res = responses.lock().unwrap();
                 res.push(response);
@@ -75,11 +73,11 @@ impl QueryDelegator {
 
     fn get_nodes_ip(&self) -> Result<Vec<String>, Errors> {
         return Ok(vec!["127.0.0.2:8080".to_string()]);
-        let mut ips: Vec<String> = Vec::new();
-        for node in self.node..self.node + REPLICATION {
-            //ips.push(get_ip(node))      EXTRAE DE METADATA ACCESS
-        }
-        Ok(ips)
+        // let mut ips: Vec<String> = Vec::new();
+        // for node in self.node..self.node + REPLICATION {
+        //     //ips.push(get_ip(node))      EXTRAE DE METADATA ACCESS
+        // }
+        // Ok(ips)
     }
 
     fn send_to_node(ip: String, request_frame: Frame) -> Result<Frame, Errors>  {

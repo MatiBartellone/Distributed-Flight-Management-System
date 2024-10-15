@@ -30,8 +30,12 @@ impl Executable for QueryExecutable {
             delegator.send()
         } else {
             println!("soy nodo 2");
-            let msg = self.query.run()?;
-            FrameBuilder::build_response_frame(request, RESULT, msg.as_bytes().to_vec())
+            //let msg = self.query.run()?;
+            let text = format!("Response from ip: {}", get_ip());
+            let mut msg = Vec::new();
+            msg.extend_from_slice((text.len() as u16).to_be_bytes().as_ref());
+            msg.extend_from_slice(text.as_bytes());
+            FrameBuilder::build_response_frame(request, RESULT, msg)
         }
     }
 }

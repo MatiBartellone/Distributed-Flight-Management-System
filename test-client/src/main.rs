@@ -1,27 +1,20 @@
 use std::io;
 use std::io::{Read, Write};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream, ToSocketAddrs};
-use std::str::FromStr;
-use std::time::Duration;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream};
 use test_client::bytes_cursor::BytesCursor;
 use test_client::frame::Frame;
 
 fn main() {
 
-    print!("connecto to node (1) or (2):");
+    print!("Ip: ");
     io::stdout().flush().unwrap();
     let mut node = String::new();
     io::stdin().read_line(&mut node)
         .expect("Error reading node");
     let node = node.trim();
 
-    let mut socket;
 
-    match node {
-        "1" => socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
-        "2" => socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 2)), 8080),
-        _ => socket = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 8080),
-    }
+
 
     let startup_bytes = vec![
         0x03,
@@ -48,6 +41,7 @@ fn main() {
         0x00,
         0x00,0x01,
         0x05,
+        0x00, 0x00, 0x00, 0x00,
     ];
 
     let query_bytes = vec![
@@ -63,8 +57,8 @@ fn main() {
 
 
     //let mut addrs_iter = ip.to_socket_addrs().expect("Invalid socket address");
-    if let Ok(mut stream) = TcpStream::connect(socket) {
-
+    if let Ok(mut stream) = TcpStream::connect((node, 8080)) {
+        println!("{}", format!("connected to {}:8080", node));
         let mut input = String::new();
         while let Ok(_) = io::stdin().read_line(&mut input) {
             match input.trim() {
@@ -82,10 +76,36 @@ fn main() {
                     if n > 0 {
                         let frame = Frame::parse_frame(&buf[..n]).expect("Error parsing frame");
                         dbg!(&frame);
-                        if frame.opcode == 0x00 {
-                            let mut cursor = BytesCursor::new(frame.body.as_slice());
-                            dbg!(cursor.read_long_string());
+                        match frame.opcode {
+                            0x00 => {
+                                let mut cursor = BytesCursor::new(frame.body.as_slice());
+                                println!("ERROR");
+                                dbg!(cursor.read_string());
+                            }
+                            0x03 => {
+                                let mut cursor = BytesCursor::new(frame.body.as_slice());
+                                println!("AUTHENTICATE");
+                                dbg!(cursor.read_string().unwrap());
+                            }
+                            0x10 => {
+                                println!("AUTH_SUCCESS");
+                            }
+                            0x0E => {
+                                println!("AUTH_CHALLENGE");
+                            }
+                            0x06 => {
+                                let mut cursor = BytesCursor::new(frame.body.as_slice());
+                                println!("SUPPORTED");
+                                dbg!(cursor.read_string_map().unwrap());
+                            }
+                            0x08 => {
+                                let mut cursor = BytesCursor::new(frame.body.as_slice());
+                                println!("RESULT");
+                                dbg!(cursor.read_string().unwrap());
+                            }
+                            _ => {}
                         }
+
                     }
                 }
                 Err(e) => {

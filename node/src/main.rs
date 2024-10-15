@@ -1,9 +1,8 @@
-use std::fs::File;
 use node::frame::Frame;
 use node::parsers::parser_factory::ParserFactory;
 use node::utils::errors::Errors;
 use std::io::{self, Read, Write};
-use std::net::{IpAddr, TcpListener, TcpStream};
+use std::net::{TcpListener, TcpStream};
 use std::thread;
 use node::executables::query_executable::Node;
 use node::response_builders::error_builder::ErrorBuilder;
