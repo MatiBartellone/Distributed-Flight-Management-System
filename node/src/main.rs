@@ -5,6 +5,7 @@ use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
 use node::executables::query_executable::Node;
+use node::node_communication::query_receiver::QueryReceiver;
 use node::response_builders::error_builder::ErrorBuilder;
 
 
@@ -19,7 +20,9 @@ fn main() {
 
     let node = Node::new(ip.to_string(), 8080);
     node.write_to_file("src/node_info.json");
-
+    thread::spawn(move || {
+        QueryReceiver::start_listening();
+    });
 
     let listener = TcpListener::bind(node.get_full_ip()).expect("Error binding socket");
     println!("Servidor escuchando en {}", node.get_full_ip());

@@ -1,3 +1,4 @@
+use std::any::Any;
 use crate::{queries::query::Query, utils::errors::Errors};
 
 #[derive(PartialEq, Debug)]
@@ -20,6 +21,10 @@ impl DropKeySpaceQuery {
 impl Query for DropKeySpaceQuery {
     fn run(&self) -> Result<String, Errors> {
         unimplemented!()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 

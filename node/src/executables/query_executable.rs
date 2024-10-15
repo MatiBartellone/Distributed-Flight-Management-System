@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::executables::executable::Executable;
 use crate::frame::Frame;
 use crate::node_communication::query_delegator::QueryDelegator;
-use crate::queries::query::Query;
+use crate::queries::query::{Query, QueryEnum};
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
@@ -26,8 +26,15 @@ impl Executable for QueryExecutable {
 
         if needs_to_delegate() {
             dbg!("soy nodo 1");
-            let delegator = QueryDelegator::new(1, request, ConsistencyLevel::One);
-            delegator.send()
+            let Some(query_enum) = QueryEnum::from_query(&self.query) else {
+                return Err(Errors::ServerError(String::from("QueryEnum does not exist")));
+            };
+            let delegator = QueryDelegator::new(1, query_enum.into_query(), ConsistencyLevel::One);
+            let text = delegator.send()?;
+            let mut msg = Vec::new();
+            msg.extend_from_slice((text.len() as u16).to_be_bytes().as_ref());
+            msg.extend_from_slice(text.as_bytes());
+            FrameBuilder::build_response_frame(request, RESULT, msg)
         } else {
             println!("soy nodo 2");
             //let msg = self.query.run()?;

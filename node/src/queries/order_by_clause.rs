@@ -1,5 +1,6 @@
+use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct OrderByClause {
     pub column: String,
     pub order: String,

@@ -3,6 +3,8 @@ use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use crate::frame::Frame;
+use crate::node_communication::query_serializer::QuerySerializer;
+use crate::queries::query::{Query, QueryEnum};
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
 //use crate::node_communication::query_serializer::QuerySerializer;
@@ -11,15 +13,15 @@ use crate::utils::errors::Errors;
 const REPLICATION : i32 = 3;
 pub struct QueryDelegator{
     node: i32,
-    request_frame: Frame,
+    query: Box<dyn Query>,
     consistency: ConsistencyLevel
 }
 
 impl QueryDelegator {
-    pub fn new(node: i32, request_frame: Frame, consistency: ConsistencyLevel) -> Self {
+    pub fn new(node: i32, query: Box<dyn Query>, consistency: ConsistencyLevel) -> Self {
         Self{
             node,
-            request_frame,
+            query,
             consistency
         }
     }
@@ -37,17 +39,19 @@ impl QueryDelegator {
     //     }
     //     Ok(self.get_response(responses)?)
     // }
-    pub fn send(&self) -> Result<Frame, Errors> {
-        let request_frame = self.request_frame.clone();
+    pub fn send(&self) -> Result<String, Errors> {
         let responses = Arc::new(Mutex::new(Vec::new()));
         let (tx, rx) = mpsc::channel();
         let mut handles = Vec::new();
 
         for ip in self.get_nodes_ip()? {
-            let request_frame = request_frame.clone();
+            let Some(query_enum) = QueryEnum::from_query(&self.query) else {
+                return Err(Errors::ServerError(String::from("QueryEnum does not exist")));
+            };
             let tx = tx.clone();
             let handle = thread::spawn(move || {
-                if let Ok(response) = QueryDelegator::send_to_node(ip, request_frame) {
+                if let Ok(response) = QueryDelegator::send_to_node(ip, query_enum.into_query()) {
+                    dbg!(&response);
                     if tx.send(response).is_ok() {
                     }
                 }
@@ -72,7 +76,7 @@ impl QueryDelegator {
     }
 
     fn get_nodes_ip(&self) -> Result<Vec<String>, Errors> {
-        return Ok(vec!["127.0.0.2:8080".to_string()]);
+        return Ok(vec!["127.0.0.2:9090".to_string()]);
         // let mut ips: Vec<String> = Vec::new();
         // for node in self.node..self.node + REPLICATION {
         //     //ips.push(get_ip(node))      EXTRAE DE METADATA ACCESS
@@ -80,18 +84,17 @@ impl QueryDelegator {
         // Ok(ips)
     }
 
-    fn send_to_node(ip: String, request_frame: Frame) -> Result<Frame, Errors>  {
+    fn send_to_node(ip: String, query: Box<dyn Query>) -> Result<String, Errors>  {
         match TcpStream::connect(ip) {
             Ok(mut stream) => {
-                if stream.write(request_frame.to_bytes().as_slice()).is_err() {
+                if stream.write(QuerySerializer::serialize(&query)?.as_slice()).is_err() {
                     return Err(Errors::ServerError(String::from("Unable to send query to node")));
                 };
                 stream.flush().expect("");
                 let mut buf = [0; 1024];
                 match stream.read(&mut buf) {
                     Ok(n) => {
-                        let frame = Frame::parse_frame(&buf[..n]).expect("Error parsing frame");
-                        Ok(frame)
+                        Ok(String::from_utf8_lossy(&buf[..n]).to_string())
                     }
                     Err(_) => Err(Errors::ServerError(String::from("Unable to read from node")))
                 }
@@ -102,7 +105,7 @@ impl QueryDelegator {
         }
     }
 
-    fn get_response(&self, responses: Vec<Frame>) -> Result<Frame, Errors> {
+    fn get_response(&self, responses: Vec<String>) -> Result<String, Errors> {
         let Some(response) = responses.first() else {
             return Err(Errors::ServerError(String::from("No response found")));
         };

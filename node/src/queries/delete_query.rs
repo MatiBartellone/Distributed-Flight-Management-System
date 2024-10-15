@@ -1,9 +1,11 @@
+use std::any::Any;
+use serde::{Deserialize, Serialize};
 use crate::utils::errors::Errors;
 
 use super::{query::Query, where_logic::where_clause::WhereClause};
 
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct DeleteQuery {
     pub table: String,
     pub where_clause: Option<WhereClause>,
@@ -27,5 +29,9 @@ impl Default for DeleteQuery {
 impl Query for DeleteQuery {
     fn run(&self) -> Result<String, Errors> {
         todo!()
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
