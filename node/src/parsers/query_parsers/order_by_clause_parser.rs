@@ -1,8 +1,8 @@
 use crate::parsers::tokens::token::Token;
 use crate::queries::order_by_clause::OrderByClause;
+use crate::utils::constants::*;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
-use crate::utils::constants::*;
 
 pub struct OrderByClauseParser;
 

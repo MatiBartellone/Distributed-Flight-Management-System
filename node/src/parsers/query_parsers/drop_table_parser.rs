@@ -1,8 +1,10 @@
-use crate::{parsers::tokens::token::Token, 
-    queries::drop_table_query::DropTableQuery, 
-    utils::{errors::Errors, token_conversor::get_next_value}};
 use crate::utils::constants::*;
-use std::{vec::IntoIter, iter::Peekable};
+use crate::{
+    parsers::tokens::token::Token,
+    queries::drop_table_query::DropTableQuery,
+    utils::{errors::Errors, token_conversor::get_next_value},
+};
+use std::{iter::Peekable, vec::IntoIter};
 
 pub struct DropTableQueryParser;
 
@@ -12,55 +14,52 @@ impl DropTableQueryParser {
         frok(tokens, &mut drop_query)?;
         Ok(drop_query)
     }
-
 }
 
 fn frok(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropTableQuery) -> Result<(), Errors> {
     match tokens.peek() {
         Some(Token::Identifier(_)) => table(tokens, query),
         Some(Token::Reserved(_)) => ifa(tokens, query),
-        _ => {
-            Err(Errors::SyntaxError(String::from(
-                "Unexpected token in table_name",
-            )))
-        }
+        _ => Err(Errors::SyntaxError(String::from(
+            "Unexpected token in table_name",
+        ))),
     }
 }
 
 fn table(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropTableQuery) -> Result<(), Errors> {
-    match get_next_value(tokens)?{
+    match get_next_value(tokens)? {
         Token::Identifier(title) => {
             query.table = title;
             finish(tokens)
         }
-        _ => {
-            Err(Errors::SyntaxError(String::from(
+        _ => Err(Errors::SyntaxError(String::from(
             "Unexpected token in table_name",
-        )))},
+        ))),
     }
 }
 
 fn ifa(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropTableQuery) -> Result<(), Errors> {
-    match get_next_value(tokens)?{
-        Token::Reserved(res) if res == *IF => exists(tokens, query) ,
-        _ => {
-            Err(Errors::SyntaxError(String::from(
+    match get_next_value(tokens)? {
+        Token::Reserved(res) if res == *IF => exists(tokens, query),
+        _ => Err(Errors::SyntaxError(String::from(
             "Unexpected token in table_name",
-        )))},
+        ))),
     }
 }
 
-
 fn finish(tokens: &mut Peekable<IntoIter<Token>>) -> Result<(), Errors> {
-    if tokens.next().is_none(){
-        return Ok(())
+    if tokens.next().is_none() {
+        return Ok(());
     }
     Err(Errors::SyntaxError(String::from(
         "DROP with left over paramameters",
     )))
 }
 
-fn exists(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropTableQuery) -> Result<(), Errors> {
+fn exists(
+    tokens: &mut Peekable<IntoIter<Token>>,
+    query: &mut DropTableQuery,
+) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Reserved(res) if res == *EXISTS => {
             query.if_exist = Some(true);
@@ -76,14 +75,12 @@ fn exists(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropTableQuery) ->
 mod tests {
     use super::*;
     use crate::parsers::tokens::token::Token;
-    
+
     use crate::utils::errors::Errors;
 
     #[test]
     fn test_parse_drop_table_simple() {
-        let tokens = vec![
-            Token::Identifier("my_table".to_string()),
-        ];
+        let tokens = vec![Token::Identifier("my_table".to_string())];
         let mut token_iter = tokens.into_iter().peekable();
         let result = DropTableQueryParser::parse(&mut token_iter);
         assert!(result.is_ok());

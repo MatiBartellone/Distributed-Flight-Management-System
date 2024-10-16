@@ -1,9 +1,9 @@
-use std::fs::File;
-use std::sync::{Mutex, Arc, MutexGuard};
-use std::{collections::HashMap, io::Read};
-use std::io::Write;
+use crate::{parsers::tokens::data_type::DataType, utils::errors::Errors};
 use serde_json;
-use crate::{utils::errors::Errors, parsers::tokens::data_type::DataType};
+use std::fs::File;
+use std::io::Write;
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::{collections::HashMap, io::Read};
 
 use super::{keyspace::Keyspace, table::Table};
 
@@ -13,12 +13,11 @@ pub struct KeyspaceMetaDataAccess {
 }
 
 impl KeyspaceMetaDataAccess {
-
     pub fn new(path: &str) -> Result<Self, Errors> {
-        let file = File::open(path).map_err(|_| Errors::ServerError("Unable to read file".to_string()))?; 
+        let file =
+            File::open(path).map_err(|_| Errors::ServerError("Unable to read file".to_string()))?;
         let mutex = Arc::new(Mutex::new(file));
-        
-        Ok(Self{file: mutex})
+        Ok(Self { file: mutex })
     }
 
     pub fn add_keyspace(
@@ -35,7 +34,7 @@ impl KeyspaceMetaDataAccess {
         }
         let keyspace = Keyspace::new(replication_strategy, replication_factor);
         keyspaces.insert(name.to_owned(), keyspace);
-        self.save_hash_to_json(&mut file,&keyspaces)?; 
+        self.save_hash_to_json(&mut file, &keyspaces)?;
         Ok(())
     }
 
@@ -62,7 +61,7 @@ impl KeyspaceMetaDataAccess {
     pub fn drop_keyspace(&mut self, name: &str) -> Result<(), Errors> {
         let (mut file, mut keyspaces) = self.lock_and_extract_keyspaces()?;
         keyspaces.remove(name);
-        self.save_hash_to_json(&mut file,&keyspaces)?; 
+        self.save_hash_to_json(&mut file, &keyspaces)?;
         Ok(())
     }
 
@@ -100,15 +99,11 @@ impl KeyspaceMetaDataAccess {
         }
         let table = Table::new(primary_key, columns);
         keyspace.tables.insert(table_name.to_string(), table);
-        self.save_hash_to_json(&mut file,&keyspaces)?;
+        self.save_hash_to_json(&mut file, &keyspaces)?;
         Ok(())
     }
 
-    pub fn delete_table(
-        &mut self,
-        keyspace_name: &str,
-        table_name: &str,
-    ) -> Result<(), Errors> {
+    pub fn delete_table(&mut self, keyspace_name: &str, table_name: &str) -> Result<(), Errors> {
         let (mut file, mut keyspaces) = self.lock_and_extract_keyspaces()?;
         let keyspace = get_keyspace_mutable(&mut keyspaces, keyspace_name)?;
         if !keyspace.tables.contains_key(table_name) {
@@ -118,7 +113,7 @@ impl KeyspaceMetaDataAccess {
             )));
         }
         keyspace.tables.remove(table_name);
-        self.save_hash_to_json(&mut file,&keyspaces)?;
+        self.save_hash_to_json(&mut file, &keyspaces)?;
         Ok(())
     }
 
@@ -127,11 +122,11 @@ impl KeyspaceMetaDataAccess {
         file: &mut std::sync::MutexGuard<File>,
     ) -> Result<HashMap<String, Keyspace>, Errors> {
         let mut contents = String::new();
-        
+
         // Leer del archivo ya bloqueado
         file.read_to_string(&mut contents)
             .map_err(|_| Errors::ServerError("Unable to read file".to_string()))?;
-    
+
         let existing_keyspaces: HashMap<String, Keyspace> = if contents.is_empty() {
             HashMap::new()
         } else {
@@ -149,10 +144,11 @@ impl KeyspaceMetaDataAccess {
     ) -> Result<(), Errors> {
         let json_data = serde_json::to_string_pretty(keyspaces)
             .map_err(|_| Errors::ServerError("Failed to serialize keyspaces".to_string()))?;
-    
+
         // Limpiar el archivo
-        file.set_len(0).map_err(|_| Errors::ServerError("Failed to truncate file".to_string()))?;
-        
+        file.set_len(0)
+            .map_err(|_| Errors::ServerError("Failed to truncate file".to_string()))?;
+
         // Escribir el nuevo contenido
         file.write_all(json_data.as_bytes())
             .map_err(|_| Errors::ServerError("Failed to write data to file".to_string()))?;
@@ -163,7 +159,10 @@ impl KeyspaceMetaDataAccess {
     fn lock_and_extract_keyspaces(
         &self,
     ) -> Result<(MutexGuard<File>, HashMap<String, Keyspace>), Errors> {
-        let mut file = self.file.lock().map_err(|_| Errors::ServerError("Failed to acquire lock".to_string()))?;
+        let mut file = self
+            .file
+            .lock()
+            .map_err(|_| Errors::ServerError("Failed to acquire lock".to_string()))?;
         let keyspaces = self.extract_hash_from_json(&mut file)?;
         Ok((file, keyspaces))
     }
@@ -171,21 +170,23 @@ impl KeyspaceMetaDataAccess {
 
 fn get_keyspace_mutable<'a>(
     keyspaces: &'a mut HashMap<String, Keyspace>,
-    name: &str
+    name: &str,
 ) -> Result<&'a mut Keyspace, Errors> {
-    keyspaces.get_mut(name).ok_or_else(|| {
-        Errors::SyntaxError(format!("El keyspace '{}' no existe", name))
-    })
+    keyspaces
+        .get_mut(name)
+        .ok_or_else(|| Errors::SyntaxError(format!("El keyspace '{}' no existe", name)))
 }
 
 fn get_table_mutable<'a>(
     keyspaces: &'a mut HashMap<String, Keyspace>,
     keyspace_name: &str,
-    table_name: &str
+    table_name: &str,
 ) -> Result<&'a mut Table, Errors> {
     let keyspace = get_keyspace_mutable(keyspaces, keyspace_name)?;
     keyspace.tables.get_mut(table_name).ok_or_else(|| {
-        Errors::SyntaxError(format!("La tabla '{}' no existe en el keyspace '{}'", table_name, keyspace_name))
+        Errors::SyntaxError(format!(
+            "La tabla '{}' no existe en el keyspace '{}'",
+            table_name, keyspace_name
+        ))
     })
 }
-

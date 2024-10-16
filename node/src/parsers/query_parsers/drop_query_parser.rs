@@ -1,12 +1,16 @@
-use crate::{parsers::tokens::token::Token, 
-    utils::{errors::Errors, token_conversor::get_next_value}, queries::query::Query};
 use crate::utils::constants::*;
-use std::{vec::IntoIter, iter::Peekable};
-
+use crate::{
+    parsers::tokens::token::Token,
+    queries::query::Query,
+    utils::{errors::Errors, token_conversor::get_next_value},
+};
+use std::{iter::Peekable, vec::IntoIter};
 
 use Token::*;
 
-use super::{drop_keyspace_parser::DropKeySpaceQueryParser, drop_table_parser::DropTableQueryParser};
+use super::{
+    drop_keyspace_parser::DropKeySpaceQueryParser, drop_table_parser::DropTableQueryParser,
+};
 
 pub struct DropQueryParser;
 
@@ -17,8 +21,7 @@ impl DropQueryParser {
     }
 }
 
-
-fn reserv(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Box<dyn Query>, Errors>{
+fn reserv(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Box<dyn Query>, Errors> {
     match get_next_value(tokens)? {
         Reserved(title) if title == KEYSPACE => {
             let query = DropKeySpaceQueryParser::parse(tokens)?;
@@ -28,7 +31,7 @@ fn reserv(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Box<dyn Query>, Erro
             let query = DropTableQueryParser::parse(tokens)?;
             Ok(Box::new(query))
         }
-        _=> Err(Errors::SyntaxError(
+        _ => Err(Errors::SyntaxError(
             "Invalid Syntaxis in DROP, missing title".to_string(),
         )),
     }
@@ -36,7 +39,7 @@ fn reserv(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Box<dyn Query>, Erro
 
 #[cfg(test)]
 mod tests {
-    use crate::parsers::{tokens::token::Token, query_parsers::drop_query_parser::DropQueryParser};
+    use crate::parsers::{query_parsers::drop_query_parser::DropQueryParser, tokens::token::Token};
 
     #[test]
     fn test_parse_drop_keyspace_query() {
@@ -77,5 +80,4 @@ mod tests {
 
         assert!(DropQueryParser::parse(tokens).is_err());
     }
-
 }
