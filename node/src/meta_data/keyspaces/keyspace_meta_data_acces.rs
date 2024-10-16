@@ -1,24 +1,20 @@
+use crate::{parsers::tokens::data_type::DataType, utils::errors::Errors};
+use serde_json;
+use std::io::Write;
 use std::sync::Mutex;
 use std::{collections::HashMap, fs::OpenOptions, io::Read};
-use std::io::Write;
-use serde_json;
-use crate::{utils::errors::Errors, parsers::tokens::data_type::DataType};
 
 const RUTA: &str = "ruta/al/archivo";
 use super::{keyspace::Keyspace, table::Table};
 
-
 #[derive(Debug)]
-struct KeyspaceMetaDataAccess{
+struct KeyspaceMetaDataAccess {
     dir: String,
 }
 
 impl KeyspaceMetaDataAccess {
-
-    pub fn new(dir: String)-> Self{
-        KeyspaceMetaDataAccess {
-            dir,
-        }
+    pub fn new(dir: String) -> Self {
+        KeyspaceMetaDataAccess { dir }
     }
 
     pub fn add_keyspace(
@@ -29,11 +25,13 @@ impl KeyspaceMetaDataAccess {
     ) -> Result<(), Errors> {
         let mut keyspaces = self.extract_hash_from_json()?;
         if keyspaces.contains_key(name) {
-            return Err(Errors::SyntaxError("El keyspace ya está creado".to_string()));
+            return Err(Errors::SyntaxError(
+                "El keyspace ya está creado".to_string(),
+            ));
         }
         let keyspace = Keyspace::new(replication_strategy, replication_factor);
         keyspaces.insert(name.to_owned(), keyspace);
-        self.save_hash_to_json(&keyspaces)?; 
+        self.save_hash_to_json(&keyspaces)?;
         Ok(())
     }
 
@@ -60,14 +58,14 @@ impl KeyspaceMetaDataAccess {
     pub fn drop_keyspace(&mut self, name: &str) -> Result<(), Errors> {
         let mut keyspaces = self.extract_hash_from_json()?;
         keyspaces.remove(name);
-        self.save_hash_to_json(&keyspaces)?; 
+        self.save_hash_to_json(&keyspaces)?;
         Ok(())
     }
 
     pub fn get_columns_type(
         &mut self,
         keyspace_name: &str,
-        table_name: &str
+        table_name: &str,
     ) -> Result<HashMap<String, DataType>, Errors> {
         let mut keyspaces = self.extract_hash_from_json()?;
         let table = self.get_table_mutable(&mut keyspaces, keyspace_name, table_name)?;
@@ -77,7 +75,7 @@ impl KeyspaceMetaDataAccess {
     pub fn get_primary_key(
         &mut self,
         keyspace_name: &str,
-        table_name: &str
+        table_name: &str,
     ) -> Result<String, Errors> {
         let mut keyspaces = self.extract_hash_from_json()?;
         let table = self.get_table_mutable(&mut keyspaces, keyspace_name, table_name)?;
@@ -89,7 +87,7 @@ impl KeyspaceMetaDataAccess {
         keyspace_name: &str,
         table_name: &str,
         primary_key: String,
-        columns: HashMap<String, DataType>
+        columns: HashMap<String, DataType>,
     ) -> Result<(), Errors> {
         let mut keyspaces = self.extract_hash_from_json()?;
         let keyspace = self.get_keyspace_mutable(&mut keyspaces, keyspace_name)?;
@@ -102,15 +100,14 @@ impl KeyspaceMetaDataAccess {
         Ok(())
     }
 
-    pub fn delete_table(
-        &mut self,
-        keyspace_name: &str,
-        table_name: &str,
-    ) -> Result<(), Errors> {
+    pub fn delete_table(&mut self, keyspace_name: &str, table_name: &str) -> Result<(), Errors> {
         let mut keyspaces = self.extract_hash_from_json()?;
         let keyspace = self.get_keyspace_mutable(&mut keyspaces, keyspace_name)?;
         if !keyspace.tables.contains_key(table_name) {
-            return Err(Errors::SyntaxError(format!("La tabla '{}' no existe en el keyspace '{}'", table_name, keyspace_name)));
+            return Err(Errors::SyntaxError(format!(
+                "La tabla '{}' no existe en el keyspace '{}'",
+                table_name, keyspace_name
+            )));
         }
         keyspace.tables.remove(table_name);
         self.save_hash_to_json(&keyspaces)?;
@@ -121,22 +118,25 @@ impl KeyspaceMetaDataAccess {
         &'a mut self,
         keyspaces: &'a mut HashMap<String, Keyspace>,
         keyspace_name: &str,
-        table_name: &str
+        table_name: &str,
     ) -> Result<&'a mut Table, Errors> {
         let keyspace = self.get_keyspace_mutable(keyspaces, keyspace_name)?;
         keyspace.tables.get_mut(table_name).ok_or_else(|| {
-            Errors::SyntaxError(format!("La tabla '{}' no existe en el keyspace '{}'", table_name, keyspace_name))
+            Errors::SyntaxError(format!(
+                "La tabla '{}' no existe en el keyspace '{}'",
+                table_name, keyspace_name
+            ))
         })
     }
 
     fn get_keyspace_mutable<'a>(
         &'a mut self,
         keyspaces: &'a mut HashMap<String, Keyspace>,
-        name: &str
+        name: &str,
     ) -> Result<&'a mut Keyspace, Errors> {
-        keyspaces.get_mut(name).ok_or_else(|| {
-            Errors::SyntaxError(format!("El keyspace '{}' no existe", name))
-        })
+        keyspaces
+            .get_mut(name)
+            .ok_or_else(|| Errors::SyntaxError(format!("El keyspace '{}' no existe", name)))
     }
 
     fn extract_hash_from_json(&self) -> Result<HashMap<String, Keyspace>, Errors> {
@@ -147,17 +147,18 @@ impl KeyspaceMetaDataAccess {
             .create(true)
             .open(&filename)
             .map_err(|_| Errors::ServerError("Unable to open or create file".to_string()))?;
-    
+
         let mut contents = String::new();
         file.read_to_string(&mut contents)
             .map_err(|_| Errors::ServerError("Unable to read file".to_string()))?;
-    
+
         // Si el archivo está vacío, inicializamos un HashMap
         let existing_keyspaces: HashMap<String, Keyspace> = if contents.is_empty() {
             HashMap::new()
         } else {
-            serde_json::from_str(&contents)
-                .map_err(|_| Errors::ServerError("Failed to deserialize existing keyspaces".to_string()))?
+            serde_json::from_str(&contents).map_err(|_| {
+                Errors::ServerError("Failed to deserialize existing keyspaces".to_string())
+            })?
         };
         Ok(existing_keyspaces)
     }
@@ -166,16 +167,17 @@ impl KeyspaceMetaDataAccess {
         let filename = format!("{}", self.dir); // Ruta al archivo JSON
         let json_data = serde_json::to_string_pretty(keyspaces)
             .map_err(|_| Errors::ServerError("Failed to serialize keyspaces".to_string()))?;
-    
+
         let mut file = OpenOptions::new()
             .write(true)
             .truncate(true) // Limpiar el contenido del archivo antes de escribir los nuevos datos
             .open(&filename)
             .map_err(|_| Errors::ServerError("Unable to open file for writing".to_string()))?;
-    
+
         file.write_all(json_data.as_bytes())
             .map_err(|_| Errors::ServerError("Failed to write data to file".to_string()))?;
-    
+
         Ok(())
     }
 }
+
