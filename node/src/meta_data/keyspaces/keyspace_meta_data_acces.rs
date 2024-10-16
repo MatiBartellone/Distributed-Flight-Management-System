@@ -1,18 +1,25 @@
+use std::sync::Mutex;
 use std::{collections::HashMap, fs::OpenOptions, io::Read};
-use serde::{Deserialize, Serialize};
-use std::fs::File;
 use std::io::Write;
 use serde_json;
 use crate::{utils::errors::Errors, parsers::tokens::data_type::DataType};
 
 const RUTA: &str = "ruta/al/archivo";
+use super::{keyspace::Keyspace, table::Table};
 
-use super::keyspace::{Keyspace, Table};
 
-#[derive(Debug, Serialize, Deserialize)]
-struct KeyspaceMetaDataAccess;
+#[derive(Debug)]
+struct KeyspaceMetaDataAccess{
+    dir: String,
+}
 
 impl KeyspaceMetaDataAccess {
+
+    pub fn new(dir: String)-> Self{
+        KeyspaceMetaDataAccess {
+            dir,
+        }
+    }
 
     pub fn add_keyspace(
         &mut self,
@@ -133,7 +140,7 @@ impl KeyspaceMetaDataAccess {
     }
 
     fn extract_hash_from_json(&self) -> Result<HashMap<String, Keyspace>, Errors> {
-        let filename = format!("{}", RUTA); // Usar la ruta constante
+        let filename = format!("{}", self.dir); // Usar la ruta constante
         let mut file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -156,7 +163,7 @@ impl KeyspaceMetaDataAccess {
     }
 
     fn save_hash_to_json(&self, keyspaces: &HashMap<String, Keyspace>) -> Result<(), Errors> {
-        let filename = format!("{}", RUTA); // Ruta al archivo JSON
+        let filename = format!("{}", self.dir); // Ruta al archivo JSON
         let json_data = serde_json::to_string_pretty(keyspaces)
             .map_err(|_| Errors::ServerError("Failed to serialize keyspaces".to_string()))?;
     
@@ -171,5 +178,4 @@ impl KeyspaceMetaDataAccess {
     
         Ok(())
     }
-
 }
