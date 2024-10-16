@@ -1,5 +1,5 @@
 
-use crate::queries::query::Query;
+use crate::{queries::query::Query, utils::errors::Errors};
 
 pub struct DropKeySpaceQuery {
     pub keyspace: String,
@@ -18,7 +18,7 @@ impl DropKeySpaceQuery {
 }
 
 impl Query for DropKeySpaceQuery {
-    fn run(&mut self) {
+    fn run(&self) -> Result<(), Errors> {
         unimplemented!()
     }
 }

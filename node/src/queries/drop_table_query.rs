@@ -1,5 +1,5 @@
 
-use crate::queries::query::Query;
+use crate::{queries::query::Query, utils::errors::Errors};
 
 pub struct DropTableQuery {
     pub table: String,
@@ -18,7 +18,7 @@ impl DropTableQuery {
 }
 
 impl Query for DropTableQuery {
-    fn run(&mut self) {
+    fn run(&self) -> Result<(), Errors> {
         unimplemented!()
     }
 }
