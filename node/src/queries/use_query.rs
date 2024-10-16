@@ -1,3 +1,7 @@
+use crate::utils::errors::Errors;
+
+use super::query::Query;
+
 pub struct UseQuery {
     pub keyspace_name: String,
 }
@@ -13,5 +17,11 @@ impl UseQuery {
 impl Default for UseQuery {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Query for UseQuery {
+    fn run(&self) -> Result<(), Errors> {
+        unimplemented!()
     }
 }

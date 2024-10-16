@@ -1,4 +1,6 @@
-use crate::parsers::tokens::data_type::DataType;
+use crate::{parsers::tokens::data_type::DataType, utils::errors::Errors};
+
+use super::query::Query;
 
 pub struct AlterTableQuery {
     pub table_name: String,
@@ -31,5 +33,11 @@ impl AlterTableQuery {
             second_column: String::new(),
             data: DataType::Int,
         }
+    }
+}
+
+impl Query for AlterTableQuery {
+    fn run(&self) -> Result<(), Errors> {
+        unimplemented!()
     }
 }

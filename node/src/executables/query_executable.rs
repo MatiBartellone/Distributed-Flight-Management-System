@@ -24,4 +24,3 @@ impl Executable for QueryExecutable {
         FrameBuilder::build_response_frame(request, RESULT, Vec::new())
     }
 }
-

@@ -1,5 +1,6 @@
 pub mod auth_response_executable;
 pub mod batch_executable;
+pub mod create_table_executable;
 pub mod event_executable;
 pub mod executable;
 pub mod execute_executable;

@@ -17,7 +17,7 @@ impl InsertQuery {
     }
 }
 impl Query for InsertQuery {
-    fn run(&mut self) {
+    fn run(&self) -> Result<(), Errors> {
         unimplemented!()
     }
 }
@@ -27,5 +27,3 @@ impl Default for InsertQuery {
         Self::new()
     }
 }
-
-

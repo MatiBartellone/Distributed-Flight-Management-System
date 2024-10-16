@@ -13,5 +13,6 @@ pub mod order_by_clause;
 pub mod query;
 pub mod select_query;
 pub mod set_logic;
+pub mod update_query;
 pub mod use_query;
 pub mod where_logic;

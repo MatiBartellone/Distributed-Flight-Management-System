@@ -9,8 +9,10 @@ use crate::utils::token_conversor::get_next_value;
 use super::query_parsers::alter_table_parser::AlterTableParser;
 use super::query_parsers::create_query_parser::CreateQueryParser;
 use super::query_parsers::delete_query_parser::DeleteQueryParser;
+use super::query_parsers::drop_query_parser::DropQueryParser;
 use super::query_parsers::insert_query_parser::InsertQueryParser;
 use super::query_parsers::select_query_parser::SelectQueryParser;
+use super::query_parsers::use_query_parser::UseQueryParser;
 use super::tokens::lexer::standardize;
 use super::tokens::token::{tokenize, Token};
 use Token::*;
@@ -103,4 +105,3 @@ mod tests {
         }
     }
 }
-

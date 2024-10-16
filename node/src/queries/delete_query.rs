@@ -23,3 +23,9 @@ impl Default for DeleteQuery {
         Self::new()
     }
 }
+
+impl Query for DeleteQuery {
+    fn run(&self) -> Result<(), Errors> {
+        unimplemented!()
+    }
+}
