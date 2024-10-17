@@ -5,8 +5,37 @@ use crate::parsers::tokens::{
 };
 use Token::*;
 use Term::*;
+use BooleanOperations::*;
+use LogicalOperators::*;
 
 use super::errors::Errors;
+
+pub fn precedence(tokens: Vec<Token>) -> Vec<Token> {
+    let mut result = Vec::new();
+    let mut current_list = Vec::new();
+
+    for token in tokens.into_iter() {
+        match token {
+            Term(BooleanOperations(Logical(Or))) => {
+                result.push(ParenList(current_list));
+                current_list = Vec::new();
+                result.push(Term(BooleanOperations(Logical(Or))));
+            }
+            ParenList(list) => {
+                let list = precedence(list);
+                current_list.push(ParenList(list));
+            }
+            _ => {
+                current_list.push(token);
+            }
+        }
+    }
+    if result.is_empty(){
+        return current_list
+    }
+    result.push(ParenList(current_list));
+    result
+}
 
 pub fn get_literal(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Literal, Errors> {
     let token = get_next_value(tokens)?;
