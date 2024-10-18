@@ -7,9 +7,7 @@ use std::iter::Peekable;
 use std::{collections::HashMap, vec::IntoIter};
 
 const INVALID_PARAMETERS: &str = "Query lacks parameters";
-const KEYSPACE: &str = "KEYSPACE";
 const WITH: &str = "WITH";
-const INVALID_CREATE: &str = "CREATE not followed by KEYSPACE";
 const UNEXPECTED_TOKEN: &str = "Unexpected token in table_name";
 const MISSING_COLON: &str = "Missing colon for separating parameters in replication";
 const MISSING_WITH: &str = "Missing WITH keyword";
@@ -23,23 +21,11 @@ pub struct CreateKeyspaceParser;
 impl CreateKeyspaceParser {
     pub fn parse(&self, tokens: Vec<Token>) -> Result<CreateKeyspaceQuery, Errors> {
         let mut create_keyspace_query = CreateKeyspaceQuery::new();
-        self.keyspace_keyword(
+        self.keyspace_name(
             &mut tokens.into_iter().peekable(),
             &mut create_keyspace_query,
         )?;
         Ok(create_keyspace_query)
-    }
-
-    fn keyspace_keyword(
-        &self,
-        tokens: &mut Peekable<IntoIter<Token>>,
-        query: &mut CreateKeyspaceQuery,
-    ) -> Result<(), Errors> {
-        let token = self.get_next_value(tokens)?;
-        match token {
-            Token::Reserved(keyspace) if keyspace == *KEYSPACE => self.keyspace_name(tokens, query),
-            _ => Err(Errors::SyntaxError(String::from(INVALID_CREATE))),
-        }
     }
 
     fn keyspace_name(
@@ -172,7 +158,6 @@ mod tests {
 
     fn create_tokens() -> Vec<Token> {
         vec![
-            Token::Reserved(KEYSPACE.to_string()),
             Token::Identifier(KEYSPACE_NAME.to_string()),
             Token::Reserved(WITH.to_string()),
         ]
@@ -216,29 +201,10 @@ mod tests {
             REPLICATION_FACTOR_VALUE
         );
     }
-    #[test]
-    fn test_02_create_keyspace_missing_keyspace_keyword_should_error() {
-        let tokens = vec![
-            Token::Identifier(KEYSPACE_NAME.to_string()),
-            Token::Reserved(WITH.to_string()),
-        ];
 
-        let parser = CreateKeyspaceParser;
-        let result = parser.parse(tokens);
-
-        assert!(result.is_err());
-        if let Err(Errors::SyntaxError(msg)) = result {
-            assert_eq!(msg, INVALID_CREATE);
-        } else {
-            panic!("El error no es del tipo Errors::SyntaxError");
-        }
-    }
     #[test]
-    fn test_03_create_keyspace_missing_with_keyword_should_error() {
-        let mut tokens = vec![
-            Token::Reserved(KEYSPACE.to_string()),
-            Token::Identifier(KEYSPACE_NAME.to_string()),
-        ];
+    fn test_02_create_keyspace_missing_with_keyword_should_error() {
+        let mut tokens = vec![Token::Identifier(KEYSPACE_NAME.to_string())];
 
         let barace_list = create_brace_list();
 
@@ -254,7 +220,7 @@ mod tests {
         }
     }
     #[test]
-    fn test_04_create_keyspace_missing_brace_list_should_error() {
+    fn test_03_create_keyspace_missing_brace_list_should_error() {
         let tokens = create_tokens();
         let parser = CreateKeyspaceParser;
         let result = parser.parse(tokens);
@@ -267,7 +233,7 @@ mod tests {
         }
     }
     #[test]
-    fn test_05_create_keyspace_missing_key_in_brace_list_should_error() {
+    fn test_04_create_keyspace_missing_key_in_brace_list_should_error() {
         let mut tokens = create_tokens();
         let barace_list = vec![Token::BraceList(vec![
             Token::Symbol(COLON.to_string()),
@@ -289,7 +255,7 @@ mod tests {
         }
     }
     #[test]
-    fn test_06_create_keyspace_missing_value_in_brace_list_should_error() {
+    fn test_05_create_keyspace_missing_value_in_brace_list_should_error() {
         let mut tokens = create_tokens();
         let barace_list = vec![Token::BraceList(vec![
             Token::Reserved(CLASS.to_string()),
@@ -310,7 +276,7 @@ mod tests {
     }
 
     #[test]
-    fn test_07_create_keyspace_missing_colon_in_brace_list_should_error() {
+    fn test_06_create_keyspace_missing_colon_in_brace_list_should_error() {
         let mut tokens = create_tokens();
         let barace_list = vec![Token::BraceList(vec![
             Token::Reserved(CLASS.to_string()),

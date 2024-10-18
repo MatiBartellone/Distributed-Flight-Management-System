@@ -1,0 +1,17 @@
+{
+  "keyspace1": {
+    "tables": {},
+    "replication_strategy": "Simple Replication",
+    "replication_factor": 3
+  },
+  "nombre": {
+    "tables": {},
+    "replication_strategy": "Simple Replication",
+    "replication_factor": 3
+  },
+  "keyspace2": {
+    "tables": {},
+    "replication_strategy": "Simple Replication",
+    "replication_factor": 3
+  }
+}
