@@ -2,10 +2,14 @@ use crate::{
     parsers::tokens::{
         terms::{BooleanOperations, LogicalOperators, Term},
         token::Token,
-    }, queries::where_logic::where_clause::{and_where, build_tuple, comparison_where, not_where, or_where, WhereClause}, utils::{
+    },
+    queries::where_logic::where_clause::{
+        and_where, build_tuple, comparison_where, not_where, or_where, WhereClause,
+    },
+    utils::{
         errors::Errors,
         token_conversor::{get_comparision_operator, get_list, get_literal, get_next_value},
-    }
+    },
 };
 
 use BooleanOperations::*;
@@ -29,7 +33,9 @@ fn where_and_or(
 ) -> Result<WhereClause, Errors> {
     match get_next_value(tokens) {
         // [left_expre, AND, ...]
-        Ok(Term(BooleanOperations(Logical(And)))) => Ok(and_where(left_expr, where_clause(tokens)?)),
+        Ok(Term(BooleanOperations(Logical(And)))) => {
+            Ok(and_where(left_expr, where_clause(tokens)?))
+        }
         // [left_expre, OR, ...]
         Ok(Term(BooleanOperations(Logical(Or)))) => Ok(or_where(left_expr, where_clause(tokens)?)),
         Err(_) => Ok(left_expr),
@@ -99,7 +105,9 @@ mod tests {
     use crate::parsers::tokens::terms::{self, ComparisonOperators, LogicalOperators};
     use crate::parsers::tokens::token::Token;
     use crate::queries::where_logic::comparison::ComparisonExpr;
-    use crate::queries::where_logic::where_clause::{and_where, comparison_where, not_where, or_where, tuple_expr, WhereClause};
+    use crate::queries::where_logic::where_clause::{
+        and_where, comparison_where, not_where, or_where, tuple_expr, WhereClause,
+    };
     use crate::utils::token_conversor::{
         create_comparison_operation_token, create_identifier_token, create_logical_operation_token,
         create_token_literal,
@@ -109,7 +117,6 @@ mod tests {
     use DataType::*;
     use LogicalOperators::*;
     use Token::*;
-
 
     fn test_successful_parser_case(caso: Vec<Token>, expected: Option<WhereClause>) {
         let resultado = WhereClauseParser::parse(caso);
@@ -298,7 +305,7 @@ mod tests {
 
         test_successful_parser_case(tokens, expected);
     }
-    
+
     /// Este test lo cree porque no me estaba funcionando algo del peek que capaz despues intento cambiar asi que lo dejo aca
     #[test]
     fn test_peek() {

@@ -1,7 +1,7 @@
-use std::any::Any;
-use serde::{Deserialize, Serialize};
 use crate::queries::order_by_clause::OrderByClause;
 use crate::utils::errors::Errors;
+use serde::{Deserialize, Serialize};
+use std::any::Any;
 
 use super::query::Query;
 
@@ -33,8 +33,12 @@ impl Default for SelectQuery {
 }
 
 impl Query for SelectQuery {
-    fn run(&self) -> Result<String, Errors> {
+    fn run(&self) -> Result<Vec<u8>, Errors> {
         todo!()
+    }
+
+    fn get_primary_key(&self) -> Option<String> {
+        None
     }
 
     fn as_any(&self) -> &dyn Any {

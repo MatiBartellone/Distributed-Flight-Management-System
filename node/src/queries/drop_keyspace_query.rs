@@ -1,13 +1,11 @@
-use std::any::Any;
 use crate::{queries::query::Query, utils::errors::Errors};
+use std::any::Any;
 
 #[derive(PartialEq, Debug)]
 pub struct DropKeySpaceQuery {
     pub keyspace: String,
     pub if_exist: Option<bool>,
-
 }
-
 
 impl DropKeySpaceQuery {
     pub fn new() -> Self {
@@ -23,6 +21,10 @@ impl Query for DropKeySpaceQuery {
         unimplemented!()
     }
 
+    fn get_primary_key(&self) -> Option<String> {
+        None
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -30,6 +32,6 @@ impl Query for DropKeySpaceQuery {
 
 impl Default for DropKeySpaceQuery {
     fn default() -> Self {
-         Self::new()
+        Self::new()
     }
 }

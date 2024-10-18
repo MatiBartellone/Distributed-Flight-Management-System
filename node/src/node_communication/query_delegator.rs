@@ -1,59 +1,46 @@
-use std::io::{Read, Write};
-use std::net::TcpStream;
-use std::sync::{mpsc, Arc, Mutex};
-use std::thread;
 use crate::frame::Frame;
 use crate::node_communication::query_serializer::QuerySerializer;
 use crate::queries::query::{Query, QueryEnum};
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
+use std::io::{Read, Write};
+use std::net::TcpStream;
+use std::sync::{mpsc, Arc, Mutex};
+use std::thread;
 //use crate::node_communication::query_serializer::QuerySerializer;
 
-
-const REPLICATION : i32 = 3;
-pub struct QueryDelegator{
+const REPLICATION: i32 = 3;
+pub struct QueryDelegator {
     node: i32,
     query: Box<dyn Query>,
-    consistency: ConsistencyLevel
+    consistency: ConsistencyLevel,
 }
 
 impl QueryDelegator {
     pub fn new(node: i32, query: Box<dyn Query>, consistency: ConsistencyLevel) -> Self {
-        Self{
+        Self {
             node,
             query,
-            consistency
+            consistency,
         }
     }
 
-    // pub fn send(&self) -> Result<String, Errors> {
-    //     let mut responses = Vec::new();
-    //     let mut response_quantity = 0;
-    //     for ip in self.get_nodes_ip()? {
-    //         thread::spawn( move || {
-    //             if let Ok(response) = self.send_to_node(ip) {
-    //                 response_quantity += 1; // HAY QUE CHEQUEAR DE ALGUNA FORMA SI CUMPLE CON LA CONSISTENCY Y CORTAR ANTES
-    //                 responses.push(response);
-    //             }
-    //         });
-    //     }
-    //     Ok(self.get_response(responses)?)
-    // }
-    pub fn send(&self) -> Result<String, Errors> {
+    pub fn send(&self) -> Result<Vec<u8>, Errors> {
         let responses = Arc::new(Mutex::new(Vec::new()));
         let (tx, rx) = mpsc::channel();
         let mut handles = Vec::new();
 
         for ip in self.get_nodes_ip()? {
             let Some(query_enum) = QueryEnum::from_query(&self.query) else {
-                return Err(Errors::ServerError(String::from("QueryEnum does not exist")));
+                return Err(Errors::ServerError(String::from(
+                    "QueryEnum does not exist",
+                )));
             };
             let tx = tx.clone();
             let handle = thread::spawn(move || {
                 if let Ok(response) = QueryDelegator::send_to_node(ip, query_enum.into_query()) {
                     dbg!(&response);
-                    if tx.send(response).is_ok() {
-                    }
+                    if tx.send(response).is_ok() {}
                 }
             });
             handles.push(handle);
@@ -67,7 +54,7 @@ impl QueryDelegator {
             }
         }
 
-        // Esperar a que todos los threads terminen
+        // Esperar a que todos los threads terminen?
         for handle in handles {
             handle.join().unwrap();
         }
@@ -76,36 +63,38 @@ impl QueryDelegator {
     }
 
     fn get_nodes_ip(&self) -> Result<Vec<String>, Errors> {
-        return Ok(vec!["127.0.0.2:9090".to_string()]);
         // let mut ips: Vec<String> = Vec::new();
         // for node in self.node..self.node + REPLICATION {
-        //     //ips.push(get_ip(node))      EXTRAE DE METADATA ACCESS
+        //     //ips.push(format!("{}:9090", get_ip(node)))      EXTRAE DE METADATA ACCESS
         // }
         // Ok(ips)
     }
 
-    fn send_to_node(ip: String, query: Box<dyn Query>) -> Result<String, Errors>  {
+    fn send_to_node(ip: String, query: Box<dyn Query>) -> Result<Vec<u8>, Errors> {
         match TcpStream::connect(ip) {
             Ok(mut stream) => {
-                if stream.write(QuerySerializer::serialize(&query)?.as_slice()).is_err() {
-                    return Err(Errors::ServerError(String::from("Unable to send query to node")));
+                if stream
+                    .write(QuerySerializer::serialize(&query)?.as_slice())
+                    .is_err()
+                {
+                    return Err(Errors::ServerError(String::from(
+                        "Unable to send query to node",
+                    )));
                 };
                 stream.flush().expect("");
                 let mut buf = [0; 1024];
                 match stream.read(&mut buf) {
-                    Ok(n) => {
-                        Ok(String::from_utf8_lossy(&buf[..n]).to_string())
-                    }
-                    Err(_) => Err(Errors::ServerError(String::from("Unable to read from node")))
+                    Ok(n) => Ok(buf[0..n].to_vec()),
+                    Err(_) => Err(Errors::ServerError(String::from(
+                        "Unable to read from node",
+                    ))),
                 }
-            },
-            Err(e) => {
-                Err(Errors::ServerError(e.to_string()))
             }
+            Err(e) => Err(Errors::ServerError(e.to_string())),
         }
     }
 
-    fn get_response(&self, responses: Vec<String>) -> Result<String, Errors> {
+    fn get_response(&self, responses: Vec<Vec<u8>>) -> Result<Vec<u8>, Errors> {
         let Some(response) = responses.first() else {
             return Err(Errors::ServerError(String::from("No response found")));
         };

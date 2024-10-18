@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::{data_type::DataType, terms::Term, token::Token};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Literal {

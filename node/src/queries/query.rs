@@ -1,19 +1,20 @@
-use std::any::Any;
-use serde::{Deserialize, Serialize};
 use crate::queries::delete_query::DeleteQuery;
 use crate::queries::insert_query::InsertQuery;
 use crate::queries::select_query::SelectQuery;
 use crate::queries::update_query::UpdateQuery;
 use crate::queries::use_query::UseQuery;
 use crate::utils::errors::Errors;
+use serde::{Deserialize, Serialize};
+use std::any::Any;
 
-pub trait Query : Any{
-    fn run(&self) -> Result<String, Errors>;
+pub trait Query: Any {
+    fn run(&self) -> Result<Vec<u8>, Errors>;
+    fn get_primary_key(&self) -> Option<String>;
     fn as_any(&self) -> &dyn Any;
 }
 
 #[derive(Serialize, Deserialize)]
-pub enum QueryEnum{
+pub enum QueryEnum {
     Insert(InsertQuery),
     Delete(DeleteQuery),
     Update(UpdateQuery),
@@ -21,7 +22,7 @@ pub enum QueryEnum{
     Use(UseQuery),
 }
 
-impl QueryEnum{
+impl QueryEnum {
     pub fn into_query(self) -> Box<dyn Query> {
         match self {
             QueryEnum::Insert(query) => Box::new(query),
@@ -33,20 +34,18 @@ impl QueryEnum{
     }
 
     pub fn from_query(query: &Box<dyn Query>) -> Option<Self> {
-        if let Some(insert_query) = query.as_any().downcast_ref::<InsertQuery>(){
+        if let Some(insert_query) = query.as_any().downcast_ref::<InsertQuery>() {
             Some(QueryEnum::Insert(insert_query.clone()))
-        } else if let Some(delete_query) = query.as_any().downcast_ref::<DeleteQuery>(){
+        } else if let Some(delete_query) = query.as_any().downcast_ref::<DeleteQuery>() {
             Some(QueryEnum::Delete(delete_query.clone()))
-        } else if let Some(update_query) = query.as_any().downcast_ref::<UpdateQuery>(){
+        } else if let Some(update_query) = query.as_any().downcast_ref::<UpdateQuery>() {
             Some(QueryEnum::Update(update_query.clone()))
-        } else if let Some(select_query) = query.as_any().downcast_ref::<SelectQuery>(){
+        } else if let Some(select_query) = query.as_any().downcast_ref::<SelectQuery>() {
             Some(QueryEnum::Select(select_query.clone()))
-        } else if let Some(use_query) = query.as_any().downcast_ref::<UseQuery>(){
+        } else if let Some(use_query) = query.as_any().downcast_ref::<UseQuery>() {
             Some(QueryEnum::Use(use_query.clone()))
         } else {
             None
         }
     }
 }
-
-

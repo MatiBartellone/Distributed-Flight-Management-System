@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
 use super::{
     literal::{to_literal, Literal},
     token::Token,
 };
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq)]
 pub enum Term {

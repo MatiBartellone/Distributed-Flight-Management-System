@@ -1,7 +1,6 @@
-use std::any::Any;
-use serde::{Deserialize, Serialize};
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
-
+use serde::{Deserialize, Serialize};
+use std::any::Any;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct InsertQuery {
@@ -27,8 +26,12 @@ impl Default for InsertQuery {
 }
 
 impl Query for InsertQuery {
-    fn run(&self) -> Result<String, Errors> {
+    fn run(&self) -> Result<Vec<u8>, Errors> {
         unimplemented!()
+    }
+
+    fn get_primary_key(&self) -> Option<String> {
+        None
     }
 
     fn as_any(&self) -> &dyn Any {

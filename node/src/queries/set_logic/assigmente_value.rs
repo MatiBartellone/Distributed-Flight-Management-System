@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::parsers::tokens::{literal::Literal, terms::ArithMath};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub enum AssignmentValue {

@@ -1,10 +1,13 @@
 use std::{iter::Peekable, vec::IntoIter};
 
 use crate::parsers::tokens::{
-    data_type::DataType, literal::Literal, terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term}, token::Token
+    data_type::DataType,
+    literal::Literal,
+    terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term},
+    token::Token,
 };
-use Token::*;
 use Term::*;
+use Token::*;
 
 use super::errors::Errors;
 
@@ -16,9 +19,7 @@ pub fn get_literal(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Literal, Er
     }
 }
 
-pub fn get_sublist(
-    tokens: &mut Peekable<IntoIter<Token>>,
-) -> Result<Vec<Token>, Errors> {
+pub fn get_sublist(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Vec<Token>, Errors> {
     let token = get_next_value(tokens)?;
     match token {
         IterateToken(list) => Ok(list),
@@ -29,9 +30,7 @@ pub fn get_sublist(
     }
 }
 
-pub fn get_arithmetic_math(
-    tokens: &mut Peekable<IntoIter<Token>>,
-) -> Result<ArithMath, Errors> {
+pub fn get_arithmetic_math(tokens: &mut Peekable<IntoIter<Token>>) -> Result<ArithMath, Errors> {
     let token = get_next_value(tokens)?;
     match token {
         Term(ArithMath(op)) => Ok(op),

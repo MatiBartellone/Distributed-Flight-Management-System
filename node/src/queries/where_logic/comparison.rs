@@ -1,8 +1,10 @@
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use crate::{
-    parsers::tokens::{literal::Literal, terms::ComparisonOperators}, queries::evaluate::Evaluate, utils::errors::Errors
+    parsers::tokens::{literal::Literal, terms::ComparisonOperators},
+    queries::evaluate::Evaluate,
+    utils::errors::Errors,
 };
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use ComparisonOperators::*;
 

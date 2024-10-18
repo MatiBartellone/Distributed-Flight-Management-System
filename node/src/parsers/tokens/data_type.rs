@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::token::Token;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub enum DataType {

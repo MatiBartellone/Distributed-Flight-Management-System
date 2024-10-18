@@ -1,11 +1,13 @@
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use crate::{
-    parsers::tokens::{literal::Literal, terms::ComparisonOperators, token::Token}, queries::evaluate::Evaluate, utils::{
+    parsers::tokens::{literal::Literal, terms::ComparisonOperators, token::Token},
+    queries::evaluate::Evaluate,
+    utils::{
         errors::Errors,
         token_conversor::{get_identifier_string, get_literal},
-    }
+    },
 };
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use WhereClause::*;
 
 use super::comparison::ComparisonExpr;
