@@ -1,13 +1,13 @@
 use crate::executables::executable::Executable;
 use crate::frame::Frame;
+use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::node_communication::query_delegator::QueryDelegator;
 use crate::queries::query::{Query, QueryEnum};
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::consistency_level::ConsistencyLevel;
+use crate::utils::constants::NODES_METADATA;
 use crate::utils::errors::Errors;
 use crate::utils::parser_constants::RESULT;
-use serde::{Deserialize, Serialize};
-use std::fs::File;
 
 pub struct QueryExecutable {
     query: Box<dyn Query>,
@@ -22,16 +22,19 @@ impl QueryExecutable {
 
 impl Executable for QueryExecutable {
     fn execute(&self, request: Frame) -> Result<Frame, Errors> {
-        //let pk = query.get_primary_key()
-        //let node = hash(pk)
-        //let delegator = QueryDelegator::new(node, query_enum.into_query(), self.consistency);
-        //let text = delegator.send()
 
-        // let pk = query.get_primary_key()
-        // let node = get_delegation()
-        // let delegator = QueryDelegator::new(node, query_enum.into_query(), self.consistency);
-        // let response_msg = delegator.send()
-        // let response_frame = FrameBuilder::build_response_frame(request, RESULT, response_msg)
+        let Some(pk) = self.query.get_primary_key() else {
+            return Err(Errors::ServerError(String::from("")))
+        };;
+        let Some(node) = NodesMetaDataAccess::get_delegation(NODES_METADATA, pk)? else {
+            return Err(Errors::ServerError(String::from("")))
+        }; ;
+        let Some(query_enum) = QueryEnum::from_query(&self.query) else {
+            return Err(Errors::ServerError(String::from("")))
+        };
+        let delegator = QueryDelegator::new(node.get_pos() as i32, query_enum.into_query(), ConsistencyLevel::One);
+        let response_msg = delegator.send()?;
+        let response_frame = FrameBuilder::build_response_frame(request, RESULT, response_msg)?;
         Ok(response_frame)
     }
 }

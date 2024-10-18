@@ -28,6 +28,7 @@ impl KeyspaceMetaDataAccess {
         .read(true)  // Permitir lectura
         .write(true) // Permitir escritura
         .create(true) // Crear el archivo si no existe
+            .truncate(true)
         .open(path)
         .map_err(|_| Errors::ServerError("Unable to open or create file".to_string()))?;
         Ok(file)
@@ -256,6 +257,7 @@ mod tests {
         let _ = OpenOptions::new()
             .write(true)
             .create(true)
+            .truncate(true)
             .open(name)
             .map_err(|_| Errors::ServerError("Unable to create test file".to_string()));
         Ok(())

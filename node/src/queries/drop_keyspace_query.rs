@@ -17,7 +17,7 @@ impl DropKeySpaceQuery {
 }
 
 impl Query for DropKeySpaceQuery {
-    fn run(&self) -> Result<String, Errors> {
+    fn run(&self) -> Result<Vec<u8>, Errors> {
         unimplemented!()
     }
 

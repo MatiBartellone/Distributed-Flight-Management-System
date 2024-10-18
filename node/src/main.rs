@@ -6,6 +6,8 @@ use node::utils::errors::Errors;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
+use node::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
+use node::utils::constants::NODES_METADATA;
 
 fn main() {
     print!("node's ip: ");
@@ -18,11 +20,13 @@ fn main() {
     //node.write_to_file("src/node_info.json");
 
     thread::spawn(move || {
-        QueryReceiver::start_listening();
+        let _ = QueryReceiver::start_listening();
     });
-
-    let listener = TcpListener::bind(node.get_full_ip()).expect("Error binding socket");
-    println!("Servidor escuchando en {}", node.get_full_ip());
+    let Ok(ip) = NodesMetaDataAccess::get_own_ip(NODES_METADATA) else {
+        panic!("No metadata found");
+    };
+    let listener = TcpListener::bind(format!("{}:8080", ip)).expect("Error binding socket");
+    println!("Servidor escuchando en {}", ip);
 
     for incoming in listener.incoming() {
         match incoming {

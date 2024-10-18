@@ -1,3 +1,4 @@
+pub const NODES_METADATA: &str = "src/meta_data/nodes/metadata.json";
 pub const DOLLAR: char = '$';
 pub const DOUBLE_QUOTE: char = '"';
 pub const SINGLE_QUOTE: char = '\'';

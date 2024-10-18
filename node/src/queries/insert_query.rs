@@ -2,7 +2,7 @@ use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::err
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InsertQuery {
     pub table: String,
     pub headers: Vec<String>,

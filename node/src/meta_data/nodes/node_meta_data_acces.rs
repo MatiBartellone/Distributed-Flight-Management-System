@@ -2,7 +2,7 @@ use std::fs::{File, OpenOptions};
 
 use crate::utils::errors::Errors;
 
-use super::{node_group::NodeGroup, node::{Node, self}};
+use super::{node_group::NodeGroup, node::Node};
 
 use twox_hash::XxHash32;
 use std::hash::{Hasher};
@@ -19,13 +19,14 @@ impl NodesMetaDataAccess {
         .read(true)  // Permitir lectura
         .write(true) // Permitir escritura
         .create(true) // Crear el archivo si no existe
+            .truncate(true)
         .open(path)
         .map_err(|_| Errors::ServerError("Unable to open or create file".to_string()))?;
         Ok(file)
     }
 
     fn read_node_group(path: &str) -> Result<NodeGroup, Errors> {
-        let mut file = Self::open(path)?;
+        let file = Self::open(path)?;
         let node_group: NodeGroup = serde_json::from_reader(&file)
             .map_err(|_| Errors::ServerError("Failed to read or deserialize NodeGroup".to_string()))?;
         Ok(node_group)
@@ -39,7 +40,7 @@ impl NodesMetaDataAccess {
     }
 
     //el special node es el nodo en el que estamos
-    pub fn get_special_node_ip(path: &str) -> Result<String, Errors> {
+    pub fn get_own_ip(path: &str) -> Result<String, Errors> {
         let node_group = Self::read_node_group(path)?;
         Ok(node_group.ip_principal().to_string())
     }

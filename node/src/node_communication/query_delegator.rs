@@ -1,4 +1,3 @@
-use crate::frame::Frame;
 use crate::node_communication::query_serializer::QuerySerializer;
 use crate::queries::query::{Query, QueryEnum};
 use crate::utils::consistency_level::ConsistencyLevel;
@@ -7,7 +6,6 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
-//use crate::node_communication::query_serializer::QuerySerializer;
 
 const REPLICATION: i32 = 3;
 pub struct QueryDelegator {
@@ -68,6 +66,7 @@ impl QueryDelegator {
         //     //ips.push(format!("{}:9090", get_ip(node)))      EXTRAE DE METADATA ACCESS
         // }
         // Ok(ips)
+        Ok(Vec::new())
     }
 
     fn send_to_node(ip: String, query: Box<dyn Query>) -> Result<Vec<u8>, Errors> {
