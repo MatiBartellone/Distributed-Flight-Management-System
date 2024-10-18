@@ -48,7 +48,7 @@ impl NodesMetaDataAccess {
     pub fn get_delegation(path: &str, key: String)-> Result<Option<Node>, Errors> {
         let hasshing_key = hash_string_murmur3(&key);
         let node_group = Self::read_node_group(path)?;
-        let pos = hasshing_key % node_group;
+        let pos = hasshing_key % node_group.len_nodes();
         Ok(node_group.get_node(pos))
     }
 }

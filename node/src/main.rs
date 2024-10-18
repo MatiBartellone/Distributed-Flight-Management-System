@@ -20,11 +20,11 @@ fn main() -> Result<(), Errors> {
     let parser = ParserFactory::get_parser(frame.opcode)?;
     let executable = parser.parse(frame.body.as_slice())?;
     executable.execute(frame)?;*/
-    main3()
-    //Ok(())
+    //main3()
+    Ok(())
 }
 
-
+/* 
 //de esta manera no se lockean
 fn main2() -> Result<(), Errors> {
     let path = "node/src/meta_data/keyspaces/testing.json";
@@ -129,7 +129,7 @@ fn main3() -> Result<(), Errors> {
 
     println!("Los hilos han terminado.");
     Ok(())
-}
+} */
 
 fn create_json_file(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     // Crear un HashMap que asocia el nombre del keyspace con su configuración
