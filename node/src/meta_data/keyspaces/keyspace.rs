@@ -4,11 +4,11 @@ use serde::{Deserialize, Serialize};
 
 use super::table::Table;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Keyspace {
     pub tables: HashMap<String, Table>,
-    replication_strategy: String,
-    replication_factor: usize,
+    pub replication_strategy: String,
+    pub replication_factor: usize,
 }
 
 impl Keyspace {
