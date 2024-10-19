@@ -6,18 +6,20 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
+use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
+use crate::utils::constants::NODES_METADATA;
 
 const REPLICATION: i32 = 3;
 pub struct QueryDelegator {
-    node: i32,
+    primary_key: Option<String>,
     query: Box<dyn Query>,
     consistency: ConsistencyLevel,
 }
 
 impl QueryDelegator {
-    pub fn new(node: i32, query: Box<dyn Query>, consistency: ConsistencyLevel) -> Self {
+    pub fn new(primary_key: Option<String>, query: Box<dyn Query>, consistency: ConsistencyLevel) -> Self {
         Self {
-            node,
+            primary_key,
             query,
             consistency,
         }
@@ -61,11 +63,9 @@ impl QueryDelegator {
     }
 
     fn get_nodes_ip(&self) -> Result<Vec<String>, Errors> {
-        // let mut ips: Vec<String> = Vec::new();
-        // for node in self.node..self.node + REPLICATION {
-        //     //ips.push(format!("{}:9090", get_ip(node)))      EXTRAE DE METADATA ACCESS
-        // }
-        // Ok(ips)
+        let Some(node) = NodesMetaDataAccess::get_delegation(NODES_METADATA, self.primary_key)? else {
+            return Err(Errors::ServerError(String::from("")))
+        };
         Ok(Vec::new())
     }
 

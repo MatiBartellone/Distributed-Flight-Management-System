@@ -23,16 +23,11 @@ impl QueryExecutable {
 impl Executable for QueryExecutable {
     fn execute(&self, request: Frame) -> Result<Frame, Errors> {
 
-        let Some(pk) = self.query.get_primary_key() else {
-            return Err(Errors::ServerError(String::from("")))
-        };;
-        let Some(node) = NodesMetaDataAccess::get_delegation(NODES_METADATA, pk)? else {
-            return Err(Errors::ServerError(String::from("")))
-        }; ;
+        let pk = self.query.get_primary_key();
         let Some(query_enum) = QueryEnum::from_query(&self.query) else {
             return Err(Errors::ServerError(String::from("")))
         };
-        let delegator = QueryDelegator::new(node.get_pos() as i32, query_enum.into_query(), ConsistencyLevel::One);
+        let delegator = QueryDelegator::new(pk, query_enum.into_query(), ConsistencyLevel::One);
         let response_msg = delegator.send()?;
         let response_frame = FrameBuilder::build_response_frame(request, RESULT, response_msg)?;
         Ok(response_frame)
