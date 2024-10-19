@@ -16,14 +16,15 @@ impl InsertQuery {
         }
     }
 }
-impl Query for InsertQuery {
-    fn run(&self) -> Result<(), Errors> {
-        unimplemented!()
-    }
-}
 
 impl Default for InsertQuery {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Query for InsertQuery {
+    fn run(&self) -> Result<(), Errors> {
+        unimplemented!()
     }
 }

@@ -12,6 +12,7 @@ use super::query_parsers::delete_query_parser::DeleteQueryParser;
 use super::query_parsers::drop_query_parser::DropQueryParser;
 use super::query_parsers::insert_query_parser::InsertQueryParser;
 use super::query_parsers::select_query_parser::SelectQueryParser;
+use super::query_parsers::update_query_parser::UpdateQueryParser;
 use super::query_parsers::use_query_parser::UseQueryParser;
 use super::tokens::lexer::standardize;
 use super::tokens::token::{tokenize, Token};
@@ -26,7 +27,7 @@ impl Parser for QueryParser {
         let tokens = query_lexer(string)?;
         let query = query_parser(tokens)?;
         let consistency = cursor.read_consistency()?;
-        let executable = QueryExecutable::new(query, consistency);
+        let executable = QueryExecutable::new(query, consistency); 
         Ok(Box::new(executable))
     }
 }
@@ -45,17 +46,15 @@ fn query_parser(tokens: Vec<Token>) -> Result<Box<dyn Query>, Errors> {
             match res.as_str() {
                 "SELECT" => Ok(Box::new(SelectQueryParser::parse(tokens)?)),
                 "INSERT" => Ok(Box::new(InsertQueryParser::parse(tokens)?)),
-                //"UPDATE" => Ok(Box::new(UpdateQueryParser::parse(tokens)?)),
+                "UPDATE" => Ok(Box::new(UpdateQueryParser::parse(tokens)?)),
                 "DELETE" => Ok(Box::new(DeleteQueryParser::parse(tokens)?)),
-                //"DROP" => DropQueryParser::parse(tokens),
-                // ...
                 "USE" => Ok(Box::new(UseQueryParser.parse(tokens)?)),
                 "ALTER" => Ok(Box::new(AlterTableParser.parse(tokens)?)),
                 "DROP" => DropQueryParser::parse(tokens),
                 "CREATE" => CreateQueryParser::parse(tokens),
                 _ => Err(Errors::SyntaxError(format!("Unknown query type: {}", res))),
             }
-        }
+        },
         _ => Err(Errors::SyntaxError("Invalid CQL syntax".to_string())),
     }
 }
