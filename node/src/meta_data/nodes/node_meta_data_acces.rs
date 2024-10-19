@@ -38,7 +38,7 @@ impl NodesMetaDataAccess {
     }
 
     //el special node es el nodo en el que estamos
-    pub fn get_special_node_ip(path: &str) -> Result<String, Errors> {
+    pub fn get_own_ip(path: &str) -> Result<String, Errors> {
         let cluster = Self::read_cluster(path)?;
         Ok(cluster.get_own_ip().to_string())
     }
@@ -52,7 +52,7 @@ impl NodesMetaDataAccess {
         Ok(cluster.get_node(pos))
     }*/
 
-    pub fn get_delegation(path: &str, key: Option<String>) -> Result<Option<Vec<String>>, Errors> {
+    pub fn get_partition_ips(path: &str, key: Option<String>) -> Result<Option<Vec<String>>, Errors> {
         if let Some(key) = key {
             let hashing_key = hash_string_murmur3(&key);
             let cluster = Self::read_cluster(path)?;
