@@ -9,14 +9,14 @@ use crate::utils::constants::NODES_METADATA;
 use crate::utils::errors::Errors;
 use crate::utils::parser_constants::RESULT;
 
-pub struct QueryExecutable {
+pub struct QueryExecutable{
     query: Box<dyn Query>,
-    consistency: ConsistencyLevel,
+    consistency: ConsistencyLevel
 }
 
 impl QueryExecutable {
     pub fn new(query: Box<dyn Query>, consistency: ConsistencyLevel) -> QueryExecutable {
-        QueryExecutable { query, consistency }
+        QueryExecutable { query, consistency}
     }
 }
 

@@ -10,7 +10,7 @@ use ConsistencyLevel::*;
 pub enum ConsistencyLevel {
     One,
     Quorum,
-    All,
+    All
 }
 
 impl ConsistencyLevel {
@@ -19,12 +19,7 @@ impl ConsistencyLevel {
             ONE => ConsistencyLevel::One,
             QUORUM => ConsistencyLevel::Quorum,
             ALL => ConsistencyLevel::All,
-            _ => {
-                return Err(Errors::ProtocolError(format!(
-                    "Unknown consistency level: {}",
-                    value
-                )))
-            }
+            _ => return Err(Errors::ProtocolError(format!("Unknown consistency level: {}", value))),
         };
         Ok(consistency)
     }

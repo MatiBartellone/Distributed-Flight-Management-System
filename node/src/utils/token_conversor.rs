@@ -1,5 +1,4 @@
 use std::{iter::Peekable, vec::IntoIter};
-
 use crate::parsers::tokens::{
     data_type::DataType,
     literal::Literal,
@@ -7,9 +6,37 @@ use crate::parsers::tokens::{
     token::Token,
 };
 use Term::*;
-use Token::*;
-
+use BooleanOperations::*;
+use LogicalOperators::*;
+use crate::parsers::tokens::token::Token::{IterateToken, ParenList};
 use super::errors::Errors;
+
+pub fn precedence(tokens: Vec<Token>) -> Vec<Token> {
+    let mut result = Vec::new();
+    let mut current_list = Vec::new();
+
+    for token in tokens.into_iter() {
+        match token {
+            Token::Term(BooleanOperations(Logical(Or))) => {
+                result.push(ParenList(current_list));
+                current_list = Vec::new();
+                result.push(Token::Term(BooleanOperations(Logical(Or))));
+            }
+            ParenList(list) => {
+                let list = precedence(list);
+                current_list.push(ParenList(list));
+            }
+            _ => {
+                current_list.push(token);
+            }
+        }
+    }
+    if result.is_empty(){
+        return current_list
+    }
+    result.push(ParenList(current_list));
+    result
+}
 
 pub fn get_literal(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Literal, Errors> {
     let token = get_next_value(tokens)?;
@@ -33,7 +60,7 @@ pub fn get_sublist(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Vec<Token>,
 pub fn get_arithmetic_math(tokens: &mut Peekable<IntoIter<Token>>) -> Result<ArithMath, Errors> {
     let token = get_next_value(tokens)?;
     match token {
-        Term(ArithMath(op)) => Ok(op),
+        Token::Term(ArithMath(op)) => Ok(op),
         e => Err(Errors::Invalid(format!(
             "Expected comparision operator but has {:?}",
             e

@@ -2,11 +2,12 @@ use crate::utils::errors::Errors;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
-
+use crate::utils::errors::Errors;
 use super::{
     if_clause::IfClause, query::Query, set_logic::assigmente_value::AssignmentValue,
     where_logic::where_clause::WhereClause,
 };
+
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateQuery {

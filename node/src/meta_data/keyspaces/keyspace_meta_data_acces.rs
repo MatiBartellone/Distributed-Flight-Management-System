@@ -25,10 +25,10 @@ impl KeyspaceMetaDataAccess {
 
     fn open_file(path: String) -> Result<File, Errors> {
         let file = OpenOptions::new()
-        .read(true)  // Permitir lectura
-        .write(true) // Permitir escritura
-        .create(true) // Crear el archivo si no existe
-            .truncate(true)
+        .read(true)  
+        .write(true) 
+        .create(true)
+        .truncate(false)
         .open(path)
         .map_err(|_| Errors::ServerError("Unable to open or create file".to_string()))?;
         Ok(file)
@@ -256,7 +256,6 @@ mod tests {
     fn create_test_file(name: &str) -> Result<(), Errors> {
         let _ = OpenOptions::new()
             .write(true)
-            .create(true)
             .truncate(true)
             .open(name)
             .map_err(|_| Errors::ServerError("Unable to create test file".to_string()));
