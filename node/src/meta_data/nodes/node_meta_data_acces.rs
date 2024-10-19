@@ -12,9 +12,10 @@ pub struct NodesMetaDataAccess;
 impl NodesMetaDataAccess {
     fn open(path: &str) -> Result<File, Errors> {
         let file = OpenOptions::new()
+            .truncate(false)
+            .create(true)
             .read(true) // Permitir lectura
             .write(true) // Permitir escritura
-            .truncate(true) // Crear el archivo si no existe
             .open(path)
             .map_err(|_| Errors::ServerError("Unable to open or create file".to_string()))?;
         Ok(file)

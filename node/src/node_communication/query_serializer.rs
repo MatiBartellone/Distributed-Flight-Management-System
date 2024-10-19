@@ -5,6 +5,7 @@ use rmp_serde::{from_slice, to_vec};
 pub struct QuerySerializer;
 
 impl QuerySerializer {
+    #[allow(clippy::borrowed_box)]
     pub fn serialize(query: &Box<dyn Query>) -> Result<Vec<u8>, Errors> {
         let Some(query_enum) = QueryEnum::from_query(query) else {
             return Err(Errors::ServerError(String::from("")));

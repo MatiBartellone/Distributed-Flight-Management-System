@@ -1,4 +1,6 @@
 use super::query::Query;
+use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
+use crate::utils::constants::NODES_METADATA;
 use crate::utils::errors::Errors;
 use crate::utils::functions::get_long_string_from_str;
 use serde::{Deserialize, Serialize};
@@ -25,11 +27,16 @@ impl Default for UseQuery {
 
 impl Query for UseQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
-        Ok(get_long_string_from_str("respuesta"))
+        let msg = format!(
+            "respuesta desde {}",
+            NodesMetaDataAccess::get_own_ip(NODES_METADATA)?
+        );
+        Ok(get_long_string_from_str(msg.as_ref()))
     }
 
     fn get_primary_key(&self) -> Option<String> {
-        None
+        let rng: u8 = rand::random();
+        Some(format!("{}", rng))
     }
 
     fn as_any(&self) -> &dyn Any {

@@ -37,8 +37,8 @@ fn main() {
     }
     let cluster = Cluster::new(own_node, other_nodes);
 
-    if NodesMetaDataAccess::write_cluster(NODES_METADATA, &cluster).is_err() {
-        panic!("Cluster write access failed.");
+    if let Err(e) = NodesMetaDataAccess::write_cluster(NODES_METADATA, &cluster) {
+        dbg!(e);
     }
 
     thread::spawn(move || {
@@ -103,7 +103,6 @@ fn handle_client(mut stream: TcpStream) {
 
 fn execute_request(bytes: Vec<u8>) -> Result<Vec<u8>, Errors> {
     let frame = Frame::parse_frame(bytes.as_slice())?;
-    dbg!(&frame);
     frame.validate_request_frame()?;
     let parser = ParserFactory::get_parser(frame.opcode)?;
     let executable = parser.parse(frame.body.as_slice())?;

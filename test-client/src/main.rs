@@ -101,7 +101,7 @@ fn main() {
                             0x08 => {
                                 let mut cursor = BytesCursor::new(frame.body.as_slice());
                                 println!("RESULT");
-                                dbg!(cursor.read_string().unwrap());
+                                dbg!(cursor.read_long_string().unwrap());
                             }
                             _ => {}
                         }

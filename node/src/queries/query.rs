@@ -33,6 +33,7 @@ impl QueryEnum {
         }
     }
 
+    #[allow(clippy::borrowed_box)]
     pub fn from_query(query: &Box<dyn Query>) -> Option<Self> {
         if let Some(insert_query) = query.as_any().downcast_ref::<InsertQuery>() {
             return Some(QueryEnum::Insert(insert_query.clone()));

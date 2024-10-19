@@ -43,7 +43,6 @@ impl QueryDelegator {
             let tx = tx.clone();
             let handle = thread::spawn(move || {
                 if let Ok(response) = QueryDelegator::send_to_node(ip, query_enum.into_query()) {
-                    dbg!(&response);
                     if tx.send(response).is_ok() {}
                 }
             });
@@ -58,10 +57,10 @@ impl QueryDelegator {
             }
         }
 
-        // Esperar a que todos los threads terminen?
-        for handle in handles {
-            handle.join().unwrap();
-        }
+        // // Esperar a que todos los threads terminen?
+        // for handle in handles {
+        //     handle.join().unwrap();
+        // }
         let final_responses = responses.lock().unwrap();
         self.get_response(final_responses.clone())
     }
