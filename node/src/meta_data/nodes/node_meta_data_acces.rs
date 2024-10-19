@@ -1,11 +1,10 @@
-use std::fs::{File, OpenOptions};
+use std::{fs::{File, OpenOptions}, io::Cursor};
 
 use crate::utils::errors::Errors;
 
-use super::{node_group::NodeGroup, node::{Node, self}};
+use super::cluster::Cluster;
 
-use twox_hash::XxHash32;
-use std::hash::{Hasher};
+use murmur3::murmur3_32;
 
 
 
@@ -18,43 +17,56 @@ impl NodesMetaDataAccess {
         let file = OpenOptions::new()
         .read(true)  // Permitir lectura
         .write(true) // Permitir escritura
-        .create(true) // Crear el archivo si no existe
+        .truncate(true) // Crear el archivo si no existe
         .open(path)
         .map_err(|_| Errors::ServerError("Unable to open or create file".to_string()))?;
         Ok(file)
     }
 
-    fn read_node_group(path: &str) -> Result<NodeGroup, Errors> {
-        let mut file = Self::open(path)?;
-        let node_group: NodeGroup = serde_json::from_reader(&file)
-            .map_err(|_| Errors::ServerError("Failed to read or deserialize NodeGroup".to_string()))?;
-        Ok(node_group)
+    fn read_cluster(path: &str) -> Result<Cluster, Errors> {
+        let file = Self::open(path)?;
+        let cluster: Cluster = serde_json::from_reader(&file)
+            .map_err(|_| Errors::ServerError("Failed to read or deserialize Cluster".to_string()))?;
+        Ok(cluster)
     }
 
-    fn write_node_group(path: &str, node_group: &NodeGroup) -> Result<(), Errors> {
+    pub fn write_cluster(path: &str, cluster: &Cluster) -> Result<(), Errors> {
         let file = Self::open(path)?;
-        serde_json::to_writer(&file, &node_group)
-            .map_err(|_| Errors::ServerError("Failed to write NodeGroup to file".to_string()))?;
+        serde_json::to_writer(&file, &cluster)
+            .map_err(|_| Errors::ServerError("Failed to write Cluster to file".to_string()))?;
         Ok(())
     }
 
     //el special node es el nodo en el que estamos
     pub fn get_special_node_ip(path: &str) -> Result<String, Errors> {
-        let node_group = Self::read_node_group(path)?;
-        Ok(node_group.ip_principal().to_string())
+        let cluster = Self::read_cluster(path)?;
+        Ok(cluster.get_own_ip().to_string())
     }
 
     //Si no hay que delegar, retorna None
-    pub fn get_delegation(path: &str, key: String)-> Result<Option<Node>, Errors> {
+    /*pub fn get_delegation(path: &str, key: Option<String>)-> Result<Option<Vec<String>>, Errors> {
+        if let some
         let hasshing_key = hash_string_murmur3(&key);
-        let node_group = Self::read_node_group(path)?;
-        let pos = hasshing_key % node_group.len_nodes();
-        Ok(node_group.get_node(pos))
+        let cluster = Self::read_cluster(path)?;
+        let pos = hasshing_key % cluster.len_nodes();
+        Ok(cluster.get_node(pos))
+    }*/
+
+    pub fn get_delegation(path: &str, key: Option<String>) -> Result<Option<Vec<String>>, Errors> {
+        if let Some(key) = key {
+            let hashing_key = hash_string_murmur3(&key);
+            let cluster = Self::read_cluster(path)?;
+            let pos = hashing_key % cluster.len_nodes();
+            Ok(Some(cluster.get_nodes(pos, 3)))
+        } else {
+            Ok(None)
+        }
     }
+    
 }
 
 fn hash_string_murmur3(input: &str) -> usize {
-        let mut hasher = XxHash32::with_seed(0); 
-        hasher.write(input.as_bytes());
-        hasher.finish() as usize
-    }
+    let mut buffer = Cursor::new(input.as_bytes());
+    let hash = murmur3_32(&mut buffer, 0).expect("Unable to compute hash");
+    hash as usize
+}
