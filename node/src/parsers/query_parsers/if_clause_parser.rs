@@ -1,16 +1,16 @@
 use std::{iter::Peekable, vec::IntoIter};
 use BooleanOperations::*;
-use LogicalOperators::*;
-use Token::*;
-use Term::*;
 use IfClause::Exist;
+use LogicalOperators::*;
+use Term::*;
+use Token::*;
 
-use crate::parsers::tokens::terms::{BooleanOperations, Term, LogicalOperators};
+use crate::parsers::tokens::terms::{BooleanOperations, LogicalOperators, Term};
 use crate::parsers::tokens::token::Token;
 use crate::queries::if_clause::{and_if, comparison_if, not_if, or_if, IfClause};
+use crate::utils::constants::*;
 use crate::utils::errors::Errors;
 use crate::utils::token_conversor::{get_comparision_operator, get_literal, get_next_value, precedence};
-use crate::utils::constants::*;
 
 pub struct IfClauseParser;
 
@@ -76,7 +76,7 @@ mod tests {
     use LogicalOperators::*;
     use ComparisonOperators::*;
     use DataType::*;
-    use super::IfClauseParser;
+    use crate::parsers::query_parsers::if_clause_parser::IfClauseParser;
 
     fn test_successful_parser_case(caso: Vec<Token>, expected: Option<IfClause>) {
         let resultado = IfClauseParser::parse(caso);
@@ -102,9 +102,7 @@ mod tests {
     #[test]
     fn test_if_clause_exists() {
         // EXISTS
-        let tokens = vec![
-            create_reserved_token("EXISTS"),
-        ];
+        let tokens = vec![create_reserved_token("EXISTS")];
         let expected = Some(IfClause::Exist);
         test_successful_parser_case(tokens, expected);
     }
@@ -186,15 +184,14 @@ mod tests {
             create_comparison_operation_token(Greater),
             create_token_literal("30", Int),
         ];
-        
+
         let expected = Some(and_if(
-                comparison_if("id", Equal, create_literal("8", Int)),
-                and_if(
-                    IfClause::Exist,
-                    comparison_if("age", Greater, create_literal("30", Int)),
-                ),
+            comparison_if("id", Equal, create_literal("8", Int)),
+            and_if(
+                IfClause::Exist,
+                comparison_if("age", Greater, create_literal("30", Int)),
             ),
-        );
+        ));
 
         test_successful_parser_case(tokens, expected);
     }

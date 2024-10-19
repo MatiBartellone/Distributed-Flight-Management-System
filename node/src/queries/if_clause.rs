@@ -1,6 +1,10 @@
 use std::collections::HashMap;
 
-use crate::{parsers::tokens::{literal::Literal, terms::ComparisonOperators}, queries::{evaluate::Evaluate, where_logic::comparison::ComparisonExpr}, utils::errors::Errors};
+use crate::{
+    parsers::tokens::{literal::Literal, terms::ComparisonOperators},
+    queries::{evaluate::Evaluate, where_logic::comparison::ComparisonExpr},
+    utils::errors::Errors,
+};
 
 #[derive(Debug, PartialEq)]
 pub enum IfClause {
@@ -20,16 +24,12 @@ impl Evaluate for IfClause {
             And(expr1, expr2) => Ok(expr1.evaluate(row)? && expr2.evaluate(row)?),
             Or(expr1, expr2) => Ok(expr1.evaluate(row)? || expr2.evaluate(row)?),
             Not(expr) => Ok(!expr.evaluate(row)?),
-            Exist => Ok(!row.is_empty())
+            Exist => Ok(!row.is_empty()),
         }
     }
 }
 
-pub fn comparison_if(
-    column: &str,
-    operator: ComparisonOperators,
-    literal: Literal,
-) -> IfClause {
+pub fn comparison_if(column: &str, operator: ComparisonOperators, literal: Literal) -> IfClause {
     Comparison(ComparisonExpr::new(column.to_string(), &operator, literal))
 }
 

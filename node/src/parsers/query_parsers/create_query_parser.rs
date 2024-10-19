@@ -27,7 +27,7 @@ impl CreateQueryParser {
 #[cfg(test)]
 mod tests {
     use crate::{parsers::{query_parsers::create_query_parser::CreateQueryParser, tokens::{data_type::DataType, literal::Literal, terms::Term, token::Token}}, utils::{constants::COMMA, errors::Errors, token_conversor::{create_identifier_token, create_paren_list_token, create_reserved_token, create_symbol_token, create_token_literal}}};
-    
+  
     #[test]
     fn test_create_keyspace() {
         // KEYSPACE

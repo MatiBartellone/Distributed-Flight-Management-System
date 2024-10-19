@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-
 use crate::utils::errors::Errors;
 
 use super::{if_clause::IfClause, query::Query, set_logic::assigmente_value::AssignmentValue, where_logic::where_clause::WhereClause};
@@ -9,7 +8,7 @@ pub struct UpdateQuery {
     pub table: String,
     pub changes: HashMap<String, AssignmentValue>,
     pub where_clause: Option<WhereClause>,
-    pub if_clause: Option<IfClause>
+    pub if_clause: Option<IfClause>,
 }
 
 impl UpdateQuery {
@@ -18,7 +17,7 @@ impl UpdateQuery {
             table: String::new(),
             changes: HashMap::new(),
             where_clause: None,
-            if_clause: None
+            if_clause: None,
         }
     }
 }

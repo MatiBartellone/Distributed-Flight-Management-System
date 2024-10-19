@@ -1,6 +1,5 @@
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
 
-
 #[derive(PartialEq, Debug)]
 pub struct InsertQuery {
     pub table: String,

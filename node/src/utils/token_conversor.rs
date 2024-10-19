@@ -1,13 +1,14 @@
 use std::{iter::Peekable, vec::IntoIter};
-
 use crate::parsers::tokens::{
-    data_type::DataType, literal::Literal, terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term}, token::Token
+    data_type::DataType,
+    literal::Literal,
+    terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term},
+    token::Token,
 };
-use Token::*;
 use Term::*;
 use BooleanOperations::*;
 use LogicalOperators::*;
-
+use crate::parsers::tokens::token::Token::{IterateToken, ParenList};
 use super::errors::Errors;
 
 pub fn precedence(tokens: Vec<Token>) -> Vec<Token> {
@@ -16,10 +17,10 @@ pub fn precedence(tokens: Vec<Token>) -> Vec<Token> {
 
     for token in tokens.into_iter() {
         match token {
-            Term(BooleanOperations(Logical(Or))) => {
+            Token::Term(BooleanOperations(Logical(Or))) => {
                 result.push(ParenList(current_list));
                 current_list = Vec::new();
-                result.push(Term(BooleanOperations(Logical(Or))));
+                result.push(Token::Term(BooleanOperations(Logical(Or))));
             }
             ParenList(list) => {
                 let list = precedence(list);
@@ -45,9 +46,7 @@ pub fn get_literal(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Literal, Er
     }
 }
 
-pub fn get_sublist(
-    tokens: &mut Peekable<IntoIter<Token>>,
-) -> Result<Vec<Token>, Errors> {
+pub fn get_sublist(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Vec<Token>, Errors> {
     let token = get_next_value(tokens)?;
     match token {
         IterateToken(list) => Ok(list),
@@ -58,12 +57,10 @@ pub fn get_sublist(
     }
 }
 
-pub fn get_arithmetic_math(
-    tokens: &mut Peekable<IntoIter<Token>>,
-) -> Result<ArithMath, Errors> {
+pub fn get_arithmetic_math(tokens: &mut Peekable<IntoIter<Token>>) -> Result<ArithMath, Errors> {
     let token = get_next_value(tokens)?;
     match token {
-        Term(ArithMath(op)) => Ok(op),
+        Token::Term(ArithMath(op)) => Ok(op),
         e => Err(Errors::Invalid(format!(
             "Expected comparision operator but has {:?}",
             e
