@@ -1,15 +1,15 @@
-use std::{iter::Peekable, vec::IntoIter};
+use super::errors::Errors;
+use crate::parsers::tokens::token::Token::{IterateToken, ParenList};
 use crate::parsers::tokens::{
     data_type::DataType,
     literal::Literal,
     terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term},
     token::Token,
 };
-use Term::*;
+use std::{iter::Peekable, vec::IntoIter};
 use BooleanOperations::*;
 use LogicalOperators::*;
-use crate::parsers::tokens::token::Token::{IterateToken, ParenList};
-use super::errors::Errors;
+use Term::*;
 
 pub fn precedence(tokens: Vec<Token>) -> Vec<Token> {
     let mut result = Vec::new();
@@ -31,8 +31,8 @@ pub fn precedence(tokens: Vec<Token>) -> Vec<Token> {
             }
         }
     }
-    if result.is_empty(){
-        return current_list
+    if result.is_empty() {
+        return current_list;
     }
     result.push(ParenList(current_list));
     result

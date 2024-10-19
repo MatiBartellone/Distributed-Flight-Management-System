@@ -1,13 +1,13 @@
+use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::node_communication::query_serializer::QuerySerializer;
 use crate::queries::query::{Query, QueryEnum};
 use crate::utils::consistency_level::ConsistencyLevel;
+use crate::utils::constants::{NODES_METADATA, QUERY_DELEGATION_PORT};
 use crate::utils::errors::Errors;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
-use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
-use crate::utils::constants::NODES_METADATA;
 
 const REPLICATION: i32 = 3;
 pub struct QueryDelegator {
@@ -17,7 +17,11 @@ pub struct QueryDelegator {
 }
 
 impl QueryDelegator {
-    pub fn new(primary_key: Option<String>, query: Box<dyn Query>, consistency: ConsistencyLevel) -> Self {
+    pub fn new(
+        primary_key: Option<String>,
+        query: Box<dyn Query>,
+        consistency: ConsistencyLevel,
+    ) -> Self {
         Self {
             primary_key,
             query,
@@ -59,14 +63,16 @@ impl QueryDelegator {
             handle.join().unwrap();
         }
         let final_responses = responses.lock().unwrap();
-        Ok(self.get_response(final_responses.clone())?)
+        self.get_response(final_responses.clone())
     }
 
     fn get_nodes_ip(&self) -> Result<Vec<String>, Errors> {
-        let Some(node) = NodesMetaDataAccess::get_delegation(NODES_METADATA, self.primary_key)? else {
-            return Err(Errors::ServerError(String::from("")))
-        };
-        Ok(Vec::new())
+        let ips = NodesMetaDataAccess::get_partition_ips(NODES_METADATA, &self.primary_key)?;
+        let mut full_ips = Vec::new();
+        for ip in ips {
+            full_ips.push(format!("{}:{}", ip, QUERY_DELEGATION_PORT));
+        }
+        Ok(full_ips)
     }
 
     fn send_to_node(ip: String, query: Box<dyn Query>) -> Result<Vec<u8>, Errors> {

@@ -1,21 +1,27 @@
+use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::node_communication::query_serializer::QuerySerializer;
+use crate::utils::constants::{NODES_METADATA, QUERY_DELEGATION_PORT};
 use crate::utils::errors::Errors;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
-use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
-use crate::utils::constants::NODES_METADATA;
 
 pub struct QueryReceiver {}
 
 impl QueryReceiver {
     pub fn start_listening() -> Result<(), Errors> {
-
-        let listener = TcpListener::bind(format!("{}:{}", NodesMetaDataAccess::get_own_ip(NODES_METADATA)?, 9090)).unwrap();
-        println!(
-            "Start listening on {}",
-            format!("{}:{}", NodesMetaDataAccess::get_own_ip(NODES_METADATA)?, 9090)
+        let listener = TcpListener::bind(format!(
+            "{}:{}",
+            NodesMetaDataAccess::get_own_ip(NODES_METADATA)?,
+            QUERY_DELEGATION_PORT
+        ))
+        .unwrap();
+        let listening_ip = format!(
+            "{}:{}",
+            NodesMetaDataAccess::get_own_ip(NODES_METADATA)?,
+            QUERY_DELEGATION_PORT
         );
+        println!("Start listening on {}", listening_ip);
         for incoming in listener.incoming() {
             match incoming {
                 Ok(stream) => {
@@ -28,7 +34,7 @@ impl QueryReceiver {
                         };
                     });
                 }
-                Err(_) => {}
+                Err(_) => return Err(Errors::ServerError(String::from("Error in connection"))),
             }
         }
         Ok(())

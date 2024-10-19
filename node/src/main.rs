@@ -1,13 +1,15 @@
 use node::frame::Frame;
+use node::meta_data::nodes::cluster::Cluster;
+use node::meta_data::nodes::node::Node;
+use node::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use node::node_communication::query_receiver::QueryReceiver;
 use node::parsers::parser_factory::ParserFactory;
 use node::response_builders::error_builder::ErrorBuilder;
+use node::utils::constants::{CLIENTS_PORT, NODES_METADATA};
 use node::utils::errors::Errors;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
-use node::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
-use node::utils::constants::NODES_METADATA;
 
 fn main() {
     print!("node's ip: ");
@@ -19,13 +21,34 @@ fn main() {
     //let node = Node::new(ip.to_string(), 8080);
     //node.write_to_file("src/node_info.json");
 
+    let nodes = vec![
+        Node::new(String::from("127.0.0.1"), 1),
+        Node::new(String::from("127.0.0.2"), 2),
+        Node::new(String::from("127.0.0.3"), 3),
+    ];
+    let mut own_node = Node::new(String::from(ip), 1);
+    let mut other_nodes = Vec::new();
+    for node in nodes {
+        if node.get_ip() != ip {
+            other_nodes.push(node);
+        } else {
+            own_node = Node::new(node.get_ip().to_string(), node.get_pos());
+        }
+    }
+    let cluster = Cluster::new(own_node, other_nodes);
+
+    if NodesMetaDataAccess::write_cluster(NODES_METADATA, &cluster).is_err() {
+        panic!("Cluster write access failed.");
+    }
+
     thread::spawn(move || {
         let _ = QueryReceiver::start_listening();
     });
     let Ok(ip) = NodesMetaDataAccess::get_own_ip(NODES_METADATA) else {
         panic!("No metadata found");
     };
-    let listener = TcpListener::bind(format!("{}:8080", ip)).expect("Error binding socket");
+    let listener =
+        TcpListener::bind(format!("{}:{}", ip, CLIENTS_PORT)).expect("Error binding socket");
     println!("Servidor escuchando en {}", ip);
 
     for incoming in listener.incoming() {

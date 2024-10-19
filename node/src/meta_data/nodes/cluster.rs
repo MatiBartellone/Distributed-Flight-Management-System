@@ -1,7 +1,6 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::node::Node;
-
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Cluster {
@@ -21,8 +20,8 @@ impl Cluster {
         self.special_node.get_ip()
     }
 
-    pub fn len_nodes(&self) ->  usize {
-        self.other_nodes.len()+1
+    pub fn len_nodes(&self) -> usize {
+        self.other_nodes.len() + 1
     }
 
     pub fn get_nodes(&self, position: usize, replication: usize) -> Vec<String> {
@@ -30,7 +29,7 @@ impl Cluster {
         self.other_nodes
             .iter()
             .filter(|node| node.get_pos() >= position && node.get_pos() < end_position)
-            .map(|node| node.get_ip().to_string()) 
+            .map(|node| node.get_ip().to_string())
             .collect()
     }
 }

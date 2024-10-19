@@ -255,9 +255,7 @@ mod tests {
 
     #[test]
     fn test_create_table_unexpected_table_name() {
-        let tokens = vec![
-            Token::Reserved(String::from("UNEXPECTED")),
-        ];
+        let tokens = vec![Token::Reserved(String::from("UNEXPECTED"))];
         let result = CreateTableQueryParser::parse(tokens);
         assert_error(result, UNEXPECTED_TABLE_ERR);
     }

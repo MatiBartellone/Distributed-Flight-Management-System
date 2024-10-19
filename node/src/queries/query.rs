@@ -35,15 +35,15 @@ impl QueryEnum {
 
     pub fn from_query(query: &Box<dyn Query>) -> Option<Self> {
         if let Some(insert_query) = query.as_any().downcast_ref::<InsertQuery>() {
-            return Some(QueryEnum::Insert(insert_query.clone()))
+            return Some(QueryEnum::Insert(insert_query.clone()));
         } else if let Some(delete_query) = query.as_any().downcast_ref::<DeleteQuery>() {
-            return Some(QueryEnum::Delete(delete_query.clone()))
+            return Some(QueryEnum::Delete(delete_query.clone()));
         } else if let Some(update_query) = query.as_any().downcast_ref::<UpdateQuery>() {
-            return Some(QueryEnum::Update(update_query.clone()))
+            return Some(QueryEnum::Update(update_query.clone()));
         } else if let Some(select_query) = query.as_any().downcast_ref::<SelectQuery>() {
-            return Some(QueryEnum::Select(select_query.clone()))
+            return Some(QueryEnum::Select(select_query.clone()));
         } else if let Some(use_query) = query.as_any().downcast_ref::<UseQuery>() {
-            return Some(QueryEnum::Use(use_query.clone()))
+            return Some(QueryEnum::Use(use_query.clone()));
         }
         None
     }

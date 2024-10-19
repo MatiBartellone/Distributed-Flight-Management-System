@@ -204,9 +204,7 @@ mod tests {
 
     #[test]
     fn test_02_create_keyspace_missing_with_keyword_should_error() {
-        let mut tokens = vec![
-            Token::Identifier(KEYSPACE_NAME.to_string()),
-        ];
+        let mut tokens = vec![Token::Identifier(KEYSPACE_NAME.to_string())];
 
         let barace_list = create_brace_list();
 

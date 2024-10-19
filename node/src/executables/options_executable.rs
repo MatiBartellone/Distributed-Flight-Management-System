@@ -64,7 +64,7 @@ mod tests {
     const EXPECTED_FLAGS: u8 = 0x00;
     const EXPECTED_STREAM: i16 = 0x01;
     const EXPECTED_OPCODE: u8 = 0x06;
-    const EXPECTED_LENGTH: u32 = 35;
+    const EXPECTED_LENGTH: u32 = 40;
     use super::*;
 
     fn setup() -> (OptionsExecutable, Frame) {

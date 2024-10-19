@@ -10,7 +10,9 @@ use crate::parsers::tokens::token::Token;
 use crate::queries::if_clause::{and_if, comparison_if, not_if, or_if, IfClause};
 use crate::utils::constants::*;
 use crate::utils::errors::Errors;
-use crate::utils::token_conversor::{get_comparision_operator, get_literal, get_next_value, precedence};
+use crate::utils::token_conversor::{
+    get_comparision_operator, get_literal, get_next_value, precedence,
+};
 
 pub struct IfClauseParser;
 
@@ -69,14 +71,26 @@ fn if_clause_rec(tokens: &mut Peekable<IntoIter<Token>>) -> Result<IfClause, Err
     if_and_or(tokens, expresion_inicial)
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::{parsers::tokens::{data_type::DataType, literal::create_literal, terms::{ComparisonOperators, LogicalOperators}, token::Token}, queries::if_clause::{and_if, comparison_if, not_if, or_if, IfClause}, utils::token_conversor::{create_comparison_operation_token, create_identifier_token, create_logical_operation_token, create_paren_list_token, create_reserved_token, create_token_literal}};
-    use LogicalOperators::*;
+    use crate::parsers::query_parsers::if_clause_parser::IfClauseParser;
+    use crate::{
+        parsers::tokens::{
+            data_type::DataType,
+            literal::create_literal,
+            terms::{ComparisonOperators, LogicalOperators},
+            token::Token,
+        },
+        queries::if_clause::{and_if, comparison_if, not_if, or_if, IfClause},
+        utils::token_conversor::{
+            create_comparison_operation_token, create_identifier_token,
+            create_logical_operation_token, create_paren_list_token, create_reserved_token,
+            create_token_literal,
+        },
+    };
     use ComparisonOperators::*;
     use DataType::*;
-    use crate::parsers::query_parsers::if_clause_parser::IfClauseParser;
+    use LogicalOperators::*;
 
     fn test_successful_parser_case(caso: Vec<Token>, expected: Option<IfClause>) {
         let resultado = IfClauseParser::parse(caso);

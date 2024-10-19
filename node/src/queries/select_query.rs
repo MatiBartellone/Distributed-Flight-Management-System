@@ -45,4 +45,3 @@ impl Query for SelectQuery {
         self
     }
 }
-

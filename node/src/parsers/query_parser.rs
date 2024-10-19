@@ -25,8 +25,8 @@ impl Parser for QueryParser {
         let string = cursor.read_long_string()?;
         let tokens = query_lexer(string)?;
         let query = query_parser(tokens)?;
-        let consistency = cursor.read_consistency()?;
-        let executable = QueryExecutable::new(query, consistency); 
+        let consistency = cursor.read_short()?;
+        let executable = QueryExecutable::new(query, consistency);
         Ok(Box::new(executable))
     }
 }
@@ -53,7 +53,7 @@ fn query_parser(tokens: Vec<Token>) -> Result<Box<dyn Query>, Errors> {
                 // "CREATE" => CreateQueryParser::parse(tokens),
                 _ => Err(Errors::SyntaxError(format!("Unknown query type: {}", res))),
             }
-        },
+        }
         _ => Err(Errors::SyntaxError("Invalid CQL syntax".to_string())),
     }
 }
