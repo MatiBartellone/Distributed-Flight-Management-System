@@ -1,4 +1,4 @@
-use std::fmt::Error;
+use std::{fmt::Error, sync::{Arc, Mutex}};
 
 use eframe::egui;
 use egui::Context;
@@ -9,7 +9,7 @@ use crate::{flight::Flight, flights::Flights, information::LeftPanel, map::Right
 pub struct FlightApp {
     pub selected_airport: Option<String>,
     pub flights: Flights,
-    pub selected_flight: Option<Flight>,
+    pub selected_flight: Arc<Mutex<Option<Flight>>>,
     // Map
     pub tiles: HttpTiles,
     pub map_memory: MapMemory,
@@ -17,14 +17,16 @@ pub struct FlightApp {
 
 impl FlightApp {
     pub fn new(egui_ctx: Context) -> Self {
+        let selected_flight = Arc::new(Mutex::new(None));
         Self {
             selected_airport: Some("EZE".to_string()),
             flights: Flights::new(
-                vec![],
+                Vec::new(),
+                Arc::clone(&selected_flight),
             ),
-            selected_flight: None,
+            selected_flight,
             tiles: HttpTiles::new(OpenStreetMap, egui_ctx),
-            map_memory: MapMemory::default()
+            map_memory: MapMemory::default(),
         }
     }
 
