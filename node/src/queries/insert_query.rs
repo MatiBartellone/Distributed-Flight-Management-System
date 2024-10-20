@@ -18,9 +18,6 @@ impl InsertQuery {
 }
 impl Query for InsertQuery {
     fn run(&self) -> Result<(), Errors> {
-        let data_access = DataAccess::new();
-        data_access.insert(&self.table, &self.values_list)?;
-
         Ok(())
     }
 }
