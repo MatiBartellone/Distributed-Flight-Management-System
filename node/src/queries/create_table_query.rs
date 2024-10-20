@@ -1,7 +1,8 @@
 use crate::parsers::tokens::data_type::DataType;
+use crate::queries::query::Query;
+use crate::utils::errors::Errors;
+use std::any::Any;
 use std::collections::HashMap;
-
-use super::query::Query;
 
 #[derive(PartialEq, Debug)]
 pub struct CreateTableQuery {
@@ -27,7 +28,15 @@ impl Default for CreateTableQuery {
 }
 
 impl Query for CreateTableQuery {
-    fn run(&self) -> Result<(), crate::utils::errors::Errors> {
+    fn run(&self) -> Result<Vec<u8>, Errors> {
         todo!()
+    }
+
+    fn get_primary_key(&self) -> Option<String> {
+        None
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

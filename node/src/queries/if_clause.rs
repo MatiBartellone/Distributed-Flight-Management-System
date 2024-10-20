@@ -1,12 +1,12 @@
-use std::collections::HashMap;
-
 use crate::{
     parsers::tokens::{literal::Literal, terms::ComparisonOperators},
     queries::{evaluate::Evaluate, where_logic::comparison::ComparisonExpr},
     utils::errors::Errors,
 };
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub enum IfClause {
     Exist,
     Comparison(ComparisonExpr),

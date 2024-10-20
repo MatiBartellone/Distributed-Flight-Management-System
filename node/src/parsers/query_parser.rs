@@ -7,7 +7,6 @@ use crate::utils::errors::Errors;
 use crate::utils::token_conversor::get_next_value;
 
 use super::query_parsers::alter_table_parser::AlterTableParser;
-use super::query_parsers::create_query_parser::CreateQueryParser;
 use super::query_parsers::delete_query_parser::DeleteQueryParser;
 use super::query_parsers::drop_query_parser::DropQueryParser;
 use super::query_parsers::insert_query_parser::InsertQueryParser;
@@ -26,8 +25,8 @@ impl Parser for QueryParser {
         let string = cursor.read_long_string()?;
         let tokens = query_lexer(string)?;
         let query = query_parser(tokens)?;
-        let consistency = cursor.read_consistency()?;
-        let executable = QueryExecutable::new(query, consistency); 
+        let consistency = cursor.read_short()?;
+        let executable = QueryExecutable::new(query, consistency);
         Ok(Box::new(executable))
     }
 }
@@ -51,10 +50,10 @@ fn query_parser(tokens: Vec<Token>) -> Result<Box<dyn Query>, Errors> {
                 "USE" => Ok(Box::new(UseQueryParser.parse(tokens)?)),
                 "ALTER" => Ok(Box::new(AlterTableParser.parse(tokens)?)),
                 "DROP" => DropQueryParser::parse(tokens),
-                "CREATE" => CreateQueryParser::parse(tokens),
+                // "CREATE" => CreateQueryParser::parse(tokens),
                 _ => Err(Errors::SyntaxError(format!("Unknown query type: {}", res))),
             }
-        },
+        }
         _ => Err(Errors::SyntaxError("Invalid CQL syntax".to_string())),
     }
 }

@@ -1,9 +1,13 @@
-use std::collections::HashMap;
+use super::{
+    if_clause::IfClause, query::Query, set_logic::assigmente_value::AssignmentValue,
+    where_logic::where_clause::WhereClause,
+};
 use crate::utils::errors::Errors;
+use serde::{Deserialize, Serialize};
+use std::any::Any;
+use std::collections::HashMap;
 
-use super::{if_clause::IfClause, query::Query, set_logic::assigmente_value::AssignmentValue, where_logic::where_clause::WhereClause};
-
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateQuery {
     pub table: String,
     pub changes: HashMap<String, AssignmentValue>,
@@ -29,7 +33,15 @@ impl Default for UpdateQuery {
 }
 
 impl Query for UpdateQuery {
-    fn run(&self) -> Result<(), Errors> {
+    fn run(&self) -> Result<Vec<u8>, Errors> {
         todo!()
+    }
+
+    fn get_primary_key(&self) -> Option<String> {
+        None
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }

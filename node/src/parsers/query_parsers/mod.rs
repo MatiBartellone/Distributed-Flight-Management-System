@@ -1,6 +1,5 @@
 pub mod alter_table_parser;
 pub mod create_keyspace_parser;
-pub mod create_query_parser;
 pub mod create_table_query_parser;
 pub mod delete_query_parser;
 pub mod drop_keyspace_parser;

@@ -1,14 +1,14 @@
-use std::collections::HashMap;
-
 use crate::{
     parsers::tokens::{literal::Literal, terms::ComparisonOperators},
     queries::evaluate::Evaluate,
     utils::errors::Errors,
 };
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 use ComparisonOperators::*;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ComparisonExpr {
     column_name: String,
     operator: ComparisonOperators,

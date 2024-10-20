@@ -1,6 +1,7 @@
 use super::{data_type::DataType, terms::Term, token::Token};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Literal {
     pub value: String,
     data_type: DataType,
