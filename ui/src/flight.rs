@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use egui::{Align2, Color32, FontId, Painter, Response};
 use walkers::{ Position, Projector};
 
@@ -11,7 +13,8 @@ pub struct Flight {
 }
 
 impl Flight {
-    pub fn draw(&self, response: &Response, painter: Painter, projector: &Projector, on_flight_selected: &mut Option<Flight>) {
+    pub fn draw(&self, response: &Response, painter: Painter, projector: &Projector, on_flight_selected: &Arc<Mutex<Option<Flight>>>) {
+        // Dibuja el icono del avion en su posicion 
         let flight_position = Position::from_lon_lat(self.position.0, self.position.1);
         let screen_position = projector.project(flight_position);
         painter.text(
@@ -22,12 +25,15 @@ impl Flight {
             Color32::BLACK,
         );
         
+        // Si lo clikea cambia el vuel oseleccionado
         if response.hover_pos().map_or(false, |pos| {
             let airplane_size = egui::Vec2::new(30.0, 30.0);
             let airplane_rect = egui::Rect::from_center_size(screen_position.to_pos2(), airplane_size);
             airplane_rect.contains(pos)
         }) && response.clicked_by(egui::PointerButton::Primary) {
-            *on_flight_selected = Some(self.clone());
+            if let Ok(mut lock) = on_flight_selected.lock() {
+                *lock = Some(self.clone());
+            }
         }
     }
 

@@ -17,6 +17,7 @@ pub struct FlightApp {
 
 impl FlightApp {
     pub fn new(egui_ctx: Context) -> Self {
+        Self::set_scroll_style(&egui_ctx);
         let selected_flight = Arc::new(Mutex::new(None));
         let flights = Flights::new(
             Vec::new(),
@@ -37,6 +38,12 @@ impl FlightApp {
             self.selected_airport = Some(airport.to_string());
             self.flights.flights = flights;
         }
+    }
+
+    fn set_scroll_style(egui_ctx: &Context) {
+        let mut style = egui::Style::default();
+        style.spacing.scroll = egui::style::ScrollStyle::solid(); 
+        egui_ctx.set_style(style);
     }
 }
 
