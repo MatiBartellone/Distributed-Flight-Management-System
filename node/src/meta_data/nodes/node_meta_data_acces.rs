@@ -12,10 +12,10 @@ pub struct NodesMetaDataAccess;
 impl NodesMetaDataAccess {
     fn open(path: &str) -> Result<File, Errors> {
         let file = OpenOptions::new()
-            .truncate(false)
-            .create(true)
             .read(true) // Permitir lectura
             .write(true) // Permitir escritura
+            .create(true)
+            .truncate(false)
             .open(path)
             .map_err(|_| Errors::ServerError("Unable to open or create file".to_string()))?;
         Ok(file)
@@ -30,7 +30,9 @@ impl NodesMetaDataAccess {
     }
 
     pub fn write_cluster(path: &str, cluster: &Cluster) -> Result<(), Errors> {
-        let file = Self::open(path)?;
+        //let file = Self::open(path)?;
+        let file = File::create(path)
+            .map_err(|_| Errors::ServerError("Failed to open file for writing".to_string()))?;
         serde_json::to_writer(&file, &cluster)
             .map_err(|_| Errors::ServerError("Failed to write Cluster to file".to_string()))?;
         Ok(())

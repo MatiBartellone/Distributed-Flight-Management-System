@@ -1,6 +1,6 @@
 use std::io;
 use std::io::{Read, Write};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, TcpStream};
+use std::net::TcpStream;
 use test_client::bytes_cursor::BytesCursor;
 use test_client::frame::Frame;
 
@@ -12,9 +12,6 @@ fn main() {
     io::stdin().read_line(&mut node)
         .expect("Error reading node");
     let node = node.trim();
-
-
-
 
     let startup_bytes = vec![
         0x03,
@@ -80,7 +77,7 @@ fn main() {
                             0x00 => {
                                 let mut cursor = BytesCursor::new(frame.body.as_slice());
                                 println!("ERROR");
-                                dbg!(cursor.read_string());
+                                dbg!(cursor.read_string().unwrap());
                             }
                             0x03 => {
                                 let mut cursor = BytesCursor::new(frame.body.as_slice());

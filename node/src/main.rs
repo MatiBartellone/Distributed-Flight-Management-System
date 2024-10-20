@@ -5,7 +5,7 @@ use node::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use node::node_communication::query_receiver::QueryReceiver;
 use node::parsers::parser_factory::ParserFactory;
 use node::response_builders::error_builder::ErrorBuilder;
-use node::utils::constants::{CLIENTS_PORT, NODES_METADATA};
+use node::utils::constants::{nodes_meta_data_path, CLIENTS_PORT};
 use node::utils::errors::Errors;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -37,14 +37,14 @@ fn main() {
     }
     let cluster = Cluster::new(own_node, other_nodes);
 
-    if let Err(e) = NodesMetaDataAccess::write_cluster(NODES_METADATA, &cluster) {
+    if let Err(e) = NodesMetaDataAccess::write_cluster(nodes_meta_data_path().as_ref(), &cluster) {
         dbg!(e);
     }
 
     thread::spawn(move || {
         let _ = QueryReceiver::start_listening();
     });
-    let Ok(ip) = NodesMetaDataAccess::get_own_ip(NODES_METADATA) else {
+    let Ok(ip) = NodesMetaDataAccess::get_own_ip(nodes_meta_data_path().as_ref()) else {
         panic!("No metadata found");
     };
     let listener =
