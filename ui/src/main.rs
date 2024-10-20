@@ -6,6 +6,6 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "Flight App",
         options,
-        Box::new(|_cc| Box::new(FlightApp::default())),
+        Box::new(|cc| Ok(Box::new(FlightApp::new(cc.egui_ctx.clone())))),
     )
 }
