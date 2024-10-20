@@ -27,13 +27,6 @@ impl Flight {
             let airplane_rect = egui::Rect::from_center_size(screen_position.to_pos2(), airplane_size);
             airplane_rect.contains(pos)
         }) && response.clicked_by(egui::PointerButton::Primary) {
-            painter.text(
-                screen_position.to_pos2(),
-                Align2::CENTER_CENTER,
-                "FFFFFFFFFFFFFFFFFFFFF".to_string(),
-                FontId::proportional(20.0),
-                Color32::BLACK,
-            );
             *on_flight_selected = Some(self.clone());
         }
     }
