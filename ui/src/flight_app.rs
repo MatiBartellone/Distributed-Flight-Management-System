@@ -4,12 +4,12 @@ use eframe::egui;
 use egui::Context;
 use walkers::{sources::OpenStreetMap, HttpTiles, MapMemory};
 
-use crate::{flight::Flight, flights::Flights, information::LeftPanel, map::RightPanel};
+use crate::{airport_selection::AirportSelection, flight::Flight, flights::Flights, information::InformationPanel, map::MapPanel};
 
 pub struct FlightApp {
     pub selected_airport: Option<String>,
     pub flights: Flights,
-    pub selected_flight: Arc<Mutex<Option<Flight>>>,
+    pub selected_flight: Arc<Mutex<Option<Flight>>>, // Variable compartida que se usa para comunicarse entre el map panel y el information panel
     // Map
     pub tiles: HttpTiles,
     pub map_memory: MapMemory,
@@ -18,12 +18,13 @@ pub struct FlightApp {
 impl FlightApp {
     pub fn new(egui_ctx: Context) -> Self {
         let selected_flight = Arc::new(Mutex::new(None));
+        let flights = Flights::new(
+            Vec::new(),
+            Arc::clone(&selected_flight),
+        );
         Self {
-            selected_airport: Some("EZE".to_string()),
-            flights: Flights::new(
-                Vec::new(),
-                Arc::clone(&selected_flight),
-            ),
+            selected_airport: None,
+            flights,
             selected_flight,
             tiles: HttpTiles::new(OpenStreetMap, egui_ctx),
             map_memory: MapMemory::default(),
@@ -41,13 +42,25 @@ impl FlightApp {
 
 impl eframe::App for FlightApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        // Si no hay un aeropuerto seleccionado lo pide
+        if self.selected_airport.is_none() {
+            egui::CentralPanel::default().show(ctx, |ui| {
+                AirportSelection::show(ui, &get_airports(), &mut self.selected_airport);
+            });
+            return;
+        }
+
+        // Interfaz principal con el aeropuerto seleccionado
         self.update_flights_for_airport();
-        egui::SidePanel::left("information_panel").show(ctx, |ui| {
-            LeftPanel.ui(ui, self);
-        });
+        egui::SidePanel::left("information_panel")
+            .min_width(150.0)
+            .max_width(230.0)
+            .show(ctx, |ui| {
+                InformationPanel.ui(ui, self);
+            });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            RightPanel.ui(ui, self);
+            MapPanel.ui(ui, self);
         });
     }
 }
@@ -91,4 +104,14 @@ fn get_flights_for_airport(_airport: &str) -> Result<Vec<Flight>, Error> {
             speed: 600.0,
         },
     ])
+}
+
+fn get_airports() -> Vec<String> {
+    vec![
+        "EZE".to_string(),
+        "JFK".to_string(),
+        "LHR".to_string(),
+        "CDG".to_string(),
+        "NRT".to_string(),
+    ]
 }

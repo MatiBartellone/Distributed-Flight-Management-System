@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use egui::{Painter, Response};
+use egui::{Painter, Response, ScrollArea};
 use walkers::{Plugin, Projector};
 
 use crate::flight::Flight;
@@ -19,10 +19,13 @@ impl Flights {
         }
     }
 
-    pub fn render_flights(&self, ui: &mut egui::Ui) {
-        for flight in &self.flights {
-            ui.label(format!("Vuelo: {}", flight.code));
-        }
+    pub fn list_flight_codes(&self, ui: &mut egui::Ui) {
+        ScrollArea::vertical().show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            for flight in &self.flights {
+                ui.label(format!("Vuelo: {}", flight.code));
+            }
+        });
     }
 }
 

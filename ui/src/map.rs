@@ -2,9 +2,9 @@ use eframe::egui;
 use walkers::{Map, Position};
 use crate::flight_app::FlightApp;
 
-pub struct RightPanel;
+pub struct MapPanel;
 
-impl RightPanel {
+impl MapPanel {
     pub fn ui(&self, ui: &mut egui::Ui, app: &mut FlightApp) {
         self.draw_map(ui, app);
     }
