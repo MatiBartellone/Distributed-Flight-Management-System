@@ -1,6 +1,6 @@
 use crate::data_access::row::Row;
 use crate::utils::errors::Errors;
-use std::fs::{File, OpenOptions};
+use std::fs::{rename, File, OpenOptions};
 use std::io::{BufReader, Read, Seek, SeekFrom, Write};
 use crate::queries::evaluate::Evaluate;
 use crate::queries::where_logic::where_clause::WhereClause;
@@ -12,7 +12,7 @@ impl DataAccess {
         DataAccess {}
     }
 
-    pub fn create_table(&self, table_name: String) -> Result<(), Errors> {
+    pub fn create_table(&self, table_name: &String) -> Result<(), Errors> {
         let file = self.open_file(&table_name);
 
         if file.is_ok() {
@@ -29,7 +29,7 @@ impl DataAccess {
         Ok(())
     }
 
-    pub fn insert(&self, table_name: &String, row: Row) -> Result<(), Errors> {
+    pub fn insert(&self, table_name: &String, row: &Row) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
         if self.pk_already_exists(&path, &row.primary_keys) {
             return Err(Errors::AlreadyExists(
@@ -41,18 +41,23 @@ impl DataAccess {
 
     pub fn update_row(&self, path: &String, new_row: Row, where_clause: WhereClause) -> Result<(), Errors> {
         let file = self.open_file(path)?;
+        let temp_path = format!("{}.tmp", path);
+        self.create_table(&temp_path)?;
         let reader = BufReader::new(file);
         let stream = serde_json::Deserializer::from_reader(reader).into_iter::<Row>();
         for row in stream {
             match row {
                 Ok(row) => {
                     if where_clause.evaluate(&row.get_row_hash())?{
-
+                        self.append_row(&temp_path, &new_row)?;
+                    } else {
+                        self.append_row(&temp_path, &row)?;
                     }
                 }
                 Err(_) => return Err(Errors::ServerError(String::from("Error deserializing row"))),
             }
         }
+        rename(temp_path, path).map_err(|_| Errors::ServerError(String::from("Error renaming file")))?;
         Ok(())
     }
 
@@ -69,7 +74,7 @@ impl DataAccess {
         Ok(file)
     }
 
-    fn append_row(&self, path: &String, row: Row) -> Result<(), Errors> {
+    fn append_row(&self, path: &String, row: &Row) -> Result<(), Errors> {
         let err = Errors::ServerError("Failed to append row to table file".to_string());
         let mut file = self.open_file(&path)?;
         file.seek(SeekFrom::End(-1)).map_err(|_| &err)?;
