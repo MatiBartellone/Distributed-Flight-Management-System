@@ -38,6 +38,6 @@ impl AlterTableQuery {
 
 impl Query for AlterTableQuery {
     fn run(&self) -> Result<(), Errors> {
-        unimplemented!()
+        todo!()
     }
 }

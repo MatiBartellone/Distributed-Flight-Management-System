@@ -1,5 +1,5 @@
-use crate::data_access::data_access::DataAccess;
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
+
 #[derive(PartialEq, Debug)]
 pub struct InsertQuery {
     pub table: String,
@@ -16,14 +16,15 @@ impl InsertQuery {
         }
     }
 }
-impl Query for InsertQuery {
-    fn run(&self) -> Result<(), Errors> {
-        Ok(())
-    }
-}
 
 impl Default for InsertQuery {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl Query for InsertQuery {
+    fn run(&self) -> Result<(), Errors> {
+        unimplemented!()
     }
 }

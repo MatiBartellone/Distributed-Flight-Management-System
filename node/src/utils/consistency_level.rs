@@ -4,11 +4,13 @@ const ONE: i16 = 0x0001;
 const QUORUM: i16 = 0x0004;
 const ALL: i16 = 0x0005;
 
+use ConsistencyLevel::*;
+
 #[derive(Debug, PartialEq)]
 pub enum ConsistencyLevel {
     One,
     Quorum,
-    All,
+    All
 }
 
 impl ConsistencyLevel {
@@ -17,13 +19,16 @@ impl ConsistencyLevel {
             ONE => ConsistencyLevel::One,
             QUORUM => ConsistencyLevel::Quorum,
             ALL => ConsistencyLevel::All,
-            _ => {
-                return Err(Errors::ProtocolError(format!(
-                    "Unknown consistency level: {}",
-                    value
-                )))
-            }
+            _ => return Err(Errors::ProtocolError(format!("Unknown consistency level: {}", value))),
         };
         Ok(consistency)
+    }
+
+    pub fn get_consistency(&self, replication_factor: usize) -> usize {
+        match self {
+            One => 1,
+            Quorum => (replication_factor / 2) + 1,
+            All => replication_factor,
+        }
     }
 }

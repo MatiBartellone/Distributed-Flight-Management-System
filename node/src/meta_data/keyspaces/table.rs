@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::parsers::tokens::data_type::DataType;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Table {
     pub primary_key: String,
     pub columns: HashMap<String, DataType>, //Podria ser <Token::Identifier, DataType>

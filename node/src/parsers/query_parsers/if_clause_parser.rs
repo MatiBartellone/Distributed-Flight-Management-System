@@ -10,13 +10,14 @@ use crate::parsers::tokens::token::Token;
 use crate::queries::if_clause::{and_if, comparison_if, not_if, or_if, IfClause};
 use crate::utils::constants::*;
 use crate::utils::errors::Errors;
-use crate::utils::token_conversor::{get_comparision_operator, get_literal, get_next_value};
+use crate::utils::token_conversor::{get_comparision_operator, get_literal, get_next_value, precedence};
 
 pub struct IfClauseParser;
 
 impl IfClauseParser {
     pub fn parse(tokens: Vec<Token>) -> Result<IfClause, Errors> {
-        if_clause(&mut tokens.into_iter().peekable())
+        let tokens = precedence(tokens);
+        if_clause_rec(&mut tokens.into_iter().peekable())
     }
 }
 
@@ -26,9 +27,9 @@ fn if_and_or(
 ) -> Result<IfClause, Errors> {
     match get_next_value(tokens) {
         // [left_expre, AND, ...]
-        Ok(Term(BooleanOperations(Logical(And)))) => Ok(and_if(left_expr, if_clause(tokens)?)),
+        Ok(Term(BooleanOperations(Logical(And)))) => Ok(and_if(left_expr, if_clause_rec(tokens)?)),
         // [left_expre, OR, ...]
-        Ok(Term(BooleanOperations(Logical(Or)))) => Ok(or_if(left_expr, if_clause(tokens)?)),
+        Ok(Term(BooleanOperations(Logical(Or)))) => Ok(or_if(left_expr, if_clause_rec(tokens)?)),
         // [left_expre]
         Err(_) => Ok(left_expr),
         _ => Err(Errors::SyntaxError(
@@ -47,39 +48,35 @@ fn if_comparision(
     if_and_or(tokens, expression)
 }
 
-fn if_clause(tokens: &mut Peekable<IntoIter<Token>>) -> Result<IfClause, Errors> {
+fn if_cases(tokens: &mut Peekable<IntoIter<Token>>) -> Result<IfClause, Errors> {
     match get_next_value(tokens)? {
         // [column_name, comparasion, literal, ...]
         Identifier(column_name) => if_comparision(tokens, column_name),
         // [exists, ...]
-        Reserved(exists) if exists == *EXISTS => if_and_or(tokens, Exist),
+        Reserved(exists) if exists == *EXISTS => Ok(Exist),
+        // [lista, ...]
+        ParenList(token_list) => if_clause_rec(&mut token_list.into_iter().peekable()),
         // [NOT, ...]
-        Term(BooleanOperations(Logical(Not))) => Ok(not_if(if_clause(tokens)?)),
+        Term(BooleanOperations(Logical(Not))) => Ok(not_if(if_cases(tokens)?)),
         _ => Err(Errors::SyntaxError(
             "Invalid Syntaxis in IF_CLAUSE".to_string(),
         )),
     }
 }
 
+fn if_clause_rec(tokens: &mut Peekable<IntoIter<Token>>) -> Result<IfClause, Errors> {
+    let expresion_inicial = if_cases(tokens)?;
+    if_and_or(tokens, expresion_inicial)
+}
+
+
 #[cfg(test)]
 mod tests {
-    use super::IfClauseParser;
-    use crate::{
-        parsers::tokens::{
-            data_type::DataType,
-            literal::create_literal,
-            terms::{ComparisonOperators, LogicalOperators},
-            token::Token,
-        },
-        queries::if_clause::{and_if, comparison_if, not_if, IfClause},
-        utils::token_conversor::{
-            create_comparison_operation_token, create_identifier_token,
-            create_logical_operation_token, create_reserved_token, create_token_literal,
-        },
-    };
+    use crate::{parsers::tokens::{data_type::DataType, literal::create_literal, terms::{ComparisonOperators, LogicalOperators}, token::Token}, queries::if_clause::{and_if, comparison_if, not_if, or_if, IfClause}, utils::token_conversor::{create_comparison_operation_token, create_identifier_token, create_logical_operation_token, create_paren_list_token, create_reserved_token, create_token_literal}};
+    use LogicalOperators::*;
     use ComparisonOperators::*;
     use DataType::*;
-    use LogicalOperators::*;
+    use crate::parsers::query_parsers::if_clause_parser::IfClauseParser;
 
     fn test_successful_parser_case(caso: Vec<Token>, expected: Option<IfClause>) {
         let resultado = IfClauseParser::parse(caso);
@@ -143,7 +140,7 @@ mod tests {
             create_logical_operation_token(And),
             create_identifier_token("id"),
             create_comparison_operation_token(NotEqual),
-            create_token_literal("20", DataType::Int),
+            create_token_literal("20", Int),
         ];
 
         let expected = Some(and_if(
@@ -194,6 +191,43 @@ mod tests {
                 IfClause::Exist,
                 comparison_if("age", Greater, create_literal("30", Int)),
             ),
+        ));
+
+        test_successful_parser_case(tokens, expected);
+    }
+
+    #[test]
+    fn test_parser_complex_conditions() {
+        // id = 1 AND (name = 'Alice' OR age > 30) OR is_active = true
+        let tokens = vec![
+            create_identifier_token("id"),
+            create_comparison_operation_token(Equal),
+            create_token_literal("1", Int),
+            create_logical_operation_token(And),
+            create_paren_list_token(vec![
+                create_identifier_token("name"),
+                create_comparison_operation_token(Equal),
+                create_token_literal("Alice", Text),
+                create_logical_operation_token(Or),
+                create_identifier_token("age"),
+                create_comparison_operation_token(Greater),
+                create_token_literal("30", Int),
+            ]),
+            create_logical_operation_token(Or),
+            create_identifier_token("is_active"),
+            create_comparison_operation_token(Equal),
+            create_token_literal("true", Boolean),
+        ];
+
+        let expected = Some(or_if(
+            and_if(
+                comparison_if("id", Equal, create_literal("1", Int)),
+                or_if(
+                    comparison_if("name", Equal, create_literal("Alice", Text)),
+                    comparison_if("age", Greater, create_literal("30", Int)),
+                ),
+            ),
+            comparison_if("is_active", Equal, create_literal("true", Boolean)),
         ));
 
         test_successful_parser_case(tokens, expected);

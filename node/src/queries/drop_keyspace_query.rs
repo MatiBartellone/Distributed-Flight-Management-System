@@ -1,3 +1,4 @@
+
 use crate::{queries::query::Query, utils::errors::Errors};
 
 pub struct DropKeySpaceQuery {

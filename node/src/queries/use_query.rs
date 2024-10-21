@@ -22,6 +22,6 @@ impl Default for UseQuery {
 
 impl Query for UseQuery {
     fn run(&self) -> Result<(), Errors> {
-        unimplemented!()
+        todo!()
     }
 }
