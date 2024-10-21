@@ -23,12 +23,14 @@ impl FlightApp {
             Vec::new(),
             Arc::clone(&selected_flight),
         );
+        let mut map_memory = MapMemory::default();
+        let _ = map_memory.set_zoom(10.);
         Self {
             selected_airport: None,
             flights,
             selected_flight,
             tiles: HttpTiles::new(OpenStreetMap, egui_ctx),
-            map_memory: MapMemory::default(),
+            map_memory
         }
     }
 

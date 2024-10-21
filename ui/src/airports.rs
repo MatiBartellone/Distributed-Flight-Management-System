@@ -1,3 +1,8 @@
+use egui::Pos2;
+use walkers::{Position, Projector};
+
+use crate::flight::Flight;
+
 pub fn get_airports() -> Vec<String> {
     vec![
         "EZE".to_string(),
@@ -38,4 +43,16 @@ pub fn get_airport_coordinates(airport: &Option<String>) -> (f64, f64) {
         "SFO" => (-122.4194, 37.6213),  // SFO, San Francisco
         _ => (0.0, 0.0)
     }
+}
+
+pub fn get_arrival_airport_position(flight: &Flight, projector: &Projector) -> Pos2 {
+    let airport_coordinates = get_airport_coordinates(&Some(flight.arrival_airport.to_string()));
+    let airport_position = Position::from_lon_lat(airport_coordinates.0, airport_coordinates.1);
+    projector.project(airport_position).to_pos2()
+}
+
+pub fn calculate_angle_to_airport(flight_position: Pos2, airport_position: Pos2) -> f32 {
+    let delta_x = airport_position.x - flight_position.x;
+    let delta_y = airport_position.y - flight_position.y;
+    delta_y.atan2(delta_x)
 }

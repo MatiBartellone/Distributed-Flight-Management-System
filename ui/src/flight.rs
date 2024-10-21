@@ -1,9 +1,8 @@
-use std::sync::{Arc, Mutex};
+use std::{fs::read, sync::{Arc, Mutex}};
+use egui::{Align2, Color32, FontId, Painter, Pos2, Response, Stroke};
+use walkers::{ extras::Image, Position, Projector, Texture};
 
-use egui::{Align2, Color32, FontId, Painter, Pos2, Response};
-use walkers::{ Position, Projector};
-
-use crate::{airports::get_airport_coordinates, flight_status::FlightStatus};
+use crate::{airports::{calculate_angle_to_airport, get_arrival_airport_position}, flight_status::FlightStatus};
 
 
 #[derive(Clone)]
@@ -25,21 +24,42 @@ pub struct Flight {
 
 impl Flight {
     pub fn draw(&self, response: &Response, painter: Painter, projector: &Projector, on_flight_selected: &Arc<Mutex<Option<Flight>>>) {
-        // Dibuja el icono del avion en su posicion 
-        let flight_position = Position::from_lon_lat(self.position.0, self.position.1);
-        let screen_position = projector.project(flight_position);
+        self.draw_image_flight(response, painter, projector);
+        self.clickeable_flight(response, projector, on_flight_selected);
+    }
+
+    // Dibuja el icono del avion en su posicion 
+    pub fn draw_icon_flight(&self, painter: Painter, projector: &Projector) {
+        let screen_flight_position = self.get_flight_pos(projector);
         painter.text(
-            screen_position.to_pos2(),
+            screen_flight_position,
             Align2::CENTER_CENTER,
             '✈'.to_string(),
             FontId::proportional(20.0),
             Color32::BLACK,
         );
-        
-        // Si lo clikea cambia el vuelo seleccionado
+    }
+
+    pub fn draw_image_flight(&self, response: &Response, painter: Painter, projector: &Projector){
+        let image_data = read("src/image.png").expect("Failed to load image");
+        let airplane_texture = Texture::new(&image_data, &painter.ctx()).unwrap();
+        let flight_position = Position::from_lon_lat(self.position.0, self.position.1);
+        let mut image = Image::new(airplane_texture, flight_position);
+
+        let screen_airport_position = get_arrival_airport_position(self, projector);
+        let angle = calculate_angle_to_airport(self.get_flight_pos(projector), screen_airport_position);
+        image.angle(angle);
+
+        image.scale(0.1, 0.1);
+        image.draw(response, painter, projector);
+    }
+
+    // Si lo clikea cambia el vuelo seleccionado
+    fn clickeable_flight(&self, response: &Response, projector: &Projector, on_flight_selected: &Arc<Mutex<Option<Flight>>>){
+        let screen_flight_position = self.get_flight_pos(projector);
         if response.hover_pos().map_or(false, |pos| {
             let airplane_size = egui::Vec2::new(30.0, 30.0);
-            let airplane_rect = egui::Rect::from_center_size(screen_position.to_pos2(), airplane_size);
+            let airplane_rect = egui::Rect::from_center_size(screen_flight_position, airplane_size);
             airplane_rect.contains(pos)
         }) && response.clicked_by(egui::PointerButton::Primary) {
             if let Ok(mut lock) = on_flight_selected.lock() {
@@ -69,16 +89,11 @@ impl Flight {
 }
 
 pub fn draw_flight_path(painter: Painter, projector: &Projector, flight: &Flight) {
-    // Position aeropuerto
-    let airport_coordinates = get_airport_coordinates(&Some(flight.arrival_airport.to_string()));
-    let airport_position = Position::from_lon_lat(airport_coordinates.0, airport_coordinates.1);
-    let screen_airport_position = projector.project(airport_position).to_pos2();
-
-    // Position vuelo
+    let screen_airport_position = get_arrival_airport_position(flight, projector);
     let screen_flight_position = flight.get_flight_pos(projector);
+    draw_flight_line(painter, screen_flight_position, screen_airport_position);
+}
 
-    painter.line_segment(
-        [screen_flight_position, screen_airport_position],
-        egui::Stroke::new(2.0, egui::Color32::from_rgb(0, 255, 0)),
-    );
+fn draw_flight_line(painter: &Painter, start: Pos2, end: Pos2) {
+    painter.line_segment([start, end], Stroke::new(2.0, Color32::from_rgb(0, 255, 0)));
 }
