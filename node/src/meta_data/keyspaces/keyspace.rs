@@ -41,4 +41,3 @@ impl Keyspace {
         self.replication_factor = factor;
     }
 }
-

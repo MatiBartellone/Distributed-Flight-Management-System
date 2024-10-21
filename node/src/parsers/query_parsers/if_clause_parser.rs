@@ -1,16 +1,16 @@
 use std::{iter::Peekable, vec::IntoIter};
 use BooleanOperations::*;
-use LogicalOperators::*;
-use Token::*;
-use Term::*;
 use IfClause::Exist;
+use LogicalOperators::*;
+use Term::*;
+use Token::*;
 
-use crate::parsers::tokens::terms::{BooleanOperations, Term, LogicalOperators};
+use crate::parsers::tokens::terms::{BooleanOperations, LogicalOperators, Term};
 use crate::parsers::tokens::token::Token;
 use crate::queries::if_clause::{and_if, comparison_if, not_if, or_if, IfClause};
+use crate::utils::constants::*;
 use crate::utils::errors::Errors;
 use crate::utils::token_conversor::{get_comparision_operator, get_literal, get_next_value};
-use crate::utils::constants::*;
 
 pub struct IfClauseParser;
 
@@ -61,14 +61,25 @@ fn if_clause(tokens: &mut Peekable<IntoIter<Token>>) -> Result<IfClause, Errors>
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::{parsers::tokens::{data_type::DataType, literal::create_literal, terms::{ComparisonOperators, LogicalOperators}, token::Token}, queries::if_clause::{and_if, comparison_if, not_if, IfClause}, utils::token_conversor::{create_comparison_operation_token, create_identifier_token, create_logical_operation_token, create_reserved_token, create_token_literal}};
-    use LogicalOperators::*;
+    use super::IfClauseParser;
+    use crate::{
+        parsers::tokens::{
+            data_type::DataType,
+            literal::create_literal,
+            terms::{ComparisonOperators, LogicalOperators},
+            token::Token,
+        },
+        queries::if_clause::{and_if, comparison_if, not_if, IfClause},
+        utils::token_conversor::{
+            create_comparison_operation_token, create_identifier_token,
+            create_logical_operation_token, create_reserved_token, create_token_literal,
+        },
+    };
     use ComparisonOperators::*;
     use DataType::*;
-    use super::IfClauseParser;
+    use LogicalOperators::*;
 
     fn test_successful_parser_case(caso: Vec<Token>, expected: Option<IfClause>) {
         let resultado = IfClauseParser::parse(caso);
@@ -94,9 +105,7 @@ mod tests {
     #[test]
     fn test_if_clause_exists() {
         // EXISTS
-        let tokens = vec![
-            create_reserved_token("EXISTS"),
-        ];
+        let tokens = vec![create_reserved_token("EXISTS")];
         let expected = Some(IfClause::Exist);
         test_successful_parser_case(tokens, expected);
     }
@@ -178,15 +187,14 @@ mod tests {
             create_comparison_operation_token(Greater),
             create_token_literal("30", Int),
         ];
-        
+
         let expected = Some(and_if(
-                comparison_if("id", Equal, create_literal("8", Int)),
-                and_if(
-                    IfClause::Exist,
-                    comparison_if("age", Greater, create_literal("30", Int)),
-                ),
+            comparison_if("id", Equal, create_literal("8", Int)),
+            and_if(
+                IfClause::Exist,
+                comparison_if("age", Greater, create_literal("30", Int)),
             ),
-        );
+        ));
 
         test_successful_parser_case(tokens, expected);
     }

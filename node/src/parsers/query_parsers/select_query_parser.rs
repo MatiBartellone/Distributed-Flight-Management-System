@@ -1,10 +1,10 @@
+use super::where_clause_parser::WhereClauseParser;
 use crate::parsers::query_parsers::order_by_clause_parser::OrderByClauseParser;
 use crate::parsers::tokens::token::Token;
 use crate::queries::select_query::SelectQuery;
+use crate::utils::constants::*;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
-use crate::utils::constants::*;
-use super::where_clause_parser::WhereClauseParser;
 
 pub struct SelectQueryParser;
 

@@ -3,7 +3,7 @@ use super::{data_type::DataType, terms::Term, token::Token};
 #[derive(Debug, PartialEq)]
 pub struct Literal {
     pub value: String,
-    data_type: DataType,
+    pub(crate) data_type: DataType,
 }
 
 impl Literal {

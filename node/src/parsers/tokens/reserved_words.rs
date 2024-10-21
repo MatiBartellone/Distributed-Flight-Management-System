@@ -40,7 +40,7 @@ const RESERVED_WORDS: &[&str] = &[
     "WITH",
     "ORDER",
     "REPLICATION",
-    "EXISTS"
+    "EXISTS",
 ];
 
 pub struct WordsReserved {
