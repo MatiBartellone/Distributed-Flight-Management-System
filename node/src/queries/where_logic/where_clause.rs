@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     parsers::tokens::{literal::Literal, terms::ComparisonOperators, token::Token},
     queries::evaluate::Evaluate,
@@ -8,12 +6,14 @@ use crate::{
         token_conversor::{get_identifier_string, get_literal},
     },
 };
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use WhereClause::*;
 
 use super::comparison::ComparisonExpr;
 
 /// Enum para representar diferentes tipos de expresiones booleanas.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum WhereClause {
     Comparison(ComparisonExpr),
     Tuple(Vec<ComparisonExpr>),

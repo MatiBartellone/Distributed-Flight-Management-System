@@ -3,6 +3,7 @@ use Token::*;
 
 use crate::{
     parsers::tokens::token::Token,
+    queries::update_query::UpdateQuery,
     utils::{
         errors::Errors,
         token_conversor::{get_next_value, get_sublist},
@@ -13,7 +14,6 @@ use super::{
     if_clause_parser::IfClauseParser, set_clause_parser::SetClauseParser,
     where_clause_parser::WhereClauseParser,
 };
-use crate::queries::update_query::UpdateQuery;
 use crate::utils::constants::*;
 
 pub struct UpdateQueryParser;

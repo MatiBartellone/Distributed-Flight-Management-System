@@ -1,7 +1,7 @@
-use crate::utils::bytes_cursor::BytesCursor;
-use crate::utils::errors::Errors;
+use crate::bytes_cursor::BytesCursor;
+use crate::errors::Errors;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct Frame {
     pub version: u8,
     pub flags: u8,
@@ -19,7 +19,7 @@ impl Frame {
         let stream = cursor.read_i16()?;
         let opcode = cursor.read_u8()?;
         let length = cursor.read_u32()?;
-        let body = cursor.read_exact(length as usize)?;
+        let body = cursor.read_remaining_bytes()?;
 
         Ok(Frame {
             version,

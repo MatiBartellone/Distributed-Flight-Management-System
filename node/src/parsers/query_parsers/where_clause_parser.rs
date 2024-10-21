@@ -8,8 +8,10 @@ use crate::{
     },
     utils::{
         errors::Errors,
-        token_conversor::{get_comparision_operator, get_list, get_literal, get_next_value, precedence},
-    }
+        token_conversor::{
+            get_comparision_operator, get_list, get_literal, get_next_value, precedence,
+        },
+    },
 };
 
 use BooleanOperations::*;
@@ -34,10 +36,13 @@ fn where_and_or(
 ) -> Result<WhereClause, Errors> {
     match get_next_value(tokens) {
         // [left_expre, AND, ...]
-
-        Ok(Term(BooleanOperations(Logical(And)))) => Ok(and_where(left_expr, where_clause_rec(tokens)?)),
+        Ok(Term(BooleanOperations(Logical(And)))) => {
+            Ok(and_where(left_expr, where_clause_rec(tokens)?))
+        }
         // [left_expre, OR, ...]
-        Ok(Term(BooleanOperations(Logical(Or)))) => Ok(or_where(left_expr, where_clause_rec(tokens)?)),
+        Ok(Term(BooleanOperations(Logical(Or)))) => {
+            Ok(or_where(left_expr, where_clause_rec(tokens)?))
+        }
         // []
         Err(_) => Ok(left_expr),
         _ => Err(Errors::SyntaxError(
@@ -75,7 +80,7 @@ fn where_list(
         // [tupla, comparison, tupla, ...]
         Some(Term(BooleanOperations(Comparison(_)))) => where_tuple(tokens, list),
         // [lista, ...]
-        _ => where_clause_rec(&mut list.into_iter().peekable())
+        _ => where_clause_rec(&mut list.into_iter().peekable()),
     }
 }
 
@@ -292,13 +297,12 @@ mod tests {
                         Literal::new("ivan".to_string(), DataType::Text),
                     ),
                 ]),
-                not_where(
-                    comparison_where(
-                        "is_active",
-                        ComparisonOperators::Equal,
-                        Literal::new("true".to_string(), DataType::Boolean),
-                    ),)
-                ),
+                not_where(comparison_where(
+                    "is_active",
+                    ComparisonOperators::Equal,
+                    Literal::new("true".to_string(), DataType::Boolean),
+                )),
+            ),
             comparison_where(
                 "age",
                 ComparisonOperators::Less,

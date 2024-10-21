@@ -1,5 +1,5 @@
 [workspace]
 members = [
     "node"
-]
+, "test-client"]
 

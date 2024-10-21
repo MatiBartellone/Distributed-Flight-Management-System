@@ -1,36 +1,46 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::node::Node;
 
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Cluster {
-    special_node: Node,
+    own_node: Node,
     other_nodes: Vec<Node>,
 }
 
 impl Cluster {
     pub fn new(special_node: Node, other_nodes: Vec<Node>) -> Self {
         Cluster {
-            special_node,
+            own_node: special_node,
             other_nodes,
         }
     }
 
     pub fn get_own_ip(&self) -> &str {
-        self.special_node.get_ip()
+        self.own_node.get_ip()
     }
 
-    pub fn len_nodes(&self) ->  usize {
-        self.other_nodes.len()+1
+    pub fn len_nodes(&self) -> usize {
+        self.other_nodes.len() + 1
     }
 
     pub fn get_nodes(&self, position: usize, replication: usize) -> Vec<String> {
         let end_position = position + replication;
-        self.other_nodes
-            .iter()
-            .filter(|node| node.get_pos() >= position && node.get_pos() < end_position)
-            .map(|node| node.get_ip().to_string()) 
-            .collect()
+        let mut ips = Vec::new();
+        let total_nodes = self.len_nodes();
+        for node in self.other_nodes.iter() {
+            let node_pos = node.get_pos() % total_nodes;
+            if (position <= node_pos && node_pos < total_nodes)
+                || (node_pos < end_position % total_nodes)
+            {
+                ips.push(node.get_ip().to_string());
+            }
+        }
+        let own_pos = self.own_node.get_pos() % total_nodes;
+        if (position <= own_pos && own_pos < total_nodes) || (own_pos < end_position % total_nodes)
+        {
+            ips.push(self.own_node.get_ip().to_string());
+        }
+        ips
     }
 }
