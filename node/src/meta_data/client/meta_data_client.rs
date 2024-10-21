@@ -65,7 +65,7 @@ impl ClientMetaDataAcces {
         Ok(())
     }
 
-    fn process_clients<F>(path: String, process_fn: F) -> Result<(), Errors>
+    fn process_clients_alter<F>(path: String, process_fn: F) -> Result<(), Errors>
     where
         F: Fn(&mut Client) -> Result<(), Errors>,
     {
@@ -87,60 +87,54 @@ impl ClientMetaDataAcces {
     }
 
     pub fn authorize_client(path: String) -> Result<(), Errors> {
-        Self::process_clients(path, |client| {
+        Self::process_clients_alter(path, |client| {
             client.authorize();
             Ok(())
         })
     }
 
     pub fn startup_client(path: String) -> Result<(), Errors> {
-        Self::process_clients(path, |client| {
+        Self::process_clients_alter(path, |client| {
             client.start_up();
             Ok(())
         })
     }
 
     pub fn use_keyspace(path: String, keyspace: &str) -> Result<(), Errors> {
-        Self::process_clients(path.to_string(), |client| {
+        Self::process_clients_alter(path.to_string(), |client| {
             client.set_keyspace(keyspace.to_string());
             Ok(())
         })
     }
 
-    pub fn get_keyspace(path: String) -> Result<Option<String>, Errors> {
+
+    fn process_client_view<F, T>(path: String, process_fn: F) -> Result<T, Errors>
+    where
+        F: Fn(&Client) -> Result<T, Errors>,
+    {
         let id_client = Self::thread_id_string();
         let clients = Self::extract_iterate_from_json(&path)?;
+
         for client_result in clients {
             let client = client_result.map_err(|_| Errors::ServerError("Error reading client".to_string()))?;
-            if client.is_id(&id_client){
-                return Ok(client.get_keyspace());
+            if client.is_id(&id_client) {
+                return process_fn(&client);
             }
         }
+
         Err(Errors::ServerError("Error, client not found".to_string()))
+    }
+
+    pub fn get_keyspace(path: String) -> Result<Option<String>, Errors> {
+        Self::process_client_view(path, |client| Ok(client.get_keyspace()))
     }
 
     pub fn is_authorized(path: String) -> Result<bool, Errors> {
-        let id_client = Self::thread_id_string();
-        let clients = Self::extract_iterate_from_json(&path)?;
-        for client_result in clients {
-            let client = client_result.map_err(|_| Errors::ServerError("Error reading client".to_string()))?;
-            if client.is_id(&id_client){
-                return Ok(client.is_authorized());
-            }
-        }
-        Err(Errors::ServerError("Error, client not found".to_string()))
+        Self::process_client_view(path, |client| Ok(client.is_authorized()))
     }
 
     pub fn had_started(path: String) -> Result<bool, Errors> {
-        let id_client = Self::thread_id_string();
-        let clients = Self::extract_iterate_from_json(&path)?;
-        for client_result in clients {
-            let client = client_result.map_err(|_| Errors::ServerError("Error reading client".to_string()))?;
-            if client.is_id(&id_client){
-                return Ok(client.has_started());
-            }
-        }
-        Err(Errors::ServerError("Error, client not found".to_string()))
+        Self::process_client_view(path, |client| Ok(client.has_started()))
     }
 }
 
