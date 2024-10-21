@@ -1,7 +1,7 @@
 use crate::data_access::row::Row;
 use crate::utils::errors::Errors;
 use std::fs::{remove_file, rename, File, OpenOptions};
-use std::io::{BufReader, Read, Seek, SeekFrom, Write};
+use std::io::{BufReader, Seek, SeekFrom, Write};
 use serde_json::de::IoRead;
 use serde_json::StreamDeserializer;
 use crate::queries::evaluate::Evaluate;
@@ -41,7 +41,7 @@ impl DataAccess {
 
     pub fn insert(&self, table_name: &String, row: &Row) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
-        if self.pk_already_exists(&path, &row.primary_keys) {
+        if self.pk_already_exists(&path, &row.primary_keys)? {
             return Err(Errors::AlreadyExists(
                 "Primary key already exists".to_string(),
             ));
@@ -123,13 +123,12 @@ impl DataAccess {
     }
 
     fn append_row(&self, path: &String, row: &Row) -> Result<(), Errors> {
-        let err = Errors::ServerError("Failed to append row to table file".to_string());
         let mut file = self.open_file(&path)?;
-        file.seek(SeekFrom::End(-1)).map_err(|_| &err)?;
-        file.write_all(b",").map_err(|_| &err)?;
-        let json_row = serde_json::to_string(&row).map_err(|_| &err)?;
-        file.write_all(json_row.as_bytes()).map_err(|_| &err)?;
-        file.write_all(b"]").map_err(|_| &err)?;
+        file.seek(SeekFrom::End(-1)).map_err(|_| Errors::ServerError("Failed to append row to table file".to_string()))?;
+        file.write_all(b",").map_err(|_| Errors::ServerError("Failed to append row to table file".to_string()))?;
+        let json_row = serde_json::to_string(&row).map_err(|_| Errors::ServerError("Failed to append row to table file".to_string()))?;
+        file.write_all(json_row.as_bytes()).map_err(|_| Errors::ServerError("Failed to append row to table file".to_string()))?;
+        file.write_all(b"]").map_err(|_| Errors::ServerError("Failed to append row to table file".to_string()))?;
         Ok(())
     }
 
