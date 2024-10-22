@@ -79,7 +79,7 @@ impl ClientMetaDataAcces {
         for client_result in clients {
             let mut client = client_result
                 .map_err(|_| Errors::ServerError("Error reading client".to_string()))?;
-            if client.is_id(&id_client) && !process_fn(&mut client){
+            if client.is_id(&id_client) && !process_fn(&mut client) {
                 continue;
             }
             Self::save_to_json(&mut file, &client)?;

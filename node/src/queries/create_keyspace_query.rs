@@ -29,7 +29,7 @@ impl Query for CreateKeyspaceQuery {
         todo!()
     }
 
-    fn get_primary_key(&self) -> Option<String> {
+    fn get_primary_key(&self) -> Option<Vec<String>> {
         None
     }
 

@@ -11,6 +11,7 @@ impl DeleteQueryParser {
     pub fn parse(tokens: Vec<Token>) -> Result<DeleteQuery, Errors> {
         let mut delete_query = DeleteQuery::new();
         from(&mut tokens.into_iter(), &mut delete_query)?;
+        delete_query.set_table()?;
         Ok(delete_query)
     }
 }
@@ -27,7 +28,7 @@ fn from(tokens: &mut IntoIter<Token>, query: &mut DeleteQuery) -> Result<(), Err
 fn table(tokens: &mut IntoIter<Token>, query: &mut DeleteQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Identifier(identifier) => {
-            query.table = identifier;
+            query.table_name = identifier;
             where_keyword(tokens, query)
         }
         _ => Err(Errors::SyntaxError(String::from(
@@ -90,7 +91,7 @@ mod tests {
             Token::Identifier(String::from("table_name")),
         ];
         let expected = DeleteQuery {
-            table: "table_name".to_string(),
+            table_name: "table_name".to_string(),
             where_clause: None,
         };
         assert_eq!(expected, DeleteQueryParser::parse(tokens).unwrap());

@@ -1,11 +1,11 @@
 use crate::data_access::row::Row;
-use crate::utils::errors::Errors;
-use std::fs::{remove_file, rename, File, OpenOptions, metadata};
-use std::io::{BufReader, Seek, SeekFrom, Write};
 use crate::queries::evaluate::Evaluate;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::queries::where_logic::where_clause::WhereClause;
 use crate::utils::constants::ASC;
+use crate::utils::errors::Errors;
+use std::fs::{metadata, remove_file, rename, File, OpenOptions};
+use std::io::{BufReader, Seek, SeekFrom, Write};
 
 pub struct DataAccess;
 
@@ -31,12 +31,14 @@ impl DataAccess {
         let _file = OpenOptions::new()
             .write(true)
             .truncate(true)
-            .open(self.get_file_path(table_name)).map_err(|_| Errors::ServerError(String::from("Could not open file")))?;
+            .open(self.get_file_path(table_name))
+            .map_err(|_| Errors::ServerError(String::from("Could not open file")))?;
         Ok(())
     }
 
     pub fn drop_table(&self, table_name: String) -> Result<(), Errors> {
-        remove_file(self.get_file_path(&table_name)).map_err(|_| Errors::ServerError(String::from("Could not remove file")))?;
+        remove_file(self.get_file_path(&table_name))
+            .map_err(|_| Errors::ServerError(String::from("Could not remove file")))?;
         Ok(())
     }
 
@@ -50,22 +52,30 @@ impl DataAccess {
         self.append_row(&path, row)
     }
 
-    pub fn update_row(&self, table_name: &String, new_row: Row, where_clause: WhereClause) -> Result<(), Errors> {
+    pub fn update_row(
+        &self,
+        table_name: &String,
+        new_row: Row,
+        where_clause: WhereClause,
+    ) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
         let temp_path = format!("{}.tmp", path);
         self.create_file(&temp_path)?;
         for row in self.get_deserialized_stream(&path)? {
-            if where_clause.evaluate(&row.get_row_hash())?{
-                if self.have_same_primary_key(&row, &new_row){
+            if where_clause.evaluate(&row.get_row_hash())? {
+                if self.have_same_primary_key(&row, &new_row) {
                     self.append_row(&temp_path, &new_row)?;
                 } else {
-                    return Err(Errors::ProtocolError(String::from("Cant change the primary key values")));
+                    return Err(Errors::ProtocolError(String::from(
+                        "Cant change the primary key values",
+                    )));
                 }
             } else {
                 self.append_row(&temp_path, &row)?;
             }
         }
-        rename(temp_path, path).map_err(|_| Errors::ServerError(String::from("Error renaming file")))?;
+        rename(temp_path, path)
+            .map_err(|_| Errors::ServerError(String::from("Error renaming file")))?;
         Ok(())
     }
 
@@ -73,31 +83,46 @@ impl DataAccess {
         row1.primary_keys == row2.primary_keys
     }
 
-    pub fn select_rows(&self, table_name: &String, where_clause: WhereClause, order_clauses: Option<Vec<OrderByClause>>) -> Result<Vec<Row>, Errors> {
+    pub fn select_rows(
+        &self,
+        table_name: &String,
+        where_clause: WhereClause,
+        order_clauses: Option<Vec<OrderByClause>>,
+    ) -> Result<Vec<Row>, Errors> {
         let path = self.get_file_path(table_name);
         let filtered_path = self.get_file_path(&String::from("filtered"));
         self.create_file(&filtered_path)?;
         self.filter_rows(&path, &filtered_path, where_clause)?;
-        if self.rows_count(&filtered_path)? > 1{
+        if self.rows_count(&filtered_path)? > 1 {
             self.sort_rows(&filtered_path, order_clauses)?;
         }
         let rows = self.get_rows(&filtered_path)?;
-        remove_file(filtered_path).map_err(|_| Errors::ServerError(String::from("Could not remove file")))?;
+        remove_file(filtered_path)
+            .map_err(|_| Errors::ServerError(String::from("Could not remove file")))?;
         Ok(rows)
     }
 
-    fn filter_rows(&self, path: &String, filtered_path: &String, where_clause: WhereClause) -> Result<(), Errors> {
+    fn filter_rows(
+        &self,
+        path: &String,
+        filtered_path: &String,
+        where_clause: WhereClause,
+    ) -> Result<(), Errors> {
         for row in self.get_deserialized_stream(path)? {
-            if where_clause.evaluate(&row.get_row_hash())?{
+            if where_clause.evaluate(&row.get_row_hash())? {
                 self.append_row(filtered_path, &row)?;
             }
         }
         Ok(())
     }
 
-    fn sort_rows(&self, path: &String, order_clauses_opt: Option<Vec<OrderByClause>>) -> Result<(), Errors> {
+    fn sort_rows(
+        &self,
+        path: &String,
+        order_clauses_opt: Option<Vec<OrderByClause>>,
+    ) -> Result<(), Errors> {
         let Some(order_clauses) = order_clauses_opt else {
-            return Ok(())
+            return Ok(());
         };
         for order in order_clauses.iter().rev() {
             self.bubble_sort_file(path, order)?
@@ -105,9 +130,13 @@ impl DataAccess {
         Ok(())
     }
 
-    fn bubble_sort_file(&self, path: &String, order_by_clause: &OrderByClause) -> Result<(), Errors> {
+    fn bubble_sort_file(
+        &self,
+        path: &String,
+        order_by_clause: &OrderByClause,
+    ) -> Result<(), Errors> {
         let rows_count = self.rows_count(path)?;
-        for n in 0..(rows_count - 1){
+        for n in 0..(rows_count - 1) {
             let temp_path = format!("{}.tmp", path);
             self.create_file(&temp_path)?;
             let mut rows = self.get_deserialized_stream(path)?;
@@ -123,17 +152,23 @@ impl DataAccess {
                 }
             }
             self.append_row(&temp_path, &actual_row)?;
-            for row in rows{
+            for row in rows {
                 self.append_row(&temp_path, &row)?;
             }
-            rename(temp_path, path).map_err(|_| Errors::ServerError(String::from("Error renaming file")))?;
+            rename(temp_path, path)
+                .map_err(|_| Errors::ServerError(String::from("Error renaming file")))?;
         }
         Ok(())
     }
 
-    fn should_swap_rows(&self, actual: &Row, next: &Row, order_by_clause: &OrderByClause) -> Result<bool, Errors> {
+    fn should_swap_rows(
+        &self,
+        actual: &Row,
+        next: &Row,
+        order_by_clause: &OrderByClause,
+    ) -> Result<bool, Errors> {
         if order_by_clause.order == ASC {
-            return Ok(Row::cmp(actual, next, &order_by_clause.column) > 0)
+            return Ok(Row::cmp(actual, next, &order_by_clause.column) > 0);
         }
         Ok(Row::cmp(actual, next, &order_by_clause.column) < 0)
     }
@@ -168,27 +203,33 @@ impl DataAccess {
 
     fn append_row(&self, path: &String, row: &Row) -> Result<(), Errors> {
         let mut file = self.open_file(path)?;
-        let file_size = file.seek(SeekFrom::End(0)).map_err(|_| Errors::ServerError("Failed to seek in file".to_string()))?;
+        let file_size = file
+            .seek(SeekFrom::End(0))
+            .map_err(|_| Errors::ServerError("Failed to seek in file".to_string()))?;
         if file_size > 2 {
-            file.seek(SeekFrom::End(-1)).map_err(|_| Errors::ServerError("Failed to seek in file".to_string()))?;
-            file.write_all(b",").map_err(|_| Errors::ServerError("Failed to append row to table file".to_string()))?;
+            file.seek(SeekFrom::End(-1))
+                .map_err(|_| Errors::ServerError("Failed to seek in file".to_string()))?;
+            file.write_all(b",").map_err(|_| {
+                Errors::ServerError("Failed to append row to table file".to_string())
+            })?;
         } else {
-            file.seek(SeekFrom::End(-1)).map_err(|_| Errors::ServerError("Failed to seek in file".to_string()))?;
+            file.seek(SeekFrom::End(-1))
+                .map_err(|_| Errors::ServerError("Failed to seek in file".to_string()))?;
         }
-        let json_row = serde_json::to_string(&row).map_err(|_| Errors::ServerError("Failed to serialize row".to_string()))?;
-        file.write_all(json_row.as_bytes()).map_err(|_| Errors::ServerError("Failed to write row to file".to_string()))?;
+        let json_row = serde_json::to_string(&row)
+            .map_err(|_| Errors::ServerError("Failed to serialize row".to_string()))?;
+        file.write_all(json_row.as_bytes())
+            .map_err(|_| Errors::ServerError("Failed to write row to file".to_string()))?;
 
         // Cerramos el array JSON
-        file.write_all(b"]").map_err(|_| Errors::ServerError("Failed to close JSON array".to_string()))?;
+        file.write_all(b"]")
+            .map_err(|_| Errors::ServerError("Failed to close JSON array".to_string()))?;
 
         Ok(())
     }
 
-
-
-
     fn pk_already_exists(&self, path: &String, primary_keys: &Vec<String>) -> Result<bool, Errors> {
-        for row in  self.get_deserialized_stream(path)?{
+        for row in self.get_deserialized_stream(path)? {
             if &row.primary_keys == primary_keys {
                 return Ok(true);
             }
@@ -199,9 +240,9 @@ impl DataAccess {
     fn get_deserialized_stream(&self, path: &String) -> Result<impl Iterator<Item = Row>, Errors> {
         let file = self.open_file(path)?;
         let reader = BufReader::new(file);
-        let rows: Vec<Row> = serde_json::from_reader(reader).map_err(|e| Errors::ServerError(e.to_string()))?;
+        let rows: Vec<Row> =
+            serde_json::from_reader(reader).map_err(|e| Errors::ServerError(e.to_string()))?;
         Ok(rows.into_iter())
-
     }
 
     fn rows_count(&self, path: &String) -> Result<usize, Errors> {
@@ -209,19 +250,18 @@ impl DataAccess {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use std::fs::read_to_string;
-    use std::path::Path;
     use super::*;
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::sync::Mutex;
     use crate::data_access::row::Column;
     use crate::parsers::tokens::data_type::DataType;
     use crate::parsers::tokens::literal::Literal;
     use crate::parsers::tokens::terms::ComparisonOperators;
     use crate::queries::where_logic::comparison::ComparisonExpr;
+    use std::fs::read_to_string;
+    use std::path::Path;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Mutex;
 
     static TABLE_COUNTER: AtomicUsize = AtomicUsize::new(1);
     static TABLE_MUTEX: Mutex<()> = Mutex::new(());
@@ -295,7 +335,8 @@ mod tests {
     }
 
     fn get_row1_in_string() -> Result<String, Errors> {
-        serde_json::to_string(&get_row1()).map_err(|_| Errors::ServerError("Failed to serialize row1".to_string()))
+        serde_json::to_string(&get_row1())
+            .map_err(|_| Errors::ServerError("Failed to serialize row1".to_string()))
     }
 
     fn get_row2() -> Row {
@@ -326,7 +367,8 @@ mod tests {
     }
 
     fn get_row2_in_string() -> Result<String, Errors> {
-        serde_json::to_string(&get_row2()).map_err(|_| Errors::ServerError("Failed to serialize row2".to_string()))
+        serde_json::to_string(&get_row2())
+            .map_err(|_| Errors::ServerError("Failed to serialize row2".to_string()))
     }
 
     #[test]
@@ -376,7 +418,11 @@ mod tests {
             value: "John".to_string(),
             data_type: DataType::Text,
         };
-        let where_clause = WhereClause::Comparison(ComparisonExpr::new("name".to_string(), &ComparisonOperators::Equal, literal));
+        let where_clause = WhereClause::Comparison(ComparisonExpr::new(
+            "name".to_string(),
+            &ComparisonOperators::Equal,
+            literal,
+        ));
 
         let result = data_access.update_row(&table_name, row2, where_clause);
         assert!(result.is_ok());
@@ -404,7 +450,11 @@ mod tests {
             value: "John".to_string(),
             data_type: DataType::Text,
         };
-        let where_clause = WhereClause::Comparison(ComparisonExpr::new("name".to_string(), &ComparisonOperators::Equal, literal));
+        let where_clause = WhereClause::Comparison(ComparisonExpr::new(
+            "name".to_string(),
+            &ComparisonOperators::Equal,
+            literal,
+        ));
         let result = data_access.select_rows(&table_name, where_clause, None);
         assert!(result.is_ok());
         let selected_rows = result.unwrap();

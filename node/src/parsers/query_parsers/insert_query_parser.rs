@@ -11,6 +11,7 @@ impl InsertQueryParser {
     pub fn parse(tokens_list: Vec<Token>) -> Result<InsertQuery, Errors> {
         let mut insert_query = InsertQuery::new();
         into(&mut tokens_list.into_iter(), &mut insert_query)?;
+        insert_query.set_table()?;
         Ok(insert_query)
     }
 }
@@ -27,7 +28,7 @@ fn into(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Err
 fn table(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Identifier(identifier) => {
-            query.table = identifier;
+            query.table_name = identifier;
             headers(tokens, query)
         }
         _ => Err(Errors::SyntaxError(String::from(
@@ -150,7 +151,7 @@ mod tests {
     }
     fn get_insert_query(table: &str, hd1: &str, hd2: &str, col1: &str, col2: &str) -> InsertQuery {
         InsertQuery {
-            table: table.to_string(),
+            table_name: table.to_string(),
             headers: vec![String::from(hd1), String::from(hd2)],
             values_list: vec![vec![
                 Literal::new(col1.to_string(), DataType::Int),

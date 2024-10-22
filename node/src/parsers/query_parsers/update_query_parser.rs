@@ -22,6 +22,7 @@ impl UpdateQueryParser {
     pub fn parse(tokens: Vec<Token>) -> Result<UpdateQuery, Errors> {
         let mut update_query = UpdateQuery::new();
         table(&mut tokens.into_iter().peekable(), &mut update_query)?;
+        update_query.set_table()?;
         Ok(update_query)
     }
 }
@@ -29,7 +30,7 @@ impl UpdateQueryParser {
 fn table(tokens: &mut Peekable<IntoIter<Token>>, query: &mut UpdateQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Identifier(table_name) => {
-            query.table = table_name;
+            query.table_name = table_name;
             set(tokens, query)
         }
         _ => Err(Errors::SyntaxError(String::from(
@@ -157,7 +158,7 @@ mod tests {
         ];
 
         let mut expected_query = UpdateQuery::new();
-        expected_query.table = "table".to_string();
+        expected_query.table_name = "table".to_string();
         expected_query.changes.insert(
             "age".to_string(),
             AssignmentValue::Simple(create_literal("30", Int)),
@@ -186,7 +187,7 @@ mod tests {
         ];
 
         let mut expected_query = UpdateQuery::new();
-        expected_query.table = "table".to_string();
+        expected_query.table_name = "table".to_string();
         expected_query.changes.insert(
             "age".to_string(),
             AssignmentValue::Simple(create_literal("30", Int)),
@@ -220,7 +221,7 @@ mod tests {
         ];
 
         let mut expected_query = UpdateQuery::new();
-        expected_query.table = "table".to_string();
+        expected_query.table_name = "table".to_string();
         expected_query.changes.insert(
             "age".to_string(),
             AssignmentValue::Simple(create_literal("30", Int)),

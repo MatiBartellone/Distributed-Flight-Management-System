@@ -12,6 +12,7 @@ impl SelectQueryParser {
     pub fn parse(tokens: Vec<Token>) -> Result<SelectQuery, Errors> {
         let mut select_query = SelectQuery::new();
         columns(&mut tokens.into_iter(), &mut select_query)?;
+        select_query.set_table()?;
         Ok(select_query)
     }
 }
@@ -40,7 +41,7 @@ fn from(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<(), Err
 fn table(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Identifier(identifier) => {
-            query.table = identifier;
+            query.table_name = identifier;
             modifiers(tokens, query)
         }
         _ => Err(Errors::SyntaxError(String::from(
@@ -151,7 +152,7 @@ mod tests {
         ];
         let expected = SelectQuery {
             columns: vec![String::from("id")],
-            table: "table_name".to_string(),
+            table_name: "table_name".to_string(),
             where_clause: None,
             order_clauses: None,
         };

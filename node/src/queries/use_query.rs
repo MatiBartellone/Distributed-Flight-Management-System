@@ -34,9 +34,9 @@ impl Query for UseQuery {
         Ok(get_long_string_from_str(msg.as_ref()))
     }
 
-    fn get_primary_key(&self) -> Option<String> {
+    fn get_primary_key(&self) -> Option<Vec<String>> {
         let rng: u8 = rand::random();
-        Some(format!("{}", rng))
+        Some(vec![format!("{}", rng)])
     }
 
     fn as_any(&self) -> &dyn Any {

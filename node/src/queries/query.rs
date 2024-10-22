@@ -9,7 +9,7 @@ use std::any::Any;
 
 pub trait Query: Any {
     fn run(&self) -> Result<Vec<u8>, Errors>;
-    fn get_primary_key(&self) -> Option<String>;
+    fn get_primary_key(&self) -> Option<Vec<String>>;
     fn as_any(&self) -> &dyn Any;
 }
 

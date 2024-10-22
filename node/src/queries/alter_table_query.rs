@@ -1,7 +1,8 @@
+use super::query::Query;
+use crate::meta_data::clients::meta_data_client::ClientMetaDataAcces;
 use crate::{parsers::tokens::data_type::DataType, utils::errors::Errors};
 use std::any::Any;
-
-use super::query::Query;
+use std::process;
 
 #[derive(PartialEq, Debug)]
 pub struct AlterTableQuery {
@@ -36,6 +37,25 @@ impl AlterTableQuery {
             data: DataType::Int,
         }
     }
+
+    pub fn set_table(&mut self) -> Result<(), Errors> {
+        if self.table_name.is_empty() {
+            return Err(Errors::SyntaxError(String::from("Table is empty")));
+        }
+        if !self.table_name.contains('.')
+            && ClientMetaDataAcces::get_keyspace(process::id().to_string())?.is_none()
+        {
+            return Err(Errors::SyntaxError(String::from(
+                "Keyspace not defined and non keyspace in usage",
+            )));
+        } else {
+            let Some(kp) = ClientMetaDataAcces::get_keyspace(process::id().to_string())? else {
+                return Err(Errors::SyntaxError(String::from("Keyspace not in usage")));
+            };
+            self.table_name = format!("{}.{}", kp, self.table_name);
+        }
+        Ok(())
+    }
 }
 
 impl Query for AlterTableQuery {
@@ -43,7 +63,7 @@ impl Query for AlterTableQuery {
         todo!()
     }
 
-    fn get_primary_key(&self) -> Option<String> {
+    fn get_primary_key(&self) -> Option<Vec<String>> {
         None
     }
 

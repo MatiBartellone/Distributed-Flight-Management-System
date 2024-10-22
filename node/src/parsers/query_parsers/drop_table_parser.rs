@@ -12,6 +12,7 @@ impl DropTableQueryParser {
     pub fn parse(tokens: &mut Peekable<IntoIter<Token>>) -> Result<DropTableQuery, Errors> {
         let mut drop_query = DropTableQuery::new();
         frok(tokens, &mut drop_query)?;
+        drop_query.set_table()?;
         Ok(drop_query)
     }
 }
@@ -29,7 +30,7 @@ fn frok(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropTableQuery) -> R
 fn table(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropTableQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Identifier(title) => {
-            query.table = title;
+            query.table_name = title;
             finish(tokens)
         }
         _ => Err(Errors::SyntaxError(String::from(
@@ -85,7 +86,7 @@ mod tests {
         let result = DropTableQueryParser::parse(&mut token_iter);
         assert!(result.is_ok());
         let query = result.unwrap();
-        assert_eq!(query.table, "my_table");
+        assert_eq!(query.table_name, "my_table");
         assert_eq!(query.if_exist, None); // No hay IF EXISTS
     }
 
@@ -100,7 +101,7 @@ mod tests {
         let result = DropTableQueryParser::parse(&mut token_iter);
         assert!(result.is_ok());
         let query = result.unwrap();
-        assert_eq!(query.table, "my_table");
+        assert_eq!(query.table_name, "my_table");
         assert_eq!(query.if_exist, Some(true)); // Debe tener IF EXISTS
     }
 

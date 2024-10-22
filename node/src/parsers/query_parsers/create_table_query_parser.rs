@@ -26,6 +26,7 @@ impl CreateTableQueryParser {
         let mut create_table_query = CreateTableQuery::new();
         table_name(&mut tokens.into_iter(), &mut create_table_query)?;
         check_primary_key(&mut create_table_query)?;
+        create_table_query.set_table()?;
         Ok(create_table_query)
     }
 }
