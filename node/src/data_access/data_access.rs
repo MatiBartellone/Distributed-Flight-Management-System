@@ -20,7 +20,7 @@ impl DataAccess {
     }
 
     fn create_file(&self, path: &String) -> Result<(), Errors> {
-        let mut file = File::create(&path)
+        let mut file = File::create(path)
             .map_err(|_| Errors::ServerError(String::from("Could not create file")))?;
         file.write_all(b"[]")
             .map_err(|_| Errors::ServerError(String::from("Could not initialize table file")))?;
@@ -31,7 +31,7 @@ impl DataAccess {
         let _file = OpenOptions::new()
             .write(true)
             .truncate(true)
-            .open(self.get_file_path(&table_name)).map_err(|_| Errors::ServerError(String::from("Could not open file")))?;
+            .open(self.get_file_path(table_name)).map_err(|_| Errors::ServerError(String::from("Could not open file")))?;
         Ok(())
     }
 
@@ -56,13 +56,21 @@ impl DataAccess {
         self.create_file(&temp_path)?;
         for row in self.get_deserialized_stream(&path)? {
             if where_clause.evaluate(&row.get_row_hash())?{
-                self.append_row(&temp_path, &new_row)?;
+                if self.have_same_primary_key(&row, &new_row){
+                    self.append_row(&temp_path, &new_row)?;
+                } else {
+                    return Err(Errors::ProtocolError(String::from("Cant change the primary key values")));
+                }
             } else {
                 self.append_row(&temp_path, &row)?;
             }
         }
         rename(temp_path, path).map_err(|_| Errors::ServerError(String::from("Error renaming file")))?;
         Ok(())
+    }
+
+    fn have_same_primary_key(&self, row1: &Row, row2: &Row) -> bool {
+        row1.primary_keys == row2.primary_keys
     }
 
     pub fn select_rows(&self, table_name: &String, where_clause: WhereClause, order_clauses: Option<Vec<OrderByClause>>) -> Result<Vec<Row>, Errors> {
@@ -102,7 +110,7 @@ impl DataAccess {
         for n in 0..(rows_count - 1){
             let temp_path = format!("{}.tmp", path);
             self.create_file(&temp_path)?;
-            let mut rows = self.get_deserialized_stream(&path)?;
+            let mut rows = self.get_deserialized_stream(path)?;
             let mut actual_row = self.get_next_line(&mut rows)?;
             for _ in 0..(rows_count - n - 1) {
                 if let Ok(next_row) = self.get_next_line(&mut rows) {
@@ -115,7 +123,7 @@ impl DataAccess {
                 }
             }
             self.append_row(&temp_path, &actual_row)?;
-            while let Some(row) = rows.next(){
+            for row in rows{
                 self.append_row(&temp_path, &row)?;
             }
             rename(temp_path, path).map_err(|_| Errors::ServerError(String::from("Error renaming file")))?;
@@ -300,6 +308,19 @@ mod tests {
                 },
                 time_stamp: "2024-10-23".to_string(),
             }],
+            primary_keys: vec!["name".to_string()],
+        }
+    }
+    fn get_row3() -> Row {
+        Row {
+            columns: vec![Column {
+                column_name: "name".to_string(),
+                value: Literal {
+                    value: "Jane".to_string(),
+                    data_type: DataType::Text,
+                },
+                time_stamp: "2024-10-23".to_string(),
+            }],
             primary_keys: vec!["_".to_string()],
         }
     }
@@ -375,9 +396,9 @@ mod tests {
         data_access.create_table(&table_name).unwrap();
 
         let row1 = get_row1();
-        let row2 = get_row2();
+        let row3 = get_row3();
         data_access.insert(&table_name, &row1).unwrap();
-        data_access.insert(&table_name, &row2).unwrap();
+        data_access.insert(&table_name, &row3).unwrap();
 
         let literal = Literal {
             value: "John".to_string(),
