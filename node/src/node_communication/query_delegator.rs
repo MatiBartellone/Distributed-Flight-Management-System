@@ -66,7 +66,10 @@ impl QueryDelegator {
     }
 
     fn get_nodes_ip(&self) -> Result<Vec<String>, Errors> {
-        let ips = NodesMetaDataAccess::get_partition_ips(nodes_meta_data_path().as_ref(), &self.primary_key)?;
+        let ips = NodesMetaDataAccess::get_partition_ips(
+            nodes_meta_data_path().as_ref(),
+            &self.primary_key,
+        )?;
         let mut full_ips = Vec::new();
         for ip in ips {
             full_ips.push(format!("{}:{}", ip, QUERY_DELEGATION_PORT));

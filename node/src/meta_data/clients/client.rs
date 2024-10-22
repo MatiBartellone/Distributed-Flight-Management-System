@@ -1,14 +1,13 @@
 use std::thread::{self};
 
-use serde::{Serialize, Deserialize};
-
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Client {
     id: String,
     startup: bool,
     authorized: bool,
-    keyspace: Option<String>
+    keyspace: Option<String>,
 }
 
 impl Client {
@@ -52,4 +51,8 @@ impl Client {
     }
 }
 
-
+impl Default for Client {
+    fn default() -> Self {
+        Self::new()
+    }
+}
