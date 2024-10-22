@@ -7,7 +7,7 @@ pub const EQUAL : i8 = 0;
 pub const GREATER : i8 = 1;
 pub const LOWER : i8 = -1;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct Row {
     pub columns: Vec<Column>,
     pub primary_keys: Vec<String>,
@@ -55,7 +55,7 @@ impl Row {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct Column {
     pub(crate) column_name: String,
     pub(crate) value: Literal,

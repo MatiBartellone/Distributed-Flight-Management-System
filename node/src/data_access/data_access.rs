@@ -15,12 +15,19 @@ impl DataAccess {
         if metadata(&path).is_ok() {
             return Err(Errors::AlreadyExists("Table already exists".to_string()));
         }
-        File::create(&path)
-            .map_err(|_| Errors::ServerError(String::from("Could not create file")))?;
+        self.create_file(&path)?;
         Ok(())
     }
 
-    pub fn alter_table(&self, table_name: String) -> Result<(), Errors> {
+    fn create_file(&self, path: &String) -> Result<(), Errors> {
+        let mut file = File::create(&path)
+            .map_err(|_| Errors::ServerError(String::from("Could not create file")))?;
+        file.write_all(b"[]")
+            .map_err(|_| Errors::ServerError(String::from("Could not initialize table file")))?;
+        Ok(())
+    }
+
+    pub fn alter_table(&self, table_name: &String) -> Result<(), Errors> {
         let _file = OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -43,19 +50,15 @@ impl DataAccess {
         self.append_row(&path, row)
     }
 
-    pub fn update_row(&self, path: &String, new_row: Row, where_clause: WhereClause) -> Result<(), Errors> {
+    pub fn update_row(&self, table_name: &String, new_row: Row, where_clause: WhereClause) -> Result<(), Errors> {
+        let path = self.get_file_path(table_name);
         let temp_path = format!("{}.tmp", path);
-        self.create_table(&temp_path)?;
-        for row in self.get_deserialized_stream(path)? {
-            match row {
-                Ok(row) => {
-                    if where_clause.evaluate(&row.get_row_hash())?{
-                        self.append_row(&temp_path, &new_row)?;
-                    } else {
-                        self.append_row(&temp_path, &row)?;
-                    }
-                }
-                Err(_) => return Err(Errors::ServerError(String::from("Error deserializing row"))),
+        self.create_file(&temp_path)?;
+        for row in self.get_deserialized_stream(&path)? {
+            if where_clause.evaluate(&row.get_row_hash())?{
+                self.append_row(&temp_path, &new_row)?;
+            } else {
+                self.append_row(&temp_path, &row)?;
             }
         }
         rename(temp_path, path).map_err(|_| Errors::ServerError(String::from("Error renaming file")))?;
@@ -65,6 +68,7 @@ impl DataAccess {
     pub fn select_rows(&self, table_name: &String, where_clause: WhereClause, order_clauses: Option<Vec<OrderByClause>>) -> Result<Vec<Row>, Errors> {
         let path = self.get_file_path(table_name);
         let filtered_path = self.get_file_path(&String::from("filtered"));
+        self.create_file(&filtered_path)?;
         self.filter_rows(&path, &filtered_path, where_clause)?;
         if self.rows_count(&filtered_path)? > 1{
             self.sort_rows(&filtered_path, order_clauses)?;
@@ -76,13 +80,8 @@ impl DataAccess {
 
     fn filter_rows(&self, path: &String, filtered_path: &String, where_clause: WhereClause) -> Result<(), Errors> {
         for row in self.get_deserialized_stream(path)? {
-            match row {
-                Ok(row) => {
-                    if where_clause.evaluate(&row.get_row_hash())?{
-                        self.append_row(filtered_path, &row)?;
-                    }
-                }
-                Err(_) => return Err(Errors::ServerError(String::from("Error deserializing row"))),
+            if where_clause.evaluate(&row.get_row_hash())?{
+                self.append_row(filtered_path, &row)?;
             }
         }
         Ok(())
@@ -102,7 +101,8 @@ impl DataAccess {
         let rows_count = self.rows_count(path)?;
         for n in 0..(rows_count - 1){
             let temp_path = format!("{}.tmp", path);
-            let mut rows = self.get_deserialized_stream(&temp_path)?;
+            self.create_file(&temp_path)?;
+            let mut rows = self.get_deserialized_stream(&path)?;
             let mut actual_row = self.get_next_line(&mut rows)?;
             for _ in 0..(rows_count - n - 1) {
                 if let Ok(next_row) = self.get_next_line(&mut rows) {
@@ -115,7 +115,7 @@ impl DataAccess {
                 }
             }
             self.append_row(&temp_path, &actual_row)?;
-            while let Some(Ok(row)) = rows.next(){
+            while let Some(row) = rows.next(){
                 self.append_row(&temp_path, &row)?;
             }
             rename(temp_path, path).map_err(|_| Errors::ServerError(String::from("Error renaming file")))?;
@@ -130,8 +130,8 @@ impl DataAccess {
         Ok(Row::cmp(actual, next, &order_by_clause.column) < 0)
     }
 
-    fn get_next_line(&self, rows: &mut impl Iterator<Item = Result<Row, serde_json::Error>>) -> Result<Row, Errors> {
-        let Some(Ok(row)) = rows.next() else {
+    fn get_next_line(&self, rows: &mut impl Iterator<Item = Row>) -> Result<Row, Errors> {
+        let Some(row) = rows.next() else {
             return Err(Errors::ServerError(String::from("Error deserializing row")));
         };
         Ok(row)
@@ -140,12 +140,7 @@ impl DataAccess {
     fn get_rows(&self, path: &String) -> Result<Vec<Row>, Errors> {
         let mut rows = Vec::new();
         for row in self.get_deserialized_stream(path)? {
-            match row {
-                Ok(row) => {
-                    rows.push(row);
-                }
-                Err(_) => return Err(Errors::ServerError(String::from("Error deserializing row"))),
-            }
+            rows.push(row);
         }
         Ok(rows)
     }
@@ -166,39 +161,49 @@ impl DataAccess {
     fn append_row(&self, path: &String, row: &Row) -> Result<(), Errors> {
         let mut file = self.open_file(path)?;
         let file_size = file.seek(SeekFrom::End(0)).map_err(|_| Errors::ServerError("Failed to seek in file".to_string()))?;
-        if file_size > 0 {
-            file.write_all(b"\n").map_err(|_| Errors::ServerError("Failed to write new line".to_string()))?;
+        if file_size > 2 {
+            file.seek(SeekFrom::End(-1)).map_err(|_| Errors::ServerError("Failed to seek in file".to_string()))?;
+            file.write_all(b",").map_err(|_| Errors::ServerError("Failed to append row to table file".to_string()))?;
+        } else {
+            file.seek(SeekFrom::End(-1)).map_err(|_| Errors::ServerError("Failed to seek in file".to_string()))?;
         }
         let json_row = serde_json::to_string(&row).map_err(|_| Errors::ServerError("Failed to serialize row".to_string()))?;
         file.write_all(json_row.as_bytes()).map_err(|_| Errors::ServerError("Failed to write row to file".to_string()))?;
+
+        // Cerramos el array JSON
+        file.write_all(b"]").map_err(|_| Errors::ServerError("Failed to close JSON array".to_string()))?;
+
         Ok(())
     }
 
 
 
+
     fn pk_already_exists(&self, path: &String, primary_keys: &Vec<String>) -> Result<bool, Errors> {
-        let mut rows = self.get_deserialized_stream(path)?;
-        while let Some(result) = rows.next() {
-            match result {
-                Ok(row) => {
-                    if &row.primary_keys == primary_keys {
-                        return Ok(true);
-                    }
-                },
-                Err(_) => {
-                    return Err(Errors::ServerError(String::from("Failed to deserialize row")))
-                }
+        for row in  self.get_deserialized_stream(path)?{
+            if &row.primary_keys == primary_keys {
+                return Ok(true);
             }
         }
         Ok(false)
     }
 
-    fn get_deserialized_stream(&self, path: &String) -> Result<impl Iterator<Item = Result<Row, serde_json::Error>>, Errors> {
+    fn get_deserialized_stream(&self, path: &String) -> Result<impl Iterator<Item = Row>, Errors> {
+
         let file = self.open_file(path)?;
+
         let reader = BufReader::new(file);
-        let deserializer = serde_json::Deserializer::from_reader(reader);
-        let rows_iter = deserializer.into_iter::<Row>();
-        Ok(rows_iter)
+
+
+        // Deserializamos el array completo
+
+        let rows: Vec<Row> = serde_json::from_reader(reader).map_err(|e| Errors::ServerError(e.to_string()))?;
+
+
+        // Devolvemos un iterador sobre los elementos del array
+
+        Ok(rows.into_iter())
+
     }
 
     fn rows_count(&self, path: &String) -> Result<usize, Errors> {
@@ -217,6 +222,8 @@ mod tests {
     use crate::data_access::row::Column;
     use crate::parsers::tokens::data_type::DataType;
     use crate::parsers::tokens::literal::Literal;
+    use crate::parsers::tokens::terms::ComparisonOperators;
+    use crate::queries::where_logic::comparison::ComparisonExpr;
 
     static TABLE_COUNTER: AtomicUsize = AtomicUsize::new(1);
     static TABLE_MUTEX: Mutex<()> = Mutex::new(());
@@ -236,7 +243,7 @@ mod tests {
 
         let table_path = data_access.get_file_path(&table_name);
         let file_content = read_to_string(&table_path).unwrap();
-        assert_eq!(file_content, "");
+        assert_eq!(file_content, "[]");
         assert!(Path::new(&table_path).exists());
         remove_file(data_access.get_file_path(&table_name)).unwrap();
     }
@@ -260,7 +267,7 @@ mod tests {
         let data_access = DataAccess {};
         let table_name = get_unique_table_name();
         data_access.create_table(&table_name).unwrap();
-        let result = data_access.alter_table(table_name.clone());
+        let result = data_access.alter_table(&table_name);
         assert!(result.is_ok());
         remove_file(data_access.get_file_path(&table_name)).unwrap();
     }
@@ -275,7 +282,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    fn get_row() -> Row {
+    fn get_row1() -> Row {
         Row {
             columns: vec![Column {
                 column_name: "name".to_string(),
@@ -289,8 +296,26 @@ mod tests {
         }
     }
 
-    fn get_row_in_string() -> String {
-        "{\"columns\":[{\"column_name\":\"name\",\"value\":{\"value\":\"John\",\"data_type\":\"Text\"},\"time_stamp\":\"2024-10-22\"}],\"primary_keys\":[\"name\"]}".to_string()
+    fn get_row1_in_string() -> Result<String, Errors> {
+        serde_json::to_string(&get_row1()).map_err(|_| Errors::ServerError("Failed to serialize row1".to_string()))
+    }
+
+    fn get_row2() -> Row {
+        Row {
+            columns: vec![Column {
+                column_name: "name".to_string(),
+                value: Literal {
+                    value: "Jane".to_string(),
+                    data_type: DataType::Text,
+                },
+                time_stamp: "2024-10-23".to_string(),
+            }],
+            primary_keys: vec!["_".to_string()],
+        }
+    }
+
+    fn get_row2_in_string() -> Result<String, Errors> {
+        serde_json::to_string(&get_row2()).map_err(|_| Errors::ServerError("Failed to serialize row2".to_string()))
     }
 
     #[test]
@@ -300,13 +325,13 @@ mod tests {
         let table_name = get_unique_table_name();
         data_access.create_table(&table_name).unwrap();
 
-        let row = get_row();
+        let row = get_row1();
 
         let result = data_access.insert(&table_name, &row);
         assert!(result.is_ok());
         let table_path = data_access.get_file_path(&table_name);
         let file_content = read_to_string(&table_path).unwrap();
-        assert!(file_content.contains(get_row_in_string().as_str()));
+        assert!(file_content.contains(get_row1_in_string().unwrap().as_str()));
         remove_file(table_path).unwrap();
     }
 
@@ -317,7 +342,7 @@ mod tests {
         let table_name = get_unique_table_name();
         data_access.create_table(&table_name).unwrap();
 
-        let row = get_row();
+        let row = get_row1();
 
         data_access.insert(&table_name, &row).unwrap();
         let result = data_access.insert(&table_name, &row);
@@ -325,5 +350,55 @@ mod tests {
         remove_file(data_access.get_file_path(&table_name)).unwrap();
     }
 
+    #[test]
+    fn test_update_row_success() {
+        let _lock = TABLE_MUTEX.lock();
+        let data_access = DataAccess {};
+        let table_name = get_unique_table_name();
+        data_access.create_table(&table_name).unwrap();
 
+        let row1 = get_row1();
+        let row2 = get_row2();
+        data_access.insert(&table_name, &row1).unwrap();
+
+        let literal = Literal {
+            value: "John".to_string(),
+            data_type: DataType::Text,
+        };
+        let where_clause = WhereClause::Comparison(ComparisonExpr::new("name".to_string(), &ComparisonOperators::Equal, literal));
+
+        let result = data_access.update_row(&table_name, row2, where_clause);
+        assert!(result.is_ok());
+        let table_path = data_access.get_file_path(&table_name);
+        let file_content = read_to_string(&table_path).unwrap();
+        assert!(file_content.contains(get_row2_in_string().unwrap().as_str()));
+        assert!(!file_content.contains(get_row1_in_string().unwrap().as_str()));
+
+        remove_file(table_path).unwrap();
+    }
+
+    #[test]
+    fn test_select_rows_success() {
+        let _lock = TABLE_MUTEX.lock();
+        let data_access = DataAccess {};
+        let table_name = get_unique_table_name();
+        data_access.create_table(&table_name).unwrap();
+
+        let row1 = get_row1();
+        let row2 = get_row2();
+        data_access.insert(&table_name, &row1).unwrap();
+        data_access.insert(&table_name, &row2).unwrap();
+
+        let literal = Literal {
+            value: "John".to_string(),
+            data_type: DataType::Text,
+        };
+        let where_clause = WhereClause::Comparison(ComparisonExpr::new("name".to_string(), &ComparisonOperators::Equal, literal));
+        let result = data_access.select_rows(&table_name, where_clause, None);
+        assert!(result.is_ok());
+        let selected_rows = result.unwrap();
+        assert_eq!(selected_rows.len(), 1);
+        assert_eq!(selected_rows[0], row1);
+        remove_file(data_access.get_file_path(&table_name)).unwrap();
+    }
 }
