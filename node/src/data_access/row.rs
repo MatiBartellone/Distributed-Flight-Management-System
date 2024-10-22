@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use crate::parsers::tokens::literal::Literal;
 use serde::{Deserialize, Serialize};
-use serde::de::Unexpected::Option;
+use std::option::Option;
 
 pub const EQUAL : i8 = 0;
 pub const GREATER : i8 = 1;
@@ -26,9 +26,9 @@ impl Row {
         hash
     }
 
-    pub fn cmp(row1: Row, row2: Row, column_name: String) -> i8 {
-        let column_opt1 = Self::get_column(row1, &column_name);
-        let column_opt2 = Self::get_column(row2, &column_name);
+    pub fn cmp(row1: &Row, row2: &Row, column_name: &String) -> i8 {
+        let column_opt1 = Self::get_column(row1, column_name);
+        let column_opt2 = Self::get_column(row2, column_name);
 
         match (column_opt1, column_opt2) {
             (Some(col1), Some(col2)) => {
@@ -44,11 +44,11 @@ impl Row {
         }
     }
 
-    fn get_column(row: Row, column_name: &String) -> Option<Column> {
-        let column : Option<Column> = None;
-        for col in row.columns {
+    fn get_column<'a>(row: &'a Row, column_name: &String) -> Option<&'a Column> {
+        let mut column : Option<&Column> = None;
+        for col in &row.columns {
             if &col.column_name == column_name {
-                column = column;
+                column = Some(col);
             }
         }
         column
@@ -57,7 +57,7 @@ impl Row {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Column {
-    column_name: String,
-    value: Literal,
-    time_stamp: String,
+    pub(crate) column_name: String,
+    pub(crate) value: Literal,
+    pub(crate) time_stamp: String,
 }

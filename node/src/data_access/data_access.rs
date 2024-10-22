@@ -1,27 +1,21 @@
 use crate::data_access::row::Row;
 use crate::utils::errors::Errors;
-use std::fs::{remove_file, rename, File, OpenOptions};
+use std::fs::{remove_file, rename, File, OpenOptions, metadata};
 use std::io::{BufReader, Seek, SeekFrom, Write};
-use serde_json::de::IoRead;
-use serde_json::StreamDeserializer;
 use crate::queries::evaluate::Evaluate;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::queries::where_logic::where_clause::WhereClause;
+use crate::utils::constants::ASC;
 
-pub struct DataAccess {}
+pub struct DataAccess;
 
 impl DataAccess {
-    pub fn new() -> DataAccess {
-        DataAccess {}
-    }
-
     pub fn create_table(&self, table_name: &String) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
-        let file = self.open_file(&path);
-        if file.is_ok() {
+        if metadata(&path).is_ok() {
             return Err(Errors::AlreadyExists("Table already exists".to_string()));
         }
-        File::create(path)
+        File::create(&path)
             .map_err(|_| Errors::ServerError(String::from("Could not create file")))?;
         Ok(())
     }
@@ -46,7 +40,7 @@ impl DataAccess {
                 "Primary key already exists".to_string(),
             ));
         }
-        self.append_row(table_name, row)
+        self.append_row(&path, row)
     }
 
     pub fn update_row(&self, path: &String, new_row: Row, where_clause: WhereClause) -> Result<(), Errors> {
@@ -68,11 +62,13 @@ impl DataAccess {
         Ok(())
     }
 
-    pub fn select_rows(&self, table_name: &String, where_clause: WhereClause, order_by_clause: OrderByClause) -> Result<Vec<Row>, Errors> {
+    pub fn select_rows(&self, table_name: &String, where_clause: WhereClause, order_clauses: Option<Vec<OrderByClause>>) -> Result<Vec<Row>, Errors> {
         let path = self.get_file_path(table_name);
         let filtered_path = self.get_file_path(&String::from("filtered"));
         self.filter_rows(&path, &filtered_path, where_clause)?;
-        self.sort_rows(&filtered_path, order_by_clause)?;
+        if self.rows_count(&filtered_path)? > 1{
+            self.sort_rows(&filtered_path, order_clauses)?;
+        }
         let rows = self.get_rows(&filtered_path)?;
         remove_file(filtered_path).map_err(|_| Errors::ServerError(String::from("Could not remove file")))?;
         Ok(rows)
@@ -83,7 +79,7 @@ impl DataAccess {
             match row {
                 Ok(row) => {
                     if where_clause.evaluate(&row.get_row_hash())?{
-                        self.append_row(&filtered_path, &row)?;
+                        self.append_row(filtered_path, &row)?;
                     }
                 }
                 Err(_) => return Err(Errors::ServerError(String::from("Error deserializing row"))),
@@ -92,8 +88,53 @@ impl DataAccess {
         Ok(())
     }
 
-    fn sort_rows(&self, path: &String, order_by_clause: OrderByClause) -> Result<(), Errors> {
+    fn sort_rows(&self, path: &String, order_clauses_opt: Option<Vec<OrderByClause>>) -> Result<(), Errors> {
+        let Some(order_clauses) = order_clauses_opt else {
+            return Ok(())
+        };
+        for order in order_clauses.iter().rev() {
+            self.bubble_sort_file(path, order)?
+        }
         Ok(())
+    }
+
+    fn bubble_sort_file(&self, path: &String, order_by_clause: &OrderByClause) -> Result<(), Errors> {
+        let rows_count = self.rows_count(path)?;
+        for n in 0..(rows_count - 1){
+            let temp_path = format!("{}.tmp", path);
+            let mut rows = self.get_deserialized_stream(&temp_path)?;
+            let mut actual_row = self.get_next_line(&mut rows)?;
+            for _ in 0..(rows_count - n - 1) {
+                if let Ok(next_row) = self.get_next_line(&mut rows) {
+                    if self.should_swap_rows(&actual_row, &next_row, order_by_clause)? {
+                        self.append_row(&temp_path, &next_row)?;
+                    } else {
+                        self.append_row(&temp_path, &actual_row)?;
+                        actual_row = next_row
+                    }
+                }
+            }
+            self.append_row(&temp_path, &actual_row)?;
+            while let Some(Ok(row)) = rows.next(){
+                self.append_row(&temp_path, &row)?;
+            }
+            rename(temp_path, path).map_err(|_| Errors::ServerError(String::from("Error renaming file")))?;
+        }
+        Ok(())
+    }
+
+    fn should_swap_rows(&self, actual: &Row, next: &Row, order_by_clause: &OrderByClause) -> Result<bool, Errors> {
+        if order_by_clause.order == ASC {
+            return Ok(Row::cmp(actual, next, &order_by_clause.column) > 0)
+        }
+        Ok(Row::cmp(actual, next, &order_by_clause.column) < 0)
+    }
+
+    fn get_next_line(&self, rows: &mut impl Iterator<Item = Result<Row, serde_json::Error>>) -> Result<Row, Errors> {
+        let Some(Ok(row)) = rows.next() else {
+            return Err(Errors::ServerError(String::from("Error deserializing row")));
+        };
+        Ok(row)
     }
 
     fn get_rows(&self, path: &String) -> Result<Vec<Row>, Errors> {
@@ -113,42 +154,176 @@ impl DataAccess {
         format!("src/data_access/data/{}.json", table_name)
     }
 
-    fn open_file(&self, table_name: &String) -> Result<File, Errors> {
+    fn open_file(&self, path: &String) -> Result<File, Errors> {
         let file = OpenOptions::new()
             .read(true)
             .write(true)
-            .open(self.get_file_path(table_name))
+            .open(path)
             .map_err(|_| Errors::ServerError("Failed to open table file".to_string()))?;
         Ok(file)
     }
 
     fn append_row(&self, path: &String, row: &Row) -> Result<(), Errors> {
-        let mut file = self.open_file(&path)?;
-        file.seek(SeekFrom::End(-1)).map_err(|_| Errors::ServerError("Failed to append row to table file".to_string()))?;
-        file.write_all(b",").map_err(|_| Errors::ServerError("Failed to append row to table file".to_string()))?;
-        let json_row = serde_json::to_string(&row).map_err(|_| Errors::ServerError("Failed to append row to table file".to_string()))?;
-        file.write_all(json_row.as_bytes()).map_err(|_| Errors::ServerError("Failed to append row to table file".to_string()))?;
-        file.write_all(b"]").map_err(|_| Errors::ServerError("Failed to append row to table file".to_string()))?;
+        let mut file = self.open_file(path)?;
+        let file_size = file.seek(SeekFrom::End(0)).map_err(|_| Errors::ServerError("Failed to seek in file".to_string()))?;
+        if file_size > 0 {
+            file.write_all(b"\n").map_err(|_| Errors::ServerError("Failed to write new line".to_string()))?;
+        }
+        let json_row = serde_json::to_string(&row).map_err(|_| Errors::ServerError("Failed to serialize row".to_string()))?;
+        file.write_all(json_row.as_bytes()).map_err(|_| Errors::ServerError("Failed to write row to file".to_string()))?;
         Ok(())
     }
 
+
+
     fn pk_already_exists(&self, path: &String, primary_keys: &Vec<String>) -> Result<bool, Errors> {
-        for row in self.get_deserialized_stream(path)? {
-            match row {
+        let mut rows = self.get_deserialized_stream(path)?;
+        while let Some(result) = rows.next() {
+            match result {
                 Ok(row) => {
                     if &row.primary_keys == primary_keys {
                         return Ok(true);
                     }
+                },
+                Err(_) => {
+                    return Err(Errors::ServerError(String::from("Failed to deserialize row")))
                 }
-                Err(_) => return Err(Errors::ServerError(String::from("Error deserializing row"))),
             }
         }
         Ok(false)
     }
 
-    fn get_deserialized_stream(&self, path: &String) -> Result<StreamDeserializer<IoRead<BufReader<File>>, Row>, Errors> {
+    fn get_deserialized_stream(&self, path: &String) -> Result<impl Iterator<Item = Result<Row, serde_json::Error>>, Errors> {
         let file = self.open_file(path)?;
         let reader = BufReader::new(file);
-        Ok(serde_json::Deserializer::from_reader(reader).into_iter::<Row>())
+        let deserializer = serde_json::Deserializer::from_reader(reader);
+        let rows_iter = deserializer.into_iter::<Row>();
+        Ok(rows_iter)
     }
+
+    fn rows_count(&self, path: &String) -> Result<usize, Errors> {
+        Ok(self.get_deserialized_stream(path)?.count())
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use std::fs::read_to_string;
+    use std::path::Path;
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Mutex;
+    use crate::data_access::row::Column;
+    use crate::parsers::tokens::data_type::DataType;
+    use crate::parsers::tokens::literal::Literal;
+
+    static TABLE_COUNTER: AtomicUsize = AtomicUsize::new(1);
+    static TABLE_MUTEX: Mutex<()> = Mutex::new(());
+
+    fn get_unique_table_name() -> String {
+        let count = TABLE_COUNTER.fetch_add(1, Ordering::SeqCst);
+        format!("test_table{}", count)
+    }
+
+    #[test]
+    fn test_create_table_success() {
+        let _lock = TABLE_MUTEX.lock();
+        let data_access = DataAccess {};
+        let table_name = get_unique_table_name();
+        let result = data_access.create_table(&table_name);
+        assert!(result.is_ok());
+
+        let table_path = data_access.get_file_path(&table_name);
+        let file_content = read_to_string(&table_path).unwrap();
+        assert_eq!(file_content, "");
+        assert!(Path::new(&table_path).exists());
+        remove_file(data_access.get_file_path(&table_name)).unwrap();
+    }
+
+    #[test]
+    fn test_create_table_already_exists() {
+        let _lock = TABLE_MUTEX.lock();
+        let data_access = DataAccess {};
+        let table_name = get_unique_table_name();
+        assert!(data_access.create_table(&table_name).is_ok());
+        let result = data_access.create_table(&table_name);
+        assert!(result.is_err());
+        let expected = Err(Errors::AlreadyExists(String::from("Table already exists")));
+        assert_eq!(result, expected);
+        remove_file(data_access.get_file_path(&table_name)).unwrap();
+    }
+
+    #[test]
+    fn test_alter_table_success() {
+        let _lock = TABLE_MUTEX.lock();
+        let data_access = DataAccess {};
+        let table_name = get_unique_table_name();
+        data_access.create_table(&table_name).unwrap();
+        let result = data_access.alter_table(table_name.clone());
+        assert!(result.is_ok());
+        remove_file(data_access.get_file_path(&table_name)).unwrap();
+    }
+
+    #[test]
+    fn test_drop_table_success() {
+        let _lock = TABLE_MUTEX.lock();
+        let data_access = DataAccess {};
+        let table_name = get_unique_table_name();
+        data_access.create_table(&table_name).unwrap();
+        let result = data_access.drop_table(table_name.clone());
+        assert!(result.is_ok());
+    }
+
+    fn get_row() -> Row {
+        Row {
+            columns: vec![Column {
+                column_name: "name".to_string(),
+                value: Literal {
+                    value: "John".to_string(),
+                    data_type: DataType::Text,
+                },
+                time_stamp: "2024-10-22".to_string(),
+            }],
+            primary_keys: vec!["name".to_string()],
+        }
+    }
+
+    fn get_row_in_string() -> String {
+        "{\"columns\":[{\"column_name\":\"name\",\"value\":{\"value\":\"John\",\"data_type\":\"Text\"},\"time_stamp\":\"2024-10-22\"}],\"primary_keys\":[\"name\"]}".to_string()
+    }
+
+    #[test]
+    fn test_insert_row_success() {
+        let _lock = TABLE_MUTEX.lock();
+        let data_access = DataAccess {};
+        let table_name = get_unique_table_name();
+        data_access.create_table(&table_name).unwrap();
+
+        let row = get_row();
+
+        let result = data_access.insert(&table_name, &row);
+        assert!(result.is_ok());
+        let table_path = data_access.get_file_path(&table_name);
+        let file_content = read_to_string(&table_path).unwrap();
+        assert!(file_content.contains(get_row_in_string().as_str()));
+        remove_file(table_path).unwrap();
+    }
+
+    #[test]
+    fn test_insert_row_pk_already_exists() {
+        let _lock = TABLE_MUTEX.lock();
+        let data_access = DataAccess {};
+        let table_name = get_unique_table_name();
+        data_access.create_table(&table_name).unwrap();
+
+        let row = get_row();
+
+        data_access.insert(&table_name, &row).unwrap();
+        let result = data_access.insert(&table_name, &row);
+        assert!(matches!(result, Err(Errors::AlreadyExists(_))));
+        remove_file(data_access.get_file_path(&table_name)).unwrap();
+    }
+
+
 }

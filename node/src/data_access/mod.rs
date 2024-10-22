@@ -1,2 +1,3 @@
+#[allow(clippy::module_inception)]
 pub mod data_access;
-mod row;
+pub mod row;
