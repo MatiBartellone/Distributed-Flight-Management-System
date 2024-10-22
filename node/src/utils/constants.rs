@@ -1,6 +1,7 @@
 use std::process;
 
 pub const NODES_METADATA: &str = "src/meta_data/nodes/metadata.json";
+pub const CLIENT_METADATA_PATH: &str = "src/meta_data/clients/";
 pub const KEYSPACE_METADATA: &str = "src/meta_data/keyspaces/metadata.json";
 
 pub fn nodes_meta_data_path() -> String {

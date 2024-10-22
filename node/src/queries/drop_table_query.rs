@@ -1,7 +1,6 @@
-use crate::meta_data::clients::meta_data_client::ClientMetaDataAcces;
 use crate::{queries::query::Query, utils::errors::Errors};
 use std::any::Any;
-use std::process;
+use crate::utils::functions::check_table_name;
 
 #[derive(PartialEq, Debug)]
 pub struct DropTableQuery {
@@ -18,21 +17,7 @@ impl DropTableQuery {
     }
 
     pub fn set_table(&mut self) -> Result<(), Errors> {
-        if self.table_name.is_empty() {
-            return Err(Errors::SyntaxError(String::from("Table is empty")));
-        }
-        if !self.table_name.contains('.')
-            && ClientMetaDataAcces::get_keyspace(process::id().to_string())?.is_none()
-        {
-            return Err(Errors::SyntaxError(String::from(
-                "Keyspace not defined and non keyspace in usage",
-            )));
-        } else {
-            let Some(kp) = ClientMetaDataAcces::get_keyspace(process::id().to_string())? else {
-                return Err(Errors::SyntaxError(String::from("Keyspace not in usage")));
-            };
-            self.table_name = format!("{}.{}", kp, self.table_name);
-        }
+        self.table_name = check_table_name(&self.table_name)?;
         Ok(())
     }
 }

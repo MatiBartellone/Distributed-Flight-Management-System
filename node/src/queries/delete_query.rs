@@ -1,9 +1,8 @@
 use super::{query::Query, where_logic::where_clause::WhereClause};
-use crate::meta_data::clients::meta_data_client::ClientMetaDataAcces;
 use crate::utils::errors::Errors;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
-use std::process;
+use crate::utils::functions::check_table_name;
 
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct DeleteQuery {
@@ -20,21 +19,7 @@ impl DeleteQuery {
     }
 
     pub fn set_table(&mut self) -> Result<(), Errors> {
-        if self.table_name.is_empty() {
-            return Err(Errors::SyntaxError(String::from("Table is empty")));
-        }
-        if !self.table_name.contains('.')
-            && ClientMetaDataAcces::get_keyspace(process::id().to_string())?.is_none()
-        {
-            return Err(Errors::SyntaxError(String::from(
-                "Keyspace not defined and non keyspace in usage",
-            )));
-        } else {
-            let Some(kp) = ClientMetaDataAcces::get_keyspace(process::id().to_string())? else {
-                return Err(Errors::SyntaxError(String::from("Keyspace not in usage")));
-            };
-            self.table_name = format!("{}.{}", kp, self.table_name);
-        }
+        self.table_name = check_table_name(&self.table_name)?;
         Ok(())
     }
 }

@@ -1,13 +1,11 @@
 use crate::data_access::data_access::DataAccess;
 use crate::data_access::row::{Column, Row};
-use crate::meta_data::clients::meta_data_client::ClientMetaDataAcces;
 use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess;
 use crate::utils::constants::KEYSPACE_METADATA;
-use crate::utils::functions::{get_long_string_from_str, get_timestamp};
+use crate::utils::functions::{check_table_name, get_long_string_from_str, get_timestamp};
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
-use std::process;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InsertQuery {
@@ -26,21 +24,7 @@ impl InsertQuery {
     }
 
     pub fn set_table(&mut self) -> Result<(), Errors> {
-        if self.table_name.is_empty() {
-            return Err(Errors::SyntaxError(String::from("Table is empty")));
-        }
-        if !self.table_name.contains('.')
-            && ClientMetaDataAcces::get_keyspace(process::id().to_string())?.is_none()
-        {
-            return Err(Errors::SyntaxError(String::from(
-                "Keyspace not defined and non keyspace in usage",
-            )));
-        } else {
-            let Some(kp) = ClientMetaDataAcces::get_keyspace(process::id().to_string())? else {
-                return Err(Errors::SyntaxError(String::from("Keyspace not in usage")));
-            };
-            self.table_name = format!("{}.{}", kp, self.table_name);
-        }
+        self.table_name = check_table_name(&self.table_name)?;
         Ok(())
     }
 
@@ -58,7 +42,7 @@ impl InsertQuery {
             )));
         }
         for header in &self.headers {
-            if columns.get(header).is_some() {
+            if !columns.contains_key(header) {
                 return Err(Errors::SyntaxError(format!(
                     "Column {} is not defined",
                     header
@@ -85,7 +69,7 @@ impl InsertQuery {
         Ok(())
     }
 
-    fn build_row(&self, values: &Vec<Literal>) -> Result<Row, Errors> {
+    fn build_row(&self, values: &[Literal]) -> Result<Row, Errors> {
         let mut row_values = Vec::new();
         for (value, header) in values.iter().zip(self.headers.iter()) {
             row_values.push(Column::new(header, value, get_timestamp()));
