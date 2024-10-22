@@ -14,9 +14,8 @@ pub struct Row {
 }
 
 impl Row {
-
     pub fn new(columns: Vec<Column>, primary_keys: Vec<String>) -> Self {
-        Self{
+        Self {
             columns,
             primary_keys,
         }
@@ -71,11 +70,11 @@ impl Column {
     pub fn new(column_name: &String, value: &Literal, time_stamp: String) -> Self {
         Self {
             column_name: String::from(column_name),
-            value: Literal{
+            value: Literal {
                 value: String::from(&value.value),
                 data_type: value.data_type.clone(),
             },
-            time_stamp
+            time_stamp,
         }
     }
 }

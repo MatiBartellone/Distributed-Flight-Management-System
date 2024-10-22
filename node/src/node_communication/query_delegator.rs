@@ -11,6 +11,7 @@ use std::thread;
 
 const REPLICATION: i32 = 3;
 pub struct QueryDelegator {
+    #[allow(dead_code)]
     primary_key: Option<Vec<String>>,
     query: Box<dyn Query>,
     consistency: ConsistencyLevel,
@@ -68,8 +69,7 @@ impl QueryDelegator {
     fn get_nodes_ip(&self) -> Result<Vec<String>, Errors> {
         let ips = NodesMetaDataAccess::get_partition_ips(
             nodes_meta_data_path().as_ref(),
-            &None
-            //&self.primary_key,
+            &None, //&self.primary_key,
         )?;
         let mut full_ips = Vec::new();
         for ip in ips {
