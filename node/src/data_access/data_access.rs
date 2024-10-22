@@ -189,19 +189,9 @@ impl DataAccess {
     }
 
     fn get_deserialized_stream(&self, path: &String) -> Result<impl Iterator<Item = Row>, Errors> {
-
         let file = self.open_file(path)?;
-
         let reader = BufReader::new(file);
-
-
-        // Deserializamos el array completo
-
         let rows: Vec<Row> = serde_json::from_reader(reader).map_err(|e| Errors::ServerError(e.to_string()))?;
-
-
-        // Devolvemos un iterador sobre los elementos del array
-
         Ok(rows.into_iter())
 
     }
