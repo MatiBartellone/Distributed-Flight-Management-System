@@ -55,9 +55,9 @@ fn main() {
 
     //let mut addrs_iter = ip.to_socket_addrs().expect("Invalid socket address");
     if let Ok(mut stream) = TcpStream::connect((node, 8080)) {
-        println!("{}", format!("connected to {}:8080", node));
+        println!("connected to {}:8080", node);
         let mut input = String::new();
-        while let Ok(_) = io::stdin().read_line(&mut input) {
+        while io::stdin().read_line(&mut input).is_ok() {
             match input.trim() {
                 "exit" => { break; },
                 "startup" => {stream.write_all(startup_bytes.as_slice()).expect("Error writing to socket");}

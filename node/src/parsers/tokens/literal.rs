@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Literal {
     pub value: String,
-    data_type: DataType,
+    pub(crate) data_type: DataType,
 }
 
 impl Literal {
