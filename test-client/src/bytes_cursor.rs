@@ -1,7 +1,6 @@
-
+use crate::errors::Errors;
 use std::collections::HashMap;
 use std::io::{Cursor, Read};
-use crate::errors::Errors;
 
 pub struct BytesCursor {
     cursor: Cursor<Vec<u8>>,
