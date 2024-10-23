@@ -12,7 +12,6 @@ impl DropTableQueryParser {
     pub fn parse(tokens: &mut Peekable<IntoIter<Token>>) -> Result<DropTableQuery, Errors> {
         let mut drop_query = DropTableQuery::new();
         frok(tokens, &mut drop_query)?;
-        drop_query.set_table()?;
         Ok(drop_query)
     }
 }

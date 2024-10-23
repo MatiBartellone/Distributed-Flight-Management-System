@@ -1,8 +1,8 @@
 use super::{query::Query, where_logic::where_clause::WhereClause};
 use crate::utils::errors::Errors;
+use crate::utils::functions::check_table_name;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
-use crate::utils::functions::check_table_name;
 
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct DeleteQuery {
@@ -16,11 +16,6 @@ impl DeleteQuery {
             table_name: String::new(),
             where_clause: None,
         }
-    }
-
-    pub fn set_table(&mut self) -> Result<(), Errors> {
-        self.table_name = check_table_name(&self.table_name)?;
-        Ok(())
     }
 }
 
@@ -37,6 +32,11 @@ impl Query for DeleteQuery {
 
     fn get_primary_key(&self) -> Option<Vec<String>> {
         None
+    }
+
+    fn set_table(&mut self) -> Result<(), Errors> {
+        self.table_name = check_table_name(&self.table_name)?;
+        Ok(())
     }
 
     fn as_any(&self) -> &dyn Any {

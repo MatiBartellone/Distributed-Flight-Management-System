@@ -3,10 +3,10 @@ use super::{
     where_logic::where_clause::WhereClause,
 };
 use crate::utils::errors::Errors;
+use crate::utils::functions::check_table_name;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
-use crate::utils::functions::check_table_name;
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateQuery {
@@ -25,11 +25,6 @@ impl UpdateQuery {
             if_clause: None,
         }
     }
-
-    pub fn set_table(&mut self) -> Result<(), Errors> {
-        self.table_name = check_table_name(&self.table_name)?;
-        Ok(())
-    }
 }
 
 impl Default for UpdateQuery {
@@ -45,6 +40,11 @@ impl Query for UpdateQuery {
 
     fn get_primary_key(&self) -> Option<Vec<String>> {
         None
+    }
+
+    fn set_table(&mut self) -> Result<(), Errors> {
+        self.table_name = check_table_name(&self.table_name)?;
+        Ok(())
     }
 
     fn as_any(&self) -> &dyn Any {

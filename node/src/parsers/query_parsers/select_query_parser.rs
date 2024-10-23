@@ -12,7 +12,6 @@ impl SelectQueryParser {
     pub fn parse(tokens: Vec<Token>) -> Result<SelectQuery, Errors> {
         let mut select_query = SelectQuery::new();
         columns(&mut tokens.into_iter(), &mut select_query)?;
-        select_query.set_table()?;
         Ok(select_query)
     }
 }

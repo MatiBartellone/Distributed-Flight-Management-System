@@ -33,6 +33,10 @@ impl Query for CreateKeyspaceQuery {
         None
     }
 
+    fn set_table(&mut self) -> Result<(), Errors> {
+        Ok(())
+    }
+
     fn as_any(&self) -> &dyn Any {
         self
     }

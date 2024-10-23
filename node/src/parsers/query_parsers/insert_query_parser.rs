@@ -11,7 +11,6 @@ impl InsertQueryParser {
     pub fn parse(tokens_list: Vec<Token>) -> Result<InsertQuery, Errors> {
         let mut insert_query = InsertQuery::new();
         into(&mut tokens_list.into_iter(), &mut insert_query)?;
-        insert_query.set_table()?;
         Ok(insert_query)
     }
 }

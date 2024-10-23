@@ -4,49 +4,14 @@ use crate::queries::order_by_clause::OrderByClause;
 use crate::queries::where_logic::where_clause::WhereClause;
 use crate::utils::constants::ASC;
 use crate::utils::errors::Errors;
-use std::fs::{metadata, remove_file, rename, File, OpenOptions};
-use std::io::{BufReader, Read, Seek, SeekFrom, Write};
-use std::net::{TcpListener, TcpStream};
 use serde::{Deserialize, Serialize};
-use crate::utils::functions::get_data_access_ip;
+use std::fs::{metadata, remove_file, rename, File, OpenOptions};
+use std::io::{BufReader, Seek, SeekFrom, Write};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DataAccess;
 
 impl DataAccess {
-    pub fn start_listening() -> Result<(), Errors> {
-        let listener = TcpListener::bind(get_data_access_ip()?).map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
-
-        for incoming in listener.incoming() {
-            match incoming {
-                Ok(mut stream) => {
-                    let data_access = DataAccess {};
-                    let serialized = serde_json::to_string(&data_access).map_err(|_| Errors::ServerError(String::from("Failed to serialize data access")))?;
-                    stream.write_all(serialized.as_bytes()).unwrap();
-                }
-                Err(_) => return Err(Errors::ServerError(String::from("Error in connection"))),
-            }
-        }
-        Ok(())
-    }
-
-    pub fn establish_connection() -> Result<TcpStream, Errors> {
-        match TcpStream::connect(get_data_access_ip()?) {
-            Ok(stream) => Ok(stream),
-            Err(e) => Err(Errors::ServerError(e.to_string())),
-        }
-    }
-
-    pub fn get_instance(stream: &mut TcpStream) -> Result<DataAccess, Errors> {
-        let mut buf = [0; 1024];
-        match stream.read(&mut buf) {
-            Ok(n) => Ok(serde_json::from_slice(&buf[..n]).map_err(|_| Errors::ServerError(String::from("Failed to deserialize data access")))?),
-            Err(_) => Err(Errors::ServerError(String::from(
-                "Unable to read from node",
-            ))),
-        }
-    }
-
     pub fn create_table(&self, table_name: &String) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
         if metadata(&path).is_ok() {

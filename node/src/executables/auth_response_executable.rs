@@ -30,7 +30,7 @@ impl AuthResponseExecutable {
 }
 
 impl Executable for AuthResponseExecutable {
-    fn execute(&self, request: Frame) -> Result<Frame, Errors> {
+    fn execute(&mut self, request: Frame) -> Result<Frame, Errors> {
         let user = self.user.to_string();
         let password = self.password.to_string();
         let ok = self.authenticator.validate_credentials(user, password)?;
@@ -95,7 +95,7 @@ mod tests {
     fn assert_with(user: &str, pass: &str, expected_opcode: u8, expected_body: Vec<u8>) {
         let request = build_request_with(user, pass);
         let authenticator = AuthenticatorMock::new();
-        let executable = AuthResponseExecutable::new(
+        let mut executable = AuthResponseExecutable::new(
             user.to_string(),
             pass.to_string(),
             Box::new(authenticator),

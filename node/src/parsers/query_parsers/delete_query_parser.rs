@@ -11,7 +11,6 @@ impl DeleteQueryParser {
     pub fn parse(tokens: Vec<Token>) -> Result<DeleteQuery, Errors> {
         let mut delete_query = DeleteQuery::new();
         from(&mut tokens.into_iter(), &mut delete_query)?;
-        delete_query.set_table()?;
         Ok(delete_query)
     }
 }

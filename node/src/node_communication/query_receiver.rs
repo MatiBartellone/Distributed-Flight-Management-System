@@ -1,4 +1,4 @@
-use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
+use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::node_communication::query_serializer::QuerySerializer;
 use crate::utils::constants::{nodes_meta_data_path, QUERY_DELEGATION_PORT};
 use crate::utils::errors::Errors;
@@ -10,15 +10,18 @@ pub struct QueryReceiver {}
 
 impl QueryReceiver {
     pub fn start_listening() -> Result<(), Errors> {
+        let mut stream = MetaDataHandler::establish_connection()?;
+        let nodes_meta_data =
+            MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
         let listener = TcpListener::bind(format!(
             "{}:{}",
-            NodesMetaDataAccess::get_own_ip(nodes_meta_data_path().as_ref())?,
+            nodes_meta_data.get_own_ip(nodes_meta_data_path().as_ref())?,
             QUERY_DELEGATION_PORT
         ))
         .unwrap();
         let listening_ip = format!(
             "{}:{}",
-            NodesMetaDataAccess::get_own_ip(nodes_meta_data_path().as_ref())?,
+            nodes_meta_data.get_own_ip(nodes_meta_data_path().as_ref())?,
             QUERY_DELEGATION_PORT
         );
         println!("Start listening on {}", listening_ip);

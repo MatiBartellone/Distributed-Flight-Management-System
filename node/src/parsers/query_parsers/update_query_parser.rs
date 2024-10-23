@@ -22,7 +22,6 @@ impl UpdateQueryParser {
     pub fn parse(tokens: Vec<Token>) -> Result<UpdateQuery, Errors> {
         let mut update_query = UpdateQuery::new();
         table(&mut tokens.into_iter().peekable(), &mut update_query)?;
-        update_query.set_table()?;
         Ok(update_query)
     }
 }

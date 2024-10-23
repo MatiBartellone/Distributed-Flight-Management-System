@@ -1,4 +1,6 @@
+use node::data_access::data_access_handler::DataAccessHandler;
 use node::frame::Frame;
+use node::meta_data::meta_data_handler::MetaDataHandler;
 use node::meta_data::nodes::cluster::Cluster;
 use node::meta_data::nodes::node::Node;
 use node::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
@@ -10,7 +12,6 @@ use node::utils::errors::Errors;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
-use node::data_access::data_access::DataAccess;
 
 fn main() {
     print!("node's ip: ");
@@ -46,13 +47,12 @@ fn main() {
         let _ = QueryReceiver::start_listening();
     });
     thread::spawn(move || {
-        let _ = DataAccess::start_listening();
+        let _ = DataAccessHandler::start_listening();
+    });
+    thread::spawn(move || {
+        let _ = MetaDataHandler::start_listening();
     });
 
-
-    let Ok(ip) = NodesMetaDataAccess::get_own_ip(nodes_meta_data_path().as_ref()) else {
-        panic!("No metadata found");
-    };
     let listener =
         TcpListener::bind(format!("{}:{}", ip, CLIENTS_PORT)).expect("Error binding socket");
     println!("Servidor escuchando en {}", ip);
@@ -111,7 +111,7 @@ fn execute_request(bytes: Vec<u8>) -> Result<Vec<u8>, Errors> {
     let frame = Frame::parse_frame(bytes.as_slice())?;
     frame.validate_request_frame()?;
     let parser = ParserFactory::get_parser(frame.opcode)?;
-    let executable = parser.parse(frame.body.as_slice())?;
+    let mut executable = parser.parse(frame.body.as_slice())?;
     let frame = executable.execute(frame)?;
 
     Ok(frame.to_bytes())

@@ -5,7 +5,7 @@ use crate::utils::errors::Errors;
 pub struct EventExecutable;
 
 impl Executable for EventExecutable {
-    fn execute(&self, _request: Frame) -> Result<Frame, Errors> {
+    fn execute(&mut self, _request: Frame) -> Result<Frame, Errors> {
         todo!()
     }
 }

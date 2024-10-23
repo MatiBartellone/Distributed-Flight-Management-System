@@ -1,6 +1,6 @@
-use crate::data_access::data_access::DataAccess;
+use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::data_access::row::{Column, Row};
-use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess;
+use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::utils::constants::KEYSPACE_METADATA;
 use crate::utils::functions::{check_table_name, get_long_string_from_str, get_timestamp};
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
@@ -23,15 +23,13 @@ impl InsertQuery {
         }
     }
 
-    pub fn set_table(&mut self) -> Result<(), Errors> {
-        self.table_name = check_table_name(&self.table_name)?;
-        Ok(())
-    }
-
     fn check_columns(&self) -> Result<(), Errors> {
+        let mut stream = MetaDataHandler::establish_connection()?;
+        let keyspace_meta_data =
+            MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
         let binding = self.table_name.split('.').collect::<Vec<&str>>();
         let identifiers = &binding.as_slice();
-        let columns = KeyspaceMetaDataAccess::get_columns_type(
+        let columns = keyspace_meta_data.get_columns_type(
             KEYSPACE_METADATA.to_string(),
             identifiers[0],
             identifiers[1],
@@ -91,8 +89,8 @@ impl Default for InsertQuery {
 
 impl Query for InsertQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
-        let mut stream = DataAccess::establish_connection()?;
-        let data_access = DataAccess::get_instance(&mut stream)?;
+        let mut stream = DataAccessHandler::establish_connection()?;
+        let data_access = DataAccessHandler::get_instance(&mut stream)?;
         self.check_columns()?;
         for values in self.values_list.iter() {
             let row = self.build_row(values)?;
@@ -103,6 +101,11 @@ impl Query for InsertQuery {
 
     fn get_primary_key(&self) -> Option<Vec<String>> {
         None
+    }
+
+    fn set_table(&mut self) -> Result<(), Errors> {
+        self.table_name = check_table_name(&self.table_name)?;
+        Ok(())
     }
 
     fn as_any(&self) -> &dyn Any {

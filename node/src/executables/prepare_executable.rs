@@ -5,7 +5,7 @@ use crate::utils::errors::Errors;
 pub struct PrepareExecutable;
 
 impl Executable for PrepareExecutable {
-    fn execute(&self, _request: Frame) -> Result<Frame, Errors> {
+    fn execute(&mut self, _request: Frame) -> Result<Frame, Errors> {
         todo!()
     }
 }

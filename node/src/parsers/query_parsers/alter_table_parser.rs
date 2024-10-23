@@ -33,7 +33,6 @@ impl AlterTableParser {
     pub fn parse(&self, tokens: Vec<Token>) -> Result<AlterTableQuery, Errors> {
         let mut alter_table_query = AlterTableQuery::new();
         self.table(&mut tokens.into_iter().peekable(), &mut alter_table_query)?;
-        alter_table_query.set_table()?;
         Ok(alter_table_query)
     }
 

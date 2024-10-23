@@ -51,7 +51,7 @@ impl OptionsExecutable {
 }
 
 impl Executable for OptionsExecutable {
-    fn execute(&self, request: Frame) -> Result<Frame, Errors> {
+    fn execute(&mut self, request: Frame) -> Result<Frame, Errors> {
         let new_body = self.get_string_multimap();
         let response = FrameBuilder::build_response_frame(request, SUPPORTED, new_body)?;
         Ok(response)
@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn test_01_options_executable() {
-        let (executable, request) = setup();
+        let (mut executable, request) = setup();
         let frame = executable.execute(request).unwrap();
         assert_eq!(frame.version, EXPECTED_VERSION);
         assert_eq!(frame.flags, EXPECTED_FLAGS);
