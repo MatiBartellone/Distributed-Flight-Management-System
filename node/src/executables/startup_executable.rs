@@ -19,7 +19,7 @@ impl StartupExecutable {
 
 impl Executable for StartupExecutable {
     /// Configurate the startup configurations and create a AUTHENTICATE response
-    fn execute(&self, request: Frame) -> Result<Frame, Errors> {
+    fn execute(&mut self, request: Frame) -> Result<Frame, Errors> {
         // Aplicar configs
         // let auth_class = vec![]; // HAY QUE ELEGIR AUTH CLASS Y PASARLA EN BYTES
         let body: Vec<u8> = vec![

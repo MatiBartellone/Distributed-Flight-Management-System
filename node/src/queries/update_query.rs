@@ -3,13 +3,14 @@ use super::{
     where_logic::where_clause::WhereClause,
 };
 use crate::utils::errors::Errors;
+use crate::utils::functions::check_table_name;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateQuery {
-    pub table: String,
+    pub table_name: String,
     pub changes: HashMap<String, AssignmentValue>,
     pub where_clause: Option<WhereClause>,
     pub if_clause: Option<IfClause>,
@@ -18,7 +19,7 @@ pub struct UpdateQuery {
 impl UpdateQuery {
     pub fn new() -> Self {
         Self {
-            table: String::new(),
+            table_name: String::new(),
             changes: HashMap::new(),
             where_clause: None,
             if_clause: None,
@@ -37,8 +38,13 @@ impl Query for UpdateQuery {
         todo!()
     }
 
-    fn get_primary_key(&self) -> Option<String> {
+    fn get_primary_key(&self) -> Option<Vec<String>> {
         None
+    }
+
+    fn set_table(&mut self) -> Result<(), Errors> {
+        self.table_name = check_table_name(&self.table_name)?;
+        Ok(())
     }
 
     fn as_any(&self) -> &dyn Any {

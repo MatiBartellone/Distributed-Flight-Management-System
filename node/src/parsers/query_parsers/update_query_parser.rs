@@ -29,7 +29,7 @@ impl UpdateQueryParser {
 fn table(tokens: &mut Peekable<IntoIter<Token>>, query: &mut UpdateQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Identifier(table_name) => {
-            query.table = table_name;
+            query.table_name = table_name;
             set(tokens, query)
         }
         _ => Err(Errors::SyntaxError(String::from(
@@ -147,7 +147,7 @@ mod tests {
     fn test_update_query_valid_no_where_no_if() {
         // table SET age = 30
         let tokens = vec![
-            create_identifier_token("table"),
+            create_identifier_token("kp.table"),
             create_reserved_token("SET"),
             create_iterate_list_token(vec![
                 create_identifier_token("age"),
@@ -157,7 +157,7 @@ mod tests {
         ];
 
         let mut expected_query = UpdateQuery::new();
-        expected_query.table = "table".to_string();
+        expected_query.table_name = "kp.table".to_string();
         expected_query.changes.insert(
             "age".to_string(),
             AssignmentValue::Simple(create_literal("30", Int)),
@@ -170,7 +170,7 @@ mod tests {
     fn test_update_query_valid_no_where() {
         // table SET age = 30 IF id = 5;
         let tokens = vec![
-            create_identifier_token("table"),
+            create_identifier_token("kp.table"),
             create_reserved_token("SET"),
             create_iterate_list_token(vec![
                 create_identifier_token("age"),
@@ -186,7 +186,7 @@ mod tests {
         ];
 
         let mut expected_query = UpdateQuery::new();
-        expected_query.table = "table".to_string();
+        expected_query.table_name = "kp.table".to_string();
         expected_query.changes.insert(
             "age".to_string(),
             AssignmentValue::Simple(create_literal("30", Int)),
@@ -204,7 +204,7 @@ mod tests {
     fn test_update_query_valid_no_if() {
         // table SET age = 30 WHERE id = 5;
         let tokens = vec![
-            create_identifier_token("table"),
+            create_identifier_token("kp.table"),
             create_reserved_token("SET"),
             create_iterate_list_token(vec![
                 create_identifier_token("age"),
@@ -220,7 +220,7 @@ mod tests {
         ];
 
         let mut expected_query = UpdateQuery::new();
-        expected_query.table = "table".to_string();
+        expected_query.table_name = "kp.table".to_string();
         expected_query.changes.insert(
             "age".to_string(),
             AssignmentValue::Simple(create_literal("30", Int)),
@@ -238,7 +238,7 @@ mod tests {
     fn test_update_query_missing_set() {
         // table;
         let tokens = vec![
-            create_identifier_token("table"),
+            create_identifier_token("kp.table"),
             create_identifier_token("id"),
         ];
         test_failed_update_parser_case(tokens, Errors::SyntaxError("SET not found".to_string()));
@@ -247,7 +247,7 @@ mod tests {
     #[test]
     fn test_update_query_invalid_table() {
         // table;
-        let tokens = vec![create_reserved_token("table")];
+        let tokens = vec![create_reserved_token("kp.table")];
         test_failed_update_parser_case(
             tokens,
             Errors::SyntaxError("UPDATE not followed by a table name".to_string()),

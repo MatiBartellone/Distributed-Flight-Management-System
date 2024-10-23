@@ -1,7 +1,7 @@
+use super::query::Query;
+use crate::utils::functions::check_table_name;
 use crate::{parsers::tokens::data_type::DataType, utils::errors::Errors};
 use std::any::Any;
-
-use super::query::Query;
 
 #[derive(PartialEq, Debug)]
 pub struct AlterTableQuery {
@@ -43,8 +43,13 @@ impl Query for AlterTableQuery {
         todo!()
     }
 
-    fn get_primary_key(&self) -> Option<String> {
+    fn get_primary_key(&self) -> Option<Vec<String>> {
         None
+    }
+
+    fn set_table(&mut self) -> Result<(), Errors> {
+        self.table_name = check_table_name(&self.table_name)?;
+        Ok(())
     }
 
     fn as_any(&self) -> &dyn Any {

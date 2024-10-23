@@ -22,7 +22,8 @@ impl QueryExecutable {
 }
 
 impl Executable for QueryExecutable {
-    fn execute(&self, request: Frame) -> Result<Frame, Errors> {
+    fn execute(&mut self, request: Frame) -> Result<Frame, Errors> {
+        self.query.set_table()?;
         let pk = self.query.get_primary_key();
         let Some(query_enum) = QueryEnum::from_query(&self.query) else {
             return Err(Errors::ServerError(String::from("")));

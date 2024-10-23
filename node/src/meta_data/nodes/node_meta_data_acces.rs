@@ -38,7 +38,11 @@ impl NodesMetaDataAccess {
         Ok(())
     }
 
-    pub fn get_own_ip(path: &str) -> Result<String, Errors> {
+    pub fn get_own_ip(&self, path: &str) -> Result<String, Errors> {
+        let cluster = Self::read_cluster(path)?;
+        Ok(cluster.get_own_ip().to_string())
+    }
+    pub fn get_own_ip_(path: &str) -> Result<String, Errors> {
         let cluster = Self::read_cluster(path)?;
         Ok(cluster.get_own_ip().to_string())
     }
@@ -52,7 +56,11 @@ impl NodesMetaDataAccess {
         Ok(cluster.get_node(pos))
     }*/
 
-    pub fn get_partition_ips(path: &str, key: &Option<String>) -> Result<Vec<String>, Errors> {
+    pub fn get_partition_ips(
+        &self,
+        path: &str,
+        key: &Option<String>,
+    ) -> Result<Vec<String>, Errors> {
         if let Some(key) = key {
             let hashing_key = hash_string_murmur3(key);
             let cluster = Self::read_cluster(path)?;

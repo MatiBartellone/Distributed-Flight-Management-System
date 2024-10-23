@@ -174,7 +174,7 @@ mod tests {
 
     fn get_valid_tokens_1(col1: Token, type1: Token) -> Vec<Token> {
         vec![
-            Token::Identifier(String::from("table_name")),
+            Token::Identifier(String::from("kp.table_name")),
             Token::ParenList(vec![
                 col1,
                 type1,
@@ -189,7 +189,7 @@ mod tests {
     }
     fn get_valid_tokens_2(col1: Token, type1: Token, primary_key: &str) -> Vec<Token> {
         vec![
-            Token::Identifier(String::from("table_name")),
+            Token::Identifier(String::from("kp.table_name")),
             Token::ParenList(vec![
                 col1,
                 type1,
@@ -206,7 +206,7 @@ mod tests {
 
     fn get_valid_query() -> CreateTableQuery {
         CreateTableQuery {
-            table_name: String::from("table_name"),
+            table_name: String::from("kp.table_name"),
             columns: HashMap::from([
                 (String::from("id"), DataType::Int),
                 (String::from("name"), DataType::Text),

@@ -179,7 +179,7 @@ mod tests {
     use crate::parsers::tokens::{data_type::DataType, token::Token};
     const QUERY_LACKS_PARAMETERS: &str = "Query lacks parameters";
     const TABLE: &str = "TABLE";
-    const TABLE_NAME: &str = "table_name";
+    const TABLE_NAME: &str = "kp.table_name";
     const FIRST_COLUMN: &str = "first_column";
     const SECOND_COLUMN: &str = "second_column";
     #[test]

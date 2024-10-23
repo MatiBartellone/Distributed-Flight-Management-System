@@ -29,8 +29,12 @@ impl Query for CreateKeyspaceQuery {
         todo!()
     }
 
-    fn get_primary_key(&self) -> Option<String> {
+    fn get_primary_key(&self) -> Option<Vec<String>> {
         None
+    }
+
+    fn set_table(&mut self) -> Result<(), Errors> {
+        Ok(())
     }
 
     fn as_any(&self) -> &dyn Any {

@@ -35,6 +35,7 @@ impl KeyspaceMetaDataAccess {
     }
 
     pub fn add_keyspace(
+        &self,
         path: String,
         name: &str,
         replication_strategy: Option<String>,
@@ -55,6 +56,7 @@ impl KeyspaceMetaDataAccess {
     }
 
     pub fn alter_keyspace(
+        &self,
         path: String,
         name: &str,
         replication_strategy: Option<String>,
@@ -76,7 +78,7 @@ impl KeyspaceMetaDataAccess {
         Ok(())
     }
 
-    pub fn drop_keyspace(path: String, name: &str) -> Result<(), Errors> {
+    pub fn drop_keyspace(&self, path: String, name: &str) -> Result<(), Errors> {
         //let (mut file, mut keyspaces) = self.lock_and_extract_keyspaces()?;
         let mut file = Self::open_file(path)?;
         let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
@@ -86,6 +88,7 @@ impl KeyspaceMetaDataAccess {
     }
 
     pub fn get_columns_type(
+        &self,
         path: String,
         keyspace_name: &str,
         table_name: &str,
@@ -99,6 +102,7 @@ impl KeyspaceMetaDataAccess {
     }
 
     pub fn get_primary_key(
+        &self,
         path: String,
         keyspace_name: &str,
         table_name: &str,
@@ -112,6 +116,7 @@ impl KeyspaceMetaDataAccess {
     }
 
     pub fn add_table(
+        &self,
         path: String,
         keyspace_name: &str,
         table_name: &str,
@@ -131,7 +136,12 @@ impl KeyspaceMetaDataAccess {
         Ok(())
     }
 
-    pub fn delete_table(path: String, keyspace_name: &str, table_name: &str) -> Result<(), Errors> {
+    pub fn delete_table(
+        &self,
+        path: String,
+        keyspace_name: &str,
+        table_name: &str,
+    ) -> Result<(), Errors> {
         let mut file = Self::open_file(path)?;
         let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
         //let (mut file, mut keyspaces) = self.lock_and_extract_keyspaces()?;
@@ -297,8 +307,8 @@ mod tests {
         columns.insert("column3".to_string(), DataType::Duration);
         columns.insert("column4".to_string(), DataType::Date);
         columns.insert("column5".to_string(), DataType::Text);
-
-        KeyspaceMetaDataAccess::add_table(
+        let meta_data = KeyspaceMetaDataAccess {};
+        meta_data.add_table(
             file_name.to_string(),
             "test_keyspace",
             "test_table",
@@ -310,7 +320,8 @@ mod tests {
     }
 
     fn add_keyspace_test(file_name: &str) -> Result<(), Errors> {
-        KeyspaceMetaDataAccess::add_keyspace(
+        let meta_data = KeyspaceMetaDataAccess {};
+        meta_data.add_keyspace(
             file_name.to_string(),
             "test_keyspace",
             Some("SimpleStrategy".to_string()),
@@ -342,9 +353,9 @@ mod tests {
         create_test_file(file_name).expect("Failed to create test file");
 
         assert!(add_keyspace_test(file_name).is_ok());
-
+        let meta_data = KeyspaceMetaDataAccess {};
         // Alter the keyspace
-        let result = KeyspaceMetaDataAccess::alter_keyspace(
+        let result = meta_data.alter_keyspace(
             file_name.to_string(),
             "test_keyspace",
             Some("NetworkTopologyStrategy".to_string()),
@@ -366,7 +377,9 @@ mod tests {
 
         assert!(add_keyspace_test(file_name).is_ok());
 
-        KeyspaceMetaDataAccess::drop_keyspace(file_name.to_string(), "test_keyspace_drop")
+        let meta_data = KeyspaceMetaDataAccess {};
+        meta_data
+            .drop_keyspace(file_name.to_string(), "test_keyspace_drop")
             .expect("Failed to drop keyspace");
 
         let mut file = File::open(file_name).expect("Failed to open test file");
@@ -405,17 +418,20 @@ mod tests {
         let mut additional_columns = HashMap::new();
         additional_columns.insert("columnA".to_string(), DataType::Text);
         additional_columns.insert("columnB".to_string(), DataType::Int);
-        KeyspaceMetaDataAccess::add_table(
-            file_name.to_string(),
-            "test_keyspace",
-            "test_table_additional",
-            "columnB".to_string(),
-            additional_columns,
-        )
-        .expect("Failed to add additional table");
+        let meta_data = KeyspaceMetaDataAccess {};
+        meta_data
+            .add_table(
+                file_name.to_string(),
+                "test_keyspace",
+                "test_table_additional",
+                "columnB".to_string(),
+                additional_columns,
+            )
+            .expect("Failed to add additional table");
 
         // Eliminar una de las tablas
-        KeyspaceMetaDataAccess::delete_table(file_name.to_string(), "test_keyspace", "test_table")
+        meta_data
+            .delete_table(file_name.to_string(), "test_keyspace", "test_table")
             .expect("Failed to delete table");
 
         let mut file = File::open(file_name).expect("Failed to open test file");
@@ -443,14 +459,12 @@ mod tests {
         assert!(add_keyspace_test(file_name).is_ok());
 
         assert!(add_test_table_with_columns(file_name).is_ok());
+        let meta_data = KeyspaceMetaDataAccess {};
 
         // Obtener las columnas de la tabla
-        let columns = KeyspaceMetaDataAccess::get_columns_type(
-            file_name.to_string(),
-            "test_keyspace",
-            "test_table",
-        )
-        .expect("Failed to get columns");
+        let columns = meta_data
+            .get_columns_type(file_name.to_string(), "test_keyspace", "test_table")
+            .expect("Failed to get columns");
 
         // Verificar que las columnas son las esperadas
         assert_eq!(columns.len(), 5, "Expected 5 columns in 'test_table'.");
@@ -486,13 +500,11 @@ mod tests {
         assert!(add_keyspace_test(file_name).is_ok());
 
         assert!(add_test_table_with_columns(file_name).is_ok());
+        let meta_data = KeyspaceMetaDataAccess {};
 
-        let pk = KeyspaceMetaDataAccess::get_primary_key(
-            file_name.to_string(),
-            "test_keyspace",
-            "test_table",
-        )
-        .expect("Failed to get primary key");
+        let pk = meta_data
+            .get_primary_key(file_name.to_string(), "test_keyspace", "test_table")
+            .expect("Failed to get primary key");
 
         assert_eq!(pk, "column2", "Expected primary key to be 'column2'.");
 

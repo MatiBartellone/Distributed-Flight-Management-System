@@ -1,11 +1,15 @@
 use std::process;
 
 pub const NODES_METADATA: &str = "src/meta_data/nodes/metadata.json";
+pub const CLIENT_METADATA_PATH: &str = "src/meta_data/clients/";
+pub const KEYSPACE_METADATA: &str = "src/meta_data/keyspaces/metadata.json";
 
 pub fn nodes_meta_data_path() -> String {
     format!("src/meta_data/nodes/{}.json", process::id())
 }
 pub const QUERY_DELEGATION_PORT: i32 = 9090;
+pub const DATA_ACCESS_PORT: i32 = 9191;
+pub const META_DATA_ACCESS_PORT: i32 = 9292;
 pub const CLIENTS_PORT: i32 = 8080;
 pub const DOLLAR: char = '$';
 pub const DOUBLE_QUOTE: char = '"';

@@ -1,15 +1,14 @@
+use super::query::Query;
+use super::where_logic::where_clause::WhereClause;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::utils::errors::Errors;
+use crate::utils::functions::check_table_name;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 
-use super::query::Query;
-
-use super::where_logic::where_clause::WhereClause;
-
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct SelectQuery {
-    pub table: String,
+    pub table_name: String,
     pub columns: Vec<String>,
     pub where_clause: Option<WhereClause>,
     pub order_clauses: Option<Vec<OrderByClause>>,
@@ -18,7 +17,7 @@ pub struct SelectQuery {
 impl SelectQuery {
     pub fn new() -> Self {
         Self {
-            table: String::new(),
+            table_name: String::new(),
             columns: Vec::new(),
             where_clause: None,
             order_clauses: None,
@@ -37,8 +36,13 @@ impl Query for SelectQuery {
         todo!()
     }
 
-    fn get_primary_key(&self) -> Option<String> {
+    fn get_primary_key(&self) -> Option<Vec<String>> {
         None
+    }
+
+    fn set_table(&mut self) -> Result<(), Errors> {
+        self.table_name = check_table_name(&self.table_name)?;
+        Ok(())
     }
 
     fn as_any(&self) -> &dyn Any {

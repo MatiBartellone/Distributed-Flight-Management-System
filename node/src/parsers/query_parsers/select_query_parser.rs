@@ -40,7 +40,7 @@ fn from(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<(), Err
 fn table(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Identifier(identifier) => {
-            query.table = identifier;
+            query.table_name = identifier;
             modifiers(tokens, query)
         }
         _ => Err(Errors::SyntaxError(String::from(
@@ -147,11 +147,11 @@ mod tests {
         let tokens = vec![
             Token::IterateToken(vec![Token::Identifier(String::from("id"))]),
             Token::Reserved(String::from(FROM)),
-            Token::Identifier(String::from("table_name")),
+            Token::Identifier(String::from("kp.table_name")),
         ];
         let expected = SelectQuery {
             columns: vec![String::from("id")],
-            table: "table_name".to_string(),
+            table_name: "kp.table_name".to_string(),
             where_clause: None,
             order_clauses: None,
         };

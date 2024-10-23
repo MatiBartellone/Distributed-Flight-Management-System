@@ -1,6 +1,7 @@
 use crate::parsers::tokens::data_type::DataType;
 use crate::queries::query::Query;
 use crate::utils::errors::Errors;
+use crate::utils::functions::check_table_name;
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -32,8 +33,13 @@ impl Query for CreateTableQuery {
         todo!()
     }
 
-    fn get_primary_key(&self) -> Option<String> {
+    fn get_primary_key(&self) -> Option<Vec<String>> {
         None
+    }
+
+    fn set_table(&mut self) -> Result<(), Errors> {
+        self.table_name = check_table_name(&self.table_name)?;
+        Ok(())
     }
 
     fn as_any(&self) -> &dyn Any {

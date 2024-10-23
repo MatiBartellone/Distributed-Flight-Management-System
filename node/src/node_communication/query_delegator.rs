@@ -1,4 +1,4 @@
-use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
+use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::node_communication::query_serializer::QuerySerializer;
 use crate::queries::query::{Query, QueryEnum};
 use crate::utils::consistency_level::ConsistencyLevel;
@@ -11,14 +11,15 @@ use std::thread;
 
 const REPLICATION: i32 = 3;
 pub struct QueryDelegator {
-    primary_key: Option<String>,
+    #[allow(dead_code)]
+    primary_key: Option<Vec<String>>,
     query: Box<dyn Query>,
     consistency: ConsistencyLevel,
 }
 
 impl QueryDelegator {
     pub fn new(
-        primary_key: Option<String>,
+        primary_key: Option<Vec<String>>,
         query: Box<dyn Query>,
         consistency: ConsistencyLevel,
     ) -> Self {
@@ -66,9 +67,12 @@ impl QueryDelegator {
     }
 
     fn get_nodes_ip(&self) -> Result<Vec<String>, Errors> {
-        let ips = NodesMetaDataAccess::get_partition_ips(
+        let mut stream = MetaDataHandler::establish_connection()?;
+        let nodes_meta_data =
+            MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
+        let ips = nodes_meta_data.get_partition_ips(
             nodes_meta_data_path().as_ref(),
-            &self.primary_key,
+            &None, //&self.primary_key,
         )?;
         let mut full_ips = Vec::new();
         for ip in ips {

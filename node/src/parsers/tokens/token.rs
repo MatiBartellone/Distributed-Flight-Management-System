@@ -27,8 +27,15 @@ fn string_to_identifier(word: &str) -> Option<Token> {
         if !(first_char.is_alphabetic() || first_char == '_') {
             return None;
         }
+        let mut dot_count = 0;
         for c in word.chars().skip(1) {
-            if !c.is_alphanumeric() {
+            if !c.is_alphanumeric() && c == '.' {
+                dot_count += 1;
+                if dot_count > 1 {
+                    return None;
+                }
+            }
+            if !c.is_alphanumeric() && c != '.' {
                 return None;
             }
         }
