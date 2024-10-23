@@ -13,12 +13,11 @@ pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
     bytes
 }
 
-pub fn get_timestamp() -> String {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs()
-        .to_string()
+pub fn get_timestamp() -> Result<String, Errors> {
+    if let Ok(timestamp) = SystemTime::now().duration_since(UNIX_EPOCH) {
+        return Ok(timestamp.as_secs().to_string());
+    }
+    Err(Errors::ServerError(String::from("Time went backwards")))
 }
 
 pub fn check_table_name(table_name: &String) -> Result<String, Errors> {

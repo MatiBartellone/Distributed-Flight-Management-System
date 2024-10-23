@@ -40,7 +40,6 @@ impl DataAccessHandler {
     }
 
     pub fn establish_connection() -> Result<TcpStream, Errors> {
-        println!("Establishing connection to {}", get_data_access_ip()?);
         match TcpStream::connect(get_data_access_ip()?) {
             Ok(stream) => Ok(stream),
             Err(e) => Err(Errors::ServerError(e.to_string())),

@@ -70,7 +70,7 @@ impl InsertQuery {
     fn build_row(&self, values: &[Literal]) -> Result<Row, Errors> {
         let mut row_values = Vec::new();
         for (value, header) in values.iter().zip(self.headers.iter()) {
-            row_values.push(Column::new(header, value, get_timestamp()));
+            row_values.push(Column::new(header, value, get_timestamp()?));
         }
         let Some(primary_keys) = self.get_primary_key() else {
             return Err(Errors::SyntaxError(String::from(
