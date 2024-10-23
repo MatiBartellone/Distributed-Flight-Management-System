@@ -66,7 +66,7 @@ mod tests {
 
     #[test]
     fn test_parse_select_query_with_consistency() {
-        let query = "SELECT id FROM users".as_bytes();
+        let query = "SELECT id FROM kp.users".as_bytes();
         let len = (query.len() as i32).to_be_bytes();
         let consistency = 0x0001_i16.to_be_bytes();
         let mut body = Vec::new();
@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn test_parse_select_query_no_consistency() {
-        let query = "SELECT id FROM users".as_bytes();
+        let query = "SELECT id FROM kp.users".as_bytes();
         let len = (query.len() as i32).to_be_bytes();
         let mut body = Vec::new();
         body.extend_from_slice(&len);

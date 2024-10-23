@@ -162,8 +162,8 @@ mod tests {
 
     #[test]
     fn test_insert_query_parser_valid() {
-        let tokens = get_insert_tokens(INTO, "table_name", "id", "name", VALUES, "3", "Thiago");
-        let expected = get_insert_query("table_name", "id", "name", "3", "Thiago");
+        let tokens = get_insert_tokens(INTO, "kp.table_name", "id", "name", VALUES, "3", "Thiago");
+        let expected = get_insert_query("kp.table_name", "id", "name", "3", "Thiago");
         assert_eq!(expected, InsertQueryParser::parse(tokens).unwrap());
     }
 
@@ -189,7 +189,7 @@ mod tests {
     fn test_insert_query_parser_unexpected_headers() {
         let tokens = vec![
             Token::Reserved(String::from(INTO)),
-            Token::Identifier(String::from("table_name")),
+            Token::Identifier(String::from("kp.table_name")),
             Token::Reserved(String::from(VALUES)),
         ];
         let result = InsertQueryParser::parse(tokens);
@@ -199,7 +199,7 @@ mod tests {
     fn test_insert_query_parser_headers_are_not_identifiers() {
         let tokens = vec![
             Token::Reserved(String::from(INTO)),
-            Token::Identifier(String::from("table_name")),
+            Token::Identifier(String::from("kp.table_name")),
             Token::ParenList(vec![Token::Reserved(String::from("NOT AN IDENTIFIER"))]),
         ];
         let result = InsertQueryParser::parse(tokens);
@@ -208,7 +208,7 @@ mod tests {
 
     #[test]
     fn test_insert_query_parser_missing_values() {
-        let tokens = get_insert_tokens(INTO, "table_name", "id", "name", "NOT VALUES", "", "");
+        let tokens = get_insert_tokens(INTO, "kp.table_name", "id", "name", "NOT VALUES", "", "");
         let result = InsertQueryParser::parse(tokens);
         assert_error(result, "headers not followed by VALUES");
     }
@@ -217,7 +217,7 @@ mod tests {
     fn test_insert_query_parser_values_are_not_literals() {
         let tokens = vec![
             Token::Reserved(String::from(INTO)),
-            Token::Identifier(String::from("table_name")),
+            Token::Identifier(String::from("kp.table_name")),
             Token::ParenList(vec![
                 Token::Identifier(String::from("id")),
                 Token::Identifier(String::from("name")),

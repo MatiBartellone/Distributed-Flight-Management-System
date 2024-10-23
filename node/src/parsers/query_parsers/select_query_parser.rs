@@ -148,11 +148,11 @@ mod tests {
         let tokens = vec![
             Token::IterateToken(vec![Token::Identifier(String::from("id"))]),
             Token::Reserved(String::from(FROM)),
-            Token::Identifier(String::from("table_name")),
+            Token::Identifier(String::from("kp.table_name")),
         ];
         let expected = SelectQuery {
             columns: vec![String::from("id")],
-            table_name: "table_name".to_string(),
+            table_name: "kp.table_name".to_string(),
             where_clause: None,
             order_clauses: None,
         };

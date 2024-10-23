@@ -81,12 +81,12 @@ mod tests {
 
     #[test]
     fn test_parse_drop_table_simple() {
-        let tokens = vec![Token::Identifier("my_table".to_string())];
+        let tokens = vec![Token::Identifier("kp.my_table".to_string())];
         let mut token_iter = tokens.into_iter().peekable();
         let result = DropTableQueryParser::parse(&mut token_iter);
         assert!(result.is_ok());
         let query = result.unwrap();
-        assert_eq!(query.table_name, "my_table");
+        assert_eq!(query.table_name, "kp.my_table");
         assert_eq!(query.if_exist, None); // No hay IF EXISTS
     }
 
@@ -95,13 +95,13 @@ mod tests {
         let tokens = vec![
             Token::Reserved("IF".to_string()),
             Token::Reserved("EXISTS".to_string()),
-            Token::Identifier("my_table".to_string()),
+            Token::Identifier("kp.my_table".to_string()),
         ];
         let mut token_iter = tokens.into_iter().peekable();
         let result = DropTableQueryParser::parse(&mut token_iter);
         assert!(result.is_ok());
         let query = result.unwrap();
-        assert_eq!(query.table_name, "my_table");
+        assert_eq!(query.table_name, "kp.my_table");
         assert_eq!(query.if_exist, Some(true)); // Debe tener IF EXISTS
     }
 

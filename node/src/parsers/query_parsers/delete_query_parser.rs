@@ -88,10 +88,10 @@ mod tests {
     fn test_insert_query_parser_valid_no_where() {
         let tokens = vec![
             Token::Reserved(String::from(FROM)),
-            Token::Identifier(String::from("table_name")),
+            Token::Identifier(String::from("kp.table_name")),
         ];
         let expected = DeleteQuery {
-            table_name: "table_name".to_string(),
+            table_name: "kp.table_name".to_string(),
             where_clause: None,
         };
         assert_eq!(expected, DeleteQueryParser::parse(tokens).unwrap());
