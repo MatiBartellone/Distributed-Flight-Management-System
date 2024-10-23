@@ -1,3 +1,4 @@
+use crate::parsers::tokens::literal;
 use crate::parsers::tokens::terms::Term;
 use crate::{
     parsers::tokens::token::Token, queries::create_keyspace_query::CreateKeyspaceQuery,
@@ -85,7 +86,10 @@ impl CreateKeyspaceParser {
         replication: &mut HashMap<String, String>,
     ) -> Result<(), Errors> {
         match self.get_next_value(tokens_list)? {
-            Token::Reserved(key) => self.check_colon(tokens_list, key, replication),
+            Token::Term(Term::Literal(literal)) => {
+                let key = literal.value;
+                self.check_colon(tokens_list, key, replication)
+            }
             _ => Err(Errors::SyntaxError(String::from(MISSING_KEY))),
         }
     }
@@ -165,14 +169,20 @@ mod tests {
 
     fn create_brace_list() -> Vec<Token> {
         vec![Token::BraceList(vec![
-            Token::Reserved(CLASS.to_string()),
+            Token::Term(Term::Literal(Literal::new(
+                "class".to_string(),
+                DataType::Text,
+            ))),
             Token::Symbol(COLON.to_string()),
             Token::Term(Term::Literal(Literal::new(
                 SIMPLE_STRATEGY.to_string(),
                 DataType::Text,
             ))),
             Token::Symbol(COMMA.to_string()),
-            Token::Reserved(REPLICATION_FACTOR_KEWORD.to_string()),
+            Token::Term(Term::Literal(Literal::new(
+                "replication_factor".to_string(),
+                DataType::Text,
+            ))),
             Token::Symbol(COLON.to_string()),
             Token::Term(Term::Literal(Literal::new(
                 REPLICATION_FACTOR_VALUE.to_string(),
@@ -258,7 +268,10 @@ mod tests {
     fn test_05_create_keyspace_missing_value_in_brace_list_should_error() {
         let mut tokens = create_tokens();
         let barace_list = vec![Token::BraceList(vec![
-            Token::Reserved(CLASS.to_string()),
+            Token::Term(Term::Literal(Literal::new(
+                "class".to_string(),
+                DataType::Text,
+            ))),
             Token::Symbol(COLON.to_string()),
             Token::Symbol(COMMA.to_string()),
         ])];
@@ -279,7 +292,10 @@ mod tests {
     fn test_06_create_keyspace_missing_colon_in_brace_list_should_error() {
         let mut tokens = create_tokens();
         let barace_list = vec![Token::BraceList(vec![
-            Token::Reserved(CLASS.to_string()),
+            Token::Term(Term::Literal(Literal::new(
+                "class".to_string(),
+                DataType::Text,
+            ))),
             Token::Term(Term::Literal(Literal::new(
                 SIMPLE_STRATEGY.to_string(),
                 DataType::Text,
