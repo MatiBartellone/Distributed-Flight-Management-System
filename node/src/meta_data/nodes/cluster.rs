@@ -43,4 +43,13 @@ impl Cluster {
         }
         ips
     }
+
+    pub fn get_all_ips(&self) -> Vec<String> {
+        let mut ips = Vec::new();
+        ips.push(self.get_own_ip().to_string());
+        for node in self.other_nodes.iter() {
+            ips.push(node.get_ip().to_string());
+        }
+        ips
+    }
 }
