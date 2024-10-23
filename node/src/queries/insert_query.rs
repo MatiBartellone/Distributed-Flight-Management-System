@@ -91,10 +91,11 @@ impl Default for InsertQuery {
 
 impl Query for InsertQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
+        let mut stream = DataAccess::establish_connection()?;
+        let data_access = DataAccess::get_instance(&mut stream)?;
         self.check_columns()?;
         for values in self.values_list.iter() {
             let row = self.build_row(values)?;
-            let data_access = DataAccess {};
             data_access.insert(&self.table_name, &row)?
         }
         Ok(get_long_string_from_str("Insertion was successful"))

@@ -8,6 +8,7 @@ pub fn nodes_meta_data_path() -> String {
     format!("src/meta_data/nodes/{}.json", process::id())
 }
 pub const QUERY_DELEGATION_PORT: i32 = 9090;
+pub const DATA_ACCESS_PORT: i32 = 9191;
 pub const CLIENTS_PORT: i32 = 8080;
 pub const DOLLAR: char = '$';
 pub const DOUBLE_QUOTE: char = '"';

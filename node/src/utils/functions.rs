@@ -1,7 +1,8 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::meta_data::clients::meta_data_client::ClientMetaDataAcces;
+use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::utils::errors::Errors;
-use crate::utils::constants::CLIENT_METADATA_PATH;
+use crate::utils::constants::{nodes_meta_data_path, CLIENT_METADATA_PATH, DATA_ACCESS_PORT};
 
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -35,4 +36,12 @@ pub fn check_table_name(table_name: &String) -> Result<String, Errors> {
         return Err(Errors::SyntaxError(String::from("Keyspace not in usage")));
     };
     Ok(format!("{}.{}", kp, table_name))
+}
+
+pub fn get_data_access_ip() -> Result<String, Errors> {
+    Ok(format!(
+        "{}:{}",
+        NodesMetaDataAccess::get_own_ip(nodes_meta_data_path().as_ref())?,
+        DATA_ACCESS_PORT
+    ))
 }

@@ -10,6 +10,7 @@ use node::utils::errors::Errors;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
+use node::data_access::data_access::DataAccess;
 
 fn main() {
     print!("node's ip: ");
@@ -44,6 +45,11 @@ fn main() {
     thread::spawn(move || {
         let _ = QueryReceiver::start_listening();
     });
+    thread::spawn(move || {
+        let _ = DataAccess::start_listening();
+    });
+
+
     let Ok(ip) = NodesMetaDataAccess::get_own_ip(nodes_meta_data_path().as_ref()) else {
         panic!("No metadata found");
     };
