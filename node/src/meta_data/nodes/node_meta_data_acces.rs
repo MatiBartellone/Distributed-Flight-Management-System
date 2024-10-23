@@ -47,15 +47,6 @@ impl NodesMetaDataAccess {
         Ok(cluster.get_own_ip().to_string())
     }
 
-    //Si no hay que delegar, retorna None
-    /*pub fn get_delegation(path: &str, key: Option<String>)-> Result<Option<Vec<String>>, Errors> {
-        if let some
-        let hasshing_key = hash_string_murmur3(&key);
-        let cluster = Self::read_cluster(path)?;
-        let pos = hasshing_key % cluster.len_nodes();
-        Ok(cluster.get_node(pos))
-    }*/
-
     pub fn get_partition_ips(
         &self,
         path: &str,

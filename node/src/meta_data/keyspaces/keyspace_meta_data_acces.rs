@@ -7,9 +7,7 @@ use std::{collections::HashMap, io::Read};
 
 use super::{keyspace::Keyspace, table::Table};
 #[derive(Debug)]
-pub struct KeyspaceMetaDataAccess {
-    //file: Arc<Mutex<File>>,
-}
+pub struct KeyspaceMetaDataAccess;
 
 impl KeyspaceMetaDataAccess {
     /*pub fn new() -> Result<Self, Errors> {
