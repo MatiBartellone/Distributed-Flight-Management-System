@@ -56,7 +56,7 @@ impl KeyspaceMetaDataAccess {
     pub fn get_replication(
         //&self,
         path: String,
-        keyspace_name: &str
+        keyspace_name: &str,
     ) -> Result<usize, Errors> {
         let mut file = Self::open_file(path)?;
         let mut keyspaces = Self::extract_hash_from_json(&mut file)?;

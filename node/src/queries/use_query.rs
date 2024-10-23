@@ -37,9 +37,9 @@ impl Query for UseQuery {
         Ok(get_long_string_from_str(msg.as_ref()))
     }
 
-    fn get_primary_key(&self) -> Option<Vec<String>> {
+    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
         let rng: u8 = rand::random();
-        Some(vec![format!("{}", rng)])
+        Ok(Some(vec![format!("{}", rng)]))
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

@@ -1,5 +1,8 @@
 use super::cluster::Cluster;
-use crate::{utils::{errors::Errors, constants::KEYSPACE_METADATA}, meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess};
+use crate::{
+    meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess,
+    utils::{constants::KEYSPACE_METADATA, errors::Errors},
+};
 use murmur3::murmur3_32;
 use std::{
     fs::{File, OpenOptions},
@@ -51,13 +54,14 @@ impl NodesMetaDataAccess {
         &self,
         path: &str,
         primary_key: &Option<Vec<String>>,
-        keyspace: String
-    ) -> Result<Vec<String>, Errors> { 
+        keyspace: String,
+    ) -> Result<Vec<String>, Errors> {
         let cluster = Self::read_cluster(path)?;
         if let Some(primary_key) = primary_key {
             let hashing_key = hash_string_murmur3(&primary_key.join(""));
             let pos = hashing_key % cluster.len_nodes();
-            let replication = KeyspaceMetaDataAccess::get_replication(KEYSPACE_METADATA.to_owned(), &keyspace)?;
+            let replication =
+                KeyspaceMetaDataAccess::get_replication(KEYSPACE_METADATA.to_owned(), &keyspace)?;
             Ok(cluster.get_nodes(pos, replication))
         } else {
             // todo, todas las ips
