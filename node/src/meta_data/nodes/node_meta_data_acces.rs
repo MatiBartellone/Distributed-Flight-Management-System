@@ -59,16 +59,16 @@ impl NodesMetaDataAccess {
     pub fn get_partition_ips(
         &self,
         path: &str,
-        key: &Option<String>,
+        keys: &Option<Vec<String>>,
     ) -> Result<Vec<String>, Errors> {
-        if let Some(key) = key {
-            let hashing_key = hash_string_murmur3(key);
-            let cluster = Self::read_cluster(path)?;
+        let cluster = Self::read_cluster(path)?;
+        if let Some(keys) = keys {
+            let hashing_key = hash_string_murmur3(&keys.join(""));
             let pos = hashing_key % cluster.len_nodes();
             Ok(cluster.get_nodes(pos, 3))
         } else {
             // todo, todas las ips
-            Ok(Vec::new())
+            Ok(cluster.get_all_ips())
         }
     }
 }
