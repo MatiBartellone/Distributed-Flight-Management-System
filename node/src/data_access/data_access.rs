@@ -191,7 +191,7 @@ impl DataAccess {
     }
 
     fn get_file_path(&self, table_name: &String) -> String {
-        format!("src/data_access/data/{}.json", table_name)
+        format!("src/data_access/{}.json", table_name)
     }
 
     fn open_file(&self, path: &String) -> Result<File, Errors> {
