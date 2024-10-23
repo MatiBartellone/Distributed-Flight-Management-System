@@ -2,6 +2,8 @@ use crate::parsers::tokens::literal::Literal;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::option::Option;
+use crate::parsers::tokens::data_type::DataType;
+use crate::utils::functions::get_timestamp;
 
 pub const EQUAL: i8 = 0;
 pub const GREATER: i8 = 1;
@@ -11,6 +13,7 @@ pub const LOWER: i8 = -1;
 pub struct Row {
     pub columns: Vec<Column>,
     pub primary_keys: Vec<String>,
+    deleted: Option<bool>,
 }
 
 impl Row {
@@ -18,6 +21,15 @@ impl Row {
         Self {
             columns,
             primary_keys,
+            deleted: None,
+        }
+    }
+
+    pub fn new_deleted_row() -> Self {
+        Self {
+            columns: Vec::new(),
+            primary_keys: Vec::new(),
+            deleted: Some(true),
         }
     }
     pub fn get_row_hash(&self) -> HashMap<String, Literal> {

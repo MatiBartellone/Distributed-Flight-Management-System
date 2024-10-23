@@ -3,7 +3,9 @@ use crate::data_access::row::{Column, Row};
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::parsers::tokens::data_type::DataType;
 use crate::utils::constants::KEYSPACE_METADATA;
-use crate::utils::functions::{check_table_name, get_long_string_from_str, get_timestamp};
+use crate::utils::functions::{
+    check_table_name, get_columns_from_table, get_long_string_from_str, get_timestamp,
+};
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -26,16 +28,7 @@ impl InsertQuery {
     }
 
     fn check_columns(&self) -> Result<(), Errors> {
-        let mut stream = MetaDataHandler::establish_connection()?;
-        let keyspace_meta_data =
-            MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
-        let binding = self.table_name.split('.').collect::<Vec<&str>>();
-        let identifiers = &binding.as_slice();
-        let columns = keyspace_meta_data.get_columns_type(
-            KEYSPACE_METADATA.to_string(),
-            identifiers[0],
-            identifiers[1],
-        )?;
+        let columns = get_columns_from_table(&self.table_name)?;
         self.check_different_values()?;
         if columns.len() < self.headers.len() {
             return Err(Errors::SyntaxError(String::from(
@@ -51,9 +44,11 @@ impl InsertQuery {
     }
 
     fn check_different_values(&self) -> Result<(), Errors> {
-        let set : &HashSet<_> = &self.headers.iter().collect();
+        let set: &HashSet<_> = &self.headers.iter().collect();
         if set.len() != self.headers.len() {
-            return Err(Errors::SyntaxError(String::from("There is a header repeated")))
+            return Err(Errors::SyntaxError(String::from(
+                "There is a header repeated",
+            )));
         }
         Ok(())
     }
@@ -128,11 +123,14 @@ impl Query for InsertQuery {
         let mut stream = MetaDataHandler::establish_connection()?;
         let keyspace_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
-        let table_primary_keys : HashSet<_> = keyspace_meta_data.get_primary_key(
-            KEYSPACE_METADATA.to_string(),
-            identifiers[0],
-            identifiers[1],
-        )?.into_iter().collect();
+        let table_primary_keys: HashSet<_> = keyspace_meta_data
+            .get_primary_key(
+                KEYSPACE_METADATA.to_string(),
+                identifiers[0],
+                identifiers[1],
+            )?
+            .into_iter()
+            .collect();
         let mut primary_keys = Vec::new();
         if row.len() != self.headers.len() {
             return Err(Errors::SyntaxError(String::from(

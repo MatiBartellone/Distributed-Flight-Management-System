@@ -1,9 +1,12 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
+use crate::parsers::tokens::data_type::DataType;
 use crate::utils::constants::{
-    nodes_meta_data_path, CLIENT_METADATA_PATH, DATA_ACCESS_PORT, META_DATA_ACCESS_PORT,
+    nodes_meta_data_path, CLIENT_METADATA_PATH, DATA_ACCESS_PORT, KEYSPACE_METADATA,
+    META_DATA_ACCESS_PORT,
 };
 use crate::utils::errors::Errors;
+use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
@@ -57,4 +60,17 @@ pub fn get_meta_data_handler_ip() -> Result<String, Errors> {
         NodesMetaDataAccess::get_own_ip_(nodes_meta_data_path().as_ref())?,
         META_DATA_ACCESS_PORT
     ))
+}
+
+pub fn get_columns_from_table(table_name: &str) -> Result<HashMap<String, DataType>, Errors> {
+    let mut stream = MetaDataHandler::establish_connection()?;
+    let keyspace_meta_data =
+        MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
+    let binding = table_name.split('.').collect::<Vec<&str>>();
+    let identifiers = &binding.as_slice();
+    keyspace_meta_data.get_columns_type(
+        KEYSPACE_METADATA.to_string(),
+        identifiers[0],
+        identifiers[1],
+    )
 }
