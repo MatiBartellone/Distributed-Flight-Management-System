@@ -8,7 +8,7 @@ pub enum FlightStatus {
 use FlightStatus::*;
 
 impl FlightStatus {
-    pub fn get_status(&self) -> String{
+    pub fn get_status(&self) -> String {
         match self {
             OnTime => "A tiempo".to_string(),
             Delayed => "Retrasado".to_string(),

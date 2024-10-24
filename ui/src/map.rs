@@ -1,6 +1,9 @@
+use crate::{
+    flight_app::FlightApp,
+    windows::{go_to_my_position, zoom},
+};
 use eframe::egui;
 use walkers::{Map, Position};
-use crate::flight_app::FlightApp;
 
 pub struct MapPanel;
 
@@ -22,29 +25,25 @@ impl MapPanel {
 
         let aiport_is_some = (&*selected_airport).is_some();
         drop(selected_airport);
-        map_widget = map_widget.with_plugin(app.airports.clone());
+        map_widget = map_widget.with_plugin(&mut app.airports);
 
         if aiport_is_some {
-            map_widget = map_widget.with_plugin(app.flights.clone());
+            map_widget = map_widget.with_plugin(&mut app.flights);
         }
 
         ui.add(map_widget);
-
-        {
-            use crate::windows::{go_to_my_position, zoom};
-            zoom(ui, &mut app.map_memory);
-            go_to_my_position(ui, &mut app.map_memory);
-        }
+        zoom(ui, &mut app.map_memory);
+        go_to_my_position(ui, &mut app.map_memory);
     }
 
-    fn get_inicial_coordinates(&self, app: &mut FlightApp) -> (f64, f64){
+    fn get_inicial_coordinates(&self, app: &mut FlightApp) -> (f64, f64) {
         let selected_airport = match app.selected_airport.lock() {
             Ok(lock) => lock,
-            Err(_) => return (0.,0.),
+            Err(_) => return (0., 0.),
         };
         if let Some(airport) = &*selected_airport {
             return airport.position;
         }
-        (0.,0.)
-    }    
+        (0., 0.)
+    }
 }

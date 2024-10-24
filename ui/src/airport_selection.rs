@@ -1,6 +1,6 @@
 use eframe::egui;
-use egui::ScrollArea;
 use egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded;
+use egui::ScrollArea;
 
 pub struct AirportSelection;
 
@@ -12,15 +12,15 @@ impl AirportSelection {
             ui.separator();
 
             ScrollArea::vertical()
-            .scroll_bar_visibility(VisibleWhenNeeded)
-            .show(ui, |ui| {
-                ui.set_width(ui.available_width());
-                for airport in airports {
-                    if ui.button(airport).clicked() {
-                        *selected_airport = Some(airport.to_string());
+                .scroll_bar_visibility(VisibleWhenNeeded)
+                .show(ui, |ui| {
+                    ui.set_width(ui.available_width());
+                    for airport in airports {
+                        if ui.button(airport).clicked() {
+                            *selected_airport = Some(airport.to_string());
+                        }
                     }
-                }
-            });
+                });
         });
     }
 }

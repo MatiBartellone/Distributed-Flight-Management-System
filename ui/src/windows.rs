@@ -23,19 +23,14 @@ pub fn zoom(ui: &Ui, map_memory: &mut MapMemory) {
 
 /// When map is "detached", show a windows with an option to go back to my position.
 pub fn go_to_my_position(ui: &Ui, map_memory: &mut MapMemory) {
-    if let Some(position) = map_memory.detached() {
+    if let Some(_) = map_memory.detached() {
         Window::new("Center")
             .collapsible(false)
             .resizable(false)
             .title_bar(false)
             .anchor(Align2::RIGHT_TOP, [-10., -10.])
             .show(ui.ctx(), |ui| {
-                ui.label("map center: ");
-                ui.label(format!("{:.04} {:.04}", position.lon(), position.lat()));
-                if ui
-                    .button(RichText::new("go to the starting point").heading())
-                    .clicked()
-                {
+                if ui.button(RichText::new("Center Map").heading()).clicked() {
                     map_memory.follow_my_position();
                 }
             });

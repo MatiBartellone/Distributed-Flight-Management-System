@@ -33,13 +33,16 @@ impl InformationPanel {
         }
         ui.heading(format!("{}", airport_name));
     }
-    
+
     fn clear_selection(&self, app: &mut FlightApp) {
         if let Ok(mut selected_airport) = app.selected_airport.lock() {
             *selected_airport = None;
         }
         if let Ok(mut selected_flight_lock) = app.selected_flight.lock() {
             *selected_flight_lock = None;
+        }
+        if let Ok(mut flights_lock) = app.flights.flights.lock() {
+            *flights_lock = Vec::new();
         }
     }
 
@@ -50,14 +53,14 @@ impl InformationPanel {
             Err(_) => return,
         };
 
-        // Si hay un vuelo seleccionado, muestra su información detallada 
+        // Si hay un vuelo seleccionado, muestra su información detallada
         if let Some(selected_flight) = &*selected_flight_lock {
             selected_flight.list_information(ui);
             ui.add_space(10.0);
             if ui.button("Volver a la lista de vuelos").clicked() {
                 *selected_flight_lock = None;
             }
-        } 
+        }
         // Sino lista todos
         else {
             app.flights.list_flights(ui);
