@@ -143,14 +143,18 @@ fn get_next_value(tokens: &mut IntoIter<Token>) -> Result<Token, Errors> {
 
 fn set_primary_key(query: &mut CreateTableQuery, primary_key: String) -> Result<(), Errors> {
     if query.primary_key.is_empty() {
-        query.primary_key = primary_key;
+        let pk = vec![primary_key];
+        query.primary_key = pk;
         return Ok(());
     }
     Err(Errors::SyntaxError(String::from(ONE_DEF_PK_ERR)))
 }
 
 fn check_primary_key(query: &mut CreateTableQuery) -> Result<(), Errors> {
-    if !query.columns.contains_key(query.primary_key.as_str()) {
+    if query.primary_key.is_empty() {                                       //Todo esto debe ser fixeado
+        return Err(Errors::SyntaxError(String::from(PK_NOT_DEF_ERR)));      //Thiago lo deja así hasta el fix para que ande
+    }                                                                       //Por ahora solo anda con pk de un solo elemento
+    if !query.columns.contains_key(&query.primary_key[0]) {                 //Esta linea tambien
         return Err(Errors::SyntaxError(String::from(PK_NOT_DEF_ERR)));
     }
     if query.primary_key.is_empty() {
@@ -211,7 +215,7 @@ mod tests {
                 (String::from("id"), DataType::Int),
                 (String::from("name"), DataType::Text),
             ]),
-            primary_key: String::from("id"),
+            primary_key: vec![String::from("id")],
         }
     }
 

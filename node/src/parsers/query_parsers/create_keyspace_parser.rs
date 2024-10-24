@@ -13,7 +13,6 @@ const UNEXPECTED_TOKEN: &str = "Unexpected token in table_name";
 const MISSING_COLON: &str = "Missing colon for separating parameters in replication";
 const MISSING_WITH: &str = "Missing WITH keyword";
 const MISSING_KEY: &str = "Missing key for replication";
-const INVALID_KEY: &str = "Invalid key for replication";
 const MISSING_VALUE: &str = "Missing value for replication";
 const COMMA: &str = ",";
 const COLON: &str = ":";

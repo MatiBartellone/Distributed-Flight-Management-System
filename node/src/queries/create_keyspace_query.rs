@@ -1,4 +1,4 @@
-use crate::meta_data::meta_data_handler::{self, MetaDataHandler};
+use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::queries::query::Query;
 use crate::utils::constants::{KEYSPACE_METADATA, REPLICATION, STRATEGY};
 use crate::utils::errors::Errors;
