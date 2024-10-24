@@ -1,4 +1,3 @@
-use crate::parsers::tokens::literal;
 use crate::parsers::tokens::terms::Term;
 use crate::utils::constants::{REPLICATION, STRATEGY};
 use crate::{

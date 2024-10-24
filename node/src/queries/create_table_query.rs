@@ -4,7 +4,7 @@ use crate::parsers::tokens::data_type::DataType;
 use crate::queries::query::Query;
 use crate::utils::constants::KEYSPACE_METADATA;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{check_table_name, get_long_string_from_str};
+use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table};
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -24,18 +24,9 @@ impl CreateTableQuery {
         }
     }
 
-    fn split_keyspace_table(input: &str) -> Result<(&str, &str), Errors> {
-        let mut parts = input.split('.');
-        let keyspace = parts.next().ok_or_else(|| Errors::SyntaxError("Missing keyspace".to_string()))?;
-        let table = parts.next().ok_or_else(|| Errors::SyntaxError("Missing table".to_string()))?;
-        if parts.next().is_some() {
-            return Err(Errors::SyntaxError("Too many parts, expected only keyspace and table".to_string()));
-        }
-        Ok((keyspace, table))
-    }
 
     fn push_on_meta_data(&self) -> Result<(), Errors>{ 
-        let (kesypace_name, table) = Self::split_keyspace_table(&self.table_name)?;
+        let (kesypace_name, table) = split_keyspace_table(&self.table_name)?;
         let mut stream = MetaDataHandler::establish_connection()?;
         let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
         let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
