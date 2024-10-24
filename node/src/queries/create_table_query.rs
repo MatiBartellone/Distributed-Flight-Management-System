@@ -1,3 +1,4 @@
+use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::parsers::tokens::data_type::DataType;
 use crate::queries::query::Query;
@@ -32,6 +33,22 @@ impl CreateTableQuery {
         }
         Ok((keyspace, table))
     }
+
+    fn push_on_meta_data(&self) -> Result<(), Errors>{ 
+        let (kesypace_name, table) = Self::split_keyspace_table(&self.table_name)?;
+        let mut stream = MetaDataHandler::establish_connection()?;
+        let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
+        let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
+        keyspace_meta_data.add_table(KEYSPACE_METADATA.to_owned(), kesypace_name, table, self.primary_key.clone(), self.columns.clone())?;
+        Ok(())
+    }
+
+    fn push_on_data_acces(&self) -> Result<(), Errors> {
+        let mut stream = DataAccessHandler::establish_connection()?;
+        let data_access = DataAccessHandler::get_instance(&mut stream)?;
+        data_access.create_table(&self.table_name)?;
+        Ok(())
+    }
 }
 
 impl Default for CreateTableQuery {
@@ -42,11 +59,8 @@ impl Default for CreateTableQuery {
 
 impl Query for CreateTableQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
-        let (kesypace_name, table) = Self::split_keyspace_table(&self.table_name)?;
-        let mut stream = MetaDataHandler::establish_connection()?;
-        let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
-        let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
-        keyspace_meta_data.add_table(KEYSPACE_METADATA.to_owned(), kesypace_name, table, self.primary_key.clone(), self.columns.clone())?;
+        self.push_on_data_acces()?;
+        self.push_on_meta_data()?;
         Ok(get_long_string_from_str("Create table was successful"))
     }
 
