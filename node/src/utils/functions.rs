@@ -8,6 +8,7 @@ use crate::utils::constants::{
 use crate::utils::errors::Errors;
 use std::collections::{HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
+use crate::queries::where_logic::where_clause::WhereClause;
 
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -95,4 +96,24 @@ pub fn get_int_from_string(string: &String) -> Result<i32, Errors> {
     Ok(string
         .parse::<i32>()
         .map_err(|_| Errors::SyntaxError(format!("Could not parse int: {}", string)))?)
+}
+
+pub fn get_primary_key_from_where(table_name: &String, where_clause: &Option<WhereClause>) -> Result<Option<Vec<String>>, Errors> {
+    let Some(where_clause) = where_clause else {
+        return Err(Errors::SyntaxError(String::from(
+            "Where clause must be defined",
+        )));
+    };
+    let mut primary_key = Vec::new();
+    let table_pk = get_table_pk(table_name)?;
+    if where_clause.get_primary_key(&mut primary_key, &table_pk)? {
+        if primary_key.len() != table_pk.len() {
+            return Err(Errors::SyntaxError(String::from(
+                "Full primary key must be defined in where clause",
+            )));
+        }
+        Ok(Some(primary_key))
+    } else {
+        Ok(None)
+    }
 }

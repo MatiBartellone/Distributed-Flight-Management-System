@@ -60,6 +60,26 @@ impl DataAccess {
         self.append_row(&path, row)
     }
 
+    pub fn set_deleted_rows(
+        &self,
+        table_name: &String,
+        where_clause: &WhereClause,
+    ) -> Result<(), Errors> {
+        let path = self.get_file_path(table_name);
+        let temp_path = format!("{}.tmp", path);
+        self.create_file(&temp_path)?;
+        for row in self.get_deserialized_stream(&path)? {
+            if where_clause.evaluate(&row.get_row_hash())? {
+                self.append_row(&temp_path, &Row::new_deleted_row()?)?;
+            } else {
+                self.append_row(&temp_path, &row)?;
+            }
+        }
+        rename(temp_path, path)
+            .map_err(|_| Errors::ServerError(String::from("Error renaming file")))?;
+        Ok(())
+    }
+
     pub fn update_row(
         &self,
         table_name: &String,

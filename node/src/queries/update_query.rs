@@ -6,9 +6,7 @@ use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{
-    check_table_name, get_columns_from_table, get_long_string_from_str, get_table_pk,
-};
+use crate::utils::functions::{check_table_name, get_columns_from_table, get_long_string_from_str, get_primary_key_from_where, get_table_pk};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::cmp::PartialEq;
@@ -126,23 +124,7 @@ impl Query for UpdateQuery {
     }
 
     fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
-        let Some(where_clause) = &self.where_clause else {
-            return Err(Errors::SyntaxError(String::from(
-                "Where clause must be defined",
-            )));
-        };
-        let mut primary_key = Vec::new();
-        let table_pk = get_table_pk(&self.table_name)?;
-        if where_clause.get_primary_key(&mut primary_key, &table_pk)? {
-            if primary_key.len() != table_pk.len() {
-                return Err(Errors::SyntaxError(String::from(
-                    "Full primary key must be defined in where clause",
-                )));
-            }
-            Ok(Some(primary_key))
-        } else {
-            Ok(None)
-        }
+        get_primary_key_from_where(&self.table_name, &self.where_clause)
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

@@ -2,7 +2,7 @@ use super::query::Query;
 use super::where_logic::where_clause::WhereClause;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::utils::errors::Errors;
-use crate::utils::functions::check_table_name;
+use crate::utils::functions::{check_table_name, get_primary_key_from_where, get_table_pk};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 
@@ -37,7 +37,7 @@ impl Query for SelectQuery {
     }
 
     fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
-        Ok(None)
+        get_primary_key_from_where(&self.table_name, &self.where_clause)
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {
