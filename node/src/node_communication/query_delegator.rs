@@ -73,6 +73,7 @@ impl QueryDelegator {
         let ips = nodes_meta_data.get_partition_ips(
             nodes_meta_data_path().as_ref(),
             &None, //&self.primary_key,
+            "".to_string(),
         )?;
         let mut full_ips = Vec::new();
         for ip in ips {

@@ -58,7 +58,7 @@ impl DataAccess {
         &self,
         table_name: &String,
         new_row: Row,
-        where_clause: WhereClause,
+        where_clause: &WhereClause,
     ) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
         let temp_path = format!("{}.tmp", path);
@@ -323,8 +323,8 @@ mod tests {
     }
 
     fn get_row1() -> Row {
-        Row {
-            columns: vec![Column {
+        Row::new(
+            vec![Column {
                 column_name: "name".to_string(),
                 value: Literal {
                     value: "John".to_string(),
@@ -332,8 +332,8 @@ mod tests {
                 },
                 time_stamp: "2024-10-22".to_string(),
             }],
-            primary_keys: vec!["name".to_string()],
-        }
+            vec!["name".to_string()],
+        )
     }
 
     fn get_row1_in_string() -> Result<String, Errors> {
@@ -342,8 +342,8 @@ mod tests {
     }
 
     fn get_row2() -> Row {
-        Row {
-            columns: vec![Column {
+        Row::new(
+            vec![Column {
                 column_name: "name".to_string(),
                 value: Literal {
                     value: "Jane".to_string(),
@@ -351,12 +351,12 @@ mod tests {
                 },
                 time_stamp: "2024-10-23".to_string(),
             }],
-            primary_keys: vec!["name".to_string()],
-        }
+            vec!["name".to_string()],
+        )
     }
     fn get_row3() -> Row {
-        Row {
-            columns: vec![Column {
+        Row::new(
+            vec![Column {
                 column_name: "name".to_string(),
                 value: Literal {
                     value: "Jane".to_string(),
@@ -364,8 +364,8 @@ mod tests {
                 },
                 time_stamp: "2024-10-23".to_string(),
             }],
-            primary_keys: vec!["_".to_string()],
-        }
+            vec!["_".to_string()],
+        )
     }
 
     fn get_row2_in_string() -> Result<String, Errors> {
@@ -426,7 +426,7 @@ mod tests {
             literal,
         ));
 
-        let result = data_access.update_row(&table_name, row2, where_clause);
+        let result = data_access.update_row(&table_name, row2, &where_clause);
         assert!(result.is_ok());
         let table_path = data_access.get_file_path(&table_name);
         let file_content = read_to_string(&table_path).unwrap();

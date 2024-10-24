@@ -30,8 +30,8 @@ impl Query for DeleteQuery {
         todo!()
     }
 
-    fn get_primary_key(&self) -> Option<Vec<String>> {
-        None
+    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
+        Ok(None)
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

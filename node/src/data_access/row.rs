@@ -11,6 +11,7 @@ pub const LOWER: i8 = -1;
 pub struct Row {
     pub columns: Vec<Column>,
     pub primary_keys: Vec<String>,
+    deleted: Option<bool>,
 }
 
 impl Row {
@@ -18,6 +19,15 @@ impl Row {
         Self {
             columns,
             primary_keys,
+            deleted: None,
+        }
+    }
+
+    pub fn new_deleted_row() -> Self {
+        Self {
+            columns: Vec::new(),
+            primary_keys: Vec::new(),
+            deleted: Some(true),
         }
     }
     pub fn get_row_hash(&self) -> HashMap<String, Literal> {

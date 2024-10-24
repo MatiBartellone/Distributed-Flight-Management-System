@@ -17,7 +17,8 @@ impl QueryReceiver {
             "{}:{}",
             nodes_meta_data.get_own_ip(nodes_meta_data_path().as_ref())?,
             QUERY_DELEGATION_PORT
-        )).map_err(|_| Errors::ServerError(String::from("Can't bind the port")))?;
+        ))
+        .map_err(|_| Errors::ServerError(String::from("Can't bind the port")))?;
         let listening_ip = format!(
             "{}:{}",
             nodes_meta_data.get_own_ip(nodes_meta_data_path().as_ref())?,
