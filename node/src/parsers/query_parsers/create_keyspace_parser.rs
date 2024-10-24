@@ -1,5 +1,6 @@
 use crate::parsers::tokens::literal;
 use crate::parsers::tokens::terms::Term;
+use crate::utils::constants::{REPLICATION, STRATEGY};
 use crate::{
     parsers::tokens::token::Token, queries::create_keyspace_query::CreateKeyspaceQuery,
     utils::errors::Errors,
@@ -13,6 +14,7 @@ const UNEXPECTED_TOKEN: &str = "Unexpected token in table_name";
 const MISSING_COLON: &str = "Missing colon for separating parameters in replication";
 const MISSING_WITH: &str = "Missing WITH keyword";
 const MISSING_KEY: &str = "Missing key for replication";
+const INVALID_KEY: &str = "Invalid key for replication";
 const MISSING_VALUE: &str = "Missing value for replication";
 const COMMA: &str = ",";
 const COLON: &str = ":";
@@ -88,7 +90,12 @@ impl CreateKeyspaceParser {
         match self.get_next_value(tokens_list)? {
             Token::Term(Term::Literal(literal)) => {
                 let key = literal.value;
-                self.check_colon(tokens_list, key, replication)
+                if key == STRATEGY || key == REPLICATION {
+                    self.check_colon(tokens_list, key, replication)
+                } else {
+                    Err(Errors::SyntaxError(String::from(MISSING_KEY)))
+                }
+                
             }
             _ => Err(Errors::SyntaxError(String::from(MISSING_KEY))),
         }
