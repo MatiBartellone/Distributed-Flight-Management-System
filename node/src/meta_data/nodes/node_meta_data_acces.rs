@@ -72,6 +72,7 @@ impl NodesMetaDataAccess {
     pub fn append_new_node(&self, path: &str, new_node: Node) -> Result<(), Errors> {
         let mut cluster = NodesMetaDataAccess::read_cluster(path)?;
         cluster.append_new_node(new_node);
+        Self::write_cluster(path, &cluster)?;
         Ok(())
     }
 }
