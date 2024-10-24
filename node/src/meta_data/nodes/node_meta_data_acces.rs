@@ -1,8 +1,5 @@
-use super::{cluster::Cluster, node::Node};
-use crate::{
-    meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess,
-    utils::{constants::KEYSPACE_METADATA, errors::Errors},
-};
+use super::cluster::Cluster;
+use crate::{utils::{errors::Errors, constants::KEYSPACE_METADATA}, meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess};
 use murmur3::murmur3_32;
 use std::{
     fs::{File, OpenOptions},
@@ -54,26 +51,17 @@ impl NodesMetaDataAccess {
         &self,
         path: &str,
         primary_key: &Option<Vec<String>>,
-        keyspace: String,
-    ) -> Result<Vec<String>, Errors> {
+        keyspace: String
+    ) -> Result<Vec<String>, Errors> { 
         let cluster = Self::read_cluster(path)?;
         if let Some(primary_key) = primary_key {
-            let hashing_key = hash_string_murmur3(&primary_key[0]);
+            let hashing_key = hash_string_murmur3(&primary_key.join(""));
             let pos = hashing_key % cluster.len_nodes();
-            let replication =
-                KeyspaceMetaDataAccess::get_replication(KEYSPACE_METADATA.to_owned(), &keyspace)?;
+            let replication = KeyspaceMetaDataAccess::get_replication(KEYSPACE_METADATA.to_owned(), &keyspace)?;
             Ok(cluster.get_nodes(pos, replication))
         } else {
-            // todo, todas las ips
             Ok(cluster.get_all_ips())
         }
-    }
-
-    pub fn append_new_node(&self, path: &str, new_node: Node) -> Result<(), Errors> {
-        let mut cluster = NodesMetaDataAccess::read_cluster(path)?;
-        cluster.append_new_node(new_node);
-        Self::write_cluster(path, &cluster)?;
-        Ok(())
     }
 }
 
