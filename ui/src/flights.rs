@@ -4,7 +4,7 @@ use egui::{Painter, Response, ScrollArea};
 use egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded;
 use walkers::{Plugin, Projector};
 
-use crate::flight::{draw_flight_path, Flight};
+use crate::flight::Flight;
 
 #[derive(Clone)]
 pub struct Flights {
@@ -20,7 +20,7 @@ impl Flights {
         }
     }
 
-    pub fn list_flight_codes(&self, ui: &mut egui::Ui) {
+    pub fn list_flights(&self, ui: &mut egui::Ui) {
         ui.label("Lista de vuelos:");
         ui.add_space(10.0);
         ScrollArea::vertical()
@@ -43,7 +43,7 @@ impl Plugin for Flights {
 
         // Si hay avion seleccionado dibuja la linea al aeropuerto
         if let Some(flight) = self.on_flight_selected.lock().unwrap().as_ref() {
-            draw_flight_path(painter, projector, flight);
+            flight.draw_flight_path(painter, projector);
         }
     }
 }

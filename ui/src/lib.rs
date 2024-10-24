@@ -6,3 +6,5 @@ pub mod information;
 pub mod airport_selection;
 pub mod airports;
 pub mod flight_status;
+pub mod airport;
+pub mod windows;

@@ -1,27 +1,83 @@
-use egui::Pos2;
-use walkers::{Position, Projector};
+use std::sync::{Arc, Mutex};
 
-use crate::flight::Flight;
+use egui::{Painter, Pos2, Response, ScrollArea};
+use egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded;
+use walkers::{Plugin, Position, Projector};
 
-pub fn get_airports() -> Vec<String> {
+use crate::{airport::Airport, flight::Flight};
+
+#[derive(Clone)]
+pub struct Airports {
+    pub airports: Vec<Airport>,
+    pub on_airport_selected: Arc<Mutex<Option<Airport>>>
+}
+
+impl Airports {
+    pub fn new(airports: Vec<Airport>, on_airport_selected: Arc<Mutex<Option<Airport>>>) -> Self {
+        Self {
+            airports,
+            on_airport_selected
+        }
+    }
+
+    pub fn list_airports(&self, ui: &mut egui::Ui) {
+        ScrollArea::vertical()
+        .scroll_bar_visibility(VisibleWhenNeeded)
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            for airport in &self.airports {
+                airport.list_information(ui);
+                ui.separator();
+            }
+        });
+    }
+}
+
+
+
+impl Plugin for Airports {
+    fn run(&mut self, response: &Response, painter: Painter, projector: &Projector) {
+        // Intenta abrir el lock del aeropuerto seleccionado
+        let selected_airport_lock = match self.on_airport_selected.lock() {
+            Ok(lock) => lock,
+            Err(_) => return,
+        };
+
+        if let Some(airport) = &*selected_airport_lock  {
+            // Si hay un aeropuerto seleccionado dibuja solo ese
+            let airport = airport.clone();
+            drop(selected_airport_lock);
+            airport.draw(response, painter.clone(), projector, &self.on_airport_selected);
+        } else {
+            // Sino dibuja todos los aeropuertos
+            drop(selected_airport_lock);
+            for airport in &self.airports {
+                airport.draw(response, painter.clone(), projector, &self.on_airport_selected);
+            }
+        }
+    }
+}
+
+pub fn get_airports() -> Vec<Airport> {
     vec![
-        "EZE".to_string(),
-        "JFK".to_string(),
-        "SCL".to_string(),
-        "MIA".to_string(),
-        "DFW".to_string(),
-        "GRU".to_string(),
-        "MAD".to_string(),
-        "CDG".to_string(),
-        "LAX".to_string(),
-        "AMS".to_string(),
-        "NRT".to_string(),
-        "LHR".to_string(),
-        "FRA".to_string(),
-        "SYD".to_string(),
-        "SFO".to_string(),
+        Airport::new("Aeropuerto Internacional Ministro Pistarini".to_string(), "EZE".to_string(), (-58.535, -34.812)), // EZE
+        Airport::new("Aeropuerto Internacional John F. Kennedy".to_string(), "JFK".to_string(), (-73.7781, 40.6413)), // JFK
+        Airport::new("Aeropuerto Internacional Comodoro Arturo Merino Benítez".to_string(), "SCL".to_string(), (-70.7859, -33.3928)), // SCL
+        Airport::new("Aeropuerto Internacional de Miami".to_string(), "MIA".to_string(), (-80.2870, 25.7959)), // MIA
+        Airport::new("Aeropuerto Internacional de Dallas/Fort Worth".to_string(), "DFW".to_string(), (-97.0382, 32.8968)), // DFW
+        Airport::new("Aeroporto Internacional de São Paulo/Guarulhos".to_string(), "GRU".to_string(), (-46.4731, -23.4255)), // GRU
+        Airport::new("Aeropuerto Adolfo Suárez Madrid-Barajas".to_string(), "MAD".to_string(), (-3.5706, 40.4935)), // MAD
+        Airport::new("Aéroport de Paris-Charles-de-Gaulle".to_string(), "CDG".to_string(), (2.5479, 49.0097)), // CDG
+        Airport::new("Aeropuerto Internacional de Los Ángeles".to_string(), "LAX".to_string(), (-118.4108, 33.9428)), // LAX
+        Airport::new("Luchthaven Schiphol".to_string(), "AMS".to_string(), (4.7642, 52.3086)), // AMS
+        Airport::new("Narita International Airport".to_string(), "NRT".to_string(), (140.3851, 35.7653)), // NRT
+        Airport::new("Aeropuerto de Heathrow".to_string(), "LHR".to_string(), (-0.4543, 51.4700)), // LHR
+        Airport::new("Aeropuerto de Fráncfort del Meno".to_string(), "FRA".to_string(), (8.5706, 50.0333)), // FRA
+        Airport::new("Aeropuerto de Sídney".to_string(), "SYD".to_string(), (151.1772, -33.9461)), // SYD
+        Airport::new("Aeropuerto Internacional de San Francisco".to_string(), "SFO".to_string(), (-122.3790, 37.6213)), // SFO
     ]
 }
+
 
 pub fn get_airport_coordinates(airport: &Option<String>) -> (f64, f64) {
     let Some(airport) = airport else { return (0.0, 0.0) }; 
