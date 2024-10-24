@@ -3,13 +3,10 @@ use super::{
     where_logic::where_clause::WhereClause,
 };
 use crate::data_access::data_access_handler::DataAccessHandler;
-use crate::data_access::row::Row;
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{
-    check_table_name, get_columns_from_table, get_long_string_from_str, get_table_pk,
-};
+use crate::utils::functions::{check_table_name, get_columns_from_table, get_long_string_from_str, get_primary_key_from_where, get_table_pk};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::cmp::PartialEq;
@@ -51,11 +48,8 @@ impl UpdateQuery {
     fn check_no_pk_updated(&self) -> Result<(), Errors> {
         let table_primary_keys = get_table_pk(&self.table_name)?;
         for column in self.changes.keys() {
-            if !table_primary_keys.contains(column) {
-                return Err(Errors::SyntaxError(format!(
-                    "Column {} not defined in table data",
-                    column
-                )));
+            if table_primary_keys.contains(column) {
+                return Err(Errors::SyntaxError(String::from("Cannot change primary keys")));
             }
         }
         Ok(())
@@ -107,15 +101,6 @@ impl UpdateQuery {
         }
         Ok(())
     }
-    fn build_row(&self) -> Result<Row, Errors> {
-        let values = Vec::new();
-        let Some(primary_keys) = self.get_primary_key()? else {
-            return Err(Errors::SyntaxError(String::from(
-                "Primary keys not defined",
-            )));
-        };
-        Ok(Row::new(values, primary_keys))
-    }
 }
 
 impl Default for UpdateQuery {
@@ -129,34 +114,17 @@ impl Query for UpdateQuery {
         let mut stream = DataAccessHandler::establish_connection()?;
         let data_access = DataAccessHandler::get_instance(&mut stream)?;
         self.check_values()?;
-        let row = self.build_row()?;
         let Some(where_clause) = &self.where_clause else {
             return Err(Errors::SyntaxError(String::from(
                 "Where clause must be defined",
             )));
         };
-        data_access.update_row(&self.table_name, row, where_clause)?;
-        Ok(get_long_string_from_str("Insertion was successful"))
+        data_access.update_row(&self.table_name, &self.changes, where_clause)?;
+        Ok(get_long_string_from_str("Update was successful"))
     }
 
     fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
-        let Some(where_clause) = &self.where_clause else {
-            return Err(Errors::SyntaxError(String::from(
-                "Where clause must be defined",
-            )));
-        };
-        let mut primary_key = Vec::new();
-        let table_pk = get_table_pk(&self.table_name)?;
-        if where_clause.get_primary_key(&mut primary_key, &table_pk)? {
-            if primary_key.len() != table_pk.len() {
-                return Err(Errors::SyntaxError(String::from(
-                    "Full primary key must be defined in where clause",
-                )));
-            }
-            Ok(Some(primary_key))
-        } else {
-            Ok(None)
-        }
+        get_primary_key_from_where(&self.table_name, &self.where_clause)
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {
