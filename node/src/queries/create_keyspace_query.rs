@@ -1,5 +1,8 @@
+use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::queries::query::Query;
+use crate::utils::constants::{KEYSPACE_METADATA, REPLICATION, STRATEGY};
 use crate::utils::errors::Errors;
+use crate::utils::functions::get_long_string_from_str;
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -22,11 +25,35 @@ impl CreateKeyspaceQuery {
             replication: HashMap::<String, String>::new(),
         }
     }
+
+    fn get_replication(&self) -> Option<usize> {
+        if let Some(replication_str) = self.replication.get(REPLICATION) {
+            if let Ok(replication) = replication_str.parse::<usize>() {
+                return Some(replication);
+            }
+        }
+        None
+    }
+
+    fn get_strategy(&self) -> Option<String> {
+        if let Some(strategy) = self.replication.get(STRATEGY) {
+            return Some(strategy.to_string());
+            
+        }
+        None
+    }
 }
 
 impl Query for CreateKeyspaceQuery {
+
+    
+
     fn run(&self) -> Result<Vec<u8>, Errors> {
-        todo!()
+        let mut stream = MetaDataHandler::establish_connection()?;
+        let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
+        let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
+        keyspace_meta_data.add_keyspace(KEYSPACE_METADATA.to_owned(), &self.keyspace, self.get_strategy(), self.get_replication())?;
+        Ok(get_long_string_from_str("Create keyspace was successful"))
     }
 
     fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {

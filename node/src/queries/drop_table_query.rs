@@ -1,5 +1,8 @@
-use crate::utils::functions::check_table_name;
+use crate::data_access::data_access_handler::DataAccessHandler;
+use crate::meta_data::meta_data_handler::MetaDataHandler;
+use crate::utils::functions::{check_table_name, split_keyspace_table, get_long_string_from_str};
 use crate::{queries::query::Query, utils::errors::Errors};
+use crate::utils::constants::KEYSPACE_METADATA;
 use std::any::Any;
 
 #[derive(PartialEq, Debug)]
@@ -15,11 +18,29 @@ impl DropTableQuery {
             if_exist: None,
         }
     }
+
+    fn push_on_meta_data(&self) -> Result<(), Errors>{ 
+        let (keyspace_name, table) = split_keyspace_table(&self.table_name)?;
+        let mut stream = MetaDataHandler::establish_connection()?;
+        let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
+        let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
+        keyspace_meta_data.delete_table(KEYSPACE_METADATA.to_owned(), keyspace_name, table)?;
+        Ok(())
+    }
+
+    fn push_on_data_acces(&self) -> Result<(), Errors> {
+        let mut stream = DataAccessHandler::establish_connection()?;
+        let data_access = DataAccessHandler::get_instance(&mut stream)?;
+        data_access.drop_table(self.table_name.clone())?;
+        Ok(())
+    }
 }
 
 impl Query for DropTableQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
-        unimplemented!()
+        self.push_on_data_acces()?;
+        self.push_on_meta_data()?;
+        Ok(get_long_string_from_str("Drop table was successful"))
     }
 
     fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {

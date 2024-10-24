@@ -1,7 +1,10 @@
+use crate::data_access::data_access_handler::DataAccessHandler;
+use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::parsers::tokens::data_type::DataType;
 use crate::queries::query::Query;
+use crate::utils::constants::KEYSPACE_METADATA;
 use crate::utils::errors::Errors;
-use crate::utils::functions::check_table_name;
+use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table};
 use std::any::Any;
 use std::collections::HashMap;
 
@@ -9,7 +12,7 @@ use std::collections::HashMap;
 pub struct CreateTableQuery {
     pub table_name: String,
     pub columns: HashMap<String, DataType>,
-    pub primary_key: String,
+    pub primary_key: Vec<String>,
 }
 
 impl CreateTableQuery {
@@ -17,8 +20,25 @@ impl CreateTableQuery {
         Self {
             table_name: String::new(),
             columns: HashMap::new(),
-            primary_key: String::new(),
+            primary_key: Vec::new(),
         }
+    }
+
+
+    fn push_on_meta_data(&self) -> Result<(), Errors>{ 
+        let (kesypace_name, table) = split_keyspace_table(&self.table_name)?;
+        let mut stream = MetaDataHandler::establish_connection()?;
+        let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
+        let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
+        keyspace_meta_data.add_table(KEYSPACE_METADATA.to_owned(), kesypace_name, table, self.primary_key.clone(), self.columns.clone())?;
+        Ok(())
+    }
+
+    fn push_on_data_acces(&self) -> Result<(), Errors> {
+        let mut stream = DataAccessHandler::establish_connection()?;
+        let data_access = DataAccessHandler::get_instance(&mut stream)?;
+        data_access.create_table(&self.table_name)?;
+        Ok(())
     }
 }
 
@@ -30,7 +50,9 @@ impl Default for CreateTableQuery {
 
 impl Query for CreateTableQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
-        todo!()
+        self.push_on_data_acces()?;
+        self.push_on_meta_data()?;
+        Ok(get_long_string_from_str("Create table was successful"))
     }
 
     fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {

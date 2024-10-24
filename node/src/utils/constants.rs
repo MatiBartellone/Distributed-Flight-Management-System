@@ -4,6 +4,8 @@ pub const NODES_METADATA: &str = "src/meta_data/nodes/metadata.json";
 pub const CLIENT_METADATA_PATH: &str = "src/meta_data/clients/";
 pub const KEYSPACE_METADATA: &str = "src/meta_data/keyspaces/metadata.json";
 
+pub const REPLICATION: &str = "replication_factor";
+pub const STRATEGY: &str = "class";
 pub fn nodes_meta_data_path() -> String {
     format!("src/meta_data/nodes/{}.json", process::id())
 }

@@ -35,7 +35,7 @@ impl DataAccess {
         Ok(())
     }
 
-    pub fn alter_table(&self, table_name: &String) -> Result<(), Errors> {
+    pub fn truncate_table(&self, table_name: &String) -> Result<(), Errors> {
         let _file = OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -380,7 +380,7 @@ mod tests {
         let data_access = DataAccess {};
         let table_name = get_unique_table_name();
         data_access.create_table(&table_name).unwrap();
-        let result = data_access.alter_table(&table_name);
+        let result = data_access.truncate_table(&table_name);
         assert!(result.is_ok());
         remove_file(data_access.get_file_path(&table_name)).unwrap();
     }

@@ -92,6 +92,16 @@ pub fn get_table_pk(table_name: &str) -> Result<HashSet<String>, Errors> {
         .collect())
 }
 
+pub fn split_keyspace_table(input: &str) -> Result<(&str, &str), Errors> {
+    let mut parts = input.split('.');
+    let keyspace = parts.next().ok_or_else(|| Errors::SyntaxError("Missing keyspace".to_string()))?;
+    let table = parts.next().ok_or_else(|| Errors::SyntaxError("Missing table".to_string()))?;
+    if parts.next().is_some() {
+        return Err(Errors::SyntaxError("Too many parts, expected only keyspace and table".to_string()));
+    }
+    Ok((keyspace, table))
+}
+
 pub fn get_int_from_string(string: &String) -> Result<i32, Errors> {
     string
         .parse::<i32>()
