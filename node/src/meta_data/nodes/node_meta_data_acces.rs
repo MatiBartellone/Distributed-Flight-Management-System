@@ -58,7 +58,7 @@ impl NodesMetaDataAccess {
     ) -> Result<Vec<String>, Errors> {
         let cluster = Self::read_cluster(path)?;
         if let Some(primary_key) = primary_key {
-            let hashing_key = hash_string_murmur3(&primary_key.join(""));
+            let hashing_key = hash_string_murmur3(&primary_key[0]);
             let pos = hashing_key % cluster.len_nodes();
             let replication =
                 KeyspaceMetaDataAccess::get_replication(KEYSPACE_METADATA.to_owned(), &keyspace)?;

@@ -47,8 +47,54 @@ fn is_valid_text(input: &str) -> Option<Token> {
     }
     None
 }
+fn is_valid_date(input: &str) -> Option<Token> {
+    if input.starts_with('\'') && input.ends_with('\'') && input.contains("-"){
+        
+        let instances: Vec<&str> = input[1..input.len() - 1].split('-').collect();
+        if instances.len() == 3 {
+            let _ = instances[0].parse::<usize>().ok()?;
+            let month = instances[1].parse::<usize>().ok()?;
+            let day = instances[2].parse::<usize>().ok()?;
+            if (1..=12).contains(&month) && (1..=31).contains(&day) {
+                let inner = &input[1..input.len() - 1];
+                let literal = Literal {
+                    value: inner.to_string(),
+                    data_type: Date,
+                };
+                return Some(Token::Term(Term::Literal(literal)));
+            }
+        }
+    }
+    None
+}
+
+fn is_valid_time(input: &str) -> Option<Token> {
+    if input.starts_with('\'') && input.ends_with('\'') && input.contains(":"){
+        let instances: Vec<&str> = input[1..input.len() - 1].split(':').collect();
+        if instances.len() == 3 {
+            let hour = instances[0].parse::<usize>().ok()?;
+            let minutes = instances[1].parse::<usize>().ok()?;
+            let seconds = instances[2].parse::<usize>().ok()?;
+            if (0..=23).contains(&hour) && (0..=59).contains(&minutes) && (0..=59).contains(&seconds) {
+                let inner = &input[1..input.len() - 1];
+                let literal = Literal {
+                    value: inner.to_string(),
+                    data_type: Date,
+                };
+                return Some(Token::Term(Term::Literal(literal)));
+            }
+        }
+    }
+    None
+}
 
 pub fn to_literal(word: &str) -> Option<Token> {
+    if let Some(token) = is_valid_date(word) {
+        return Some(token);
+    }
+    if let Some(token) = is_valid_time(word) {
+        return Some(token);
+    }
     if let Some(token) = is_valid_bigint(word) {
         return Some(token);
     }
@@ -58,8 +104,6 @@ pub fn to_literal(word: &str) -> Option<Token> {
     if let Some(token) = is_valid_text(word) {
         return Some(token);
     }
-    //si se puede usar regex, es una pavada
-    //si no se puede, suerte :))
     None
 }
 
@@ -221,5 +265,24 @@ mod tests {
         let input = "notavalidtype";
         let result = to_literal(input);
         assert_eq!(result, None);
+    }
+
+
+    #[test]
+    fn test_to_literal_date() {
+        let input = "'2004-05-23'";
+        let result = to_literal(input).unwrap();
+        let literal = Literal::new("2004-05-23".to_string(), Date);
+        let token = Token::Term(Term::Literal(literal));
+        assert_eq!(result, token);
+    }
+
+    #[test]
+    fn test_to_literal_time() {
+        let input = "'17:30:00'";
+        let result = to_literal(input).unwrap();
+        let literal = Literal::new("17:30:00".to_string(), Date);
+        let token = Token::Term(Term::Literal(literal));
+        assert_eq!(result, token);
     }
 }
