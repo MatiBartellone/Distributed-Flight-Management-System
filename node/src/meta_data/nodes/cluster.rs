@@ -24,6 +24,10 @@ impl Cluster {
         self.other_nodes.len() + 1
     }
 
+    pub fn append_new_node(&mut self, node: Node) {
+        self.other_nodes.push(node)
+    }
+
     pub fn get_nodes(&self, position: usize, replication: usize) -> Vec<String> {
         let end_position = position + replication;
         let mut ips = Vec::new();

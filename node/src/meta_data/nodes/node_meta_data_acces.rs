@@ -1,4 +1,4 @@
-use super::cluster::Cluster;
+use super::{cluster::Cluster, node::Node};
 use crate::{
     meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess,
     utils::{constants::KEYSPACE_METADATA, errors::Errors},
@@ -67,6 +67,11 @@ impl NodesMetaDataAccess {
             // todo, todas las ips
             Ok(cluster.get_all_ips())
         }
+    }
+
+    pub fn append_new_node(&self, path: &str, new_node: Node) -> Result<(), Errors> {
+        let mut cluster = NodesMetaDataAccess::read_cluster(path)?;
+        Ok(cluster.append_new_node(new_node))
     }
 }
 
