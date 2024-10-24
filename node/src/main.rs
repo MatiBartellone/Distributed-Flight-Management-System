@@ -12,33 +12,48 @@ use node::utils::errors::Errors;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug ,Serialize, Deserialize)]
+struct NodeInfo{
+    ip: String,
+    position: usize
+}
+
+fn add_node_to_cluster(node: Node) -> Result<(), Errors> {
+    let mut stream = MetaDataHandler::establish_connection()?;
+    let _ = MetaDataHandler::get_instance(&mut stream).unwrap().get_nodes_metadata_access()
+        .append_new_node(nodes_meta_data_path().as_ref(), node)?;
+    Ok(())
+}
 
 fn main() {
+    let server_addr = "127.0.0.1:7878";
+
     print!("node's ip: ");
     io::stdout().flush().unwrap();
     let mut ip = String::new();
     io::stdin().read_line(&mut ip).expect("Error reading ip");
     let ip = ip.trim();
 
-    //let node = Node::new(ip.to_string(), 8080);
-    //node.write_to_file("src/node_info.json");
+    print!("node's position in cluster: ");
+    io::stdout().flush().unwrap();
+    let mut position = String::new();
+    io::stdin().read_line(&mut position).expect("Error reading position");
+    let position = position.trim();
 
-    let nodes = vec![
-        Node::new(String::from("127.0.0.1"), 1),
-        Node::new(String::from("127.0.0.2"), 2),
-        Node::new(String::from("127.0.0.3"), 3),
-    ];
-    let mut own_node = Node::new(String::from(ip), 1);
-    let mut other_nodes = Vec::new();
-    for node in nodes {
-        if node.get_ip() != ip {
-            other_nodes.push(node);
-        } else {
-            own_node = Node::new(node.get_ip().to_string(), node.get_pos());
-        }
-    }
-    let cluster = Cluster::new(own_node, other_nodes);
+    let node_info = NodeInfo{ip: ip.to_string(), position: position.parse::<i32>().unwrap() as usize};
+    let mut server_stream = TcpStream::connect(server_addr).expect("Failed to connect to server");
 
+    server_stream.write(serde_json::to_string(&node_info).unwrap().as_bytes()).unwrap();
+
+    // Leer la lista de nodos activos del servidor
+    let mut buffer = [0; 1024];
+    let size = server_stream.read(&mut buffer).unwrap();
+    let nodes: Vec<NodeInfo> = serde_json::from_slice(&buffer[..size]).unwrap();
+    let nodes : Vec<Node> = nodes.iter().map(|n| Node::new(n.ip.to_string(), n.position)).collect();
+    dbg!(&nodes);
+    let cluster = Cluster::new(Node::new(ip.to_string(), node_info.position), nodes);
     if let Err(e) = NodesMetaDataAccess::write_cluster(nodes_meta_data_path().as_ref(), &cluster) {
         dbg!(e);
     }
@@ -53,6 +68,37 @@ fn main() {
         let _ = MetaDataHandler::start_listening();
     });
 
+    thread::spawn(move || {
+        // Mantener el nodo corriendo y escuchando nuevos mensajes
+        let listener = TcpListener::bind(format!("{}:{}", node_info.ip, 7676)).unwrap();
+        for incoming in listener.incoming(){
+            match incoming {
+                Ok(mut stream) => {
+                    // Leer nuevos mensajes del servidor (nuevos nodos que se conectan)
+                    let size = stream.read(&mut buffer).unwrap();
+                    if size > 0{
+                        let new_node: NodeInfo = serde_json::from_slice(&buffer[..size]).unwrap();
+                        dbg!(&new_node);
+                        let node = Node::new(new_node.ip.to_string(), new_node.position);
+                        {
+                            add_node_to_cluster(node).unwrap();
+                        }
+                    }
+                },
+                _ => {}
+            }
+
+
+        }
+    });
+
+
+
+
+
+
+
+
     let listener =
         TcpListener::bind(format!("{}:{}", ip, CLIENTS_PORT)).expect("Error binding socket");
     println!("Servidor escuchando en {}", ip);
@@ -62,9 +108,12 @@ fn main() {
             Ok(stream) => {
                 println!("Cliente conectado: {:?}", stream.peer_addr());
 
+
                 // Mover la conexión a un hilo
+                server_stream.write(b"1").unwrap();
                 thread::spawn(move || {
                     handle_client(stream);
+                    //server_stream.write(b"-").unwrap();
                 });
             }
             Err(e) => {

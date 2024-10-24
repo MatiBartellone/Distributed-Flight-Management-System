@@ -14,14 +14,11 @@ impl MetaDataHandler {
     pub fn start_listening() -> Result<(), Errors> {
         let listener = TcpListener::bind(get_meta_data_handler_ip()?)
             .map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
+
         for stream in listener.incoming() {
             match stream {
                 Ok(mut stream) => Self::handle_connection(&mut stream)?,
-                Err(_) => {
-                    return Err(Errors::ServerError(String::from(
-                        "Failed to connect to meta data handler",
-                    )))
-                }
+                _ => {continue}
             }
         }
         Ok(())
@@ -35,12 +32,12 @@ impl MetaDataHandler {
         stream
             .write_all(serialized.as_bytes())
             .map_err(|_| Errors::ServerError("Error writing to stream".to_string()))?;
-        match stream.read_exact(&mut [0; 1024]) {
-            Ok(_) => Ok(()),
+        match stream.read(&mut [0; 1024]) {
+            Ok(_n) => Ok(()),
             Err(e) => Err(Errors::ServerError(format!(
-                "Error reading from stream: {}",
-                e
-            ))),
+                    "Error reading from stream: {}",
+                    e
+            )))
         }
     }
 
