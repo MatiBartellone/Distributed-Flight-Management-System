@@ -4,7 +4,7 @@ use crate::{
     utils::errors::Errors,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use ComparisonOperators::*;
 
@@ -29,6 +29,23 @@ impl ComparisonExpr {
             column_name,
             operator,
             literal,
+        }
+    }
+
+    pub fn get_primary_key(
+        &self,
+        pk: &mut Vec<String>,
+        table_pk: &HashSet<String>,
+    ) -> Result<bool, Errors> {
+        if !table_pk.contains(&self.column_name) {
+            return Ok(false);
+        }
+        match self.operator {
+            Equal => {
+                pk.push(self.literal.value.to_string());
+                Ok(true)
+            }
+            _ => Ok(false),
         }
     }
 }
