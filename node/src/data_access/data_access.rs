@@ -8,7 +8,7 @@ use crate::queries::set_logic::assigmente_value::AssignmentValue;
 use crate::queries::where_logic::where_clause::WhereClause;
 use crate::utils::constants::ASC;
 use crate::utils::errors::Errors;
-use crate::utils::functions::get_int_from_string;
+use crate::utils::functions::{get_int_from_string, get_timestamp};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::{metadata, remove_file, rename, File, OpenOptions};
@@ -131,12 +131,12 @@ impl DataAccess {
             Some(AssignmentValue::Column(column)) => Ok(Column::new(
                 column_name,
                 &row.get_some_column(&column)?.value,
-                actual_column.time_stamp.to_string(),
+                get_timestamp()?,
             )),
             Some(AssignmentValue::Simple(literal)) => Ok(Column::new(
                 column_name,
                 &literal,
-                actual_column.time_stamp.to_string(),
+                get_timestamp()?,
             )),
             Some(AssignmentValue::Arithmetic(column, arith, literal)) => {
                 let value1 = get_int_from_string(&row.get_some_column(&column)?.value.value)?;
@@ -152,7 +152,7 @@ impl DataAccess {
                 Ok(Column::new(
                     column_name,
                     &Literal::new(new_value.to_string(), DataType::Int),
-                    actual_column.time_stamp.to_string(),
+                    get_timestamp()?,
                 ))
             }
             _ => Err(Errors::ServerError(String::from("Column not found"))),
@@ -415,20 +415,6 @@ mod tests {
             .map_err(|_| Errors::ServerError("Failed to serialize row1".to_string()))
     }
 
-    fn get_row2() -> Row {
-        Row::new(
-            vec![Column {
-                column_name: "name".to_string(),
-                value: Literal {
-                    value: "Jane".to_string(),
-                    data_type: DataType::Text,
-                },
-                time_stamp: "2024-10-22".to_string(),
-            }],
-            vec!["name".to_string()],
-        )
-    }
-
     fn get_assignment() -> HashMap<String, AssignmentValue> {
         let mut assignments = HashMap::new();
         assignments.insert("name".to_string(), AssignmentValue::Simple(Literal::new("Jane".to_string(), DataType::Text)));
@@ -448,9 +434,8 @@ mod tests {
         )
     }
 
-    fn get_row2_in_string() -> Result<String, Errors> {
-        serde_json::to_string(&get_row2())
-            .map_err(|_| Errors::ServerError("Failed to serialize row2".to_string()))
+    fn get_updated_string() -> String {
+        "{\"columns\":[{\"column_name\":\"name\",\"value\":{\"value\":\"Jane\",\"data_type\":\"Text\"}".to_string()
     }
 
     #[test]
@@ -493,7 +478,6 @@ mod tests {
         data_access.create_table(&table_name).unwrap();
 
         let row1 = get_row1();
-        let row2 = get_row2();
         data_access.insert(&table_name, &row1).unwrap();
 
         let literal = Literal {
@@ -510,7 +494,7 @@ mod tests {
         assert!(result.is_ok());
         let table_path = data_access.get_file_path(&table_name);
         let file_content = read_to_string(&table_path).unwrap();
-        assert!(file_content.contains(get_row2_in_string().unwrap().as_str()));
+        assert!(file_content.contains(get_updated_string().as_str()));
         assert!(!file_content.contains(get_row1_in_string().unwrap().as_str()));
 
         remove_file(table_path).unwrap();
