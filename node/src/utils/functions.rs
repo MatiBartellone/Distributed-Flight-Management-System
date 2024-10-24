@@ -90,3 +90,9 @@ pub fn get_table_pk(table_name: &str) -> Result<HashSet<String>, Errors> {
         .into_iter()
         .collect())
 }
+
+pub fn get_int_from_string(string: &String) -> Result<i32, Errors> {
+    Ok(string
+        .parse::<i32>()
+        .map_err(|_| Errors::SyntaxError(format!("Could not parse int: {}", string)))?)
+}

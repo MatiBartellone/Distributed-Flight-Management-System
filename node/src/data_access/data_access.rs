@@ -1,10 +1,16 @@
-use crate::data_access::row::Row;
+use crate::data_access::row::{Column, Row};
+use crate::parsers::tokens::data_type::DataType;
+use crate::parsers::tokens::literal::Literal;
+use crate::parsers::tokens::terms::ArithMath;
 use crate::queries::evaluate::Evaluate;
 use crate::queries::order_by_clause::OrderByClause;
+use crate::queries::set_logic::assigmente_value::AssignmentValue;
 use crate::queries::where_logic::where_clause::WhereClause;
 use crate::utils::constants::ASC;
 use crate::utils::errors::Errors;
+use crate::utils::functions::get_int_from_string;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs::{metadata, remove_file, rename, File, OpenOptions};
 use std::io::{BufReader, Seek, SeekFrom, Write};
 
@@ -57,7 +63,7 @@ impl DataAccess {
     pub fn update_row(
         &self,
         table_name: &String,
-        new_row: Row,
+        changes: &HashMap<String, AssignmentValue>,
         where_clause: &WhereClause,
     ) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
@@ -65,13 +71,7 @@ impl DataAccess {
         self.create_file(&temp_path)?;
         for row in self.get_deserialized_stream(&path)? {
             if where_clause.evaluate(&row.get_row_hash())? {
-                if self.have_same_primary_key(&row, &new_row) {
-                    self.append_row(&temp_path, &new_row)?;
-                } else {
-                    return Err(Errors::ProtocolError(String::from(
-                        "Cant change the primary key values",
-                    )));
-                }
+                self.append_row(&temp_path, &self.build_updated_row(&row, &changes)?)?;
             } else {
                 self.append_row(&temp_path, &row)?;
             }
@@ -81,8 +81,62 @@ impl DataAccess {
         Ok(())
     }
 
-    fn have_same_primary_key(&self, row1: &Row, row2: &Row) -> bool {
-        row1.primary_keys == row2.primary_keys
+    fn build_updated_row(
+        &self,
+        row: &Row,
+        changes: &HashMap<String, AssignmentValue>,
+    ) -> Result<Row, Errors> {
+        let mut new_columns = Vec::new();
+        for column in &row.columns {
+            if !changes.contains_key(&column.column_name) {
+                new_columns.push(Column::new_from_column(column))
+            } else {
+                new_columns.push(Column::new_from_column(&self.get_updated_column(row, changes, &column)?))
+            }
+        }
+        Ok(Row::new(
+            new_columns,
+            Vec::from(row.primary_keys.as_slice()),
+        ))
+    }
+
+    fn get_updated_column(
+        &self,
+        row: &Row,
+        changes: &HashMap<String, AssignmentValue>,
+        actual_column: &Column,
+    ) -> Result<Column, Errors> {
+        let column_name = &actual_column.column_name;
+        match changes.get(column_name) {
+            Some(AssignmentValue::Column(column)) => Ok(Column::new(
+                column_name,
+                &row.get_some_column(&column)?.value,
+                actual_column.time_stamp.to_string(),
+            )),
+            Some(AssignmentValue::Simple(literal)) => Ok(Column::new(
+                column_name,
+                &literal,
+                actual_column.time_stamp.to_string(),
+            )),
+            Some(AssignmentValue::Arithmetic(column, arith, literal)) => {
+                let value1 = get_int_from_string(&row.get_some_column(&column)?.value.value)?;
+                let value2 = get_int_from_string(&literal.value)?;
+                let new_value;
+                match arith {
+                    ArithMath::Suma => new_value = value1 + value2,
+                    ArithMath::Sub => new_value = value1 - value2,
+                    ArithMath::Division => new_value = value1 / value2,
+                    ArithMath::Rest => new_value = value1 % value2,
+                    ArithMath::Multiplication => new_value = value1 * value2,
+                }
+                Ok(Column::new(
+                    column_name,
+                    &Literal::new(new_value.to_string(), DataType::Int),
+                    actual_column.time_stamp.to_string(),
+                ))
+            }
+            _ => Err(Errors::ServerError(String::from("Column not found"))),
+        }
     }
 
     pub fn select_rows(
@@ -349,10 +403,16 @@ mod tests {
                     value: "Jane".to_string(),
                     data_type: DataType::Text,
                 },
-                time_stamp: "2024-10-23".to_string(),
+                time_stamp: "2024-10-22".to_string(),
             }],
             vec!["name".to_string()],
         )
+    }
+
+    fn get_assignment() -> HashMap<String, AssignmentValue> {
+        let mut assignments = HashMap::new();
+        assignments.insert("name".to_string(), AssignmentValue::Simple(Literal::new("Jane".to_string(), DataType::Text)));
+        assignments
     }
     fn get_row3() -> Row {
         Row::new(
@@ -426,7 +486,7 @@ mod tests {
             literal,
         ));
 
-        let result = data_access.update_row(&table_name, row2, &where_clause);
+        let result = data_access.update_row(&table_name, &get_assignment(), &where_clause);
         assert!(result.is_ok());
         let table_path = data_access.get_file_path(&table_name);
         let file_content = read_to_string(&table_path).unwrap();
