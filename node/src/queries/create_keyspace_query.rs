@@ -1,7 +1,9 @@
 use crate::queries::query::Query;
+use crate::utils::constants::REPLICATION;
 use crate::utils::errors::Errors;
 use std::any::Any;
 use std::collections::HashMap;
+use std::intrinsics::mir::Return;
 
 #[derive(PartialEq, Debug)]
 pub struct CreateKeyspaceQuery {
@@ -25,6 +27,14 @@ impl CreateKeyspaceQuery {
 }
 
 impl Query for CreateKeyspaceQuery {
+
+    fn get_replication(&self) -> Option<usize> {
+        if self.replication.contains_key(REPLICATION) {
+            return self.replication.get(REPLICATION);
+        }
+        return None;
+    }
+
     fn run(&self) -> Result<Vec<u8>, Errors> {
         todo!()
     }
