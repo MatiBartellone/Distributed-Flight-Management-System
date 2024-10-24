@@ -332,7 +332,7 @@ mod tests {
                 },
                 time_stamp: "2024-10-22".to_string(),
             }],
-            vec!["name".to_string()]
+            vec!["name".to_string()],
         )
     }
 
@@ -351,7 +351,7 @@ mod tests {
                 },
                 time_stamp: "2024-10-23".to_string(),
             }],
-            vec!["name".to_string()]
+            vec!["name".to_string()],
         )
     }
     fn get_row3() -> Row {
@@ -364,7 +364,7 @@ mod tests {
                 },
                 time_stamp: "2024-10-23".to_string(),
             }],
-            vec!["_".to_string()]
+            vec!["_".to_string()],
         )
     }
 

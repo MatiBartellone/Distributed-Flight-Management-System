@@ -2,8 +2,6 @@ use crate::parsers::tokens::literal::Literal;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::option::Option;
-use crate::parsers::tokens::data_type::DataType;
-use crate::utils::functions::get_timestamp;
 
 pub const EQUAL: i8 = 0;
 pub const GREATER: i8 = 1;

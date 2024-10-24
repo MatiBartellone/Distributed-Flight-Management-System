@@ -6,7 +6,7 @@ use crate::utils::constants::{
     META_DATA_ACCESS_PORT,
 };
 use crate::utils::errors::Errors;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
@@ -73,4 +73,20 @@ pub fn get_columns_from_table(table_name: &str) -> Result<HashMap<String, DataTy
         identifiers[0],
         identifiers[1],
     )
+}
+
+pub fn get_table_pk(table_name: &str) -> Result<HashSet<String>, Errors> {
+    let binding = table_name.split('.').collect::<Vec<&str>>();
+    let identifiers = &binding.as_slice();
+    let mut stream = MetaDataHandler::establish_connection()?;
+    let keyspace_meta_data =
+        MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
+    Ok(keyspace_meta_data
+        .get_primary_key(
+            KEYSPACE_METADATA.to_string(),
+            identifiers[0],
+            identifiers[1],
+        )?
+        .into_iter()
+        .collect())
 }

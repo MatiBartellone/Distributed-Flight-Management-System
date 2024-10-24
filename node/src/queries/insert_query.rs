@@ -1,10 +1,8 @@
 use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::data_access::row::{Column, Row};
-use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::parsers::tokens::data_type::DataType;
-use crate::utils::constants::KEYSPACE_METADATA;
 use crate::utils::functions::{
-    check_table_name, get_columns_from_table, get_long_string_from_str, get_timestamp,
+    check_table_name, get_columns_from_table, get_long_string_from_str, get_table_pk, get_timestamp,
 };
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
@@ -118,19 +116,7 @@ impl Query for InsertQuery {
             return Err(Errors::SyntaxError("No values provided".to_string()));
         };
         self.check_different_values()?;
-        let binding = self.table_name.split('.').collect::<Vec<&str>>();
-        let identifiers = &binding.as_slice();
-        let mut stream = MetaDataHandler::establish_connection()?;
-        let keyspace_meta_data =
-            MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
-        let table_primary_keys: HashSet<_> = keyspace_meta_data
-            .get_primary_key(
-                KEYSPACE_METADATA.to_string(),
-                identifiers[0],
-                identifiers[1],
-            )?
-            .into_iter()
-            .collect();
+        let table_primary_keys = get_table_pk(&self.table_name)?;
         let mut primary_keys = Vec::new();
         if row.len() != self.headers.len() {
             return Err(Errors::SyntaxError(String::from(

@@ -7,7 +7,7 @@ use crate::{
     },
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use WhereClause::*;
 
 use super::comparison::ComparisonExpr;
@@ -40,6 +40,33 @@ impl Evaluate for WhereClause {
             And(expr1, expr2) => Ok(expr1.evaluate(row)? && expr2.evaluate(row)?),
             Or(expr1, expr2) => Ok(expr1.evaluate(row)? || expr2.evaluate(row)?),
             Not(expr) => Ok(!expr.evaluate(row)?),
+        }
+    }
+}
+
+impl WhereClause {
+    pub fn get_primary_key(
+        &self,
+        pk: &mut Vec<String>,
+        table_pk: &HashSet<String>,
+    ) -> Result<bool, Errors> {
+        match self {
+            Comparison(comparacion) => comparacion.get_primary_key(pk, table_pk),
+            Tuple(comparaciones) => {
+                for comparacion in comparaciones {
+                    if !comparacion.get_primary_key(pk, table_pk)? {
+                        return Ok(false);
+                    }
+                }
+                Ok(true)
+            }
+            And(expr1, expr2) => {
+                Ok(expr1.get_primary_key(pk, table_pk)? && expr2.get_primary_key(pk, table_pk)?)
+            }
+            Or(expr1, expr2) => {
+                Ok(expr1.get_primary_key(pk, table_pk)? && expr2.get_primary_key(pk, table_pk)?)
+            }
+            Not(expr) => Ok(expr.get_primary_key(pk, table_pk)?),
         }
     }
 }
