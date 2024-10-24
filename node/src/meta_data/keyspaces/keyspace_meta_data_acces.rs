@@ -165,7 +165,6 @@ impl KeyspaceMetaDataAccess {
     ) -> Result<(), Errors> {
         let mut file = Self::open_file(path)?;
         let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
-        //let (mut file, mut keyspaces) = self.lock_and_extract_keyspaces()?;
         let keyspace = get_keyspace_mutable(&mut keyspaces, keyspace_name)?;
         if !keyspace.tables.contains_key(table_name) {
             return Err(Errors::SyntaxError(format!(
@@ -174,6 +173,53 @@ impl KeyspaceMetaDataAccess {
             )));
         }
         keyspace.tables.remove(table_name);
+        Self::save_hash_to_json(&mut file, &keyspaces)?;
+        Ok(())
+    }
+
+    pub fn new_column(
+        &self,
+        path: String,
+        keyspace_name: &str,
+        table_name: &str,
+        column_name: &str,
+        data_type: DataType
+    ) -> Result<(), Errors> {
+        let mut file = Self::open_file(path)?;
+        let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
+        let table = get_table_mutable(&mut keyspaces, keyspace_name, table_name)?;
+        table.columns.insert(column_name.to_string(), data_type);
+        Self::save_hash_to_json(&mut file, &keyspaces)?;
+        Ok(())
+    }
+
+    pub fn drop_column(
+        &self,
+        path: String,
+        keyspace_name: &str,
+        table_name: &str,
+        column_name: &str,
+    ) -> Result<(), Errors> {
+        let mut file = Self::open_file(path)?;
+        let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
+        let table = get_table_mutable(&mut keyspaces, keyspace_name, table_name)?;
+        table.columns.remove(column_name);
+        Self::save_hash_to_json(&mut file, &keyspaces)?;
+        Ok(())
+    }
+
+    pub fn rename_column(
+        &self,
+        path: String,
+        keyspace_name: &str,
+        table_name: &str,
+        column_name1: &str,
+        column_name2: &str,
+    ) -> Result<(), Errors> {
+        let mut file = Self::open_file(path)?;
+        let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
+        let table = get_table_mutable(&mut keyspaces, keyspace_name, table_name)?;
+        rename_key(&mut table.columns, column_name1.to_owned(), column_name2.to_owned());
         Self::save_hash_to_json(&mut file, &keyspaces)?;
         Ok(())
     }
@@ -215,36 +261,6 @@ impl KeyspaceMetaDataAccess {
             .map_err(|_| Errors::ServerError("Failed to reset file pointer".to_string()))?;
         Ok(())
     }
-
-    /*fn lock_and_extract_keyspaces(
-        &self,
-    ) -> Result<(MutexGuard<File>, HashMap<String, Keyspace>), Errors> {
-        let mut file = self
-            .file
-            .lock()
-            .map_err(|_| Errors::ServerError("Failed to acquire lock".to_string()))?;
-        let keyspaces = self.extract_hash_from_json(&mut file)?;
-        Ok((file, keyspaces))
-    } */
-
-    /* fn save_hash_to_json(
-        &self,
-        file: &mut std::sync::MutexGuard<File>,
-        keyspaces: &HashMap<String, Keyspace>,
-    ) -> Result<(), Errors> {
-        let json_data = serde_json::to_string_pretty(keyspaces)
-        .map_err(|_| Errors::ServerError("Failed to serialize keyspaces".to_string()))?;
-        file.set_len(0)
-            .map_err(|_| Errors::ServerError("Failed to truncate file".to_string()))?;
-        self.reset_pointer(file)?;
-
-        file.write_all(json_data.as_bytes())
-            .map_err(|_| Errors::ServerError("Failed to write data to file".to_string()))?;
-        file.flush()
-            .map_err(|_| Errors::ServerError("Failed to flush data to file".to_string()))?;
-        self.reset_pointer(file)?;
-        Ok(())
-    } */
 }
 
 fn get_keyspace_mutable<'a>(
@@ -268,6 +284,15 @@ fn get_table_mutable<'a>(
             table_name, keyspace_name
         ))
     })
+}
+
+fn rename_key<K, V>(map: &mut HashMap<K, V>, old_key: K, new_key: K)
+where
+    K: std::hash::Hash + Eq,
+{
+    if let Some(value) = map.remove(&old_key) {
+        map.insert(new_key, value);
+    }
 }
 
 #[cfg(test)]
