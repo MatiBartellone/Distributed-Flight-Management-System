@@ -77,7 +77,7 @@ impl Row {
         }
         None
     }
-    pub fn get_some_column<'a>(&self, column_name: &String) -> Result<Column, Errors> {
+    pub fn get_some_column(&self, column_name: &String) -> Result<Column, Errors> {
         let mut column: Option<&Column> = None;
         for col in &self.columns {
             if &col.column_name == column_name {
@@ -91,6 +91,14 @@ impl Row {
             )));
         };
         Ok(Column::new_from_column(col))
+    }
+
+    pub fn get_value(&self, column_name: &String) -> Result<Option<String>, Errors> {
+        let hash = self.get_row_hash();
+        let Some(literal) = hash.get(&column_name.to_string()) else {
+            return Ok(None);
+        };
+        Ok(Some(literal.value.to_string()))
     }
 }
 

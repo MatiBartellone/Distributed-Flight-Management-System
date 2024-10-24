@@ -93,12 +93,12 @@ pub fn get_table_pk(table_name: &str) -> Result<HashSet<String>, Errors> {
 }
 
 pub fn get_int_from_string(string: &String) -> Result<i32, Errors> {
-    Ok(string
+    string
         .parse::<i32>()
-        .map_err(|_| Errors::SyntaxError(format!("Could not parse int: {}", string)))?)
+        .map_err(|_| Errors::SyntaxError(format!("Could not parse int: {}", string)))
 }
 
-pub fn get_primary_key_from_where(table_name: &String, where_clause: &Option<WhereClause>) -> Result<Option<Vec<String>>, Errors> {
+pub fn get_primary_key_from_where(table_name: &str, where_clause: &Option<WhereClause>) -> Result<Option<Vec<String>>, Errors> {
     let Some(where_clause) = where_clause else {
         return Err(Errors::SyntaxError(String::from(
             "Where clause must be defined",

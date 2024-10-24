@@ -35,7 +35,7 @@ impl Query for DeleteQuery {
                 "Where clause must be defined",
             )));
         };
-        data_access.set_deleted_rows(&self.table_name, &where_clause)?;
+        data_access.set_deleted_rows(&self.table_name, where_clause)?;
         Ok(get_long_string_from_str("Delete was successful"))
     }
 

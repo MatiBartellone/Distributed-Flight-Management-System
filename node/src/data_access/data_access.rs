@@ -91,7 +91,7 @@ impl DataAccess {
         self.create_file(&temp_path)?;
         for row in self.get_deserialized_stream(&path)? {
             if where_clause.evaluate(&row.get_row_hash())? {
-                self.append_row(&temp_path, &self.build_updated_row(&row, &changes)?)?;
+                self.append_row(&temp_path, &self.build_updated_row(&row, changes)?)?;
             } else {
                 self.append_row(&temp_path, &row)?;
             }
@@ -111,7 +111,7 @@ impl DataAccess {
             if !changes.contains_key(&column.column_name) {
                 new_columns.push(Column::new_from_column(column))
             } else {
-                new_columns.push(Column::new_from_column(&self.get_updated_column(row, changes, &column)?))
+                new_columns.push(Column::new_from_column(&self.get_updated_column(row, changes, column)?))
             }
         }
         Ok(Row::new(
@@ -130,25 +130,24 @@ impl DataAccess {
         match changes.get(column_name) {
             Some(AssignmentValue::Column(column)) => Ok(Column::new(
                 column_name,
-                &row.get_some_column(&column)?.value,
+                &row.get_some_column(column)?.value,
                 get_timestamp()?,
             )),
             Some(AssignmentValue::Simple(literal)) => Ok(Column::new(
                 column_name,
-                &literal,
+                literal,
                 get_timestamp()?,
             )),
             Some(AssignmentValue::Arithmetic(column, arith, literal)) => {
-                let value1 = get_int_from_string(&row.get_some_column(&column)?.value.value)?;
+                let value1 = get_int_from_string(&row.get_some_column(column)?.value.value)?;
                 let value2 = get_int_from_string(&literal.value)?;
-                let new_value;
-                match arith {
-                    ArithMath::Suma => new_value = value1 + value2,
-                    ArithMath::Sub => new_value = value1 - value2,
-                    ArithMath::Division => new_value = value1 / value2,
-                    ArithMath::Rest => new_value = value1 % value2,
-                    ArithMath::Multiplication => new_value = value1 * value2,
-                }
+                let new_value = match arith {
+                    ArithMath::Suma => value1 + value2,
+                    ArithMath::Sub => value1 - value2,
+                    ArithMath::Division => value1 / value2,
+                    ArithMath::Rest => value1 % value2,
+                    ArithMath::Multiplication => value1 * value2,
+                };
                 Ok(Column::new(
                     column_name,
                     &Literal::new(new_value.to_string(), DataType::Int),
@@ -162,8 +161,8 @@ impl DataAccess {
     pub fn select_rows(
         &self,
         table_name: &String,
-        where_clause: WhereClause,
-        order_clauses: Option<Vec<OrderByClause>>,
+        where_clause: &WhereClause,
+        order_clauses: &Option<Vec<OrderByClause>>,
     ) -> Result<Vec<Row>, Errors> {
         let path = self.get_file_path(table_name);
         let filtered_path = self.get_file_path(&String::from("filtered"));
@@ -182,7 +181,7 @@ impl DataAccess {
         &self,
         path: &String,
         filtered_path: &String,
-        where_clause: WhereClause,
+        where_clause: &WhereClause,
     ) -> Result<(), Errors> {
         for row in self.get_deserialized_stream(path)? {
             if where_clause.evaluate(&row.get_row_hash())? {
@@ -195,7 +194,7 @@ impl DataAccess {
     fn sort_rows(
         &self,
         path: &String,
-        order_clauses_opt: Option<Vec<OrderByClause>>,
+        order_clauses_opt: &Option<Vec<OrderByClause>>,
     ) -> Result<(), Errors> {
         let Some(order_clauses) = order_clauses_opt else {
             return Ok(());
@@ -521,7 +520,7 @@ mod tests {
             &ComparisonOperators::Equal,
             literal,
         ));
-        let result = data_access.select_rows(&table_name, where_clause, None);
+        let result = data_access.select_rows(&table_name, &where_clause, &None);
         assert!(result.is_ok());
         let selected_rows = result.unwrap();
         assert_eq!(selected_rows.len(), 1);
