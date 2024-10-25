@@ -1,7 +1,7 @@
 use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::data_access::row::{Column, Row};
 use crate::parsers::tokens::data_type::DataType;
-use crate::utils::functions::{check_table_name, get_columns_from_table, get_long_string_from_str, get_table_pk, get_timestamp, split_keyspace_table};
+use crate::utils::functions::{check_table_name, get_columns_from_table, get_long_string_from_str, get_table_clustering_columns, get_table_partition, get_timestamp, split_keyspace_table};
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -82,12 +82,43 @@ impl InsertQuery {
         for (value, header) in values.iter().zip(self.headers.iter()) {
             row_values.push(Column::new(header, value, get_timestamp()?));
         }
-        let Some(primary_keys) = self.get_primary_key()? else {
+        let Some(partition_keys) = self.get_partition()? else {
             return Err(Errors::SyntaxError(String::from(
                 "Primary keys not defined",
             )));
         };
-        Ok(Row::new(row_values, primary_keys))
+        let Some(clustering_columns) = self.get_clustering_columns()? else {
+            return Err(Errors::SyntaxError(String::from(
+                "Primary keys not defined",
+            )));
+        };
+        Ok(Row::new(row_values, [&partition_keys[..], &clustering_columns[..]].concat()))
+    }
+
+    fn get_keys(&self, set: HashSet<String>) -> Result<Option<Vec<String>>, Errors> {
+        let Some(row) = self.values_list.first() else {
+            return Err(Errors::SyntaxError("No values provided".to_string()));
+        };
+        self.check_different_values()?;
+        let mut partition_keys = Vec::new();
+        if row.len() != self.headers.len() {
+            return Err(Errors::SyntaxError(String::from(
+                "Values doesnt match given headers",
+            )));
+        }
+        for (value, header) in row.iter().zip(self.headers.iter()) {
+            if set.contains(header) {
+                partition_keys.push(value.value.to_string());
+            }
+        }
+        if partition_keys.len() != set.len() {
+            return Err(Errors::SyntaxError(String::from("Missing primary keys")));
+        }
+        Ok(Some(partition_keys))
+    }
+
+    fn get_clustering_columns(&self) -> Result<Option<Vec<String>>, Errors> {
+        self.get_keys(get_table_clustering_columns(&self.table_name)?)
     }
 }
 
@@ -104,33 +135,13 @@ impl Query for InsertQuery {
         self.check_columns()?;
         for values in self.values_list.iter() {
             let row = self.build_row(values)?;
-            dbg!(&row);
             data_access.insert(&self.table_name, &row)?
         }
         Ok(get_long_string_from_str("Insertion was successful"))
     }
 
-    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
-        let Some(row) = self.values_list.first() else {
-            return Err(Errors::SyntaxError("No values provided".to_string()));
-        };
-        self.check_different_values()?;
-        let table_primary_keys = get_table_pk(&self.table_name)?;
-        let mut primary_keys = Vec::new();
-        if row.len() != self.headers.len() {
-            return Err(Errors::SyntaxError(String::from(
-                "Values doesnt match given headers",
-            )));
-        }
-        for (value, header) in row.iter().zip(self.headers.iter()) {
-            if table_primary_keys.contains(header) {
-                primary_keys.push(value.value.to_string());
-            }
-        }
-        if primary_keys.len() != table_primary_keys.len() {
-            return Err(Errors::SyntaxError(String::from("Missing primary keys")));
-        }
-        Ok(Some(primary_keys))
+    fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
+        self.get_keys(get_table_partition(&self.table_name)?)
     }
 
     fn get_keyspace(&self) -> Result<String, Errors> {

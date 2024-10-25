@@ -62,30 +62,21 @@ fn handle_client(mut stream: TcpStream, nodes: Arc<Mutex<HashMap<String, NodeInf
     loop {
         match stream.read(&mut buffer) {
             Ok(0) => {
-                println!("Cliente desconectado: {}", new_node.ip);
-
-                // Eliminar el nodo de la lista
                 {
                     let mut nodes_guard = nodes.lock().unwrap();
                     nodes_guard.remove(&new_node.ip);
-                } // El lock se libera aquí
-
-                // Mostrar la lista de nodos actualizada en la terminal
+                }
                 clear_screen();
                 print_node_list(Arc::clone(&nodes)); // Pasar el Arc<Mutex<_>> completo
-
-                break; // Salir del bucle y terminar el thread
+                break;
             }
             Ok(1) => {
-                println!("Cliente conectado.");
-
-                // Actualizar el contador de clientes de forma segura
                 {
                     let mut nodes_guard = nodes.lock().unwrap();
                     if let Some(node) = nodes_guard.get_mut(&new_node.ip) {
                         node.clients += 1; // Incrementar el contador de clientes
                     }
-                } // El lock se libera aquí
+                }
 
                 print_node_list(Arc::clone(&nodes)); // Pasar el Arc<Mutex<_>> completo
             },

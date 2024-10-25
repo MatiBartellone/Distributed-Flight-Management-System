@@ -88,9 +88,36 @@ pub fn get_table_pk(table_name: &str) -> Result<HashSet<String>, Errors> {
             KEYSPACE_METADATA.to_string(),
             identifiers[0],
             identifiers[1],
-        )?
-        .into_iter()
-        .collect())
+        )?.get_full_pk_in_hash())
+}
+
+pub fn get_table_partition(table_name: &str) -> Result<HashSet<String>, Errors> {
+    let binding = table_name.split('.').collect::<Vec<&str>>();
+    let identifiers = &binding.as_slice();
+    let mut stream = MetaDataHandler::establish_connection()?;
+    let keyspace_meta_data =
+        MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
+    let pk = keyspace_meta_data
+        .get_primary_key(
+            KEYSPACE_METADATA.to_string(),
+            identifiers[0],
+            identifiers[1],
+        )?;
+    Ok(pk.partition_keys.into_iter().collect())
+}
+pub fn get_table_clustering_columns(table_name: &str) -> Result<HashSet<String>, Errors> {
+    let binding = table_name.split('.').collect::<Vec<&str>>();
+    let identifiers = &binding.as_slice();
+    let mut stream = MetaDataHandler::establish_connection()?;
+    let keyspace_meta_data =
+        MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
+    let pk = keyspace_meta_data
+        .get_primary_key(
+            KEYSPACE_METADATA.to_string(),
+            identifiers[0],
+            identifiers[1],
+        )?;
+    Ok(pk.clustering_columns.into_iter().collect())
 }
 
 pub fn split_keyspace_table(input: &str) -> Result<(&str, &str), Errors> {
@@ -109,21 +136,21 @@ pub fn get_int_from_string(string: &String) -> Result<i32, Errors> {
         .map_err(|_| Errors::SyntaxError(format!("Could not parse int: {}", string)))
 }
 
-pub fn get_primary_key_from_where(table_name: &str, where_clause: &Option<WhereClause>) -> Result<Option<Vec<String>>, Errors> {
+pub fn get_partition_key_from_where(table_name: &str, where_clause: &Option<WhereClause>) -> Result<Option<Vec<String>>, Errors> {
     let Some(where_clause) = where_clause else {
         return Err(Errors::SyntaxError(String::from(
             "Where clause must be defined",
         )));
     };
-    let mut primary_key = Vec::new();
-    let table_pk = get_table_pk(table_name)?;
-    if where_clause.get_primary_key(&mut primary_key, &table_pk)? {
-        if primary_key.len() != table_pk.len() {
+    let mut partition_key = Vec::new();
+    let table_partition = get_table_partition(table_name)?;
+    if where_clause.get_primary_key(&mut partition_key, &table_partition)? {
+        if partition_key.len() != table_partition.len() {
             return Err(Errors::SyntaxError(String::from(
                 "Full primary key must be defined in where clause",
             )));
         }
-        Ok(Some(primary_key))
+        Ok(Some(partition_key))
     } else {
         Ok(None)
     }

@@ -1,6 +1,6 @@
 use super::{query::Query, where_logic::where_clause::WhereClause};
 use crate::utils::errors::Errors;
-use crate::utils::functions::{check_table_name, get_long_string_from_str, get_primary_key_from_where, split_keyspace_table};
+use crate::utils::functions::{check_table_name, get_long_string_from_str, get_partition_key_from_where, split_keyspace_table};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use crate::data_access::data_access_handler::DataAccessHandler;
@@ -39,8 +39,8 @@ impl Query for DeleteQuery {
         Ok(get_long_string_from_str("Delete was successful"))
     }
 
-    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
-        get_primary_key_from_where(&self.table_name, &self.where_clause)
+    fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
+        get_partition_key_from_where(&self.table_name, &self.where_clause)
     }
 
     fn get_keyspace(&self) -> Result<String, Errors> {

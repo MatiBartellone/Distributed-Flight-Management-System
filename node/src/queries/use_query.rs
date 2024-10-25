@@ -37,7 +37,7 @@ impl Query for UseQuery {
         Ok(get_long_string_from_str(msg.as_ref()))
     }
 
-    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
+    fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
         let rng: u8 = rand::random();
         Ok(Some(vec![format!("{}", rng)]))
     }

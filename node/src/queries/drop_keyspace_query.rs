@@ -1,5 +1,5 @@
 use crate::{queries::query::Query, utils::{errors::Errors, constants::KEYSPACE_METADATA}, meta_data::meta_data_handler::MetaDataHandler, data_access::data_access_handler::DataAccessHandler};
-use crate::utils::functions::{get_long_string_from_str, split_keyspace_table};
+use crate::utils::functions::get_long_string_from_str;
 use std::any::Any;
 
 #[derive(PartialEq, Debug)]
@@ -39,13 +39,12 @@ impl Query for DropKeySpaceQuery {
         Ok(get_long_string_from_str("Drop keyspace was successful"))
     }
 
-    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
+    fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
         Ok(None)
     }
 
     fn get_keyspace(&self) -> Result<String, Errors> {
-        let (kp, _) = split_keyspace_table(&self.keyspace)?;
-        Ok(kp.to_string())
+        Ok(self.keyspace.to_string())
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

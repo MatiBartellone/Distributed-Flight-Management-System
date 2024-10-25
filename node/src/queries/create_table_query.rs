@@ -14,7 +14,6 @@ use crate::utils::primary_key::PrimaryKey;
 pub struct CreateTableQuery {
     pub table_name: String,
     pub columns: HashMap<String, DataType>,
-    pub partition_key: Vec<String>,
     pub primary_key: PrimaryKey,
 }
 
@@ -23,7 +22,6 @@ impl CreateTableQuery {
         Self {
             table_name: String::new(),
             columns: HashMap::new(),
-            partition_key: Vec::new(),
             primary_key: PrimaryKey::default(),
         }
     }
@@ -34,9 +32,7 @@ impl CreateTableQuery {
         let mut stream = MetaDataHandler::establish_connection()?;
         let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
         let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
-        dbg!(&self.columns);
-        keyspace_meta_data.add_table(KEYSPACE_METADATA.to_owned(), kesypace_name, table, self.partition_key.to_owned(), self.columns.to_owned())?;
-        println!("push meta data");
+        keyspace_meta_data.add_table(KEYSPACE_METADATA.to_owned(), kesypace_name, table, self.primary_key.to_owned(), self.columns.to_owned())?;
         Ok(())
     }
 
@@ -44,7 +40,6 @@ impl CreateTableQuery {
         let mut stream = DataAccessHandler::establish_connection()?;
         let data_access = DataAccessHandler::get_instance(&mut stream)?;
         data_access.create_table(&self.table_name)?;
-        println!("push data access");
         Ok(())
     }
 }
@@ -63,7 +58,7 @@ impl Query for CreateTableQuery {
         Ok(get_long_string_from_str("Create table was successful"))
     }
 
-    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
+    fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
         Ok(None)
     }
 

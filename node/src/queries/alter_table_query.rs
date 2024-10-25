@@ -85,7 +85,7 @@ impl Query for AlterTableQuery {
         Ok(get_long_string_from_str("Alter table was successful"))
     }
 
-    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
+    fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
         Ok(None)
     }
 

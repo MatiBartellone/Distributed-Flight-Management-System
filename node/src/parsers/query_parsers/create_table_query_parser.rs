@@ -1,4 +1,3 @@
-use std::slice::Iter;
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::token::Token;
 use crate::queries::create_table_query::CreateTableQuery;
@@ -14,11 +13,8 @@ const UNEXPECTED_COLUMN_ERR: &str = "Unexpected token in column definition";
 const COMMA_MISSING_PR_ERR: &str = "Comma missing after PRIMARY KEY";
 const MISSING_KEY_ERR: &str = "PRIMARY not followed by KEY";
 const UNEXPECTED_PK_ERR: &str = "Unexpected token in primary key list";
-const ONE_PK_PAR_ERR: &str = "Primary key between parenthesis must be 1";
 const MISSING_DT_ERR: &str = "Missing data type";
 const SHORT_QUERY_ERR: &str = "Query lacks parameters";
-const ONE_DEF_PK_ERR: &str = "Primary key must be defined only once";
-const PK_NOT_DEF_ERR: &str = "Primary key column not defined";
 
 pub struct CreateTableQueryParser;
 
@@ -167,8 +163,19 @@ fn set_partition_key_list(tokens: &mut IntoIter<Token>, query: &mut CreateTableQ
     match token {
         Token::Identifier(partition_key) => {
             query.primary_key.add_partition_key(partition_key.to_string());
+            try_comma(tokens)?;
             set_partition_key_list(tokens, query)
         },
+        _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_PK_ERR))),
+    }
+}
+
+fn try_comma(tokens: &mut IntoIter<Token>) -> Result<(), Errors> {
+    let Some(token) = tokens.next() else {
+        return Ok(());
+    };
+    match token {
+        Token::Symbol(symbol) if symbol == COMMA=> Ok(()),
         _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_PK_ERR))),
     }
 }
@@ -251,7 +258,6 @@ mod tests {
                 (String::from("id"), DataType::Int),
                 (String::from("name"), DataType::Text),
             ]),
-            partition_key: Vec::new(),
             primary_key: PrimaryKey::new(vec![String::from("id")], None)
         }
     }
@@ -373,6 +379,73 @@ mod tests {
         ];
         let result = CreateTableQueryParser::parse(tokens);
         assert_error(result, "Partition key not defined");
+    }
+
+    #[test]
+    fn test_primary_key_multiple_partitions_and_clustering_columns() {
+        let tokens = vec![
+            Token::Identifier(String::from("table_name")),
+            Token::ParenList(vec![
+                Token::Identifier(String::from("id")),
+                Token::DataType(DataType::Int),
+                Token::Symbol(String::from(COMMA)),
+                Token::Identifier(String::from("name")),
+                Token::DataType(DataType::Text),
+                Token::Symbol(String::from(COMMA)),
+                Token::Identifier(String::from("surname")),
+                Token::DataType(DataType::Text),
+                Token::Symbol(String::from(COMMA)),
+                Token::Identifier(String::from("address")),
+                Token::DataType(DataType::Text),
+                Token::Symbol(String::from(COMMA)),
+                Token::Reserved(String::from(PRIMARY)),
+                Token::Reserved(String::from(KEY)),
+                Token::ParenList(vec![
+                    Token::ParenList(vec![
+                        Token::Identifier(String::from("id")),
+                        Token::Symbol(String::from(COMMA)),
+                        Token::Identifier(String::from("name")),
+                    ]),
+                    Token::Symbol(String::from(COMMA)),
+                    Token::Identifier(String::from("surname")),
+                    Token::Symbol(String::from(COMMA)),
+                    Token::Identifier(String::from("address")),
+                ])
+            ]),
+        ];
+        let result = CreateTableQueryParser::parse(tokens).unwrap();
+        let expected_pk = PrimaryKey::new(vec![String::from("id"), String::from("name")], Some(vec![String::from("surname"), String::from("address")]));
+        assert_eq!(result.primary_key, expected_pk);
+    }
+
+    #[test]
+    fn test_primary_key_multiple_partitions_and_clustering_columns_2() {
+        let tokens = vec![
+            Token::Identifier(String::from("table_name")),
+            Token::ParenList(vec![
+                Token::Identifier(String::from("id")),
+                Token::DataType(DataType::Int),
+                Token::Symbol(String::from(COMMA)),
+                Token::Identifier(String::from("name")),
+                Token::DataType(DataType::Text),
+                Token::Symbol(String::from(COMMA)),
+                Token::Identifier(String::from("surname")),
+                Token::DataType(DataType::Text),
+                Token::Symbol(String::from(COMMA)),
+                Token::Reserved(String::from(PRIMARY)),
+                Token::Reserved(String::from(KEY)),
+                Token::ParenList(vec![
+                    Token::Identifier(String::from("id")),
+                    Token::Symbol(String::from(COMMA)),
+                    Token::Identifier(String::from("name")),
+                    Token::Symbol(String::from(COMMA)),
+                    Token::Identifier(String::from("surname")),
+                ])
+            ]),
+        ];
+        let result = CreateTableQueryParser::parse(tokens).unwrap();
+        let expected_pk = PrimaryKey::new(vec![String::from("id")], Some(vec![String::from("name"), String::from("surname")]));
+        assert_eq!(result.primary_key, expected_pk);
     }
 
 }

@@ -11,7 +11,7 @@ use crate::queries::create_table_query::CreateTableQuery;
 
 pub trait Query: Any{
     fn run(&self) -> Result<Vec<u8>, Errors>;
-    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors>;
+    fn get_partition(&self) -> Result<Option<Vec<String>>, Errors>;
     fn get_keyspace(&self) -> Result<String, Errors>;
     fn set_table(&mut self) -> Result<(), Errors>;
     fn as_any(&self) -> &dyn Any;

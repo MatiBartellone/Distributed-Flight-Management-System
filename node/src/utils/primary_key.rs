@@ -1,9 +1,10 @@
+use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct PrimaryKey {
-    partition_keys: Vec<String>,
-    clustering_columns: Vec<String>,
+    pub partition_keys: Vec<String>,
+    pub clustering_columns: Vec<String>,
 }
 
 impl PrimaryKey {
@@ -40,6 +41,13 @@ impl PrimaryKey {
         self.partition_keys.push(partition_key);
     }
     pub fn add_clustering_column(&mut self, clustering_column: String) {
-        self.partition_keys.push(clustering_column);
+        self.clustering_columns.push(clustering_column);
+    }
+
+    pub fn get_full_pk_in_hash(&self) -> HashSet<String> {
+        let mut full_hash = HashSet::new();
+        full_hash.extend(self.get_partition_key().to_owned());
+        full_hash.extend(self.get_clustering_columns().to_owned());
+        full_hash
     }
 }

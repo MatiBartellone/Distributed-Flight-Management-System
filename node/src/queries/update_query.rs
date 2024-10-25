@@ -6,7 +6,7 @@ use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{check_table_name, get_columns_from_table, get_long_string_from_str, get_primary_key_from_where, get_table_pk, split_keyspace_table};
+use crate::utils::functions::{check_table_name, get_columns_from_table, get_long_string_from_str, get_partition_key_from_where, get_table_pk, split_keyspace_table};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::cmp::PartialEq;
@@ -123,8 +123,8 @@ impl Query for UpdateQuery {
         Ok(get_long_string_from_str("Update was successful"))
     }
 
-    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
-        get_primary_key_from_where(&self.table_name, &self.where_clause)
+    fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
+        get_partition_key_from_where(&self.table_name, &self.where_clause)
     }
 
     fn get_keyspace(&self) -> Result<String, Errors> {

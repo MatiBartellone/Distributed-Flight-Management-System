@@ -52,10 +52,9 @@ fn main() {
     let size = server_stream.read(&mut buffer).unwrap();
     let nodes: Vec<NodeInfo> = serde_json::from_slice(&buffer[..size]).unwrap();
     let nodes : Vec<Node> = nodes.iter().map(|n| Node::new(n.ip.to_string(), n.position)).collect();
-    dbg!(&nodes);
     let cluster = Cluster::new(Node::new(ip.to_string(), node_info.position), nodes);
     if let Err(e) = NodesMetaDataAccess::write_cluster(nodes_meta_data_path().as_ref(), &cluster) {
-        dbg!(e);
+        println!("{}", e);
     }
 
     thread::spawn(move || {
@@ -79,7 +78,6 @@ fn main() {
                     let size = stream.read(&mut buffer).unwrap();
                     if size > 0{
                         let new_node: NodeInfo = serde_json::from_slice(&buffer[..size]).unwrap();
-                        dbg!(&new_node);
                         let node = Node::new(new_node.ip.to_string(), new_node.position);
                         {
                             add_node_to_cluster(node).unwrap();
@@ -103,19 +101,19 @@ fn main() {
     let listener =
         TcpListener::bind(format!("{}:{}", ip.to_string(), CLIENTS_PORT)).expect("Error binding socket");
     println!("Servidor escuchando en {}", ip.to_string());
-
     for incoming in listener.incoming() {
         match incoming {
             Ok(stream) => {
                 println!("Cliente conectado: {:?}", stream.peer_addr());
 
-
-                // Mover la conexión a un hilo
                 server_stream.write(b"1").unwrap();
+                let mut value = server_stream.try_clone().unwrap();
                 thread::spawn(move || {
                     handle_client(stream);
-                    //server_stream.write(b"-").unwrap();
+                    value.write(b"__").unwrap();
                 });
+
+
             }
             Err(e) => {
                 println!("Error aceptando la conexión: {}", e);
@@ -123,6 +121,7 @@ fn main() {
         }
     }
 }
+
 
 fn handle_client(mut stream: TcpStream) {
     let mut buffer = [0; 1024];

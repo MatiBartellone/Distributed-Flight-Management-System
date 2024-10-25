@@ -35,7 +35,6 @@ fn main() {
 
     //let mut addrs_iter = ip.to_socket_addrs().expect("Invalid socket address");
     if let Ok(mut stream) = TcpStream::connect((node, 8080)) {
-        //println!("{}", format!("connected to {}:8080", node));
         let mut input = String::new();
         while io::stdin().read_line(&mut input).is_ok() {
             match input.trim() {
@@ -101,7 +100,6 @@ fn main() {
                 Ok(n) => {
                     if n > 0 {
                         let frame = Frame::parse_frame(&buf[..n]).expect("Error parsing frame");
-                        dbg!(&frame);
                         match frame.opcode {
                             0x00 => {
                                 let mut cursor = BytesCursor::new(frame.body.as_slice());

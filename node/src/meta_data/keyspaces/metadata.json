@@ -1,14 +1,20 @@
 {
   "kp1": {
     "tables": {
-      "table1": {
-        "primary_key": [
-          "id"
-        ],
+      "aviones": {
+        "primary_key": {
+          "partition_keys": [
+            "aeropuerto"
+          ],
+          "clustering_columns": [
+            "id"
+          ]
+        },
         "columns": {
           "id": "Int",
-          "name": "Text",
-          "genre": "Boolean"
+          "activo": "Boolean",
+          "aeropuerto": "Text",
+          "pos": "Int"
         }
       }
     },

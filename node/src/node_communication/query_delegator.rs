@@ -45,12 +45,10 @@ impl QueryDelegator {
                 match QueryDelegator::send_to_node(ip, query_enum.into_query()) {
                     Ok(response) => {
                         if tx.send(response).is_ok() {
-                            println!("Successfully sent response");
                         }
                     },
                     Err(e) => {
                         if tx.send(e.to_string().as_bytes().to_vec()).is_ok() {
-                            println!("error but sent response");
                         }
                     }
                 }
@@ -58,16 +56,12 @@ impl QueryDelegator {
             handles.push(handle);
         }
         // Recibir respuestas hasta alcanzar la consistencia
-        println!("asd {}", self.consistency.get_consistency(self.get_replication()?));
-        dbg!(&self.consistency.get_consistency(self.get_replication()?));
         for _ in 0..self.consistency.get_consistency(self.get_replication()?) {
             if let Ok(response) = rx.recv() {
                 let mut res = responses.lock().unwrap();
-                println!("Successfully received response");
                 res.push(response);
             }
         }
-        println!("hola");
         // // Esperar a que todos los threads terminen?
         // for handle in handles {
         //     handle.join().unwrap();
@@ -95,14 +89,13 @@ impl QueryDelegator {
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
         let ips = nodes_meta_data.get_partition_ips(
             nodes_meta_data_path().as_ref(),
-            &None, //&self.primary_key,
-            "kp".to_string(),
+            &self.primary_key,
+            self.query.get_keyspace()?,
         )?;
         let mut full_ips = Vec::new();
         for ip in ips {
             full_ips.push(format!("{}:{}", ip, QUERY_DELEGATION_PORT));
         }
-        dbg!(&full_ips);
         Ok(full_ips)
     }
 
