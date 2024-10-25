@@ -34,7 +34,7 @@ fn main() {
     io::stdout().flush().unwrap();
     let mut ip = String::new();
     io::stdin().read_line(&mut ip).expect("Error reading ip");
-    let ip = ip.trim();
+    let ip = ip.trim().to_string();
 
     print!("node's position in cluster: ");
     io::stdout().flush().unwrap();
@@ -64,8 +64,9 @@ fn main() {
     thread::spawn(move || {
         let _ = DataAccessHandler::start_listening().unwrap();
     });
+    let query_receiver_ip = ip.to_string();
     thread::spawn(move || {
-        let _ = QueryReceiver::start_listening().unwrap();
+        let _ = QueryReceiver::start_listening(query_receiver_ip).unwrap();
     });
 
     thread::spawn(move || {
@@ -100,8 +101,8 @@ fn main() {
 
 
     let listener =
-        TcpListener::bind(format!("{}:{}", ip, CLIENTS_PORT)).expect("Error binding socket");
-    println!("Servidor escuchando en {}", ip);
+        TcpListener::bind(format!("{}:{}", ip.to_string(), CLIENTS_PORT)).expect("Error binding socket");
+    println!("Servidor escuchando en {}", ip.to_string());
 
     for incoming in listener.incoming() {
         match incoming {
@@ -126,13 +127,15 @@ fn main() {
 fn handle_client(mut stream: TcpStream) {
     let mut buffer = [0; 1024];
     loop {
+        stream.flush().unwrap();
         match stream.read(&mut buffer) {
             Ok(0) => {
                 println!("Cliente desconectado");
                 break;
             }
-            Ok(_) => match execute_request(buffer.to_vec()) {
+            Ok(n) => match execute_request(buffer[0..n].to_vec()) {
                 Ok(response) => {
+                    stream.flush().unwrap();
                     stream
                         .write_all(response.as_slice())
                         .expect("Error writing response");
@@ -143,6 +146,7 @@ fn handle_client(mut stream: TcpStream) {
                         e,
                     )
                     .unwrap();
+                    stream.flush().unwrap();
                     stream
                         .write_all(frame.to_bytes().as_slice())
                         .expect("Error writing response");

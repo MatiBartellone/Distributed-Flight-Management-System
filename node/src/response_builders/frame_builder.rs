@@ -9,7 +9,7 @@ impl FrameBuilder {
         new_body: Vec<u8>,
     ) -> Result<Frame, Errors> {
         let response_version = request_frame.version | 0x80;
-        let length = new_body.len() as u32;
+        let length = new_body.len() as i32;
         let mut new_bytes: Vec<u8> = Vec::new();
         new_bytes.push(response_version);
         new_bytes.push(request_frame.flags);

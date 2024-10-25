@@ -9,8 +9,7 @@ use crate::utils::functions::get_own_ip;
 pub struct QueryReceiver {}
 
 impl QueryReceiver {
-    pub fn start_listening() -> Result<(), Errors> {
-        let ip = get_own_ip()?;
+    pub fn start_listening(ip: String) -> Result<(), Errors> {
         let listener = TcpListener::bind(format!(
             "{}:{}",
             ip,

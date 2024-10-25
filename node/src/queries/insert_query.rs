@@ -104,6 +104,7 @@ impl Query for InsertQuery {
         self.check_columns()?;
         for values in self.values_list.iter() {
             let row = self.build_row(values)?;
+            dbg!(&row);
             data_access.insert(&self.table_name, &row)?
         }
         Ok(get_long_string_from_str("Insertion was successful"))

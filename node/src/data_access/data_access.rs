@@ -21,7 +21,7 @@ impl DataAccess {
     pub fn create_table(&self, table_name: &String) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
         if metadata(&path).is_ok() {
-            return Err(Errors::AlreadyExists("Table already exists".to_string()));
+            return Err(Errors::AlreadyExists("Table1 already exists".to_string()));
         }
         self.create_file(&path)?;
         Ok(())
@@ -52,6 +52,7 @@ impl DataAccess {
 
     pub fn insert(&self, table_name: &String, row: &Row) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
+        dbg!(&row);
         if self.pk_already_exists(&path, &row.primary_keys)? {
             return Err(Errors::AlreadyExists(
                 "Primary key already exists".to_string(),
@@ -306,6 +307,8 @@ impl DataAccess {
     fn pk_already_exists(&self, path: &String, primary_keys: &Vec<String>) -> Result<bool, Errors> {
         for row in self.get_deserialized_stream(path)? {
             if &row.primary_keys == primary_keys {
+                dbg!(&row.primary_keys);
+                dbg!(&primary_keys);
                 return Ok(true);
             }
         }
