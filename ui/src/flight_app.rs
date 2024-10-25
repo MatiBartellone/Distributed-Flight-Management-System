@@ -127,7 +127,7 @@ fn get_selected_flight(
 ) {
     if let Ok(mut selected_flight_lock) = selected_flight.lock() {
         if let Some(selected_flight) = &*selected_flight_lock {
-            *selected_flight_lock = Some(information.get_flight_selected(&selected_flight.code));
+            *selected_flight_lock = information.get_flight_selected(&selected_flight.code);
         }
     }
 }
