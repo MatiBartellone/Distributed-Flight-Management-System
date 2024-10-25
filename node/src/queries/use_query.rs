@@ -2,7 +2,7 @@ use super::query::Query;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::utils::constants::nodes_meta_data_path;
 use crate::utils::errors::Errors;
-use crate::utils::functions::get_long_string_from_str;
+use crate::utils::functions::{get_long_string_from_str, split_keyspace_table};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 
@@ -40,6 +40,11 @@ impl Query for UseQuery {
     fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
         let rng: u8 = rand::random();
         Ok(Some(vec![format!("{}", rng)]))
+    }
+
+    fn get_keyspace(&self) -> Result<String, Errors> {
+        let (kp, _) = split_keyspace_table(&self.keyspace_name)?;
+        Ok(kp.to_string())
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

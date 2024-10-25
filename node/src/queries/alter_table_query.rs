@@ -89,6 +89,11 @@ impl Query for AlterTableQuery {
         Ok(None)
     }
 
+    fn get_keyspace(&self) -> Result<String, Errors> {
+        let (kp, _) = split_keyspace_table(&self.table_name)?;
+        Ok(kp.to_string())
+    }
+
     fn set_table(&mut self) -> Result<(), Errors> {
         self.table_name = check_table_name(&self.table_name)?;
         Ok(())

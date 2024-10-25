@@ -54,7 +54,7 @@ impl KeyspaceMetaDataAccess {
     }
 
     pub fn get_replication(
-        //&self,
+        &self,
         path: String,
         keyspace_name: &str,
     ) -> Result<usize, Errors> {

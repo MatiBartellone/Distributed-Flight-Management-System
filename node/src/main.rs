@@ -59,13 +59,13 @@ fn main() {
     }
 
     thread::spawn(move || {
-        let _ = QueryReceiver::start_listening();
+        let _ = MetaDataHandler::start_listening().unwrap();
     });
     thread::spawn(move || {
-        let _ = DataAccessHandler::start_listening();
+        let _ = DataAccessHandler::start_listening().unwrap();
     });
     thread::spawn(move || {
-        let _ = MetaDataHandler::start_listening();
+        let _ = QueryReceiver::start_listening().unwrap();
     });
 
     thread::spawn(move || {

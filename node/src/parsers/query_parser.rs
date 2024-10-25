@@ -16,6 +16,7 @@ use super::query_parsers::use_query_parser::UseQueryParser;
 use super::tokens::lexer::standardize;
 use super::tokens::token::{tokenize, Token};
 use Token::*;
+use crate::parsers::query_parsers::create_query_parser::CreateQueryParser;
 
 pub struct QueryParser;
 
@@ -50,7 +51,7 @@ fn query_parser(tokens: Vec<Token>) -> Result<Box<dyn Query>, Errors> {
                 "USE" => Ok(Box::new(UseQueryParser.parse(tokens)?)),
                 "ALTER" => Ok(Box::new(AlterTableParser.parse(tokens)?)),
                 "DROP" => DropQueryParser::parse(tokens),
-                // "CREATE" => CreateQueryParser::parse(tokens),
+                "CREATE" => CreateQueryParser::parse(tokens),
                 _ => Err(Errors::SyntaxError(format!("Unknown query type: {}", res))),
             }
         }

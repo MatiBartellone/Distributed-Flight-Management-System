@@ -7,8 +7,9 @@ use crate::utils::errors::Errors;
 use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table};
 use std::any::Any;
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTableQuery {
     pub table_name: String,
     pub columns: HashMap<String, DataType>,
@@ -30,7 +31,9 @@ impl CreateTableQuery {
         let mut stream = MetaDataHandler::establish_connection()?;
         let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
         let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
+        dbg!(&self.columns);
         keyspace_meta_data.add_table(KEYSPACE_METADATA.to_owned(), kesypace_name, table, self.primary_key.clone(), self.columns.clone())?;
+        println!("push meta data");
         Ok(())
     }
 
@@ -38,6 +41,7 @@ impl CreateTableQuery {
         let mut stream = DataAccessHandler::establish_connection()?;
         let data_access = DataAccessHandler::get_instance(&mut stream)?;
         data_access.create_table(&self.table_name)?;
+        println!("push data access");
         Ok(())
     }
 }
@@ -52,11 +56,17 @@ impl Query for CreateTableQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
         self.push_on_data_acces()?;
         self.push_on_meta_data()?;
+        println!("run create_table_query");
         Ok(get_long_string_from_str("Create table was successful"))
     }
 
     fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
         Ok(None)
+    }
+
+    fn get_keyspace(&self) -> Result<String, Errors> {
+        let (kp, _) = split_keyspace_table(&self.table_name)?;
+        Ok(kp.to_string())
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

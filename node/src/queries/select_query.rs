@@ -2,7 +2,7 @@ use super::query::Query;
 use super::where_logic::where_clause::WhereClause;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{check_table_name, get_columns_from_table, get_long_string_from_str, get_primary_key_from_where};
+use crate::utils::functions::{check_table_name, get_columns_from_table, get_long_string_from_str, get_primary_key_from_where, split_keyspace_table};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use crate::data_access::data_access_handler::DataAccessHandler;
@@ -91,6 +91,11 @@ impl Query for SelectQuery {
 
     fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
         get_primary_key_from_where(&self.table_name, &self.where_clause)
+    }
+
+    fn get_keyspace(&self) -> Result<String, Errors> {
+        let (kp, _) = split_keyspace_table(&self.table_name)?;
+        Ok(kp.to_string())
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

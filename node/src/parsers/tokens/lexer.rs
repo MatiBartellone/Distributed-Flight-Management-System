@@ -131,11 +131,12 @@ fn divide_words(query: &str) -> Vec<String> {
         .replace("%", MOD) // Modulus
         .replace("<", LT) // Less Than
         .replace(">", GT) // Greater Than
-        .replace("(", OPEN_PAREN) // Open Parenthesis
-        .replace(")", CLOSE_PAREN) // Close Parenthesis
-        .replace("{", OPEN_BRACE) // Open Brace
-        .replace("}", CLOSE_BRACE) // Close Brace
-        .replace(";", EMPTY); // Remove semicolon
+        .replace("(", " ( ") // Open Parenthesis
+        .replace(")", " ) ") // Close Parenthesis
+        .replace("{", " { ") // Open Brace
+        .replace("}", " } ") // Close Brace
+        .replace(";", EMPTY) // Remove semicolon
+        .replace(",", " , "); // Remove semicolon
     query.split_whitespace().map(|s| s.to_string()).collect()
 }
 

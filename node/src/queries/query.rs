@@ -6,10 +6,13 @@ use crate::queries::use_query::UseQuery;
 use crate::utils::errors::Errors;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
+use crate::queries::create_keyspace_query::CreateKeyspaceQuery;
+use crate::queries::create_table_query::CreateTableQuery;
 
 pub trait Query: Any {
     fn run(&self) -> Result<Vec<u8>, Errors>;
     fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors>;
+    fn get_keyspace(&self) -> Result<String, Errors>;
     fn set_table(&mut self) -> Result<(), Errors>;
     fn as_any(&self) -> &dyn Any;
 }
@@ -21,6 +24,8 @@ pub enum QueryEnum {
     Update(UpdateQuery),
     Select(SelectQuery),
     Use(UseQuery),
+    CreateKeyspace(CreateKeyspaceQuery),
+    CreateTable(CreateTableQuery),
 }
 
 impl QueryEnum {
@@ -31,6 +36,8 @@ impl QueryEnum {
             QueryEnum::Update(query) => Box::new(query),
             QueryEnum::Select(query) => Box::new(query),
             QueryEnum::Use(query) => Box::new(query),
+            QueryEnum::CreateKeyspace(query) => Box::new(query),
+            QueryEnum::CreateTable(query) => Box::new(query),
         }
     }
 
@@ -46,6 +53,10 @@ impl QueryEnum {
             return Some(QueryEnum::Select(select_query.clone()));
         } else if let Some(use_query) = query.as_any().downcast_ref::<UseQuery>() {
             return Some(QueryEnum::Use(use_query.clone()));
+        }else if let Some(create_keyspace) = query.as_any().downcast_ref::<CreateKeyspaceQuery>() {
+            return Some(QueryEnum::CreateKeyspace(create_keyspace.clone()));
+        } else if let Some(create_table) = query.as_any().downcast_ref::<CreateTableQuery>() {
+            return Some(QueryEnum::CreateTable(create_table.clone()));
         }
         None
     }

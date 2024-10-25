@@ -29,15 +29,18 @@ impl MetaDataHandler {
         let serialized = serde_json::to_string(&meta_data_handler).map_err(|_| {
             Errors::ServerError("Failed to serialize meta data handler".to_string())
         })?;
+        stream.flush().map_err(|_| Errors::ServerError("Error flushing stream".to_string()))?;
         stream
             .write_all(serialized.as_bytes())
             .map_err(|_| Errors::ServerError("Error writing to stream".to_string()))?;
+        stream.flush().map_err(|_| Errors::ServerError("Error flushing stream".to_string()))?;
         match stream.read(&mut [0; 1024]) {
-            Ok(_n) => Ok(()),
+            Ok(0) => Ok(()),
             Err(e) => Err(Errors::ServerError(format!(
                     "Error reading from stream: {}",
                     e
-            )))
+            ))),
+            _ => Err(Errors::ServerError(String::from("")))
         }
     }
 
@@ -50,6 +53,7 @@ impl MetaDataHandler {
 
     pub fn get_instance(stream: &mut TcpStream) -> Result<MetaDataHandler, Errors> {
         let mut buf = [0; 1024];
+        stream.flush().map_err(|_| Errors::ServerError("Error flushing stream".to_string()))?;
         match stream.read(&mut buf) {
             Ok(n) => Ok(serde_json::from_slice(&buf[..n]).map_err(|_| {
                 Errors::ServerError(String::from("Failed to deserialize meta data handler"))

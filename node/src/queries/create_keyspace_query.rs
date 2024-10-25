@@ -2,11 +2,12 @@ use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::queries::query::Query;
 use crate::utils::constants::{KEYSPACE_METADATA, REPLICATION, STRATEGY};
 use crate::utils::errors::Errors;
-use crate::utils::functions::get_long_string_from_str;
+use crate::utils::functions::{get_long_string_from_str, split_keyspace_table};
 use std::any::Any;
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct CreateKeyspaceQuery {
     pub keyspace: String,
     pub replication: HashMap<String, String>,
@@ -58,6 +59,11 @@ impl Query for CreateKeyspaceQuery {
 
     fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
         Ok(None)
+    }
+
+    fn get_keyspace(&self) -> Result<String, Errors> {
+        let (kp, _) = split_keyspace_table(&self.keyspace)?;
+        Ok(kp.to_string())
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

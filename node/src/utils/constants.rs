@@ -7,7 +7,7 @@ pub const KEYSPACE_METADATA: &str = "src/meta_data/keyspaces/metadata.json";
 pub const REPLICATION: &str = "replication_factor";
 pub const STRATEGY: &str = "class";
 pub fn nodes_meta_data_path() -> String {
-    format!("src/meta_data/nodes/{}.json", process::id())
+    NODES_METADATA.to_string()
 }
 pub const QUERY_DELEGATION_PORT: i32 = 9090;
 pub const DATA_ACCESS_PORT: i32 = 9191;

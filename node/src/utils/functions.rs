@@ -45,6 +45,7 @@ pub fn check_table_name(table_name: &String) -> Result<String, Errors> {
     let Some(kp) = client_meta_data.get_keyspace(CLIENT_METADATA_PATH.to_string())? else {
         return Err(Errors::SyntaxError(String::from("Keyspace not in usage")));
     };
+    println!("setting tablwe!!");
     Ok(format!("{}.{}", kp, table_name))
 }
 
@@ -126,4 +127,11 @@ pub fn get_primary_key_from_where(table_name: &str, where_clause: &Option<WhereC
     } else {
         Ok(None)
     }
+}
+
+pub fn get_own_ip() -> Result<String, Errors> {
+    let mut stream = MetaDataHandler::establish_connection()?;
+    let nodes_meta_data =
+        MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
+    nodes_meta_data.get_own_ip(nodes_meta_data_path().as_ref())
 }

@@ -1,9 +1,7 @@
 use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::data_access::row::{Column, Row};
 use crate::parsers::tokens::data_type::DataType;
-use crate::utils::functions::{
-    check_table_name, get_columns_from_table, get_long_string_from_str, get_table_pk, get_timestamp,
-};
+use crate::utils::functions::{check_table_name, get_columns_from_table, get_long_string_from_str, get_table_pk, get_timestamp, split_keyspace_table};
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -132,6 +130,11 @@ impl Query for InsertQuery {
             return Err(Errors::SyntaxError(String::from("Missing primary keys")));
         }
         Ok(Some(primary_keys))
+    }
+
+    fn get_keyspace(&self) -> Result<String, Errors> {
+        let (kp, _) = split_keyspace_table(&self.table_name)?;
+        Ok(kp.to_string())
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

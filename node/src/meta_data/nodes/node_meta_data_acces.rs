@@ -60,8 +60,9 @@ impl NodesMetaDataAccess {
         if let Some(primary_key) = primary_key {
             let hashing_key = hash_string_murmur3(&primary_key.join(""));
             let pos = hashing_key % cluster.len_nodes();
+            let keyspace_metadata = KeyspaceMetaDataAccess{};
             let replication =
-                KeyspaceMetaDataAccess::get_replication(KEYSPACE_METADATA.to_owned(), &keyspace)?;
+                keyspace_metadata.get_replication(KEYSPACE_METADATA.to_owned(), &keyspace)?;
             Ok(cluster.get_nodes(pos, replication))
         } else {
             // todo, todas las ips
@@ -74,6 +75,11 @@ impl NodesMetaDataAccess {
         cluster.append_new_node(new_node);
         Self::write_cluster(path, &cluster)?;
         Ok(())
+    }
+
+    pub fn get_nodes_quantity(&self, path: &str) -> Result<usize, Errors> {
+        let cluster = NodesMetaDataAccess::read_cluster(path)?;
+        Ok(cluster.len_nodes())
     }
 }
 

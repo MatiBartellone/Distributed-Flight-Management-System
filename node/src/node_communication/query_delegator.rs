@@ -2,14 +2,13 @@ use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::node_communication::query_serializer::QuerySerializer;
 use crate::queries::query::{Query, QueryEnum};
 use crate::utils::consistency_level::ConsistencyLevel;
-use crate::utils::constants::{nodes_meta_data_path, QUERY_DELEGATION_PORT};
+use crate::utils::constants::{nodes_meta_data_path, KEYSPACE_METADATA, NODES_METADATA, QUERY_DELEGATION_PORT};
 use crate::utils::errors::Errors;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 
-const REPLICATION: i32 = 3;
 pub struct QueryDelegator {
     #[allow(dead_code)]
     primary_key: Option<Vec<String>>,
@@ -43,27 +42,51 @@ impl QueryDelegator {
             };
             let tx = tx.clone();
             let handle = thread::spawn(move || {
-                if let Ok(response) = QueryDelegator::send_to_node(ip, query_enum.into_query()) {
-                    if tx.send(response).is_ok() {}
+                match QueryDelegator::send_to_node(ip, query_enum.into_query()) {
+                    Ok(response) => {
+                        if tx.send(response).is_ok() {
+                            println!("Successfully sent response");
+                        }
+                    },
+                    Err(e) => {
+                        if tx.send(e.to_string().as_bytes().to_vec()).is_ok() {
+                            println!("error but sent response");
+                        }
+                    }
                 }
             });
             handles.push(handle);
         }
-
         // Recibir respuestas hasta alcanzar la consistencia
-        for _ in 0..self.consistency.get_consistency(REPLICATION as usize) {
+        println!("asd {}", self.consistency.get_consistency(self.get_replication()?));
+        dbg!(&self.consistency.get_consistency(self.get_replication()?));
+        for _ in 0..self.consistency.get_consistency(self.get_replication()?) {
             if let Ok(response) = rx.recv() {
                 let mut res = responses.lock().unwrap();
+                println!("Successfully received response");
                 res.push(response);
             }
         }
-
+        println!("hola");
         // // Esperar a que todos los threads terminen?
         // for handle in handles {
         //     handle.join().unwrap();
         // }
+
         let final_responses = responses.lock().unwrap();
         self.get_response(final_responses.clone())
+    }
+
+    fn get_replication(&self) -> Result<usize, Errors> {
+        let mut stream = MetaDataHandler::establish_connection()?;
+        let instance =
+            MetaDataHandler::get_instance(&mut stream)?;
+        let keyspace_metadata = instance.get_keyspace_meta_data_access();
+        let nodes_meta_data = instance.get_nodes_metadata_access();
+        if self.primary_key.is_none() {
+            return nodes_meta_data.get_nodes_quantity(NODES_METADATA)
+        }
+        keyspace_metadata.get_replication(KEYSPACE_METADATA.to_string(), &self.query.get_keyspace()?)
     }
 
     fn get_nodes_ip(&self) -> Result<Vec<String>, Errors> {
@@ -73,12 +96,13 @@ impl QueryDelegator {
         let ips = nodes_meta_data.get_partition_ips(
             nodes_meta_data_path().as_ref(),
             &None, //&self.primary_key,
-            "".to_string(),
+            "kp".to_string(),
         )?;
         let mut full_ips = Vec::new();
         for ip in ips {
             full_ips.push(format!("{}:{}", ip, QUERY_DELEGATION_PORT));
         }
+        dbg!(&full_ips);
         Ok(full_ips)
     }
 
