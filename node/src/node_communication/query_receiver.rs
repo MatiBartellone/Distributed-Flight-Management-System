@@ -4,7 +4,6 @@ use crate::utils::errors::Errors;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
-use crate::utils::functions::get_own_ip;
 
 pub struct QueryReceiver {}
 

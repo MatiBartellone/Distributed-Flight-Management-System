@@ -31,7 +31,7 @@ impl DropTableQuery {
     fn push_on_data_acces(&self) -> Result<(), Errors> {
         let mut stream = DataAccessHandler::establish_connection()?;
         let data_access = DataAccessHandler::get_instance(&mut stream)?;
-        data_access.drop_table(self.table_name.clone())?;
+        data_access.drop_table(self.table_name.to_string())?;
         Ok(())
     }
 }

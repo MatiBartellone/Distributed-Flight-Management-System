@@ -133,7 +133,7 @@ impl KeyspaceMetaDataAccess {
         let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
         let table = get_table_mutable(&mut keyspaces, keyspace_name, table_name)?;
         Self::reset_pointer(&mut file)?;
-        Ok(table.primary_key.clone())
+        Ok(table.primary_key.to_owned())
     }
 
     pub fn add_table(

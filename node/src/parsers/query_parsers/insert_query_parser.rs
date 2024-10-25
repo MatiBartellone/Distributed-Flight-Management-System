@@ -74,27 +74,50 @@ fn values_list(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<
 
 fn get_headers(list: Vec<Token>) -> Result<Vec<String>, Errors> {
     let mut headers = Vec::new();
-    for elem in list {
-        match elem {
-            Token::Identifier(header) => headers.push(header),
-            _ => {
-                return Err(Errors::SyntaxError(String::from(
-                    "Unexpected token in headers",
-                )))
+    for (index, elem) in list.iter().enumerate() {
+        if index % 2 == 0 {
+            match elem {
+                Token::Identifier(header) => headers.push(header.to_string()),
+                _ => {
+                    return Err(Errors::SyntaxError(String::from(
+                        "Unexpected token in headers",
+                    )))
+                }
+            }
+        } else {
+            match elem {
+                Token::Symbol(symbol) if symbol == COMMA => continue,
+                _ => {
+                    return Err(Errors::SyntaxError(String::from(
+                        "Column names must be separated by comma",
+                    )))
+                }
             }
         }
+
     }
     Ok(headers)
 }
 fn get_values(list: Vec<Token>) -> Result<Vec<Literal>, Errors> {
     let mut values = Vec::new();
-    for elem in list {
-        match elem {
-            Token::Term(Term::Literal(literal)) => values.push(literal),
-            _ => {
-                return Err(Errors::SyntaxError(String::from(
-                    "Unexpected token in values",
-                )))
+    for (index, elem) in list.iter().enumerate() {
+        if index % 2 == 0 {
+            match elem {
+                Token::Term(Term::Literal(literal)) => values.push(literal.to_owned()),
+                _ => {
+                    return Err(Errors::SyntaxError(String::from(
+                        "Unexpected token in values",
+                    )))
+                }
+            }
+        } else {
+            match elem {
+                Token::Symbol(symbol) if symbol == COMMA => continue,
+                _ => {
+                    return Err(Errors::SyntaxError(String::from(
+                        "Values must be separated by comma",
+                    )))
+                }
             }
         }
     }
@@ -136,11 +159,13 @@ mod tests {
             Token::Identifier(String::from(table)),
             Token::ParenList(vec![
                 Token::Identifier(String::from(hd1)),
+                Token::Symbol(String::from(COMMA)),
                 Token::Identifier(String::from(hd2)),
             ]),
             Token::Reserved(String::from(values)),
             Token::ParenList(vec![
                 Token::Term(Term::Literal(Literal::new(col1.to_string(), DataType::Int))),
+                Token::Symbol(String::from(COMMA)),
                 Token::Term(Term::Literal(Literal::new(
                     col2.to_string(),
                     DataType::Text,
@@ -219,6 +244,7 @@ mod tests {
             Token::Identifier(String::from("kp.table_name")),
             Token::ParenList(vec![
                 Token::Identifier(String::from("id")),
+                Token::Symbol(String::from(COMMA)),
                 Token::Identifier(String::from("name")),
             ]),
             Token::Reserved(String::from(VALUES)),

@@ -1,6 +1,17 @@
 {
   "kp1": {
-    "tables": {},
+    "tables": {
+      "table1": {
+        "primary_key": [
+          "id"
+        ],
+        "columns": {
+          "id": "Int",
+          "name": "Text",
+          "genre": "Boolean"
+        }
+      }
+    },
     "replication_strategy": "Simple Stategy",
     "replication_factor": 1
   }

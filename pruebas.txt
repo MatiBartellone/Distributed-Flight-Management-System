@@ -1,3 +1,12 @@
 127.0.0.1
 CREATE KEYSPACE kp1 WITH {'replication_factor' : 1}
 CREATE TABLE kp1.table1 (id int, name text, genre boolean, PRIMARY KEY (id))
+INSERT INTO kp1.table1 (id, name, genre) VALUES (1, 'Thiago', true)
+INSERT INTO kp1.table1 (id, name, genre) VALUES (2, 'Mati', true)
+INSERT INTO kp1.table1 (id, name) VALUES (3, 'Ivan')
+INSERT INTO kp1.table1 (id, genre) VALUES (4, false)
+UPDATE kp1.table1 SET name = 'EMI' WHERE id = 1
+SELECT name FROM kp1.table1 WHERE id = 1
+SELECT * FROM kp1.table1 WHERE id = 1
+SELECT name,genre FROM kp1.table1 WHERE id = 1
+SELECT name, genre FROM kp1.table1 WHERE id = 1 ORDER BY name, id DESC

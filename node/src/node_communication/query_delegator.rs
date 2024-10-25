@@ -74,7 +74,7 @@ impl QueryDelegator {
         // }
 
         let final_responses = responses.lock().unwrap();
-        self.get_response(final_responses.clone())
+        self.get_response(final_responses.to_owned())
     }
 
     fn get_replication(&self) -> Result<usize, Errors> {

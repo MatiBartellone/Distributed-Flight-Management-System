@@ -1,5 +1,5 @@
 use crate::executables::executable::Executable;
-use crate::frame::Frame;
+use crate::utils::frame::Frame;
 use crate::node_communication::query_delegator::QueryDelegator;
 use crate::queries::query::{Query, QueryEnum};
 use crate::response_builders::frame_builder::FrameBuilder;

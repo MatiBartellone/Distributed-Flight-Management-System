@@ -9,7 +9,7 @@ use std::any::Any;
 use crate::queries::create_keyspace_query::CreateKeyspaceQuery;
 use crate::queries::create_table_query::CreateTableQuery;
 
-pub trait Query: Any {
+pub trait Query: Any{
     fn run(&self) -> Result<Vec<u8>, Errors>;
     fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors>;
     fn get_keyspace(&self) -> Result<String, Errors>;
@@ -44,19 +44,19 @@ impl QueryEnum {
     #[allow(clippy::borrowed_box)]
     pub fn from_query(query: &Box<dyn Query>) -> Option<Self> {
         if let Some(insert_query) = query.as_any().downcast_ref::<InsertQuery>() {
-            return Some(QueryEnum::Insert(insert_query.clone()));
+            return Some(QueryEnum::Insert(insert_query.to_owned()));
         } else if let Some(delete_query) = query.as_any().downcast_ref::<DeleteQuery>() {
-            return Some(QueryEnum::Delete(delete_query.clone()));
+            return Some(QueryEnum::Delete(delete_query.to_owned()));
         } else if let Some(update_query) = query.as_any().downcast_ref::<UpdateQuery>() {
-            return Some(QueryEnum::Update(update_query.clone()));
+            return Some(QueryEnum::Update(update_query.to_owned()));
         } else if let Some(select_query) = query.as_any().downcast_ref::<SelectQuery>() {
-            return Some(QueryEnum::Select(select_query.clone()));
+            return Some(QueryEnum::Select(select_query.to_owned()));
         } else if let Some(use_query) = query.as_any().downcast_ref::<UseQuery>() {
-            return Some(QueryEnum::Use(use_query.clone()));
+            return Some(QueryEnum::Use(use_query.to_owned()));
         }else if let Some(create_keyspace) = query.as_any().downcast_ref::<CreateKeyspaceQuery>() {
-            return Some(QueryEnum::CreateKeyspace(create_keyspace.clone()));
+            return Some(QueryEnum::CreateKeyspace(create_keyspace.to_owned()));
         } else if let Some(create_table) = query.as_any().downcast_ref::<CreateTableQuery>() {
-            return Some(QueryEnum::CreateTable(create_table.clone()));
+            return Some(QueryEnum::CreateTable(create_table.to_owned()));
         }
         None
     }

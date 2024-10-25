@@ -1,5 +1,5 @@
 use node::data_access::data_access_handler::DataAccessHandler;
-use node::frame::Frame;
+use node::utils::frame::Frame;
 use node::meta_data::meta_data_handler::MetaDataHandler;
 use node::meta_data::nodes::cluster::Cluster;
 use node::meta_data::nodes::node::Node;

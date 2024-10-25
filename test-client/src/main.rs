@@ -31,9 +31,7 @@ fn main() {
         b'E', b' ', b'k', b'p', 0x00, 0x01,
     ];
 
-    let mut query_bytes = vec![
-        0x03, 0x00, 0x00, 0x01, 0x07
-    ];
+
 
     //let mut addrs_iter = ip.to_socket_addrs().expect("Invalid socket address");
     if let Ok(mut stream) = TcpStream::connect((node, 8080)) {
@@ -41,9 +39,6 @@ fn main() {
         let mut input = String::new();
         while io::stdin().read_line(&mut input).is_ok() {
             match input.trim() {
-                "exit" => {
-                    break;
-                }
                 "startup" => {
                     stream
                         .write_all(startup_bytes.as_slice())
@@ -84,6 +79,9 @@ fn main() {
                     body.extend_from_slice((query.len() as i32).to_be_bytes().as_slice());
                     body.extend_from_slice(query.as_bytes());
                     body.extend_from_slice((consistency.parse::<i32>().unwrap() as i16).to_be_bytes().as_slice());
+                    let mut query_bytes = vec![
+                        0x03, 0x00, 0x00, 0x01, 0x07
+                    ];
 
                     query_bytes.extend_from_slice((body.len() as i32).to_be_bytes().as_slice());
                     query_bytes.extend_from_slice(body.as_slice());
@@ -93,6 +91,7 @@ fn main() {
                         .expect("Error writing to socket");
                 }
                 _ => {
+                    input.clear();
                     continue;
                 }
             }
@@ -105,13 +104,13 @@ fn main() {
                         dbg!(&frame);
                         match frame.opcode {
                             0x00 => {
-                                //let mut cursor = BytesCursor::new(frame.body.as_slice());
+                                let mut cursor = BytesCursor::new(frame.body.as_slice());
                                 println!("ERROR");
-                                //let bytes = cursor.read_remaining_bytes().unwrap();
-
-                                println!("{:?}", &String::from_utf8_lossy(frame.body.as_slice()));
-
-                                //dbg!(cursor.read_string().unwrap());
+                                if let Ok(string) = cursor.read_long_string() {
+                                    println!("{}", string);
+                                } else {
+                                    println!("{:?}", &String::from_utf8_lossy(frame.body.as_slice()));
+                                }
                             }
                             0x03 => {
                                 let mut cursor = BytesCursor::new(frame.body.as_slice());
@@ -131,10 +130,13 @@ fn main() {
                                 dbg!(cursor.read_string_map().unwrap());
                             }
                             0x08 => {
-                                //let mut cursor = BytesCursor::new(frame.body.as_slice());
+                                let mut cursor = BytesCursor::new(frame.body.as_slice());
                                 println!("RESULT");
-                                println!("{:?}", &String::from_utf8_lossy(frame.body.as_slice()));
-                                //dbg!(cursor.read_long_string().unwrap());
+                                if let Ok(string) = cursor.read_long_string() {
+                                    println!("{}", string);
+                                } else {
+                                    println!("{:?}", &String::from_utf8_lossy(frame.body.as_slice()));
+                                }
                             }
                             _ => {}
                         }

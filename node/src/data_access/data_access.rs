@@ -21,7 +21,7 @@ impl DataAccess {
     pub fn create_table(&self, table_name: &String) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
         if metadata(&path).is_ok() {
-            return Err(Errors::AlreadyExists("Table1 already exists".to_string()));
+            return Err(Errors::AlreadyExists("Table already exists".to_string()));
         }
         self.create_file(&path)?;
         Ok(())

@@ -8,12 +8,14 @@ use crate::utils::functions::{check_table_name, get_long_string_from_str, split_
 use std::any::Any;
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use crate::utils::primary_key::PrimaryKey;
 
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTableQuery {
     pub table_name: String,
     pub columns: HashMap<String, DataType>,
-    pub primary_key: Vec<String>,
+    pub partition_key: Vec<String>,
+    pub primary_key: PrimaryKey,
 }
 
 impl CreateTableQuery {
@@ -21,7 +23,8 @@ impl CreateTableQuery {
         Self {
             table_name: String::new(),
             columns: HashMap::new(),
-            primary_key: Vec::new(),
+            partition_key: Vec::new(),
+            primary_key: PrimaryKey::default(),
         }
     }
 
@@ -32,7 +35,7 @@ impl CreateTableQuery {
         let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
         let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
         dbg!(&self.columns);
-        keyspace_meta_data.add_table(KEYSPACE_METADATA.to_owned(), kesypace_name, table, self.primary_key.clone(), self.columns.clone())?;
+        keyspace_meta_data.add_table(KEYSPACE_METADATA.to_owned(), kesypace_name, table, self.partition_key.to_owned(), self.columns.to_owned())?;
         println!("push meta data");
         Ok(())
     }

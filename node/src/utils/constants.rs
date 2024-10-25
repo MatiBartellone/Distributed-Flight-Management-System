@@ -1,4 +1,3 @@
-use std::process;
 
 pub const NODES_METADATA: &str = "src/meta_data/nodes/metadata.json";
 pub const CLIENT_METADATA_PATH: &str = "src/meta_data/clients/";

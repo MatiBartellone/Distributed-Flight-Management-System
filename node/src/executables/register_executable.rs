@@ -1,5 +1,5 @@
 use crate::executables::executable::Executable;
-use crate::frame::Frame;
+use crate::utils::frame::Frame;
 use crate::utils::errors::Errors;
 
 pub struct RegisterExecutable;

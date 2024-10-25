@@ -5,6 +5,7 @@ use crate::queries::select_query::SelectQuery;
 use crate::utils::constants::*;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
+use crate::parsers::tokens::terms::{ArithMath, Term};
 
 pub struct SelectQueryParser;
 
@@ -111,14 +112,26 @@ fn order_clause(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result
 }
 
 fn get_columns(list: Vec<Token>) -> Result<Vec<String>, Errors> {
-    let mut columns = Vec::new();
-    for elem in list {
-        match elem {
-            Token::Identifier(column) => columns.push(column),
-            _ => {
-                return Err(Errors::SyntaxError(String::from(
-                    "Unexpected token in columns",
-                )))
+    let mut columns : Vec<String> = Vec::new();
+    for (index, elem) in list.iter().enumerate() {
+        if index % 2 == 0 {
+            match elem {
+                Token::Identifier(column) => columns.push(column.to_string()),
+                Token::Term(Term::ArithMath(ArithMath::Multiplication)) => columns.push("*".to_string()),
+                _ => {
+                    return Err(Errors::SyntaxError(String::from(
+                        "Unexpected token in columns",
+                    )))
+                }
+            }
+        } else {
+            match elem {
+                Token::Symbol(symbol) if symbol == COMMA => continue,
+                _ => {
+                    return Err(Errors::SyntaxError(String::from(
+                        "Column names must be separated by comma",
+                    )))
+                }
             }
         }
     }

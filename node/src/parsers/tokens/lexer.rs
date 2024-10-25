@@ -68,7 +68,7 @@ fn out_section(
     match c {
         DOLLAR | DOUBLE_QUOTE | SINGLE_QUOTE => {
             if !section.is_empty() {
-                res.push(section.clone());
+                res.push(section.to_string());
                 section.clear();
             }
             *delimiter = Some(c);
@@ -236,7 +236,7 @@ mod tests {
         let resultado = standardize(input);
 
         let esperado = vec![
-            "SELECT", "name,", "age", "FROM", "users", "WHERE", "age", ">",  // Operador >
+            "SELECT", "name", ",", "age", "FROM", "users", "WHERE", "age", ">",  // Operador >
             "25", // El punto y coma se mantiene al final
         ];
 
@@ -260,7 +260,7 @@ mod tests {
         let resultado = standardize(input);
 
         let esperado = vec![
-            "SELECT", "name,", "age", "FROM", "users", "WHERE", "age",
+            "SELECT", "name", ",", "age", "FROM", "users", "WHERE", "age",
             "_GE_", // Para el operador >=
             "30", "AND", "age", "=", "age", "+", // Para el operador +
             "2", "LIMIT", "10",
