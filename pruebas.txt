@@ -1,0 +1,3 @@
+127.0.0.1
+CREATE KEYSPACE kp1 WITH {'replication_factor' : 1}
+CREATE TABLE kp1.table1 (id int, name text, genre boolean, PRIMARY KEY (id))

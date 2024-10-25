@@ -1,0 +1,7 @@
+{
+  "kp1": {
+    "tables": {},
+    "replication_strategy": "Simple Stategy",
+    "replication_factor": 1
+  }
+}
