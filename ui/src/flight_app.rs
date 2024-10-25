@@ -8,24 +8,24 @@ use eframe::egui;
 use egui::Context;
 use walkers::{sources::OpenStreetMap, HttpTiles, MapMemory};
 
-use crate::{airport::{airport::Airport, airports::{get_airports, Airports}}, flight::{flight::Flight, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}};
+use crate::{airport::{airport::Airport, airports::Airports}, cassandra_client::CassandraClient, flight::{flight::Flight, flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}};
 
 pub struct FlightApp {
     pub airports: Airports,
     pub selected_airport: Arc<Mutex<Option<Airport>>>,
     pub flights: Flights,
-    pub selected_flight: Arc<Mutex<Option<Flight>>>,
+    pub selected_flight: Arc<Mutex<Option<FlightSelected>>>,
     // Map
     pub tiles: HttpTiles,
     pub map_memory: MapMemory,
 }
 
 impl FlightApp {
-    pub fn new(egui_ctx: Context) -> Self {
+    pub fn new(egui_ctx: Context, mut information: CassandraClient) -> Self {
         Self::set_scroll_style(&egui_ctx);
 
         let selected_airport = Arc::new(Mutex::new(None));
-        let airports = Airports::new(get_airports(), Arc::clone(&selected_airport));
+        let airports = Airports::new(information.get_airports(), Arc::clone(&selected_airport));
 
         let selected_flight = Arc::new(Mutex::new(None));
         let flights = Flights::new(Vec::new(), Arc::clone(&selected_flight));
@@ -39,71 +39,24 @@ impl FlightApp {
             flights,
             selected_flight,
             tiles: HttpTiles::new(OpenStreetMap, egui_ctx.clone()),
-            map_memory,
+            map_memory
         };
-        app.loop_update_flights(egui_ctx);
+        app.loop_update_flights(egui_ctx, information);
         app
     }
 
-    fn loop_update_flights(&mut self, ctx: egui::Context) {
+    fn loop_update_flights(&mut self, ctx: egui::Context, mut information: CassandraClient) {
         let selected_flight = Arc::clone(&self.selected_flight);
         let selected_airport = Arc::clone(&self.selected_airport);
         let flights = Arc::clone(&self.flights.flights);
 
         thread::spawn(move || loop {
-            FlightApp::update_flights(&selected_flight, &selected_airport, &flights);
+            update_flights(&selected_flight, &selected_airport, &flights, &mut information);
             ctx.request_repaint();
             thread::sleep(Duration::from_millis(500));
         });
     }
-
-    fn update_flights(
-        selected_flight: &Arc<Mutex<Option<Flight>>>,
-        selected_airport: &Arc<Mutex<Option<Airport>>>,
-        flights: &Arc<Mutex<Vec<Flight>>>,
-    ) {
-        // Intenta abrir el lock del aeropuerto seleccionado
-        let selected_airport = match selected_airport.lock() {
-            Ok(lock) => lock,
-            Err(_) => return,
-        };
-
-        // Se fija si hay un aeropuerto seleccionado
-        let airport = match &*selected_airport {
-            Some(airport) => airport,
-            None => {
-                // Limpia los datos de vuelos
-                if let Ok(mut flight_lock) = selected_flight.lock() {
-                    *flight_lock = None;
-                }
-                if let Ok(mut flights_lock) = flights.lock() {
-                    *flights_lock = Vec::new();
-                }
-                return;
-            }
-        };
-        if let Ok(new_flights) = Airports::get_flights(airport) {
-            // Actualiza el vuelo seleccionado si existe, sino lo deselecciona
-            if let Ok(mut selected_flight_lock) = selected_flight.lock() {
-                if let Some(selected_flight) = &*selected_flight_lock {
-                    if let Some(updated_flight) = new_flights
-                        .iter()
-                        .find(|flight| flight.code == selected_flight.code)
-                    {
-                        *selected_flight_lock = Some(updated_flight.clone());
-                    } else {
-                        *selected_flight_lock = None;
-                    }
-                }
-            }
-
-            // Actualiza la lista de vuelos
-            if let Ok(mut flights_lock) = flights.lock() {
-                *flights_lock = new_flights;
-            }
-        }
-    }
-
+    
     fn set_scroll_style(egui_ctx: &Context) {
         let mut style = egui::Style::default();
         style.spacing.scroll = egui::style::ScrollStyle::solid();
@@ -123,5 +76,70 @@ impl eframe::App for FlightApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             MapPanel.ui(ui, self);
         });
+    }
+}
+
+
+
+// FUNCIONES DEL LOOP PARA ACTUALIZAR
+
+fn update_flights(
+    selected_flight: &Arc<Mutex<Option<FlightSelected>>>,
+    selected_airport: &Arc<Mutex<Option<Airport>>>,
+    flights: &Arc<Mutex<Vec<Flight>>>,
+    information: &mut CassandraClient
+) {
+    // Intenta abrir el lock del aeropuerto seleccionado
+    let selected_airport = match selected_airport.lock() {
+        Ok(lock) => lock,
+        Err(_) => return,
+    };
+
+    // Se fija si hay un aeropuerto seleccionado
+    let airport = match &*selected_airport {
+        Some(airport) => airport,
+        None => {
+            clear_flight_data(selected_flight, flights);
+            return;
+        }
+    };
+
+    load_flights(flights, information, &airport.name);
+    get_selected_flight(selected_flight, information);
+}
+
+// Carga todos los vuelos si la lista está vacía o actualiza solo los datos básicos.
+fn load_flights(
+    flights: &Arc<Mutex<Vec<Flight>>>,
+    information: &mut CassandraClient,
+    airport_name: &str
+) {
+    let mut flights_lock = match flights.lock() {
+        Ok(lock) => lock,
+        Err(_) => return,
+    };
+    *flights_lock = information.get_flights(airport_name);
+}
+
+fn get_selected_flight(
+    selected_flight: &Arc<Mutex<Option<FlightSelected>>>,
+    information: &mut CassandraClient
+) {
+    if let Ok(mut selected_flight_lock) = selected_flight.lock() {
+        if let Some(selected_flight) = &*selected_flight_lock {
+            *selected_flight_lock = Some(information.get_flight_selected(&selected_flight.code));
+        }
+    }
+}
+
+fn clear_flight_data(
+    selected_flight: &Arc<Mutex<Option<FlightSelected>>>,
+    flights: &Arc<Mutex<Vec<Flight>>>
+) {
+    if let Ok(mut flight_lock) = selected_flight.lock() {
+        *flight_lock = None;
+    }
+    if let Ok(mut flights_lock) = flights.lock() {
+        *flights_lock = Vec::new();
     }
 }

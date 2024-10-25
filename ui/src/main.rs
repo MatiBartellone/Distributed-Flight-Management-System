@@ -8,6 +8,6 @@ fn main() -> Result<(), Errors> {
     eframe::run_native(
         "Flight App",
         options,
-        Box::new(|cc| Ok(Box::new(FlightApp::new(cc.egui_ctx.clone())))),
+        Box::new(|cc| Ok(Box::new(FlightApp::new(cc.egui_ctx.clone(), cassandra_client)))),
     )
 }

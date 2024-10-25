@@ -1,19 +1,20 @@
 use std::sync::{Arc, Mutex};
 
 use egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded;
-use egui::{Painter, Response, ScrollArea};
-use walkers::{Plugin, Projector};
+use egui::{Painter, Pos2, Response, ScrollArea, Vec2};
+use walkers::{Plugin, Position, Projector};
 
 use super::flight::Flight;
+use super::flight_selected::FlightSelected;
 
 #[derive(Clone)]
 pub struct Flights {
     pub flights: Arc<Mutex<Vec<Flight>>>,
-    pub on_flight_selected: Arc<Mutex<Option<Flight>>>,
+    pub on_flight_selected: Arc<Mutex<Option<FlightSelected>>>,
 }
 
 impl Flights {
-    pub fn new(flights: Vec<Flight>, on_flight_selected: Arc<Mutex<Option<Flight>>>) -> Self {
+    pub fn new(flights: Vec<Flight>, on_flight_selected: Arc<Mutex<Option<FlightSelected>>>) -> Self {
         Self {
             flights: Arc::new(Mutex::new(flights)),
             on_flight_selected,
@@ -61,4 +62,14 @@ impl Plugin for &mut Flights {
             flight.draw_flight_path(painter, projector);
         }
     }
+}
+
+pub fn get_flight_pos2(position: &(f64, f64), projector: &Projector) -> Pos2 {
+    get_flight_vec2(position, projector).to_pos2()
+}
+
+pub fn get_flight_vec2(position: &(f64, f64), projector: &Projector) -> Vec2 {
+    let flight_coordinates = position;
+    let flight_position = Position::from_lon_lat(flight_coordinates.0, flight_coordinates.1);
+    projector.project(flight_position)
 }

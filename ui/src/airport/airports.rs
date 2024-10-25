@@ -6,6 +6,7 @@ use egui::{Painter, Pos2, Response, ScrollArea};
 use walkers::{Plugin, Position, Projector};
 
 use crate::flight::flight::Flight;
+use crate::flight::flight_selected::FlightSelected;
 use crate::flight::flight_status::FlightStatus;
 
 use super::airport::Airport;
@@ -395,8 +396,8 @@ pub fn get_airport_coordinates(airport: &Option<String>) -> (f64, f64) {
     }
 }
 
-pub fn get_arrival_airport_position(flight: &Flight, projector: &Projector) -> Pos2 {
-    let airport_coordinates = get_airport_coordinates(&Some(flight.arrival_airport.to_string()));
+pub fn get_airport_position(airport: &str, projector: &Projector) -> Pos2 {
+    let airport_coordinates = get_airport_coordinates(&Some(airport.to_string()));
     let airport_position = Position::from_lon_lat(airport_coordinates.0, airport_coordinates.1);
     projector.project(airport_position).to_pos2()
 }

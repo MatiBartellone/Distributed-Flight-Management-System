@@ -79,6 +79,10 @@ impl TypesToBytes {
     pub fn write_consistency(&mut self, consistency: ConsistencyLevel) -> Result<(), Errors> {
         self.write_i16(consistency.to_i16())
     }
+
+    pub fn write_bytes(&mut self, bytes: &[u8]) {
+        self.bytes.extend(bytes);
+    }
     
     pub fn into_bytes(self) -> Vec<u8> {
         self.bytes

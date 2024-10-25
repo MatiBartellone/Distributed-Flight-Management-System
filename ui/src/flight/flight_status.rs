@@ -7,6 +7,12 @@ pub enum FlightStatus {
 
 use FlightStatus::*;
 
+impl Default for FlightStatus {
+    fn default() -> Self {
+        FlightStatus::OnTime
+    }
+}
+
 impl FlightStatus {
     pub fn get_status(&self) -> String {
         match self {

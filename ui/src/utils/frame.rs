@@ -1,4 +1,4 @@
-use super::{bytes_cursor::BytesCursor, errors::Errors};
+use super::{bytes_cursor::BytesCursor, errors::Errors, types_to_bytes::TypesToBytes};
 
 
 #[derive(Debug, PartialEq)]
@@ -12,6 +12,29 @@ pub struct Frame {
 }
 
 impl Frame {
+    // El unico que ya lo recibe en bytes es el body porque varia el formato
+    pub fn new(version: u8, flags: u8, stream: i16, opcode: u8, length: u32, body: Vec<u8>) -> Self {
+        Frame {
+            version,
+            flags,
+            stream,
+            opcode,
+            length,
+            body
+        }
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut types_to_bytes = TypesToBytes::new();
+        types_to_bytes.write_u8(self.version).expect("Failed to write version");
+        types_to_bytes.write_u8(self.flags).expect("Failed to write flags");
+        types_to_bytes.write_i16(self.stream).expect("Failed to write stream");
+        types_to_bytes.write_u8(self.opcode).expect("Failed to write opcode");
+        types_to_bytes.write_u32(self.length).expect("Failed to write length");
+        types_to_bytes.write_bytes(&self.body);
+        types_to_bytes.into_bytes() 
+    }
+
     pub fn parse_frame(bytes: &[u8]) -> Result<Frame, Errors> {
         let mut cursor = BytesCursor::new(bytes);
         let version = cursor.read_u8()?;
