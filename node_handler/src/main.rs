@@ -148,7 +148,7 @@ fn print_node_list(nodes: Arc<Mutex<HashMap<String, NodeInfo>>>) {
 
     // Imprimir la lista de nodos ordenados
     println!(
-        "{}{}Nodos activos (ordenados por posición ascendente):{}{}",
+        "{}{}Nodos activos:{}{}",
         color::Fg(color::Green),
         style::Bold,
         style::Reset,

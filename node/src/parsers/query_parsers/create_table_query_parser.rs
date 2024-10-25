@@ -1,3 +1,4 @@
+use std::slice::Iter;
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::token::Token;
 use crate::queries::create_table_query::CreateTableQuery;
@@ -61,37 +62,42 @@ fn column(tokens: &mut IntoIter<Token>, query: &mut CreateTableQuery) -> Result<
         Token::Identifier(identifier) => {
             query
                 .columns
-                .insert(identifier.clone(), get_data_type(tokens)?);
-            try_primary_key(tokens, query, identifier)
+                .insert(identifier.to_string(), get_data_type(tokens)?);
+            try_partition_key(tokens, query, identifier)
         }
-        Token::Reserved(res) if res == *PRIMARY => key(tokens, query),
+        Token::Reserved(res) if res == *PRIMARY => {
+            if !query.primary_key.get_partition_key().is_empty() {
+                return Err(Errors::SyntaxError(String::from("Partition key already defined")))
+            }
+            key(tokens, query)
+        },
         _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_COLUMN_ERR))),
     }
 }
 
-fn try_primary_key(
+fn try_partition_key(
     tokens: &mut IntoIter<Token>,
     query: &mut CreateTableQuery,
-    primary_key: String,
+    partition_key: String,
 ) -> Result<(), Errors> {
     let Some(token) = tokens.next() else {
         return Ok(());
     };
     match token {
         Token::Symbol(s) if s == *COMMA => column(tokens, query),
-        Token::Reserved(res) if res == *PRIMARY => primary_key_def(tokens, query, primary_key),
+        Token::Reserved(res) if res == *PRIMARY => partition_key_def(tokens, query, partition_key),
         _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_COLUMN_ERR))),
     }
 }
 
-fn primary_key_def(
+fn partition_key_def(
     tokens: &mut IntoIter<Token>,
     query: &mut CreateTableQuery,
-    primary_key: String,
+    partition_key: String,
 ) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Reserved(res) if res == *KEY => {
-            set_primary_key(query, primary_key)?;
+            set_partition_key(query, partition_key)?;
             match get_next_value(tokens)? {
                 Token::Symbol(s) if s == *COMMA => column(tokens, query),
                 _ => Err(Errors::SyntaxError(String::from(COMMA_MISSING_PR_ERR))),
@@ -99,6 +105,14 @@ fn primary_key_def(
         }
         _ => Err(Errors::SyntaxError(String::from(MISSING_KEY_ERR))),
     }
+}
+
+fn set_partition_key(query: &mut CreateTableQuery, partition_key: String) -> Result<(),Errors> {
+    if query.primary_key.get_partition_key().is_empty() {
+        query.primary_key.add_partition_key(partition_key);
+        return Ok(());
+    }
+    Err(Errors::SyntaxError(String::from("Only one partition key is allowed using this method")))
 }
 fn key(tokens: &mut IntoIter<Token>, query: &mut CreateTableQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
@@ -113,17 +127,48 @@ fn primary_key_list(
 ) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::ParenList(list) => {
-            if list.len() != 1 {
-                return Err(Errors::SyntaxError(String::from(ONE_PK_PAR_ERR)));
-            };
-            match list.first() {
-                Some(Token::Identifier(identifier)) => {
-                    set_primary_key(query, identifier.to_string())?;
-                    Ok(())
-                }
+            let mut primary_key_tokens = list.into_iter();
+            match get_next_value(&mut primary_key_tokens)? {
+                Token::ParenList(partition_key_list) => set_partition_key_list(&mut partition_key_list.into_iter(), query),
+                Token::Identifier(identifier) => set_partition_key(query, identifier.to_string()),
                 _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_PK_ERR))),
-            }
+            }?;
+            clustering_columns(&mut primary_key_tokens, query)
         }
+        _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_PK_ERR))),
+    }
+}
+
+fn clustering_columns(tokens: &mut IntoIter<Token>, query: &mut CreateTableQuery) -> Result<(), Errors> {
+    let Some(token) = tokens.next() else {
+        return Ok(());
+    };
+    match token {
+        Token::Symbol(symbol) if symbol == COMMA => set_clustering_column(tokens, query),
+        _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_PK_ERR))),
+    }
+}
+
+fn set_clustering_column(tokens: &mut IntoIter<Token>, query: &mut CreateTableQuery) -> Result<(), Errors> {
+    match get_next_value(tokens)? {
+        Token::Identifier(column) => {
+            query.primary_key.add_clustering_column(column);
+            clustering_columns(tokens, query)
+        }
+        _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_PK_ERR))),
+    }
+}
+
+
+fn set_partition_key_list(tokens: &mut IntoIter<Token>, query: &mut CreateTableQuery,) -> Result<(), Errors> {
+    let Some(token) = tokens.next() else {
+        return Ok(());
+    };
+    match token {
+        Token::Identifier(partition_key) => {
+            query.primary_key.add_partition_key(partition_key.to_string());
+            set_partition_key_list(tokens, query)
+        },
         _ => Err(Errors::SyntaxError(String::from(UNEXPECTED_PK_ERR))),
     }
 }
@@ -141,24 +186,14 @@ fn get_next_value(tokens: &mut IntoIter<Token>) -> Result<Token, Errors> {
         .ok_or(Errors::SyntaxError(String::from(SHORT_QUERY_ERR)))
 }
 
-fn set_primary_key(query: &mut CreateTableQuery, primary_key: String) -> Result<(), Errors> {
-    if query.partition_key.is_empty() {
-        let pk = vec![primary_key];
-        query.partition_key = pk;
-        return Ok(());
-    }
-    Err(Errors::SyntaxError(String::from(ONE_DEF_PK_ERR)))
-}
-
 fn check_primary_key(query: &mut CreateTableQuery) -> Result<(), Errors> {
-    if query.partition_key.is_empty() {                                       //Todo esto debe ser fixeado
-        return Err(Errors::SyntaxError(String::from(PK_NOT_DEF_ERR)));      //Thiago lo deja así hasta el fix para que ande
-    }                                                                       //Por ahora solo anda con pk de un solo elemento
-    if !query.columns.contains_key(&query.partition_key[0]) {                 //Esta linea tambien
-        return Err(Errors::SyntaxError(String::from(PK_NOT_DEF_ERR)));
+    if query.primary_key.get_partition_key().is_empty() {
+        return Err(Errors::SyntaxError(String::from("Partition key not defined")));
     }
-    if query.partition_key.is_empty() {
-        return Err(Errors::SyntaxError(String::from(PK_NOT_DEF_ERR)));
+    for partition in query.primary_key.get_partition_key().iter() {
+        if !query.columns.contains_key(partition) {
+            return Err(Errors::SyntaxError(format!("Partition key {} not found in columns", partition)));
+        }
     }
     Ok(())
 }
@@ -168,6 +203,7 @@ mod tests {
     use super::*;
     use crate::parsers::tokens::token::Token;
     use std::collections::HashMap;
+    use crate::utils::primary_key::PrimaryKey;
 
     fn assert_error(result: Result<CreateTableQuery, Errors>, expected: &str) {
         assert!(result.is_err());
@@ -215,7 +251,8 @@ mod tests {
                 (String::from("id"), DataType::Int),
                 (String::from("name"), DataType::Text),
             ]),
-            partition_key: vec![String::from("id")],
+            partition_key: Vec::new(),
+            primary_key: PrimaryKey::new(vec![String::from("id")], None)
         }
     }
 
@@ -302,7 +339,7 @@ mod tests {
             "NOT EXISTENT",
         );
         let result = CreateTableQueryParser::parse(tokens);
-        assert_error(result, PK_NOT_DEF_ERR);
+        assert_error(result, "Partition key NOT EXISTENT not found in columns");
     }
 
     #[test]
@@ -322,7 +359,7 @@ mod tests {
             ]),
         ];
         let result = CreateTableQueryParser::parse(tokens);
-        assert_error(result, ONE_DEF_PK_ERR);
+        assert_error(result, "Only one partition key is allowed using this method");
     }
 
     #[test]
@@ -335,29 +372,7 @@ mod tests {
             ]),
         ];
         let result = CreateTableQueryParser::parse(tokens);
-        assert_error(result, PK_NOT_DEF_ERR);
+        assert_error(result, "Partition key not defined");
     }
 
-    #[test]
-    fn test_create_table_more_than_one_id_in_pk_parentheses() {
-        let tokens = vec![
-            Token::Identifier(String::from("table_name")),
-            Token::ParenList(vec![
-                Token::Identifier(String::from("id")),
-                Token::DataType(DataType::Int),
-                Token::Symbol(String::from(COMMA)),
-                Token::Identifier(String::from("name")),
-                Token::DataType(DataType::Text),
-                Token::Symbol(String::from(COMMA)),
-                Token::Reserved(String::from(PRIMARY)),
-                Token::Reserved(String::from(KEY)),
-                Token::ParenList(vec![
-                    Token::Identifier(String::from("id")),
-                    Token::Identifier(String::from("name")),
-                ]),
-            ]),
-        ];
-        let result = CreateTableQueryParser::parse(tokens);
-        assert_error(result, ONE_PK_PAR_ERR);
-    }
 }
