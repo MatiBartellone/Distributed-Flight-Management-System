@@ -1,3 +1,4 @@
+use egui::{Color32, Frame, Shadow};
 use egui::{Align2, RichText, Ui, Window};
 use walkers::MapMemory;
 
@@ -29,6 +30,11 @@ pub fn go_to_my_position(ui: &Ui, map_memory: &mut MapMemory) {
             .resizable(false)
             .title_bar(false)
             .anchor(Align2::RIGHT_TOP, [-10., -10.])
+            .frame(Frame {
+                shadow: Shadow::NONE,
+                fill: Color32::from_black_alpha(0),
+                ..Default::default()
+            })
             .show(ui.ctx(), |ui| {
                 if ui.button(RichText::new("Center Map").heading()).clicked() {
                     map_memory.follow_my_position();

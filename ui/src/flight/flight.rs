@@ -5,20 +5,19 @@ use std::{
 };
 use walkers::{extras::Image, Position, Projector, Texture};
 
-use crate::{
-    airports::{calculate_angle_to_airport, get_arrival_airport_position},
-    flight_status::FlightStatus,
-};
+use crate::airport::airports::{calculate_angle_to_airport, get_arrival_airport_position};
+
+use super::flight_status::FlightStatus;
 
 #[derive(Clone, PartialEq)]
 pub struct Flight {
-    pub code: String,
     // weak consistency
     pub position: (f64, f64),
     pub altitude: f64,
     pub speed: f32,
     pub fuel_level: f32,
     // strong consistency
+    pub code: String,
     pub status: FlightStatus,
     pub departure_airport: String,
     pub arrival_airport: String,

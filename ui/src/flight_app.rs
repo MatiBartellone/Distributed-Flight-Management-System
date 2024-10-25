@@ -8,14 +8,7 @@ use eframe::egui;
 use egui::Context;
 use walkers::{sources::OpenStreetMap, HttpTiles, MapMemory};
 
-use crate::{
-    airport::Airport,
-    airports::{get_airports, Airports},
-    flight::Flight,
-    flights::Flights,
-    information::InformationPanel,
-    map::MapPanel,
-};
+use crate::{airport::{airport::Airport, airports::{get_airports, Airports}}, flight::{flight::Flight, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}};
 
 pub struct FlightApp {
     pub airports: Airports,

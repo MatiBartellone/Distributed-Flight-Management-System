@@ -1,8 +1,9 @@
-use app::flight_app::FlightApp;
+use app::{cassandra_client::CassandraClient, flight_app::FlightApp, utils::errors::Errors};
 
-fn main() -> Result<(), eframe::Error> {
-    //env_logger::init();
-    //let cassandra_client = inicialite_cassandra_client();
+fn main() -> Result<(), Errors> {
+    let cassandra_client = CassandraClient::new("127.0.0.1", "8080")?;
+    cassandra_client.inicializate;
+
     let options = eframe::NativeOptions::default();
     eframe::run_native(
         "Flight App",
@@ -10,7 +11,3 @@ fn main() -> Result<(), eframe::Error> {
         Box::new(|cc| Ok(Box::new(FlightApp::new(cc.egui_ctx.clone())))),
     )
 }
-
-// fn inicialite_cassandra_client() -> CassandraClient {
-//     todo!()
-// }

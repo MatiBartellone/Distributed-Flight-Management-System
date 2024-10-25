@@ -4,7 +4,7 @@ use egui::scroll_area::ScrollBarVisibility::VisibleWhenNeeded;
 use egui::{Painter, Response, ScrollArea};
 use walkers::{Plugin, Projector};
 
-use crate::flight::Flight;
+use super::flight::Flight;
 
 #[derive(Clone)]
 pub struct Flights {

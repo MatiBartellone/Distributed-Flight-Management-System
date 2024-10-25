@@ -1,9 +1,8 @@
-use crate::{
-    flight_app::FlightApp,
-    windows::{go_to_my_position, zoom},
-};
+use crate::flight_app::FlightApp;
 use eframe::egui;
 use walkers::{Map, Position};
+
+use super::windows::{go_to_my_position, zoom};
 
 pub struct MapPanel;
 

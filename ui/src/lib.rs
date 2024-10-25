@@ -1,10 +1,6 @@
 pub mod airport;
-pub mod airport_selection;
-pub mod airports;
 pub mod flight;
 pub mod flight_app;
-pub mod flight_status;
-pub mod flights;
-pub mod information;
-pub mod map;
-pub mod windows;
+pub mod panels;
+pub mod cassandra_client;
+pub mod utils;
