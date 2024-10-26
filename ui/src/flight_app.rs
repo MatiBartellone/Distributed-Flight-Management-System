@@ -73,7 +73,7 @@ impl FlightApp {
         thread::spawn(move || loop {
             update_flights(&selected_flight, &selected_airport, &flights, &mut information);
             ctx.request_repaint();
-            thread::sleep(Duration::from_millis(500));
+            thread::sleep(Duration::from_millis(300));
         });
     }
     
@@ -124,7 +124,7 @@ fn update_flights(
         }
     };
 
-    load_flights(flights, information, &airport.name);
+    load_flights(flights, information, &airport.code);
     get_selected_flight(selected_flight, information);
 }
 
@@ -132,13 +132,13 @@ fn update_flights(
 fn load_flights(
     flights: &Arc<Mutex<Vec<Flight>>>,
     information: &mut CassandraClient,
-    airport_name: &str
+    airport_code: &str
 ) {
     let mut flights_lock = match flights.lock() {
         Ok(lock) => lock,
         Err(_) => return,
     };
-    *flights_lock = information.get_flights(airport_name);
+    *flights_lock = information.get_flights(airport_code);
 }
 
 fn get_selected_flight(
