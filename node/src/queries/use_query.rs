@@ -2,7 +2,7 @@ use super::query::Query;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::utils::constants::nodes_meta_data_path;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{get_long_string_from_str, split_keyspace_table};
+use crate::utils::functions::get_long_string_from_str;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 

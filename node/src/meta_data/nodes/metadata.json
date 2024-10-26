@@ -1,1 +1,1 @@
-{"own_node":{"ip":"127.0.0.1","position":1},"other_nodes":[{"ip":"127.0.0.7","position":7},{"ip":"127.0.0.5","position":5},{"ip":"127.0.0.2","position":2},{"ip":"127.0.0.8","position":8},{"ip":"127.0.0.3","position":3},{"ip":"127.0.0.4","position":4},{"ip":"127.0.0.6","position":6}]}
+{"own_node":{"ip":"127.0.0.1","port":"8080","position":2},"other_nodes":[{"ip":"127.0.0.1","port":"9090","position":1},{"ip":"127.0.0.1","port":"8080","position":2}]}

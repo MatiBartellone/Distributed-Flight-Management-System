@@ -1,15 +1,26 @@
 use crate::data_access::data_access::DataAccess;
 use crate::utils::errors::Errors;
-use crate::utils::functions::get_data_access_ip;
+use crate::utils::functions::{get_data_access_ip, get_own_modified_port};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
+use crate::utils::constants::{DATA_ACCESS_PORT_MOD, META_DATA_ACCESS_MOD};
 
 pub struct DataAccessHandler {}
 
 impl DataAccessHandler {
-    pub fn start_listening() -> Result<(), Errors> {
-        let listener = TcpListener::bind(get_data_access_ip()?)
-            .map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
+    pub fn start_listening(ip: String, port: String) -> Result<(), Errors> {
+        let data_access_port = port.parse::<i32>().map_err(|_| Errors::ServerError(String::from("Failed to parse port")))? + DATA_ACCESS_PORT_MOD;
+        let listener = TcpListener::bind(format!(
+            "{}:{}",
+            ip,
+            data_access_port
+        )).map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
+        let listening_ip = format!(
+            "{}:{}",
+            ip,
+            data_access_port
+        );
+        println!("Listening on {}", listening_ip);
         for stream in listener.incoming() {
             match stream {
                 Ok(mut stream) => Self::handle_connection(&mut stream)?,

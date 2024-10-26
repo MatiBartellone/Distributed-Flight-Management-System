@@ -8,8 +8,11 @@ pub const STRATEGY: &str = "class";
 pub fn nodes_meta_data_path() -> String {
     NODES_METADATA.to_string()
 }
-pub const QUERY_DELEGATION_PORT: i32 = 9090;
-pub const DATA_ACCESS_PORT: i32 = 9191;
+pub const QUERY_DELEGATION_PORT_MOD: i32 = 1;
+pub const DATA_ACCESS_PORT_MOD: i32 = 2;
+pub const META_DATA_ACCESS_MOD: i32 = 3;
+//pub const QUERY_DELEGATION_PORT: i32 = 9090;
+//pub const DATA_ACCESS_PORT: i32 = 9191;
 pub const META_DATA_ACCESS_PORT: i32 = 9292;
 pub const CLIENTS_PORT: i32 = 8080;
 pub const DOLLAR: char = '$';

@@ -2,19 +2,29 @@ use crate::meta_data::clients::meta_data_client::ClientMetaDataAcces;
 use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess;
 use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::utils::errors::Errors;
-use crate::utils::functions::get_meta_data_handler_ip;
+use crate::utils::functions::{get_meta_data_handler_ip, get_own_modified_port};
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
+use crate::utils::constants::META_DATA_ACCESS_MOD;
 
 #[derive(Serialize, Deserialize)]
 pub struct MetaDataHandler;
 
 impl MetaDataHandler {
-    pub fn start_listening() -> Result<(), Errors> {
-        let listener = TcpListener::bind(get_meta_data_handler_ip()?)
-            .map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
-
+    pub fn start_listening(ip: String, port: String) -> Result<(), Errors> {
+        let meta_data_port = port.parse::<i32>().map_err(|_| Errors::ServerError(String::from("Failed to parse port")))? + META_DATA_ACCESS_MOD;
+        let listener = TcpListener::bind(format!(
+            "{}:{}",
+            ip,
+            meta_data_port
+        )).map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
+        let listening_ip = format!(
+            "{}:{}",
+            ip,
+            meta_data_port
+        );
+        println!("Listening on {}", listening_ip);
         for stream in listener.incoming() {
             match stream {
                 Ok(mut stream) => Self::handle_connection(&mut stream)?,

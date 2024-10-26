@@ -1,30 +1,31 @@
 use crate::node_communication::query_serializer::QuerySerializer;
-use crate::utils::constants::QUERY_DELEGATION_PORT;
+use crate::utils::constants::{DATA_ACCESS_PORT_MOD, QUERY_DELEGATION_PORT_MOD};
 use crate::utils::errors::Errors;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
+use crate::utils::functions::get_own_modified_port;
 
 pub struct QueryReceiver {}
 
 impl QueryReceiver {
-    pub fn start_listening(ip: String) -> Result<(), Errors> {
+    pub fn start_listening(ip: String, port: String) -> Result<(), Errors> {
+        let query_receiver_port = port.parse::<i32>().map_err(|_| Errors::ServerError(String::from("Failed to parse port")))? + QUERY_DELEGATION_PORT_MOD;
         let listener = TcpListener::bind(format!(
             "{}:{}",
             ip,
-            QUERY_DELEGATION_PORT
+            query_receiver_port
         ))
         .map_err(|_| Errors::ServerError(String::from("Can't bind the port")))?;
         let listening_ip = format!(
             "{}:{}",
             ip,
-            QUERY_DELEGATION_PORT
+            query_receiver_port
         );
         println!("QUERY RECEIVER Start listening on {}", listening_ip);
         for incoming in listener.incoming() {
             match incoming {
                 Ok(stream) => {
-                    println!("Incoming connection from {}", stream.peer_addr().unwrap());
                     thread::spawn(move || {
                         if let Ok(response) = handle_query(&stream) {
                             respond_to_request(stream, response);
