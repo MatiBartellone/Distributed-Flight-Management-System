@@ -49,8 +49,6 @@ impl Cluster {
         Ok(ips)
     }
 
-
-
     fn is_in_range(start: usize, end: usize, position: usize, maximum: usize) -> bool {
         if end <= maximum {
             position >= start && position < end
@@ -63,7 +61,7 @@ impl Cluster {
 
     pub fn get_all_ips(&self) -> Result<Vec<String>, Errors> {
         let mut ips = Vec::new();
-        ips.push(self.get_own_ip().to_string());
+        ips.push(self.own_node.get_full_ip(QUERY_DELEGATION_PORT_MOD)?);
         for node in self.other_nodes.iter() {
             ips.push(node.get_full_ip(QUERY_DELEGATION_PORT_MOD)?);
         }

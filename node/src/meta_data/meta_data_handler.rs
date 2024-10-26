@@ -2,7 +2,7 @@ use crate::meta_data::clients::meta_data_client::ClientMetaDataAcces;
 use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess;
 use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{get_meta_data_handler_ip, get_own_modified_port};
+use crate::utils::functions::get_meta_data_handler_ip;
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};

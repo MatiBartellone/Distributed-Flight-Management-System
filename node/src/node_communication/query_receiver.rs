@@ -1,10 +1,9 @@
 use crate::node_communication::query_serializer::QuerySerializer;
-use crate::utils::constants::{DATA_ACCESS_PORT_MOD, QUERY_DELEGATION_PORT_MOD};
+use crate::utils::constants::QUERY_DELEGATION_PORT_MOD;
 use crate::utils::errors::Errors;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
-use crate::utils::functions::get_own_modified_port;
 
 pub struct QueryReceiver {}
 

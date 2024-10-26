@@ -1,9 +1,9 @@
 use crate::data_access::data_access::DataAccess;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{get_data_access_ip, get_own_modified_port};
+use crate::utils::functions::get_data_access_ip;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use crate::utils::constants::{DATA_ACCESS_PORT_MOD, META_DATA_ACCESS_MOD};
+use crate::utils::constants::DATA_ACCESS_PORT_MOD;
 
 pub struct DataAccessHandler {}
 
