@@ -43,8 +43,7 @@ impl Query for UseQuery {
     }
 
     fn get_keyspace(&self) -> Result<String, Errors> {
-        let (kp, _) = split_keyspace_table(&self.keyspace_name)?;
-        Ok(kp.to_string())
+        Ok(self.keyspace_name.to_string())
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

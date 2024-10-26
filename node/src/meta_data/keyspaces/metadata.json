@@ -4,7 +4,8 @@
       "aviones": {
         "primary_key": {
           "partition_keys": [
-            "aeropuerto"
+            "aeropuerto",
+            "gate"
           ],
           "clustering_columns": [
             "id"
@@ -13,8 +14,9 @@
         "columns": {
           "pos": "Int",
           "activo": "Boolean",
-          "aeropuerto": "Text",
-          "id": "Int"
+          "gate": "Int",
+          "id": "Int",
+          "aeropuerto": "Text"
         }
       }
     },

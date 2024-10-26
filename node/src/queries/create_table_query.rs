@@ -54,7 +54,6 @@ impl Query for CreateTableQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
         self.push_on_data_acces()?;
         self.push_on_meta_data()?;
-        println!("run create_table_query");
         Ok(get_long_string_from_str("Create table was successful"))
     }
 
