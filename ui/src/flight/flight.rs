@@ -82,7 +82,7 @@ impl Flight {
 
     // Dibuja la imagen del avion en su posicion
     pub fn draw_image_flight(&self, response: &Response, painter: Painter, projector: &Projector) {
-        let image_data = read("src/flight32.png").expect("Failed to load image");
+        let image_data = read("../src/img/flight32.png").expect("Failed to load image");
         let airplane_texture = Texture::new(&image_data, &painter.ctx()).unwrap();
         let flight_position = Position::from_lon_lat(self.position.0, self.position.1);
         let mut image = Image::new(airplane_texture, flight_position);
