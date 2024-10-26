@@ -1,26 +1,58 @@
 {
-  "kp1": {
+  "aviation": {
     "tables": {
-      "aviones": {
+      "flightInfo": {
         "primary_key": {
           "partition_keys": [
-            "aeropuerto",
-            "gate"
+            "flightCode"
+          ],
+          "clustering_columns": []
+        },
+        "columns": {
+          "speed": "Text",
+          "status": "Text",
+          "arrivalTime": "Text",
+          "positionLon": "Text",
+          "positionLat": "Text",
+          "flightCode": "Text",
+          "arrivalAirport": "Text",
+          "fuelLevel": "Text",
+          "departureAirport": "Text",
+          "departureTime": "Text",
+          "altitude": "Text"
+        }
+      },
+      "airports": {
+        "primary_key": {
+          "partition_keys": [
+            "code"
+          ],
+          "clustering_columns": []
+        },
+        "columns": {
+          "name": "Text",
+          "positionLon": "Text",
+          "positionLat": "Text",
+          "code": "Text"
+        }
+      },
+      "flightsByAirport": {
+        "primary_key": {
+          "partition_keys": [
+            "airportCode"
           ],
           "clustering_columns": [
-            "id"
+            "flightCode"
           ]
         },
         "columns": {
-          "pos": "Int",
-          "activo": "Boolean",
-          "gate": "Int",
-          "id": "Int",
-          "aeropuerto": "Text"
+          "airportCode": "Text",
+          "flightCode": "Text",
+          "dat": "Text"
         }
       }
     },
-    "replication_strategy": "Simple Stategy",
+    "replication_strategy": "SimpleStrategy",
     "replication_factor": 1
   }
 }
