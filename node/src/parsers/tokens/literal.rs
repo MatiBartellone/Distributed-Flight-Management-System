@@ -25,11 +25,9 @@ fn is_valid_decimal(input: &str) -> Option<Token> {
     let mut chars = input.chars();
     if let Some(first_char) = chars.next() {
         if first_char == '-' {
-            if chars.next().is_none() {
-                return None;
-            }
+            chars.next()?;
         } 
-        else if !first_char.is_digit(10) {
+        else if !first_char.is_ascii_digit() {
             return None;
         }
     }
@@ -42,7 +40,7 @@ fn is_valid_decimal(input: &str) -> Option<Token> {
             }
             decimal_point_seen = true;
         } 
-        else if !c.is_digit(10) {
+        else if !c.is_ascii_digit() {
             return None;
         }
     }
@@ -314,6 +312,16 @@ mod tests {
         let input = "'17:30:00'";
         let result = to_literal(input).unwrap();
         let literal = Literal::new("17:30:00".to_string(), Date);
+        let token = Token::Term(Term::Literal(literal));
+        assert_eq!(result, token);
+    }
+
+
+    #[test]
+    fn test_to_literal_decimal() {
+        let input = "-200.194";
+        let result = to_literal(input).unwrap();
+        let literal = Literal::new("-200.194".to_string(), Decimal);
         let token = Token::Term(Term::Literal(literal));
         assert_eq!(result, token);
     }

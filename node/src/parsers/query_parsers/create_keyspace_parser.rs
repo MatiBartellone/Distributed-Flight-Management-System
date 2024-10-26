@@ -1,4 +1,4 @@
-use crate::parsers::tokens::terms::Term;
+use crate::parsers::tokens::terms::{Term, ComparisonOperators, BooleanOperations};
 use crate::utils::constants::{REPLICATION, STRATEGY};
 use crate::{
     parsers::tokens::token::Token, queries::create_keyspace_query::CreateKeyspaceQuery,
@@ -9,11 +9,13 @@ use std::{collections::HashMap, vec::IntoIter};
 
 const INVALID_PARAMETERS: &str = "Query lacks parameters";
 const WITH: &str = "WITH";
+const REPLICATION_RES: &str = "replication";
 const UNEXPECTED_TOKEN: &str = "Unexpected token in table_name";
 const MISSING_COLON: &str = "Missing colon for separating parameters in replication";
 const MISSING_WITH: &str = "Missing WITH keyword";
 const MISSING_KEY: &str = "Missing key for replication";
 const MISSING_VALUE: &str = "Missing value for replication";
+const MISSING_REPLICATION: &str = "Missing replication after WITH";
 const COMMA: &str = ",";
 const COLON: &str = ":";
 
@@ -55,6 +57,28 @@ impl CreateKeyspaceParser {
     }
 
     fn replication(
+        &self,
+        tokens: &mut Peekable<IntoIter<Token>>,
+        query: &mut CreateKeyspaceQuery,
+    ) -> Result<(), Errors> {
+        match self.get_next_value(tokens)? {
+            Token::Identifier(replication) if replication == *REPLICATION_RES => self.equal(tokens, query),
+            _ => Err(Errors::SyntaxError(String::from(MISSING_REPLICATION))),
+        }
+    }
+
+    fn equal(
+        &self,
+        tokens: &mut Peekable<IntoIter<Token>>,
+        query: &mut CreateKeyspaceQuery,
+    ) -> Result<(), Errors> {
+        match self.get_next_value(tokens)? {
+            Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(ComparisonOperators::Equal))) => self.brace_list(tokens, query),
+            _ => Err(Errors::SyntaxError(String::from(MISSING_REPLICATION))),
+        }
+    }
+
+    fn brace_list(
         &self,
         tokens: &mut Peekable<IntoIter<Token>>,
         query: &mut CreateKeyspaceQuery,
@@ -169,6 +193,8 @@ mod tests {
         vec![
             Token::Identifier(KEYSPACE_NAME.to_string()),
             Token::Reserved(WITH.to_string()),
+            Token::Identifier(REPLICATION_RES.to_string()),
+            Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(ComparisonOperators::Equal)))
         ]
     }
 

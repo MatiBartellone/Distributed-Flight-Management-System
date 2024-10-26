@@ -90,29 +90,29 @@ impl ClientMetaDataAcces {
         Ok(())
     }
 
-    pub fn authorize_client(&self, path: String) {
-        let _ = Self::process_clients_alter(path, |client| {
+    pub fn authorize_client(&self, path: String) -> Result<(), Errors>{
+        Self::process_clients_alter(path, |client| {
             client.authorize();
             true
-        });
+        })
     }
 
-    pub fn startup_client(&self, path: String) {
-        let _ = Self::process_clients_alter(path, |client| {
+    pub fn startup_client(&self, path: String) -> Result<(), Errors> {
+        Self::process_clients_alter(path, |client| {
             client.start_up();
             true
-        });
+        })
     }
 
-    pub fn use_keyspace(&self, path: String, keyspace: &str) {
-        let _ = Self::process_clients_alter(path.to_string(), |client| {
+    pub fn use_keyspace(&self, path: String, keyspace: &str) -> Result<(), Errors> {
+        Self::process_clients_alter(path.to_string(), |client| {
             client.set_keyspace(keyspace.to_string());
             true
-        });
+        })
     }
 
-    pub fn delete_client(&self, path: String) {
-        let _ = Self::process_clients_alter(path, |_| false);
+    pub fn delete_client(&self, path: String) -> Result<(), Errors> {
+        Self::process_clients_alter(path, |_| false)
     }
 
     fn process_client_view<F, T>(path: String, process_fn: F) -> Result<T, Errors>
@@ -233,7 +233,7 @@ mod tests {
         let name = "test_autorize.json";
         create_test_file(name).expect("Failed to create test file");
         let meta_data = ClientMetaDataAcces {};
-        meta_data.authorize_client(name.to_owned());
+        meta_data.authorize_client(name.to_owned()).expect("Failed to authorize client");
         let key = meta_data
             .is_authorized(name.to_owned())
             .expect("Failed to get autoritzation");
@@ -246,7 +246,7 @@ mod tests {
         let name = "test_startup_client.json";
         create_test_file(name).expect("Failed to create test file");
         let meta_data = ClientMetaDataAcces {};
-        meta_data.startup_client(name.to_string());
+        meta_data.startup_client(name.to_string()).expect("Failed to startup client");
         let key = meta_data
             .had_started(name.to_owned())
             .expect("Failed to get startup");
@@ -259,7 +259,7 @@ mod tests {
         let name = "test_use_keyspace.json";
         create_test_file(name).expect("Failed to create test file");
         let meta_data = ClientMetaDataAcces {};
-        meta_data.use_keyspace(name.to_string(), "keyspace_new");
+        meta_data.use_keyspace(name.to_string(), "keyspace_new").expect("Failed to use keyspace client");
         let key = meta_data
             .get_keyspace(name.to_owned())
             .expect("Failed to get keyspace");
@@ -272,7 +272,7 @@ mod tests {
         let name = "test_delete_client.json";
         create_test_file(name).expect("Failed to create test file");
         let meta_data = ClientMetaDataAcces {};
-        meta_data.delete_client(name.to_string());
+        meta_data.delete_client(name.to_string()).expect("Failed to delete client");
         let key = meta_data.get_keyspace(name.to_owned());
         assert!(key.is_err());
         let line_count = count_lines_in_file(name).expect("Failed to count lines in file");
