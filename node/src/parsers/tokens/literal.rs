@@ -21,6 +21,35 @@ fn is_valid_bigint(input: &str) -> Option<Token> {
     None
 }
 
+fn is_valid_decimal(input: &str) -> Option<Token> {
+    let mut chars = input.chars();
+    if let Some(first_char) = chars.next() {
+        if first_char == '-' {
+            if chars.next().is_none() {
+                return None;
+            }
+        } 
+        else if !first_char.is_digit(10) {
+            return None;
+        }
+    }
+
+    let mut decimal_point_seen = false;
+    for c in input.chars().skip(1) {
+        if c == '.' {
+            if decimal_point_seen {
+                return None;
+            }
+            decimal_point_seen = true;
+        } 
+        else if !c.is_digit(10) {
+            return None;
+        }
+    }
+    let literal = Literal::new(input.to_owned(), Decimal);
+    Some(Token::Term(Term::Literal(literal)))
+}
+
 fn is_valid_boolean(input: &str) -> Option<Token> {
     match input {
         "true" => {
@@ -56,6 +85,9 @@ pub fn to_literal(word: &str) -> Option<Token> {
         return Some(token);
     }
     if let Some(token) = is_valid_text(word) {
+        return Some(token);
+    }
+    if let Some(token) = is_valid_decimal(word) {
         return Some(token);
     }
     //si se puede usar regex, es una pavada
