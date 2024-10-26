@@ -1,7 +1,5 @@
 use std::{collections::{HashMap, HashSet}, io::{Read, Write}, net::TcpStream};
 
-use num_cpus::get;
-
 use crate::{airport::airport::Airport, flight::{flight::Flight, flight_selected::FlightSelected, flight_status::FlightStatus}, utils::{bytes_cursor::BytesCursor, consistency_level::ConsistencyLevel, errors::Errors, frame::Frame, types_to_bytes::TypesToBytes}};
 
 pub const VERSION: u8 = 3;
@@ -53,7 +51,7 @@ impl CassandraClient {
     }
 
     fn use_airport_keyspace(&mut self){
-        let body = self.get_body_strong_consistency(&"USE airports;");
+        let body = self.get_body_strong_consistency(&"USE aviation;");
         let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
         self.send_frame(&frame.to_bytes());
         self.read_frame_response(); 
@@ -122,7 +120,7 @@ impl CassandraClient {
 
     // Get the information of the airport
     pub fn get_airport(&mut self, airports_code: String) -> Option<Airport> {
-        let query = format!("SELECT * FROM airports WHERE code = '{}';", airports_code);
+        let query = format!("SELECT * FROM aviation.airports WHERE code = '{}';", airports_code);
         let body = self.get_body_strong_consistency(&query);
         let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
         self.send_frame(&frame.to_bytes());
@@ -166,7 +164,7 @@ impl CassandraClient {
     pub fn get_flight(&mut self, flight_code: &str) -> Option<Flight>{
         // Pide la strong information
         let strong_query = format!(
-            "SELECT code, status, arrivalAirport FROM flightsByAirport WHERE flightCode = '{}';",
+            "SELECT code, status, arrivalAirport FROM aviation.flightsByAirport WHERE flightCode = '{}';",
             flight_code
         );
         let body = self.get_body_strong_consistency(&strong_query);
@@ -176,7 +174,7 @@ impl CassandraClient {
     
         // Pide la weak information
         let weak_query = format!(
-            "SELECT positionLat, positionLon FROM flightsByAirport WHERE flightVode = '{}'",
+            "SELECT positionLat, positionLon FROM aviation.flightsByAirport WHERE flightVode = '{}'",
             flight_code
         );
         let body = self.get_body_weak_consistency(&weak_query);
@@ -214,7 +212,7 @@ impl CassandraClient {
     pub fn get_flight_selected(&mut self, flight_code: &str) -> Option<FlightSelected> {
         // Pide la strong information
         let strong_query = format!(
-            "SELECT code, status, departureAirport, arrivalAirport, departureTime, arrivalTime FROM flightsByAirport WHERE flightCode = '{}';",
+            "SELECT code, status, departureAirport, arrivalAirport, departureTime, arrivalTime FROM aviation.flightsByAirport WHERE flightCode = '{}';",
             flight_code
         );
         let body = self.get_body_strong_consistency(&strong_query);
@@ -227,7 +225,7 @@ impl CassandraClient {
     
         // Pide la weak information
         let weak_query = format!(
-            "SELECT positionLat, positionLon, altitude, speed, fuelLevel FROM flightsByAirport WHERE flightCode = '{}'",
+            "SELECT positionLat, positionLon, altitude, speed, fuelLevel FROM aviation.flightsByAirport WHERE flightCode = '{}'",
             flight_code
         );
         let body = self.get_body_weak_consistency(&weak_query);
@@ -280,7 +278,7 @@ impl CassandraClient {
     // Gets all de flights codes going or leaving the aiport
     fn get_flight_codes_by_airport(&mut self, airport_name: &str) -> HashSet<String> {
         let query = format!(
-            "SELECT flightCode FROM flightsByAirport WHERE airportCode = '{}'",
+            "SELECT flightCode FROM flightsByAirport WHERE aviation.airportCode = '{}'",
             airport_name
         );
         let body = self.get_body_strong_consistency(&query);
@@ -303,9 +301,28 @@ impl CassandraClient {
     }
 
     fn get_rows(&self, body: &[u8]) -> Result<Vec<HashMap<String, String>>, Errors> {
-        let mut cursor = BytesCursor::new(body);
-        let _flags = cursor.read_int()?;
 
+        let mut cursor = BytesCursor::new(body);
+        let binding = String::from_utf8(cursor.read_remaining_bytes()?).unwrap();
+        let mut rows = binding.split("\n");
+    
+        // Obtenemos la primera línea como nombres de las columnas
+        let headers: Vec<String> = match rows.next() {
+            Some(header_line) => header_line.split(", ").map(|h| h.to_string()).collect(),
+            None => return Err(Errors::ProtocolError(String::from("Invalid UTF-8 string"))),
+        };
+
+        let mut result = Vec::new();
+        for row in rows{
+            let mut row_hash = HashMap::new();
+            for (header, value) in headers.iter().zip(row.split(", ")) {
+                row_hash.insert(header.to_string(), value.to_string());
+            }
+            result.push(row_hash);
+        }
+        dbg!(&result);
+        Ok(result)
+        /*
         let columns_count = cursor.read_int()?;
         let mut column_names = Vec::new();
         for _ in 0..columns_count {
@@ -325,6 +342,6 @@ impl CassandraClient {
             }
             rows.push(row);
         }
-        Ok(rows)
+        Ok(rows)*/
     }
 }
