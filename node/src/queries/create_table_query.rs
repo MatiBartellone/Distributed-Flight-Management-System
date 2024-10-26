@@ -22,7 +22,7 @@ impl CreateTableQuery {
         Self {
             table_name: String::new(),
             columns: HashMap::new(),
-            primary_key: PrimaryKey::default(),
+            primary_key: PrimaryKey::new_empty(),
         }
     }
 

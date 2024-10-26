@@ -1,8 +1,9 @@
 use crate::{queries::query::Query, utils::{errors::Errors, constants::KEYSPACE_METADATA}, meta_data::meta_data_handler::MetaDataHandler, data_access::data_access_handler::DataAccessHandler};
 use crate::utils::functions::get_long_string_from_str;
 use std::any::Any;
+use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct DropKeySpaceQuery {
     pub keyspace: String,
     pub if_exist: Option<bool>,

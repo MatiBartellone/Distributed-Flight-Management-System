@@ -11,10 +11,10 @@
           ]
         },
         "columns": {
-          "id": "Int",
+          "pos": "Int",
           "activo": "Boolean",
           "aeropuerto": "Text",
-          "pos": "Int"
+          "id": "Int"
         }
       }
     },

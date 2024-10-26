@@ -96,6 +96,7 @@ impl QueryDelegator {
         for ip in ips {
             full_ips.push(format!("{}:{}", ip, QUERY_DELEGATION_PORT));
         }
+        dbg!(&full_ips);
         Ok(full_ips)
     }
 

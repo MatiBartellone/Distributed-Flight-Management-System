@@ -40,7 +40,7 @@ impl Query for DeleteQuery {
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
-        get_partition_key_from_where(&self.table_name, &self.where_clause)
+        Ok(Some(get_partition_key_from_where(&self.table_name, &self.where_clause)?))
     }
 
     fn get_keyspace(&self) -> Result<String, Errors> {

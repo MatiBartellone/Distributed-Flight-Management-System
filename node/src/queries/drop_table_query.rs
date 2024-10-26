@@ -4,8 +4,9 @@ use crate::utils::functions::{check_table_name, split_keyspace_table, get_long_s
 use crate::{queries::query::Query, utils::errors::Errors};
 use crate::utils::constants::KEYSPACE_METADATA;
 use std::any::Any;
+use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct DropTableQuery {
     pub table_name: String,
     pub if_exist: Option<bool>,

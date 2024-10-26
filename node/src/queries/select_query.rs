@@ -29,7 +29,7 @@ impl SelectQuery {
     fn check_columns(&self) -> Result<(), Errors> {
         let table_columns = get_columns_from_table(&self.table_name)?;
         if self.columns.contains(&'*'.to_string()) {
-            if &self.columns.len() != &1 {
+            if self.columns.len() != 1 {
                 return Err(Errors::SyntaxError(String::from("If * was used, no other columns must be given")));
             }
             return Ok(());
@@ -90,7 +90,7 @@ impl Query for SelectQuery {
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
-        get_partition_key_from_where(&self.table_name, &self.where_clause)
+        Ok(Some(get_partition_key_from_where(&self.table_name, &self.where_clause)?))
     }
 
     fn get_keyspace(&self) -> Result<String, Errors> {

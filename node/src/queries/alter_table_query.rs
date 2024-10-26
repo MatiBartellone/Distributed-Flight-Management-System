@@ -4,8 +4,9 @@ use crate::utils::constants::KEYSPACE_METADATA;
 use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table};
 use crate::{parsers::tokens::data_type::DataType, utils::errors::Errors};
 use std::any::Any;
+use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct AlterTableQuery {
     pub table_name: String,
     pub operation: Option<Operations>,
@@ -13,7 +14,7 @@ pub struct AlterTableQuery {
     pub second_column: String,
     pub data: DataType,
 }
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub enum Operations {
     ADD,
     ALTER,

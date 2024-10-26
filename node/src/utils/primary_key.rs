@@ -15,7 +15,7 @@ impl PrimaryKey {
         }
     }
 
-    pub fn default() -> Self {
+    pub fn new_empty() -> Self {
         Self {
             partition_keys: Vec::new(),
             clustering_columns: Vec::new(),

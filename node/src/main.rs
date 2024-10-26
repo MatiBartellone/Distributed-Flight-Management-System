@@ -22,7 +22,7 @@ struct NodeInfo{
 
 fn add_node_to_cluster(node: Node) -> Result<(), Errors> {
     let mut stream = MetaDataHandler::establish_connection()?;
-    let _ = MetaDataHandler::get_instance(&mut stream).unwrap().get_nodes_metadata_access()
+    MetaDataHandler::get_instance(&mut stream).unwrap().get_nodes_metadata_access()
         .append_new_node(nodes_meta_data_path().as_ref(), node)?;
     Ok(())
 }
@@ -45,7 +45,7 @@ fn main() {
     let node_info = NodeInfo{ip: ip.to_string(), position: position.parse::<i32>().unwrap() as usize};
     let mut server_stream = TcpStream::connect(server_addr).expect("Failed to connect to server");
 
-    server_stream.write(serde_json::to_string(&node_info).unwrap().as_bytes()).unwrap();
+    server_stream.write_all(serde_json::to_string(&node_info).unwrap().as_bytes()).unwrap();
 
     // Leer la lista de nodos activos del servidor
     let mut buffer = [0; 1024];
@@ -58,35 +58,29 @@ fn main() {
     }
 
     thread::spawn(move || {
-        let _ = MetaDataHandler::start_listening().unwrap();
+        MetaDataHandler::start_listening().unwrap();
     });
     thread::spawn(move || {
-        let _ = DataAccessHandler::start_listening().unwrap();
+        DataAccessHandler::start_listening().unwrap();
     });
     let query_receiver_ip = ip.to_string();
     thread::spawn(move || {
-        let _ = QueryReceiver::start_listening(query_receiver_ip).unwrap();
+        QueryReceiver::start_listening(query_receiver_ip).unwrap();
     });
 
     thread::spawn(move || {
         // Mantener el nodo corriendo y escuchando nuevos mensajes
         let listener = TcpListener::bind(format!("{}:{}", node_info.ip, 7676)).unwrap();
-        for incoming in listener.incoming(){
-            match incoming {
-                Ok(mut stream) => {
-                    // Leer nuevos mensajes del servidor (nuevos nodos que se conectan)
-                    let size = stream.read(&mut buffer).unwrap();
-                    if size > 0{
-                        let new_node: NodeInfo = serde_json::from_slice(&buffer[..size]).unwrap();
-                        let node = Node::new(new_node.ip.to_string(), new_node.position);
-                        {
-                            add_node_to_cluster(node).unwrap();
-                        }
-                    }
-                },
-                _ => {}
+        for mut stream in listener.incoming().flatten(){
+            // Leer nuevos mensajes del servidor (nuevos nodos que se conectan)
+            let size = stream.read(&mut buffer).unwrap();
+            if size > 0{
+                let new_node: NodeInfo = serde_json::from_slice(&buffer[..size]).unwrap();
+                let node = Node::new(new_node.ip.to_string(), new_node.position);
+                {
+                    add_node_to_cluster(node).unwrap();
+                }
             }
-
 
         }
     });
@@ -99,18 +93,18 @@ fn main() {
 
 
     let listener =
-        TcpListener::bind(format!("{}:{}", ip.to_string(), CLIENTS_PORT)).expect("Error binding socket");
-    println!("Servidor escuchando en {}", ip.to_string());
+        TcpListener::bind(format!("{}:{}", ip, CLIENTS_PORT)).expect("Error binding socket");
+    println!("Servidor escuchando en {}", ip);
     for incoming in listener.incoming() {
         match incoming {
             Ok(stream) => {
                 println!("Cliente conectado: {:?}", stream.peer_addr());
 
-                server_stream.write(b"1").unwrap();
+                server_stream.write_all(b"1").unwrap();
                 let mut value = server_stream.try_clone().unwrap();
                 thread::spawn(move || {
                     handle_client(stream);
-                    value.write(b"__").unwrap();
+                    value.write_all(b"__").unwrap();
                 });
 
 

@@ -136,7 +136,7 @@ pub fn get_int_from_string(string: &String) -> Result<i32, Errors> {
         .map_err(|_| Errors::SyntaxError(format!("Could not parse int: {}", string)))
 }
 
-pub fn get_partition_key_from_where(table_name: &str, where_clause: &Option<WhereClause>) -> Result<Option<Vec<String>>, Errors> {
+pub fn get_partition_key_from_where(table_name: &str, where_clause: &Option<WhereClause>) -> Result<Vec<String>, Errors> {
     let Some(where_clause) = where_clause else {
         return Err(Errors::SyntaxError(String::from(
             "Where clause must be defined",
@@ -144,16 +144,13 @@ pub fn get_partition_key_from_where(table_name: &str, where_clause: &Option<Wher
     };
     let mut partition_key = Vec::new();
     let table_partition = get_table_partition(table_name)?;
-    if where_clause.get_primary_key(&mut partition_key, &table_partition)? {
-        if partition_key.len() != table_partition.len() {
-            return Err(Errors::SyntaxError(String::from(
-                "Full primary key must be defined in where clause",
-            )));
-        }
-        Ok(Some(partition_key))
-    } else {
-        Ok(None)
+    where_clause.get_primary_key(&mut partition_key, &table_partition)?;
+    if partition_key.len() != table_partition.len() {
+        return Err(Errors::SyntaxError(String::from(
+            "Full partition key must be defined in where clause",
+        )));
     }
+    Ok(partition_key)
 }
 
 pub fn get_own_ip() -> Result<String, Errors> {

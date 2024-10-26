@@ -6,8 +6,11 @@ use crate::queries::use_query::UseQuery;
 use crate::utils::errors::Errors;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
+use crate::queries::alter_table_query::AlterTableQuery;
 use crate::queries::create_keyspace_query::CreateKeyspaceQuery;
 use crate::queries::create_table_query::CreateTableQuery;
+use crate::queries::drop_keyspace_query::DropKeySpaceQuery;
+use crate::queries::drop_table_query::DropTableQuery;
 
 pub trait Query: Any{
     fn run(&self) -> Result<Vec<u8>, Errors>;
@@ -26,6 +29,9 @@ pub enum QueryEnum {
     Use(UseQuery),
     CreateKeyspace(CreateKeyspaceQuery),
     CreateTable(CreateTableQuery),
+    DropKeyspace(DropKeySpaceQuery),
+    DropTable(DropTableQuery),
+    AlterTable(AlterTableQuery),
 }
 
 impl QueryEnum {
@@ -38,6 +44,9 @@ impl QueryEnum {
             QueryEnum::Use(query) => Box::new(query),
             QueryEnum::CreateKeyspace(query) => Box::new(query),
             QueryEnum::CreateTable(query) => Box::new(query),
+            QueryEnum::DropKeyspace(query) => Box::new(query),
+            QueryEnum::DropTable(query) => Box::new(query),
+            QueryEnum::AlterTable(query) => Box::new(query),
         }
     }
 
@@ -53,10 +62,16 @@ impl QueryEnum {
             return Some(QueryEnum::Select(select_query.to_owned()));
         } else if let Some(use_query) = query.as_any().downcast_ref::<UseQuery>() {
             return Some(QueryEnum::Use(use_query.to_owned()));
-        }else if let Some(create_keyspace) = query.as_any().downcast_ref::<CreateKeyspaceQuery>() {
+        } else if let Some(create_keyspace) = query.as_any().downcast_ref::<CreateKeyspaceQuery>() {
             return Some(QueryEnum::CreateKeyspace(create_keyspace.to_owned()));
         } else if let Some(create_table) = query.as_any().downcast_ref::<CreateTableQuery>() {
             return Some(QueryEnum::CreateTable(create_table.to_owned()));
+        } else if let Some(drop_keyspace) = query.as_any().downcast_ref::<DropKeySpaceQuery>() {
+            return Some(QueryEnum::DropKeyspace(drop_keyspace.to_owned()));
+        } else if let Some(drop_table) = query.as_any().downcast_ref::<DropTableQuery>() {
+            return Some(QueryEnum::DropTable(drop_table.to_owned()));
+        } else if let Some(alter_table) = query.as_any().downcast_ref::<AlterTableQuery>() {
+            return Some(QueryEnum::AlterTable(alter_table.to_owned()));
         }
         None
     }
