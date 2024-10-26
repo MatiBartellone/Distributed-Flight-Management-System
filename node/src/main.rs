@@ -10,18 +10,25 @@ use node::response_builders::error_builder::ErrorBuilder;
 use node::utils::constants::nodes_meta_data_path;
 use node::utils::errors::Errors;
 use std::io::{self, Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::{IpAddr, TcpListener, TcpStream};
 use std::thread;
 
 fn main() {
     let server_addr = "127.0.0.1:7878";
-    let ip = get_user_data("Node's ip :");
-    let port = get_user_data("Node's port ([port, port+4] are used):");
-    let position = get_user_data("Node's position in cluster :").parse::<i32>().unwrap() as usize;
+    let network = get_user_data("Will this be used across netowrk? [Y][N]: ");
+    let (ip, uses_network)= match network.as_str() {
+        "Y" => (get_user_data("Device's ip (e.g. tailscale): "), true),
+        _ => (get_user_data("Node's ip: "), false)
+    };
+    let (ip, network_ip) = match uses_network {
+        true => ("0.0.0.0".to_string(), ip),
+        false => (ip.to_string(), ip)
+    };
+    let port = get_user_data("Node's port ([port, port+4] are used): ");
+    let position = get_user_data("Node's position in cluster: ").parse::<i32>().unwrap() as usize;
 
-    let node = Node::new(ip.to_string(), port.to_string(), position);
+    let node = Node::new(network_ip.to_string(), port.to_string(), position);
     let mut server_stream = TcpStream::connect(server_addr).expect("Failed to connect to server");
-
     server_stream.write_all(serde_json::to_string(&node).unwrap().as_bytes()).unwrap();
 
     set_cluster(&mut server_stream, node);
