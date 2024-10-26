@@ -20,10 +20,11 @@ impl CassandraClient {
         Ok(Self { stream })
     }
 
-    // Get ready the client
+    // Get ready the client for use in keyspace airport
     pub fn inicializate(&mut self){
         self.start_up();
         self.read_frame_response();
+        self.use_airport_keyspace();
     }
 
     // Send a startup
@@ -51,12 +52,19 @@ impl CassandraClient {
         self.read_frame_response(); 
     }
 
-    fn get_body_respones(&mut self) -> Result<Vec<u8>, Errors> {
+    fn use_airport_keyspace(&mut self){
+        let body = self.get_body_strong_consistency(&"USE airports;");
+        let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
+        self.send_frame(&frame.to_bytes());
+        self.read_frame_response(); 
+    }
+
+    fn get_body_response(&mut self) -> Result<Vec<u8>, Errors> {
         let mut buf = [0; 1024];
         match self.stream.read(&mut buf) {
             Ok(n) if n > 0 => {
                 let frame = Frame::parse_frame(&buf[..n]).expect("Error parsing frame");
-                dbg!(&frame);
+                
                 Ok(frame.body)
             }
             Ok(_) | Err(_) => Ok(Vec::new())
@@ -105,163 +113,81 @@ impl CassandraClient {
 // Manejo de queries especificas de mi app
 impl CassandraClient {
     // Get the information of the airports
-    pub fn get_airports(&mut self) -> Vec<Airport> {
-        let body = self.get_body_strong_consistency("SELECT * FROM airports");
-        let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
-        self.send_frame(&frame.to_bytes());
-        let body = self.get_body_respones().unwrap();
-        let mut cursor = BytesCursor::new(body.as_slice());
-        dbg!(cursor.read_long_string().unwrap());
-        self.rows_to_airports(&body)
+    pub fn get_airports(&mut self, airports_codes: Vec<String>) -> Vec<Airport> {
+        airports_codes
+            .into_iter()
+            .filter_map(|code| self.get_airport(code))
+            .collect()
     }
 
-    fn rows_to_airports(&self, body: &[u8]) -> Vec<Airport>{
-        return vec![
-        Airport::new(
-            "Aeropuerto Internacional Ministro Pistarini".to_string(),
-            "EZE".to_string(),
-            (-58.535, -34.812),
-        ), // EZE
-        Airport::new(
-            "Aeropuerto Internacional John F. Kennedy".to_string(),
-            "JFK".to_string(),
-            (-73.7781, 40.6413),
-        ), // JFK
-        Airport::new(
-            "Aeropuerto Internacional Comodoro Arturo Merino Benítez".to_string(),
-            "SCL".to_string(),
-            (-70.7859, -33.3928),
-        ), // SCL
-        Airport::new(
-            "Aeropuerto Internacional de Miami".to_string(),
-            "MIA".to_string(),
-            (-80.2870, 25.7959),
-        ), // MIA
-        Airport::new(
-            "Aeropuerto Internacional de Dallas/Fort Worth".to_string(),
-            "DFW".to_string(),
-            (-97.0382, 32.8968),
-        ), // DFW
-        Airport::new(
-            "Aeroporto Internacional de São Paulo/Guarulhos".to_string(),
-            "GRU".to_string(),
-            (-46.4731, -23.4255),
-        ), // GRU
-        Airport::new(
-            "Aeropuerto Adolfo Suárez Madrid-Barajas".to_string(),
-            "MAD".to_string(),
-            (-3.5706, 40.4935),
-        ), // MAD
-        Airport::new(
-            "Aéroport de Paris-Charles-de-Gaulle".to_string(),
-            "CDG".to_string(),
-            (2.5479, 49.0097),
-        ), // CDG
-        Airport::new(
-            "Aeropuerto Internacional de Los Ángeles".to_string(),
-            "LAX".to_string(),
-            (-118.4108, 33.9428),
-        ), // LAX
-        Airport::new(
-            "Luchthaven Schiphol".to_string(),
-            "AMS".to_string(),
-            (4.7642, 52.3086),
-        ), // AMS
-        Airport::new(
-            "Narita International Airport".to_string(),
-            "NRT".to_string(),
-            (140.3851, 35.7653),
-        ), // NRT
-        Airport::new(
-            "Aeropuerto de Heathrow".to_string(),
-            "LHR".to_string(),
-            (-0.4543, 51.4700),
-        ), // LHR
-        Airport::new(
-            "Aeropuerto de Fráncfort del Meno".to_string(),
-            "FRA".to_string(),
-            (8.5706, 50.0333),
-        ), // FRA
-        Airport::new(
-            "Aeropuerto de Sídney".to_string(),
-            "SYD".to_string(),
-            (151.1772, -33.9461),
-        ), // SYD
-        Airport::new(
-            "Aeropuerto Internacional de San Francisco".to_string(),
-            "SFO".to_string(),
-            (-122.3790, 37.6213),
-        ), // SFO
-    ];/*
-        let rows = self.get_rows(body).unwrap();
-        let mut airports = Vec::new();
+    // Get the information of the airport
+    pub fn get_airport(&mut self, airports_code: String) -> Option<Airport> {
+        let query = format!("SELECT * FROM airports WHERE code = '{}';", airports_code);
+        let body = self.get_body_strong_consistency(&query);
+        let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
+        self.send_frame(&frame.to_bytes());
+        
+        if let Some(body) = self.get_body_response().ok() {
+            return self.row_to_airport(&body);
+        }
+        None
+    }
 
-        for row in rows {
-            let name = match row.get("name") {
-                Some(name) => name.to_string(),
-                None => continue,
-            };
+    // Transforms the row to airport
+    fn row_to_airport(&self, body: &[u8]) -> Option<Airport> {
+        let rows = self.get_rows(body).ok()?;
+        if rows.is_empty() {
+            return None;
+        }
     
-            let code = match row.get("code") {
-                Some(code) => code.to_string(),
-                None => continue,
-            };
+        let row = &rows[0];
+        let name = row.get("name")?.to_string();
+        let code = row.get("code")?.to_string();
+        let position_lat = row.get("positionLat")?.parse::<f64>().ok()?;
+        let position_lon = row.get("positionLon")?.parse::<f64>().ok()?;
     
-            let position_lat = match row.get("position_lat")
-                .and_then(|val| val.parse::<f64>().ok()) {
-                Some(lat) => lat,
-                None => continue,
-            };
-    
-            let position_lon = match row.get("position_lon")
-                .and_then(|val| val.parse::<f64>().ok()) {
-                Some(lon) => lon,
-                None => continue,
-            };
-
-            airports.push(Airport {
-                name,
-                code,
-                position: (position_lat, position_lon),
-            });
-        }*/
+        Some(Airport {
+            name,
+            code,
+            position: (position_lat, position_lon),
+        })
     }
 
     // Get the basic information of the flights
     pub fn get_flights(&mut self, airport_name: &str) -> Vec<Flight> {
-        get_flights()
-        //let flight_codes = self.get_flight_codes_by_airport(airport_name);
-        //flight_codes
-        //    .into_iter()
-        //    .filter_map(|code| self.get_flight(&code))
-        //    .collect()
+        let flight_codes = self.get_flight_codes_by_airport(airport_name);
+        flight_codes
+            .into_iter()
+            .filter_map(|code| self.get_flight(&code))
+            .collect()
     }
 
     // Get the basic information of the flights
     pub fn get_flight(&mut self, flight_code: &str) -> Option<Flight>{
         // Pide la strong information
         let strong_query = format!(
-            "SELECT code, status, arrival_airport FROM flights_by_airport WHERE flight_code = '{}';",
+            "SELECT code, status, arrivalAirport FROM flightsByAirport WHERE flightCode = '{}';",
             flight_code
         );
         let body = self.get_body_strong_consistency(&strong_query);
         let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
         self.send_frame(&frame.to_bytes());
-        let body_strong = self.get_body_respones().unwrap();
+        let body_strong = self.get_body_response().unwrap();
     
         // Pide la weak information
         let weak_query = format!(
-            "SELECT position_lat, position_lon FROM flights_by_airport WHERE flight_code = '{}'",
+            "SELECT positionLat, positionLon FROM flightsByAirport WHERE flightVode = '{}'",
             flight_code
         );
         let body = self.get_body_weak_consistency(&weak_query);
         let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
         self.send_frame(&frame.to_bytes());
-        let body_weak = self.get_body_respones().unwrap();
+        let body_weak = self.get_body_response().unwrap();
     
         self.row_to_flight(&body_strong, &body_weak)
     }
 
+    // Transforms the rows to flight
     fn row_to_flight(&self, body_strong: &[u8], body_weak: &[u8]) -> Option<Flight> {
         let strong_row = self.get_rows(body_strong).ok()?.into_iter().next()?;
         let weak_row = self.get_rows(body_weak).ok()?.into_iter().next()?;
@@ -270,11 +196,11 @@ impl CassandraClient {
         let code = strong_row.get("code")?.to_string();
         let status_str = strong_row.get("status")?;
         let status = FlightStatus::new(status_str);
-        let arrival_airport = strong_row.get("arrival_airport")?.to_string();
+        let arrival_airport = strong_row.get("arrivalAirport")?.to_string();
 
         // Weak Consistency
-        let position_lat = weak_row.get("position_lat")?.parse::<f64>().ok()?;
-        let position_lon = weak_row.get("position_lon")?.parse::<f64>().ok()?;
+        let position_lat = weak_row.get("positionLat")?.parse::<f64>().ok()?;
+        let position_lon = weak_row.get("positionLon")?.parse::<f64>().ok()?;
 
         Some(Flight {
             position: (position_lat, position_lon),
@@ -286,37 +212,37 @@ impl CassandraClient {
 
     // Get the flight selected if exists
     pub fn get_flight_selected(&mut self, flight_code: &str) -> Option<FlightSelected> {
-        get_flight_selected(flight_code)
         // Pide la strong information
-        /*let strong_query = format!(
-            "SELECT code, status, departure_airport, arrival_airport, departure_time, arrival_time FROM flights_by_airport WHERE flight_code = '{}';",
+        let strong_query = format!(
+            "SELECT code, status, departureAirport, arrivalAirport, departureTime, arrivalTime FROM flightsByAirport WHERE flightCode = '{}';",
             flight_code
         );
         let body = self.get_body_strong_consistency(&strong_query);
         let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
         self.send_frame(&frame.to_bytes());
-        let body_strong = match self.get_body_respones() {
+        let body_strong = match self.get_body_response() {
             Ok(response) => response,
             Err(_) => return None,
         };
     
         // Pide la weak information
         let weak_query = format!(
-            "SELECT position_lat, position_lon, altitude, speed, fuel_level FROM flights_by_airport WHERE flight_code = '{}'",
+            "SELECT positionLat, positionLon, altitude, speed, fuelLevel FROM flightsByAirport WHERE flightCode = '{}'",
             flight_code
         );
         let body = self.get_body_weak_consistency(&weak_query);
         let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
         self.send_frame(&frame.to_bytes());
-        let body_weak = match self.get_body_respones() {
+        let body_weak = match self.get_body_response() {
             Ok(response) => response,
             Err(_) => return None,
         };
     
         // une la informacion
-        self.row_to_flight_selected(&body_strong, &body_weak)*/
+        self.row_to_flight_selected(&body_strong, &body_weak)
     }
 
+    // Transforms the rows to flight selected
     fn row_to_flight_selected(&self, row_strong: &[u8], row_weak: &[u8]) -> Option<FlightSelected>{
         let strong_row = self.get_rows(row_strong).ok()?.into_iter().next()?;
         let weak_row = self.get_rows(row_weak).ok()?.into_iter().next()?;
@@ -325,17 +251,17 @@ impl CassandraClient {
         let code = strong_row.get("code")?.to_string();
         let status_str = strong_row.get("status")?;
         let status = FlightStatus::new(&status_str);
-        let departure_airport = strong_row.get("departure_airport")?.to_string();
-        let arrival_airport = strong_row.get("arrival_airport")?.to_string();
-        let departure_time = strong_row.get("departure_time")?.to_string();
-        let arrival_time = strong_row.get("arrival_time")?.to_string();
+        let departure_airport = strong_row.get("departureAirport")?.to_string();
+        let arrival_airport = strong_row.get("arrivalAirport")?.to_string();
+        let departure_time = strong_row.get("departureTime")?.to_string();
+        let arrival_time = strong_row.get("arrivalTime")?.to_string();
     
         // Weak Consistency
-        let position_lat: f64 = weak_row.get("position_lat")?.parse().ok()?;
-        let position_lon: f64 = weak_row.get("position_lon")?.parse().ok()?;
+        let position_lat: f64 = weak_row.get("positionLat")?.parse().ok()?;
+        let position_lon: f64 = weak_row.get("positionLon")?.parse().ok()?;
         let altitude: f64 = weak_row.get("altitude")?.parse().ok()?;
         let speed: f32 = weak_row.get("speed")?.parse().ok()?;
-        let fuel_level: f32 = weak_row.get("fuel_level")?.parse().ok()?;
+        let fuel_level: f32 = weak_row.get("fuelLevel")?.parse().ok()?;
     
         Some(FlightSelected {
             code,
@@ -354,31 +280,26 @@ impl CassandraClient {
     // Gets all de flights codes going or leaving the aiport
     fn get_flight_codes_by_airport(&mut self, airport_name: &str) -> HashSet<String> {
         let query = format!(
-            "SELECT flight_code FROM flights_by_airport WHERE airport_code = '{}'",
+            "SELECT flightCode FROM flightsByAirport WHERE airportCode = '{}'",
             airport_name
         );
         let body = self.get_body_strong_consistency(&query);
         let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
         self.send_frame(&frame.to_bytes());
-        let response = self.get_body_respones().unwrap();
+        let response = self.get_body_response().unwrap();
         self.extract_flight_codes(&response)
     }
 
+    // Transforms the rows to flight codes
     fn extract_flight_codes(&self, response: &[u8]) -> HashSet<String> {
-        let codes = vec![
-            "AR1130", "LA8050", "AA940", "IB6844", "AF2280", "KL7028", 
-            "BA246", "JL704", "QF12", "NZ7", "EK202", "CA981", "LH400", 
-            "SU100", "CX846", "AF006", "KE85", "JL006"
-        ];
-        
-        codes.into_iter().map(|s| s.to_string()).collect()
-        /*let rows = self.get_rows(response).unwrap();
+        let rows_codes = self.get_rows(response).unwrap();
         let mut codes = HashSet::new();
 
-        for row in rows {
-            let code = row.get("flight_code").unwrap_or(&String::new()).to_string();
+        for row in rows_codes {
+            let code = row.get("flightCode").unwrap_or(&String::new()).to_string();
             codes.insert(code);
-        }*/
+        }
+        codes
     }
 
     fn get_rows(&self, body: &[u8]) -> Result<Vec<HashMap<String, String>>, Errors> {
@@ -406,345 +327,4 @@ impl CassandraClient {
         }
         Ok(rows)
     }
-}
-
-pub fn get_flights() -> Vec<Flight> {
-    vec![
-        Flight {
-            code: "AR1130".to_string(),
-            position: (-75.7787, 41.6413),
-            status: FlightStatus::OnTime,
-            arrival_airport: "JFK".to_string(),
-        },
-        Flight {
-            code: "LA8050".to_string(),
-            position: (-82.2903, 27.7617),
-            status: FlightStatus::Delayed,
-            arrival_airport: "MIA".to_string(),
-        },
-        Flight {
-            code: "AA940".to_string(),
-            position: (-45.6350, -22.5505),
-            status: FlightStatus::OnTime,
-            arrival_airport: "GRU".to_string(),
-        },
-        Flight {
-            code: "IB6844".to_string(),
-            position: (-62.3019, -37.6083),
-            status: FlightStatus::OnTime,
-            arrival_airport: "EZE".to_string(),
-        },
-        Flight {
-            code: "AF2280".to_string(),
-            position: (-120.4085, 35.9416),
-            status: FlightStatus::Cancelled,
-            arrival_airport: "LAX".to_string(),
-        },
-        Flight {
-            code: "KL7028".to_string(),
-            position: (-123.4194, 38.7749),
-            status: FlightStatus::OnTime,
-            arrival_airport: "SFO".to_string(),
-        },
-        Flight {
-            code: "BA246".to_string(),
-            position: (-3.4543, 51.4700),
-            status: FlightStatus::OnTime,
-            arrival_airport: "EZE".to_string(),
-        },
-        Flight {
-            code: "JL704".to_string(),
-            position: (140.3929, 35.6735),
-            status: FlightStatus::OnTime,
-            arrival_airport: "LAX".to_string(),
-        },
-        Flight {
-            code: "QF12".to_string(),
-            position: (151.2093, -33.8688),
-            status: FlightStatus::OnTime,
-            arrival_airport: "LAX".to_string(),
-        },
-        Flight {
-            code: "NZ7".to_string(),
-            position: (174.7633, -36.8485),
-            status: FlightStatus::Delayed,
-            arrival_airport: "SFO".to_string(),
-        },
-        Flight {
-            code: "EK202".to_string(),
-            position: (55.3333, 25.2697),
-            status: FlightStatus::OnTime,
-            arrival_airport: "JFK".to_string(),
-        },
-        Flight {
-            code: "CA981".to_string(),
-            position: (116.4074, 39.9042),
-            status: FlightStatus::OnTime,
-            arrival_airport: "JFK".to_string(),
-        },
-        Flight {
-            code: "LH400".to_string(),
-            position: (8.6821, 50.1109),
-            status: FlightStatus::OnTime,
-            arrival_airport: "JFK".to_string(),
-        },
-        Flight {
-            code: "SU100".to_string(),
-            position: (37.6173, 55.7558),
-            status: FlightStatus::OnTime,
-            arrival_airport: "JFK".to_string(),
-        },
-        Flight {
-            code: "CX846".to_string(),
-            position: (114.1095, 22.3964),
-            status: FlightStatus::Delayed,
-            arrival_airport: "JFK".to_string(),
-        },
-        Flight {
-            code: "AF006".to_string(),
-            position: (2.3522, 48.8566),
-            status: FlightStatus::OnTime,
-            arrival_airport: "JFK".to_string(),
-        },
-        Flight {
-            code: "KE85".to_string(),
-            position: (126.9780, 37.5665),
-            status: FlightStatus::OnTime,
-            arrival_airport: "JFK".to_string(),
-        },
-        Flight {
-            code: "JL006".to_string(),
-            position: (139.6917, 35.6895),
-            status: FlightStatus::OnTime,
-            arrival_airport: "JFK".to_string(),
-        },
-    ]
-}
-
-pub fn get_flight_selected(flight_code: &str) -> Option<FlightSelected> {
-    let aviones = vec![
-        FlightSelected {
-            code: "AR1130".to_string(),
-            position: (-75.7787, 41.6413),
-            altitude: 32000.0,
-            speed: 560.0,
-            fuel_level: 85.0,
-            status: FlightStatus::OnTime,
-            departure_airport: "EZE".to_string(),
-            departure_time: "08:30".to_string(),
-            arrival_airport: "JFK".to_string(),
-            arrival_time: "16:45".to_string(),
-        },
-        FlightSelected {
-            code: "LA8050".to_string(),
-            position: (-82.2903, 27.7617),
-            altitude: 34000.0,
-            speed: 580.0,
-            fuel_level: 78.0,
-            status: FlightStatus::Delayed,
-            departure_airport: "SCL".to_string(),
-            departure_time: "09:15".to_string(),
-            arrival_airport: "MIA".to_string(),
-            arrival_time: "17:00".to_string(),
-        },
-        FlightSelected {
-            code: "AA940".to_string(),
-            position: (-45.6350, -22.5505),
-            altitude: 30000.0,
-            speed: 550.0,
-            fuel_level: 65.0,
-            status: FlightStatus::OnTime,
-            departure_airport: "DFW".to_string(),
-            departure_time: "07:00".to_string(),
-            arrival_airport: "GRU".to_string(),
-            arrival_time: "15:30".to_string(),
-        },
-        FlightSelected {
-            code: "IB6844".to_string(),
-            position: (-62.3019, -37.6083),
-            altitude: 31000.0,
-            speed: 570.0,
-            fuel_level: 72.0,
-            status: FlightStatus::OnTime,
-            departure_airport: "MAD".to_string(),
-            departure_time: "10:00".to_string(),
-            arrival_airport: "EZE".to_string(),
-            arrival_time: "18:00".to_string(),
-        },
-        FlightSelected {
-            code: "AF2280".to_string(),
-            position: (-120.4085, 35.9416),
-            altitude: 33000.0,
-            speed: 590.0,
-            fuel_level: 80.0,
-            status: FlightStatus::Cancelled,
-            departure_airport: "CDG".to_string(),
-            departure_time: "12:30".to_string(),
-            arrival_airport: "LAX".to_string(),
-            arrival_time: "20:45".to_string(),
-        },
-        FlightSelected {
-            code: "KL7028".to_string(),
-            position: (-123.4194, 38.7749),
-            altitude: 32000.0,
-            speed: 600.0,
-            fuel_level: 60.0,
-            status: FlightStatus::OnTime,
-            departure_airport: "AMS".to_string(),
-            departure_time: "11:45".to_string(),
-            arrival_airport: "SFO".to_string(),
-            arrival_time: "20:10".to_string(),
-        },
-        FlightSelected {
-            code: "BA246".to_string(),
-            position: (-3.4543, 51.4700),
-            altitude: 31000.0,
-            speed: 575.0,
-            fuel_level: 77.0,
-            status: FlightStatus::OnTime,
-            departure_airport: "LHR".to_string(),
-            departure_time: "14:00".to_string(),
-            arrival_airport: "EZE".to_string(),
-            arrival_time: "17:30".to_string(),
-        },
-        FlightSelected {
-            code: "JL704".to_string(),
-            position: (140.3929, 35.6735),
-            altitude: 33000.0,
-            speed: 580.0,
-            fuel_level: 70.0,
-            status: FlightStatus::OnTime,
-            departure_airport: "NRT".to_string(),
-            departure_time: "16:00".to_string(),
-            arrival_airport: "LAX".to_string(),
-            arrival_time: "11:00".to_string(),
-        },
-        FlightSelected {
-            code: "QF12".to_string(),
-            position: (151.2093, -33.8688),
-            altitude: 35000.0,
-            speed: 590.0,
-            fuel_level: 82.0,
-            status: FlightStatus::OnTime,
-            departure_airport: "SYD".to_string(),
-            departure_time: "11:30".to_string(),
-            arrival_airport: "LAX".to_string(),
-            arrival_time: "06:15".to_string(),
-        },
-        FlightSelected {
-            code: "NZ7".to_string(),
-            position: (174.7633, -36.8485),
-            altitude: 34000.0,
-            speed: 580.0,
-            fuel_level: 75.0,
-            status: FlightStatus::Delayed,
-            departure_airport: "AKL".to_string(),
-            departure_time: "15:45".to_string(),
-            arrival_airport: "SFO".to_string(),
-            arrival_time: "08:30".to_string(),
-        },
-        FlightSelected {
-            code: "EK202".to_string(),
-            position: (55.3333, 25.2697),
-            altitude: 36000.0,
-            speed: 600.0,
-            fuel_level: 88.0,
-            status: FlightStatus::OnTime,
-            departure_airport: "DXB".to_string(),
-            departure_time: "02:00".to_string(),
-            arrival_airport: "JFK".to_string(),
-            arrival_time: "07:30".to_string(),
-        },
-        FlightSelected {
-            code: "CA981".to_string(),
-            position: (116.4074, 39.9042),
-            altitude: 34000.0,
-            speed: 570.0,
-            fuel_level: 74.0,
-            status: FlightStatus::OnTime,
-            departure_airport: "PEK".to_string(),
-            departure_time: "06:45".to_string(),
-            arrival_airport: "JFK".to_string(),
-            arrival_time: "10:00".to_string(),
-        },
-        FlightSelected {
-            code: "LH400".to_string(),
-            position: (8.6821, 50.1109),
-            altitude: 32000.0,
-            speed: 565.0,
-            fuel_level: 80.0,
-            status: FlightStatus::OnTime,
-            departure_airport: "FRA".to_string(),
-            departure_time: "09:00".to_string(),
-            arrival_airport: "JFK".to_string(),
-            arrival_time: "12:00".to_string(),
-        },
-        FlightSelected {
-            code: "SU100".to_string(),
-            position: (37.6173, 55.7558),
-            altitude: 35000.0,
-            speed: 600.0,
-            fuel_level: 81.0,
-            status: FlightStatus::OnTime,
-            departure_airport: "SVO".to_string(),
-            departure_time: "08:30".to_string(),
-            arrival_airport: "JFK".to_string(),
-            arrival_time: "12:15".to_string(),
-        },
-        FlightSelected {
-            code: "CX846".to_string(),
-            position: (114.1095, 22.3964),
-            altitude: 33000.0,
-            speed: 585.0,
-            fuel_level: 77.0,
-            status: FlightStatus::Delayed,
-            departure_airport: "HKG".to_string(),
-            departure_time: "12:00".to_string(),
-            arrival_airport: "JFK".to_string(),
-            arrival_time: "16:30".to_string(),
-        },
-        FlightSelected {
-            code: "AF006".to_string(),
-            position: (2.3522, 48.8566),
-            altitude: 32000.0,
-            speed: 575.0,
-            fuel_level: 79.0,
-            status: FlightStatus::OnTime,
-            departure_airport: "CDG".to_string(),
-            departure_time: "10:00".to_string(),
-            arrival_airport: "JFK".to_string(),
-            arrival_time: "13:30".to_string(),
-        },
-        FlightSelected {
-            code: "KE85".to_string(),
-            position: (126.9780, 37.5665),
-            altitude: 35000.0,
-            speed: 590.0,
-            fuel_level: 85.0,
-            status: FlightStatus::OnTime,
-            departure_airport: "ICN".to_string(),
-            departure_time: "09:45".to_string(),
-            arrival_airport: "JFK".to_string(),
-            arrival_time: "11:00".to_string(),
-        },
-        FlightSelected {
-            code: "JL006".to_string(),
-            position: (139.6917, 35.6895),
-            altitude: 34000.0,
-            speed: 580.0,
-            fuel_level: 72.0,
-            status: FlightStatus::OnTime,
-            departure_airport: "NRT".to_string(),
-            departure_time: "13:30".to_string(),
-            arrival_airport: "JFK".to_string(),
-            arrival_time: "17:30".to_string(),
-        },
-    ];
-
-    for avion in aviones {
-        if avion.code == flight_code {
-            return Some(avion);
-        }
-    }
-    None
 }

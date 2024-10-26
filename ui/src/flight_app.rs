@@ -10,6 +10,26 @@ use walkers::{sources::OpenStreetMap, HttpTiles, MapMemory};
 
 use crate::{airport::{airport::Airport, airports::Airports}, cassandra_client::CassandraClient, flight::{flight::Flight, flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}};
 
+fn get_airports_codes() -> Vec<String> {
+    vec![
+        "EZE".to_string(),
+        "JFK".to_string(),
+        "SCL".to_string(),
+        "MIA".to_string(),
+        "DFW".to_string(),
+        "GRU".to_string(),
+        "MAD".to_string(),
+        "CDG".to_string(),
+        "LAX".to_string(),
+        "AMS".to_string(),
+        "NRT".to_string(),
+        "LHR".to_string(),
+        "FRA".to_string(),
+        "SYD".to_string(),
+        "SFO".to_string(),
+    ]
+}
+
 pub struct FlightApp {
     pub airports: Airports,
     pub selected_airport: Arc<Mutex<Option<Airport>>>,
@@ -25,7 +45,7 @@ impl FlightApp {
         Self::set_scroll_style(&egui_ctx);
 
         let selected_airport = Arc::new(Mutex::new(None));
-        let airports = Airports::new(information.get_airports(), Arc::clone(&selected_airport));
+        let airports = Airports::new(information.get_airports(get_airports_codes()), Arc::clone(&selected_airport));
 
         let selected_flight = Arc::new(Mutex::new(None));
         let flights = Flights::new(Vec::new(), Arc::clone(&selected_flight));
