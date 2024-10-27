@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, io::{Read, Write}, net::TcpStream};
 
-use crate::{airport::airport::Airport, flight::{flight::Flight, flight_selected::FlightSelected, flight_status::FlightStatus}, utils::{bytes_cursor::BytesCursor, consistency_level::ConsistencyLevel, errors::Errors, frame::Frame, types_to_bytes::TypesToBytes}};
+use crate::{flight::{flight::Flight, flight_status::FlightStatus}, utils::{bytes_cursor::BytesCursor, consistency_level::ConsistencyLevel, errors::Errors, frame::Frame, types_to_bytes::TypesToBytes}};
 
 pub const VERSION: u8 = 3;
 pub const FLAGS: u8 = 0;
@@ -62,7 +62,6 @@ impl CassandraClient {
         match self.stream.read(&mut buf) {
             Ok(n) if n > 0 => {
                 let frame = Frame::parse_frame(&buf[..n]).expect("Error parsing frame");
-                
                 Ok(frame.body)
             }
             Ok(_) | Err(_) => Ok(Vec::new())
@@ -110,48 +109,6 @@ impl CassandraClient {
 
 // Manejo de queries especificas de mi app
 impl CassandraClient {
-    // Get the information of the airports
-    pub fn get_airports(&mut self, airports_codes: Vec<String>) -> Vec<Airport> {
-        airports_codes
-            .into_iter()
-            .filter_map(|code| self.get_airport(code))
-            .collect()
-    }
-
-    // Get the information of the airport
-    pub fn get_airport(&mut self, airports_code: String) -> Option<Airport> {
-        let query = format!("SELECT name, positionLon, positionLat, code FROM aviation.airports WHERE code = '{}';", airports_code);
-        let header = vec!["name".to_string(), "positionLon".to_string(), "positionLat".to_string(), "code".to_string()];
-        let body = self.get_body_strong_consistency(&query);
-        let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
-        self.send_frame(&frame.to_bytes());
-        
-        if let Some(body) = self.get_body_response().ok() {
-            return self.row_to_airport(&body, header);
-        }
-        None
-    }
-
-    // Transforms the row to airport
-    fn row_to_airport(&self, body: &[u8], header: Vec<String>) -> Option<Airport> {
-        let rows = self.get_rows(body, header).ok()?;
-        if rows.is_empty() {
-            return None;
-        }
-    
-        let row = &rows[0];
-        let name = row.get("name")?.to_string();
-        let code = row.get("code")?.to_string();
-        let position_lat = row.get("positionLon")?.parse::<f64>().ok()?;
-        let position_lon = row.get("positionLat")?.parse::<f64>().ok()?;
-    
-        Some(Airport {
-            name,
-            code,
-            position: (position_lat, position_lon),
-        })
-    }
-
     // Get the basic information of the flights
     pub fn get_flights(&mut self, airport_code: &str) -> Vec<Flight> {
         let flight_codes = self.get_flight_codes_by_airport(airport_code);
@@ -165,10 +122,10 @@ impl CassandraClient {
     pub fn get_flight(&mut self, flight_code: &str) -> Option<Flight>{
         // Pide la strong information
         let strong_query = format!(
-            "SELECT flightCode, status, arrivalAirport FROM aviation.flightInfo WHERE flightCode = '{}';",
+            "SELECT flightCode, status, departureAirport, arrivalAirport, departureTime, arrivalTime FROM aviation.flightInfo WHERE flightCode = '{}';",
             flight_code
         );
-        let header_strong = vec!["flightCode".to_string(), "status".to_string(), "arrivalAirport".to_string()];
+        let header_strong = vec!["flightCode".to_string(), "status".to_string(), "departureAirport".to_string(), "arrivalAirport".to_string(), "departureTime".to_string(), "arrivalTime".to_string()];
         let body = self.get_body_strong_consistency(&strong_query);
         let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
         self.send_frame(&frame.to_bytes());
@@ -176,10 +133,10 @@ impl CassandraClient {
     
         // Pide la weak information
         let weak_query = format!(
-            "SELECT positionLat, positionLon FROM aviation.flightInfo WHERE flightCode = '{}'",
+            "SELECT positionLat, positionLon, altitude, speed, fuelLevel FROM aviation.flightInfo WHERE flightCode = '{}'",
             flight_code
         );
-        let header_weak = vec!["positionLat".to_string(), "positionLon".to_string()];
+        let header_weak = vec!["positionLat".to_string(), "positionLon".to_string(), "altitude".to_string(), "speed".to_string(), "fuelLevel".to_string()];
         let body = self.get_body_weak_consistency(&weak_query);
         let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
         self.send_frame(&frame.to_bytes());
@@ -189,64 +146,7 @@ impl CassandraClient {
     }
 
     // Transforms the rows to flight
-    fn row_to_flight(&self, body_strong: &[u8], header_stong: Vec<String>, body_weak: &[u8], header_weak: Vec<String>) -> Option<Flight> {
-        let strong_row = self.get_rows(body_strong, header_stong).ok()?.into_iter().next()?;
-        let weak_row = self.get_rows(body_weak, header_weak).ok()?.into_iter().next()?;
-
-        // Strong Consistency
-        let code = strong_row.get("flightCode")?.to_string();
-        let status_str = strong_row.get("status")?;
-        let status = FlightStatus::new(status_str);
-        let arrival_airport = strong_row.get("arrivalAirport")?.to_string();
-
-        // Weak Consistency
-        let position_lat = weak_row.get("positionLon")?.parse::<f64>().ok()?;
-        let position_lon = weak_row.get("positionLat")?.parse::<f64>().ok()?;
-
-        Some(Flight {
-            position: (position_lat, position_lon),
-            code,
-            status,
-            arrival_airport,
-        })
-    }
-
-    // Get the flight selected if exists
-    pub fn get_flight_selected(&mut self, flight_code: &str) -> Option<FlightSelected> {
-        // Pide la strong information
-        let strong_query = format!(
-            "SELECT flightCode, status, departureAirport, arrivalAirport, departureTime, arrivalTime FROM aviation.flightInfo WHERE flightCode = '{}';",
-            flight_code
-        );
-        let header_strong = vec!["flightCode".to_string(), "status".to_string(), "departureAirport".to_string(), "arrivalAirport".to_string(), "departureTime".to_string(), "arrivalTime".to_string()];
-        let body = self.get_body_strong_consistency(&strong_query);
-        let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
-        self.send_frame(&frame.to_bytes());
-        let body_strong = match self.get_body_response() {
-            Ok(response) => response,
-            Err(_) => return None,
-        };
-    
-        // Pide la weak information
-        let weak_query = format!(
-            "SELECT positionLat, positionLon, altitude, speed, fuelLevel FROM aviation.flightInfo WHERE flightCode = '{}'",
-            flight_code
-        );
-        let header_week = vec!["positionLat".to_string(), "positionLon".to_string(), "altitude".to_string(), "speed".to_string(), "fuelLevel".to_string()];
-        let body = self.get_body_weak_consistency(&weak_query);
-        let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
-        self.send_frame(&frame.to_bytes());
-        let body_weak = match self.get_body_response() {
-            Ok(response) => response,
-            Err(_) => return None,
-        };
-    
-        // une la informacion
-        self.row_to_flight_selected(&body_strong, header_strong, &body_weak, header_week)
-    }
-
-    // Transforms the rows to flight selected
-    fn row_to_flight_selected(&self, row_strong: &[u8], header_strong: Vec<String>, row_weak: &[u8], header_weak: Vec<String>) -> Option<FlightSelected>{
+    fn row_to_flight(&self, row_strong: &[u8], header_strong: Vec<String>, row_weak: &[u8], header_weak: Vec<String>) -> Option<Flight>{
         let strong_row = self.get_rows(row_strong, header_strong).ok()?.into_iter().next()?;
         let weak_row = self.get_rows(row_weak, header_weak).ok()?.into_iter().next()?;
     
@@ -266,7 +166,7 @@ impl CassandraClient {
         let speed: f32 = weak_row.get("speed")?.parse().ok()?;
         let fuel_level: f32 = weak_row.get("fuelLevel")?.parse().ok()?;
     
-        Some(FlightSelected {
+        Some(Flight{
             code,
             status,
             departure_airport,
@@ -306,9 +206,7 @@ impl CassandraClient {
     }
 
     fn get_rows(&self, body: &[u8], headers: Vec<String>) -> Result<Vec<HashMap<String, String>>, Errors> {
-        dbg!(&headers);
-        let mut cursor = BytesCursor::new(body);
-        let binding = String::from_utf8(cursor.read_remaining_bytes()?).unwrap();
+        let binding = String::from_utf8(body.to_vec()).unwrap();
         let mut rows = binding.split("\n");
 
         let mut result = Vec::new();
@@ -343,5 +241,29 @@ impl CassandraClient {
             rows.push(row);
         }
         Ok(rows)*/
+    }
+
+    pub fn update_flight(&mut self, flight: Flight) {
+        // Actualiza la strong information
+        let strong_query = format!(
+            "UPDATE aviation.flightInfo SET status = '{}' WHERE flightCode = '{}';",
+            "OnTime",
+            flight.code
+        );
+        let body = self.get_body_strong_consistency(&strong_query);
+        let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
+        self.send_frame(&frame.to_bytes());
+        let _response = self.get_body_response().unwrap();
+    
+        // Pide la weak information
+        let weak_query = format!(
+            "UPDATE aviation.flightInfo SET positionLon = '{}', positionLat = '{}', altitude = '{}', speed = '{}', fuelLevel = '{}', WHERE flightCode = '{}'",
+            flight.position.0.to_string(), flight.position.1.to_string(), flight.altitude.to_string(), flight.speed.to_string(),flight.fuel_level.to_string(),
+            flight.code
+        );
+        let body = self.get_body_weak_consistency(&weak_query);
+        let frame = Frame::new(VERSION, FLAGS, STREAM, OP_CODE_QUERY, body.len() as u32, body);
+        self.send_frame(&frame.to_bytes());
+        let _response = self.get_body_response().unwrap();
     }
 }
