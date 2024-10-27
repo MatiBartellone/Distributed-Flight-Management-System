@@ -20,9 +20,9 @@ fn main() {
         "Y" => (get_user_data("Device's ip (e.g. tailscale): "), true),
         _ => (get_user_data("Node's ip: "), false)
     };
-    let (ip, network_ip) = match uses_network {
-        true => ("0.0.0.0".to_string(), ip),
-        false => (ip.to_string(), ip)
+    let (ip, network_ip, server_addr) = match uses_network {
+        true => ("0.0.0.0".to_string(), ip, format!("{}:{}",get_user_data("Server's decive ip: "),7878)),
+        false => (ip.to_string(), ip, server_addr.to_string())
     };
     let port = get_user_data("Node's port ([port, port+4] are used): ");
     let position = get_user_data("Node's position in cluster: ").parse::<i32>().unwrap() as usize;

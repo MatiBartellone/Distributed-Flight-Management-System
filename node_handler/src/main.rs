@@ -167,7 +167,7 @@ fn print_node_list(nodes: Arc<Mutex<HashMap<String, NodeInfo>>>) {
 
 fn main() {
     clear_screen();
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let listener = TcpListener::bind("0.0.0.0:7878").unwrap();
     let nodes = Arc::new(Mutex::new(HashMap::new()));
 
     for stream in listener.incoming() {
