@@ -10,7 +10,7 @@ use node::response_builders::error_builder::ErrorBuilder;
 use node::utils::constants::nodes_meta_data_path;
 use node::utils::errors::Errors;
 use std::io::{self, Read, Write};
-use std::net::{IpAddr, TcpListener, TcpStream};
+use std::net::{TcpListener, TcpStream};
 use std::thread;
 
 fn main() {
