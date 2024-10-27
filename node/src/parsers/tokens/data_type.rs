@@ -1,6 +1,7 @@
 use super::token::Token;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub enum DataType {
     Int,
     Boolean,

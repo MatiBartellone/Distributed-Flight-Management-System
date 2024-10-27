@@ -2,6 +2,7 @@ use super::{
     literal::{to_literal, Literal},
     token::Token,
 };
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq)]
 pub enum Term {
@@ -16,7 +17,7 @@ pub enum BooleanOperations {
     Comparison(ComparisonOperators),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub enum ArithMath {
     Suma,
     Sub,
@@ -32,7 +33,7 @@ pub enum LogicalOperators {
     Not,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum ComparisonOperators {
     Less,
     Equal,

@@ -1,10 +1,11 @@
+use super::where_clause_parser::WhereClauseParser;
 use crate::parsers::query_parsers::order_by_clause_parser::OrderByClauseParser;
 use crate::parsers::tokens::token::Token;
 use crate::queries::select_query::SelectQuery;
+use crate::utils::constants::*;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
-use crate::utils::constants::*;
-use super::where_clause_parser::WhereClauseParser;
+use crate::parsers::tokens::terms::{ArithMath, Term};
 
 pub struct SelectQueryParser;
 
@@ -40,7 +41,7 @@ fn from(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<(), Err
 fn table(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Identifier(identifier) => {
-            query.table = identifier;
+            query.table_name = identifier;
             modifiers(tokens, query)
         }
         _ => Err(Errors::SyntaxError(String::from(
@@ -111,14 +112,26 @@ fn order_clause(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result
 }
 
 fn get_columns(list: Vec<Token>) -> Result<Vec<String>, Errors> {
-    let mut columns = Vec::new();
-    for elem in list {
-        match elem {
-            Token::Identifier(column) => columns.push(column),
-            _ => {
-                return Err(Errors::SyntaxError(String::from(
-                    "Unexpected token in columns",
-                )))
+    let mut columns : Vec<String> = Vec::new();
+    for (index, elem) in list.iter().enumerate() {
+        if index % 2 == 0 {
+            match elem {
+                Token::Identifier(column) => columns.push(column.to_string()),
+                Token::Term(Term::ArithMath(ArithMath::Multiplication)) => columns.push("*".to_string()),
+                _ => {
+                    return Err(Errors::SyntaxError(String::from(
+                        "Unexpected token in columns",
+                    )))
+                }
+            }
+        } else {
+            match elem {
+                Token::Symbol(symbol) if symbol == COMMA => continue,
+                _ => {
+                    return Err(Errors::SyntaxError(String::from(
+                        "Column names must be separated by comma",
+                    )))
+                }
             }
         }
     }
@@ -147,11 +160,11 @@ mod tests {
         let tokens = vec![
             Token::IterateToken(vec![Token::Identifier(String::from("id"))]),
             Token::Reserved(String::from(FROM)),
-            Token::Identifier(String::from("table_name")),
+            Token::Identifier(String::from("kp.table_name")),
         ];
         let expected = SelectQuery {
             columns: vec![String::from("id")],
-            table: "table_name".to_string(),
+            table_name: "kp.table_name".to_string(),
             where_clause: None,
             order_clauses: None,
         };

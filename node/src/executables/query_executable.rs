@@ -1,26 +1,40 @@
 use crate::executables::executable::Executable;
-use crate::frame::Frame;
-use crate::queries::query::Query;
+use crate::utils::frame::Frame;
+use crate::node_communication::query_delegator::QueryDelegator;
+use crate::queries::query::{Query, QueryEnum};
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
 use crate::utils::parser_constants::RESULT;
 
-pub struct QueryExecutable{
+pub struct QueryExecutable {
     query: Box<dyn Query>,
-    consistency: ConsistencyLevel
+    consistency_integer: i16,
 }
 
 impl QueryExecutable {
-    pub fn new(query: Box<dyn Query>, consistency: ConsistencyLevel) -> QueryExecutable {
-        QueryExecutable { query, consistency}
+    pub fn new(query: Box<dyn Query>, consistency_integer: i16) -> QueryExecutable {
+        QueryExecutable {
+            query,
+            consistency_integer,
+        }
     }
 }
 
 impl Executable for QueryExecutable {
-    fn execute(&self, request: Frame) -> Result<Frame, Errors> {
-        let _ = self.consistency;
-        self.query.run()?;
-        FrameBuilder::build_response_frame(request, RESULT, Vec::new())
+    fn execute(&mut self, request: Frame) -> Result<Frame, Errors> {
+        self.query.set_table()?;
+        let pk = self.query.get_partition()?;
+        let Some(query_enum) = QueryEnum::from_query(&self.query) else {
+            return Err(Errors::ServerError(String::from("")));
+        };
+        let delegator = QueryDelegator::new(
+            pk,
+            query_enum.into_query(),
+            ConsistencyLevel::from_i16(self.consistency_integer)?,
+        );
+        let response_msg = delegator.send()?;
+        let response_frame = FrameBuilder::build_response_frame(request, RESULT, response_msg)?;
+        Ok(response_frame)
     }
 }

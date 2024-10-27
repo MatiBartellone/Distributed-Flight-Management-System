@@ -7,7 +7,6 @@ use crate::utils::errors::Errors;
 use crate::utils::token_conversor::get_next_value;
 
 use super::query_parsers::alter_table_parser::AlterTableParser;
-use super::query_parsers::create_query_parser::CreateQueryParser;
 use super::query_parsers::delete_query_parser::DeleteQueryParser;
 use super::query_parsers::drop_query_parser::DropQueryParser;
 use super::query_parsers::insert_query_parser::InsertQueryParser;
@@ -17,6 +16,7 @@ use super::query_parsers::use_query_parser::UseQueryParser;
 use super::tokens::lexer::standardize;
 use super::tokens::token::{tokenize, Token};
 use Token::*;
+use crate::parsers::query_parsers::create_query_parser::CreateQueryParser;
 
 pub struct QueryParser;
 
@@ -26,8 +26,8 @@ impl Parser for QueryParser {
         let string = cursor.read_long_string()?;
         let tokens = query_lexer(string)?;
         let query = query_parser(tokens)?;
-        let consistency = cursor.read_consistency()?;
-        let executable = QueryExecutable::new(query, consistency); 
+        let consistency = cursor.read_short()?;
+        let executable = QueryExecutable::new(query, consistency);
         Ok(Box::new(executable))
     }
 }
@@ -54,7 +54,7 @@ fn query_parser(tokens: Vec<Token>) -> Result<Box<dyn Query>, Errors> {
                 "CREATE" => CreateQueryParser::parse(tokens),
                 _ => Err(Errors::SyntaxError(format!("Unknown query type: {}", res))),
             }
-        },
+        }
         _ => Err(Errors::SyntaxError("Invalid CQL syntax".to_string())),
     }
 }
@@ -67,7 +67,7 @@ mod tests {
 
     #[test]
     fn test_parse_select_query_with_consistency() {
-        let query = "SELECT id FROM users".as_bytes();
+        let query = "SELECT id FROM kp.users".as_bytes();
         let len = (query.len() as i32).to_be_bytes();
         let consistency = 0x0001_i16.to_be_bytes();
         let mut body = Vec::new();
@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn test_parse_select_query_no_consistency() {
-        let query = "SELECT id FROM users".as_bytes();
+        let query = "SELECT id FROM kp.users".as_bytes();
         let len = (query.len() as i32).to_be_bytes();
         let mut body = Vec::new();
         body.extend_from_slice(&len);

@@ -1,5 +1,5 @@
-use crate::utils::bytes_cursor::BytesCursor;
-use crate::utils::errors::Errors;
+use crate::bytes_cursor::BytesCursor;
+use crate::errors::Errors;
 
 #[derive(Debug, PartialEq)]
 pub struct Frame {
@@ -21,15 +21,27 @@ impl Frame {
         let length = cursor.read_u32()?;
         let body = cursor.read_remaining_bytes()?;
 
-        let frame = Frame {
+        Ok(Frame {
             version,
             flags,
             stream,
             opcode,
             length,
             body,
-        };
-        Ok(frame)
+        })
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+
+        bytes.push(self.version);
+        bytes.push(self.flags);
+        bytes.extend(&self.stream.to_be_bytes());
+        bytes.push(self.opcode);
+        bytes.extend(&self.length.to_be_bytes());
+        bytes.extend(&self.body);
+
+        bytes
     }
 
     pub fn validate_request_frame(&self) -> Result<(), Errors> {

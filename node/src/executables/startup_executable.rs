@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::executables::executable::Executable;
-use crate::frame::Frame;
+use crate::utils::frame::Frame;
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::errors::Errors;
 use crate::utils::parser_constants::AUTHENTICATE;
@@ -19,10 +19,13 @@ impl StartupExecutable {
 
 impl Executable for StartupExecutable {
     /// Configurate the startup configurations and create a AUTHENTICATE response
-    fn execute(&self, request: Frame) -> Result<Frame, Errors> {
+    fn execute(&mut self, request: Frame) -> Result<Frame, Errors> {
         // Aplicar configs
         // let auth_class = vec![]; // HAY QUE ELEGIR AUTH CLASS Y PASARLA EN BYTES
-        let body: Vec<u8> = Vec::new(); 
+        let body: Vec<u8> = vec![
+            0x00, 0x15, b'P', b'a', b's', b's', b'w', b'o', b'r', b'd', b'A', b'u', b't', b'h',
+            b'e', b'n', b't', b'i', b'c', b'a', b't', b'o', b'r',
+        ];
         FrameBuilder::build_response_frame(request, AUTHENTICATE, body)
     }
 }

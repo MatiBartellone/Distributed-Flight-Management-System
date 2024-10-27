@@ -1,17 +1,19 @@
-use std::collections::HashMap;
-
 use crate::{
-    parsers::tokens::{literal::Literal, terms::ComparisonOperators, token::Token}, queries::evaluate::Evaluate, utils::{
+    parsers::tokens::{literal::Literal, terms::ComparisonOperators, token::Token},
+    queries::evaluate::Evaluate,
+    utils::{
         errors::Errors,
         token_conversor::{get_identifier_string, get_literal},
-    }
+    },
 };
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 use WhereClause::*;
 
 use super::comparison::ComparisonExpr;
 
 /// Enum para representar diferentes tipos de expresiones booleanas.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum WhereClause {
     Comparison(ComparisonExpr),
     Tuple(Vec<ComparisonExpr>),
@@ -38,6 +40,33 @@ impl Evaluate for WhereClause {
             And(expr1, expr2) => Ok(expr1.evaluate(row)? && expr2.evaluate(row)?),
             Or(expr1, expr2) => Ok(expr1.evaluate(row)? || expr2.evaluate(row)?),
             Not(expr) => Ok(!expr.evaluate(row)?),
+        }
+    }
+}
+
+impl WhereClause {
+    pub fn get_primary_key(
+        &self,
+        pk: &mut Vec<String>,
+        table_pk: &HashSet<String>,
+    ) -> Result<(), Errors> {
+        match self {
+            Comparison(comparacion) => comparacion.get_primary_key(pk, table_pk),
+            Tuple(comparaciones) => {
+                for comparacion in comparaciones {
+                    comparacion.get_primary_key(pk, table_pk)?;
+                }
+                Ok(())
+            }
+            And(expr1, expr2) => {
+                expr1.get_primary_key(pk, table_pk)?;
+                expr2.get_primary_key(pk, table_pk)
+            }
+            Or(expr1, expr2) => {
+                expr1.get_primary_key(pk, table_pk)?;
+                expr2.get_primary_key(pk, table_pk)
+            }
+            Not(expr) => expr.get_primary_key(pk, table_pk),
         }
     }
 }

@@ -1,9 +1,10 @@
-use crate::{parsers::tokens::token::Token, 
-    queries::drop_keyspace_query::DropKeySpaceQuery, 
-    utils::{errors::Errors, token_conversor::get_next_value}};
 use crate::utils::constants::*;
-use std::{vec::IntoIter, iter::Peekable};
-
+use crate::{
+    parsers::tokens::token::Token,
+    queries::drop_keyspace_query::DropKeySpaceQuery,
+    utils::{errors::Errors, token_conversor::get_next_value},
+};
+use std::{iter::Peekable, vec::IntoIter};
 
 pub struct DropKeySpaceQueryParser;
 
@@ -15,52 +16,59 @@ impl DropKeySpaceQueryParser {
     }
 }
 
-fn frok(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropKeySpaceQuery) -> Result<(), Errors> {
+fn frok(
+    tokens: &mut Peekable<IntoIter<Token>>,
+    query: &mut DropKeySpaceQuery,
+) -> Result<(), Errors> {
     match tokens.peek() {
         Some(Token::Identifier(_)) => table(tokens, query),
         Some(Token::Reserved(_)) => ifa(tokens, query),
-        _ => {
-            Err(Errors::SyntaxError(String::from(
-                "Unexpected token in table_name",
-            )))
-        }
+        _ => Err(Errors::SyntaxError(String::from(
+            "Unexpected token in table_name",
+        ))),
     }
 }
 
-fn table(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropKeySpaceQuery) -> Result<(), Errors> {
-    match get_next_value(tokens)?{
+fn table(
+    tokens: &mut Peekable<IntoIter<Token>>,
+    query: &mut DropKeySpaceQuery,
+) -> Result<(), Errors> {
+    match get_next_value(tokens)? {
         Token::Identifier(title) => {
             query.keyspace = title;
             finish(tokens)
         }
-        _ => {
-            Err(Errors::SyntaxError(String::from(
+        _ => Err(Errors::SyntaxError(String::from(
             "Unexpected token in table_name",
-        )))},
+        ))),
     }
 }
 
-fn ifa(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropKeySpaceQuery) -> Result<(), Errors> {
-    match get_next_value(tokens)?{
-        Token::Reserved(res) if res == *IF => exists(tokens, query) ,
-        _ => {
-            Err(Errors::SyntaxError(String::from(
+fn ifa(
+    tokens: &mut Peekable<IntoIter<Token>>,
+    query: &mut DropKeySpaceQuery,
+) -> Result<(), Errors> {
+    match get_next_value(tokens)? {
+        Token::Reserved(res) if res == *IF => exists(tokens, query),
+        _ => Err(Errors::SyntaxError(String::from(
             "Unexpected token in table_name",
-        )))},
+        ))),
     }
 }
-
 
 fn finish(tokens: &mut Peekable<IntoIter<Token>>) -> Result<(), Errors> {
-    if tokens.next().is_none(){
-        return Ok(())
+    if tokens.next().is_none() {
+        return Ok(());
     }
     Err(Errors::SyntaxError(String::from(
         "DROP with left over paramameters",
     )))
 }
 
-fn exists(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropKeySpaceQuery) -> Result<(), Errors> {
+fn exists(
+    tokens: &mut Peekable<IntoIter<Token>>,
+    query: &mut DropKeySpaceQuery,
+) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Reserved(res) if res == *EXISTS => {
             query.if_exist = Some(true);
@@ -76,15 +84,13 @@ fn exists(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DropKeySpaceQuery)
 mod tests {
     use super::*;
     use crate::parsers::tokens::token::Token;
-    
+
     use crate::utils::errors::Errors;
 
     #[test]
     fn test_parse_drop_keyspace_simple() {
         // Caso exitoso: DROP KEYSPACE my_keyspace
-        let tokens = vec![
-            Token::Identifier("my_keyspace".to_string()),
-        ];
+        let tokens = vec![Token::Identifier("my_keyspace".to_string())];
         let mut token_iter = tokens.into_iter().peekable();
         let result = DropKeySpaceQueryParser::parse(&mut token_iter);
 
@@ -169,5 +175,3 @@ mod tests {
         }
     }
 }
- 
-

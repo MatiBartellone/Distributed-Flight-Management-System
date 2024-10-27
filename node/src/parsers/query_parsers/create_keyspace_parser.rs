@@ -1,4 +1,5 @@
-use crate::parsers::tokens::terms::Term;
+use crate::parsers::tokens::terms::{Term, ComparisonOperators, BooleanOperations};
+use crate::utils::constants::{REPLICATION, STRATEGY};
 use crate::{
     parsers::tokens::token::Token, queries::create_keyspace_query::CreateKeyspaceQuery,
     utils::errors::Errors,
@@ -8,11 +9,13 @@ use std::{collections::HashMap, vec::IntoIter};
 
 const INVALID_PARAMETERS: &str = "Query lacks parameters";
 const WITH: &str = "WITH";
+const REPLICATION_RES: &str = "replication";
 const UNEXPECTED_TOKEN: &str = "Unexpected token in table_name";
 const MISSING_COLON: &str = "Missing colon for separating parameters in replication";
 const MISSING_WITH: &str = "Missing WITH keyword";
 const MISSING_KEY: &str = "Missing key for replication";
 const MISSING_VALUE: &str = "Missing value for replication";
+const MISSING_REPLICATION: &str = "Missing replication after WITH";
 const COMMA: &str = ",";
 const COLON: &str = ":";
 
@@ -59,6 +62,28 @@ impl CreateKeyspaceParser {
         query: &mut CreateKeyspaceQuery,
     ) -> Result<(), Errors> {
         match self.get_next_value(tokens)? {
+            Token::Identifier(replication) if replication == *REPLICATION_RES => self.equal(tokens, query),
+            _ => Err(Errors::SyntaxError(String::from(MISSING_REPLICATION))),
+        }
+    }
+
+    fn equal(
+        &self,
+        tokens: &mut Peekable<IntoIter<Token>>,
+        query: &mut CreateKeyspaceQuery,
+    ) -> Result<(), Errors> {
+        match self.get_next_value(tokens)? {
+            Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(ComparisonOperators::Equal))) => self.brace_list(tokens, query),
+            _ => Err(Errors::SyntaxError(String::from(MISSING_REPLICATION))),
+        }
+    }
+
+    fn brace_list(
+        &self,
+        tokens: &mut Peekable<IntoIter<Token>>,
+        query: &mut CreateKeyspaceQuery,
+    ) -> Result<(), Errors> {
+        match self.get_next_value(tokens)? {
             Token::BraceList(list) => {
                 let mut token_list = list.into_iter().peekable();
                 let replication_map = HashMap::<String, String>::new();
@@ -76,6 +101,7 @@ impl CreateKeyspaceParser {
         tokens_list: &mut Peekable<IntoIter<Token>>,
         replication: &mut HashMap<String, String>,
     ) -> Result<(), Errors> {
+
         self.check_key_literal(tokens_list, replication)
     }
 
@@ -85,7 +111,15 @@ impl CreateKeyspaceParser {
         replication: &mut HashMap<String, String>,
     ) -> Result<(), Errors> {
         match self.get_next_value(tokens_list)? {
-            Token::Reserved(key) => self.check_colon(tokens_list, key, replication),
+            Token::Term(Term::Literal(literal)) => {
+                let key = literal.value;
+                if key == STRATEGY || key == REPLICATION {
+                    self.check_colon(tokens_list, key, replication)
+                } else {
+                    Err(Errors::SyntaxError(String::from(MISSING_KEY)))
+                }
+                
+            }
             _ => Err(Errors::SyntaxError(String::from(MISSING_KEY))),
         }
     }
@@ -160,19 +194,27 @@ mod tests {
         vec![
             Token::Identifier(KEYSPACE_NAME.to_string()),
             Token::Reserved(WITH.to_string()),
+            Token::Identifier(REPLICATION_RES.to_string()),
+            Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(ComparisonOperators::Equal)))
         ]
     }
 
     fn create_brace_list() -> Vec<Token> {
         vec![Token::BraceList(vec![
-            Token::Reserved(CLASS.to_string()),
+            Token::Term(Term::Literal(Literal::new(
+                "class".to_string(),
+                DataType::Text,
+            ))),
             Token::Symbol(COLON.to_string()),
             Token::Term(Term::Literal(Literal::new(
                 SIMPLE_STRATEGY.to_string(),
                 DataType::Text,
             ))),
             Token::Symbol(COMMA.to_string()),
-            Token::Reserved(REPLICATION_FACTOR_KEWORD.to_string()),
+            Token::Term(Term::Literal(Literal::new(
+                "replication_factor".to_string(),
+                DataType::Text,
+            ))),
             Token::Symbol(COLON.to_string()),
             Token::Term(Term::Literal(Literal::new(
                 REPLICATION_FACTOR_VALUE.to_string(),
@@ -187,7 +229,6 @@ mod tests {
         let barace_list = create_brace_list();
 
         tokens.extend(barace_list);
-
         let parser = CreateKeyspaceParser;
         let result = parser.parse(tokens);
 
@@ -204,9 +245,7 @@ mod tests {
 
     #[test]
     fn test_02_create_keyspace_missing_with_keyword_should_error() {
-        let mut tokens = vec![
-            Token::Identifier(KEYSPACE_NAME.to_string()),
-        ];
+        let mut tokens = vec![Token::Identifier(KEYSPACE_NAME.to_string())];
 
         let barace_list = create_brace_list();
 
@@ -260,7 +299,10 @@ mod tests {
     fn test_05_create_keyspace_missing_value_in_brace_list_should_error() {
         let mut tokens = create_tokens();
         let barace_list = vec![Token::BraceList(vec![
-            Token::Reserved(CLASS.to_string()),
+            Token::Term(Term::Literal(Literal::new(
+                "class".to_string(),
+                DataType::Text,
+            ))),
             Token::Symbol(COLON.to_string()),
             Token::Symbol(COMMA.to_string()),
         ])];
@@ -281,7 +323,10 @@ mod tests {
     fn test_06_create_keyspace_missing_colon_in_brace_list_should_error() {
         let mut tokens = create_tokens();
         let barace_list = vec![Token::BraceList(vec![
-            Token::Reserved(CLASS.to_string()),
+            Token::Term(Term::Literal(Literal::new(
+                "class".to_string(),
+                DataType::Text,
+            ))),
             Token::Term(Term::Literal(Literal::new(
                 SIMPLE_STRATEGY.to_string(),
                 DataType::Text,
