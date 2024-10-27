@@ -19,12 +19,6 @@ impl MetaDataHandler {
             ip,
             meta_data_port
         )).map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
-        let listening_ip = format!(
-            "{}:{}",
-            ip,
-            meta_data_port
-        );
-        println!("Listening on {}", listening_ip);
         for stream in listener.incoming() {
             match stream {
                 Ok(mut stream) => Self::handle_connection(&mut stream)?,

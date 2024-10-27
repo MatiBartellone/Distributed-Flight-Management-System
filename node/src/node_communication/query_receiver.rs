@@ -16,12 +16,6 @@ impl QueryReceiver {
             query_receiver_port
         ))
         .map_err(|_| Errors::ServerError(String::from("Can't bind the port")))?;
-        let listening_ip = format!(
-            "{}:{}",
-            ip,
-            query_receiver_port
-        );
-        println!("QUERY RECEIVER Start listening on {}", listening_ip);
         for incoming in listener.incoming() {
             match incoming {
                 Ok(stream) => {

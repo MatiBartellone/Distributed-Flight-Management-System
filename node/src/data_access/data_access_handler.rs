@@ -15,12 +15,6 @@ impl DataAccessHandler {
             ip,
             data_access_port
         )).map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
-        let listening_ip = format!(
-            "{}:{}",
-            ip,
-            data_access_port
-        );
-        println!("Listening on {}", listening_ip);
         for stream in listener.incoming() {
             match stream {
                 Ok(mut stream) => Self::handle_connection(&mut stream)?,

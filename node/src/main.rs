@@ -89,7 +89,6 @@ fn listen_incoming_new_nodes(ip: String, port: String) {
         // Mantener el nodo corriendo y escuchando nuevos mensajes
         let port = (port.parse::<i32>().unwrap() + 4).to_string();
         let listener = TcpListener::bind(format!("{}:{}", ip, port)).unwrap();
-        println!("Servidor escuchando en {}:{}", ip, port);
         for mut stream in listener.incoming().flatten(){
             // Leer nuevos mensajes del servidor (nuevos nodos que se conectan)
             let mut buffer = [0; 1024];

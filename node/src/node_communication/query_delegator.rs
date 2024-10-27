@@ -92,7 +92,6 @@ impl QueryDelegator {
             &self.primary_key,
             self.query.get_keyspace()?,
         )?;
-        dbg!(&ips);
         Ok(ips)
     }
 
