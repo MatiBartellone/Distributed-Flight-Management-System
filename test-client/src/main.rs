@@ -5,7 +5,7 @@ use test_client::bytes_cursor::BytesCursor;
 use test_client::frame::Frame;
 
 fn main() {
-    print!("Ip: ");
+    print!("FULL IP (ip:port): ");
     io::stdout().flush().unwrap();
     let mut node = String::new();
     io::stdin()
@@ -26,20 +26,18 @@ fn main() {
 
     let options_bytes = vec![0x03, 0x00, 0x00, 0x01, 0x05, 0x00, 0x00, 0x00, 0x00];
 
-    let query_bytes = vec![
+    let use_bytes = vec![
         0x03, 0x00, 0x00, 0x01, 0x07, 0x00, 0x00, 0x00, 0x0C, 0x00, 0x00, 0x00, 0x06, b'U', b'S',
         b'E', b' ', b'k', b'p', 0x00, 0x01,
     ];
 
+
+
     //let mut addrs_iter = ip.to_socket_addrs().expect("Invalid socket address");
-    if let Ok(mut stream) = TcpStream::connect((node, 8080)) {
-        //println!("{}", format!("connected to {}:8080", node));
+    if let Ok(mut stream) = TcpStream::connect(node) {
         let mut input = String::new();
         while io::stdin().read_line(&mut input).is_ok() {
             match input.trim() {
-                "exit" => {
-                    break;
-                }
                 "startup" => {
                     stream
                         .write_all(startup_bytes.as_slice())
@@ -55,12 +53,44 @@ fn main() {
                         .write_all(options_bytes.as_slice())
                         .expect("Error writing to socket");
                 }
+                "use" => {
+                    stream
+                        .write_all(use_bytes.as_slice())
+                        .expect("Error writing to socket");
+                }
                 "query" => {
+                    print!("QUERY: ");
+                    io::stdout().flush().unwrap();
+                    let mut query = String::new();
+                    io::stdin()
+                        .read_line(&mut query)
+                        .expect("Error reading node");
+                    let query = query.trim();
+
+                    print!("CONSISTENCY: ");
+                    io::stdout().flush().unwrap();
+                    let mut consistency = String::new();
+                    io::stdin()
+                        .read_line(&mut consistency)
+                        .expect("Error reading node");
+                    let consistency = consistency.trim();
+                    let mut body = Vec::new();
+                    body.extend_from_slice((query.len() as i32).to_be_bytes().as_slice());
+                    body.extend_from_slice(query.as_bytes());
+                    body.extend_from_slice((consistency.parse::<i32>().unwrap() as i16).to_be_bytes().as_slice());
+                    let mut query_bytes = vec![
+                        0x03, 0x00, 0x00, 0x01, 0x07
+                    ];
+
+                    query_bytes.extend_from_slice((body.len() as i32).to_be_bytes().as_slice());
+                    query_bytes.extend_from_slice(body.as_slice());
+
                     stream
                         .write_all(query_bytes.as_slice())
                         .expect("Error writing to socket");
                 }
                 _ => {
+                    input.clear();
                     continue;
                 }
             }
@@ -70,16 +100,20 @@ fn main() {
                 Ok(n) => {
                     if n > 0 {
                         let frame = Frame::parse_frame(&buf[..n]).expect("Error parsing frame");
-                        dbg!(&frame);
                         match frame.opcode {
                             0x00 => {
                                 let mut cursor = BytesCursor::new(frame.body.as_slice());
                                 println!("ERROR");
-                                dbg!(cursor.read_string().unwrap());
+                                if let Ok(string) = cursor.read_long_string() {
+                                    println!("{}", string);
+                                } else {
+                                    println!("{:?}", &String::from_utf8_lossy(frame.body.as_slice()));
+                                }
                             }
                             0x03 => {
                                 let mut cursor = BytesCursor::new(frame.body.as_slice());
                                 println!("AUTHENTICATE");
+
                                 dbg!(cursor.read_string().unwrap());
                             }
                             0x10 => {
@@ -96,7 +130,11 @@ fn main() {
                             0x08 => {
                                 let mut cursor = BytesCursor::new(frame.body.as_slice());
                                 println!("RESULT");
-                                dbg!(cursor.read_long_string().unwrap());
+                                if let Ok(string) = cursor.read_long_string() {
+                                    println!("{}", string);
+                                } else {
+                                    println!("{:?}", &String::from_utf8_lossy(frame.body.as_slice()));
+                                }
                             }
                             _ => {}
                         }

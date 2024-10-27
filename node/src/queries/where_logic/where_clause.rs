@@ -49,24 +49,24 @@ impl WhereClause {
         &self,
         pk: &mut Vec<String>,
         table_pk: &HashSet<String>,
-    ) -> Result<bool, Errors> {
+    ) -> Result<(), Errors> {
         match self {
             Comparison(comparacion) => comparacion.get_primary_key(pk, table_pk),
             Tuple(comparaciones) => {
                 for comparacion in comparaciones {
-                    if !comparacion.get_primary_key(pk, table_pk)? {
-                        return Ok(false);
-                    }
+                    comparacion.get_primary_key(pk, table_pk)?;
                 }
-                Ok(true)
+                Ok(())
             }
             And(expr1, expr2) => {
-                Ok(expr1.get_primary_key(pk, table_pk)? && expr2.get_primary_key(pk, table_pk)?)
+                expr1.get_primary_key(pk, table_pk)?;
+                expr2.get_primary_key(pk, table_pk)
             }
             Or(expr1, expr2) => {
-                Ok(expr1.get_primary_key(pk, table_pk)? && expr2.get_primary_key(pk, table_pk)?)
+                expr1.get_primary_key(pk, table_pk)?;
+                expr2.get_primary_key(pk, table_pk)
             }
-            Not(expr) => Ok(expr.get_primary_key(pk, table_pk)?),
+            Not(expr) => expr.get_primary_key(pk, table_pk),
         }
     }
 }

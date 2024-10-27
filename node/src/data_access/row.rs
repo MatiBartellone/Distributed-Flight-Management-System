@@ -13,7 +13,7 @@ pub const LOWER: i8 = -1;
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct Row {
     pub columns: Vec<Column>,
-    pub primary_keys: Vec<String>,
+    pub primary_key: Vec<String>,
     deleted: Option<Column>,
 }
 
@@ -21,7 +21,7 @@ impl Row {
     pub fn new(columns: Vec<Column>, primary_keys: Vec<String>) -> Self {
         Self {
             columns,
-            primary_keys,
+            primary_key: primary_keys,
             deleted: None,
         }
     }
@@ -29,7 +29,7 @@ impl Row {
     pub fn new_deleted_row() -> Result<Self, Errors> {
         Ok(Self {
             columns: Vec::new(),
-            primary_keys: Vec::new(),
+            primary_key: Vec::new(),
             deleted: Some(Column::new(
                 &"deleted".to_string(),
                 &Literal::new("true".to_string(), DataType::Boolean),

@@ -36,16 +36,16 @@ impl ComparisonExpr {
         &self,
         pk: &mut Vec<String>,
         table_pk: &HashSet<String>,
-    ) -> Result<bool, Errors> {
+    ) -> Result<(), Errors> {
         if !table_pk.contains(&self.column_name) {
-            return Ok(false);
+            return Ok(());
         }
         match self.operator {
             Equal => {
                 pk.push(self.literal.value.to_string());
-                Ok(true)
+                Ok(())
             }
-            _ => Ok(false),
+            _ => Err(Errors::SyntaxError(String::from("Partition keys in where_clause only allowed with '=' operator"))),
         }
     }
 }

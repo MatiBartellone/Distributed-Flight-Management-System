@@ -1,6 +1,5 @@
-use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::node_communication::query_serializer::QuerySerializer;
-use crate::utils::constants::{nodes_meta_data_path, QUERY_DELEGATION_PORT};
+use crate::utils::constants::QUERY_DELEGATION_PORT_MOD;
 use crate::utils::errors::Errors;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -9,26 +8,17 @@ use std::thread;
 pub struct QueryReceiver {}
 
 impl QueryReceiver {
-    pub fn start_listening() -> Result<(), Errors> {
-        let mut stream = MetaDataHandler::establish_connection()?;
-        let nodes_meta_data =
-            MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
+    pub fn start_listening(ip: String, port: String) -> Result<(), Errors> {
+        let query_receiver_port = port.parse::<i32>().map_err(|_| Errors::ServerError(String::from("Failed to parse port")))? + QUERY_DELEGATION_PORT_MOD;
         let listener = TcpListener::bind(format!(
             "{}:{}",
-            nodes_meta_data.get_own_ip(nodes_meta_data_path().as_ref())?,
-            QUERY_DELEGATION_PORT
+            ip,
+            query_receiver_port
         ))
         .map_err(|_| Errors::ServerError(String::from("Can't bind the port")))?;
-        let listening_ip = format!(
-            "{}:{}",
-            nodes_meta_data.get_own_ip(nodes_meta_data_path().as_ref())?,
-            QUERY_DELEGATION_PORT
-        );
-        println!("Start listening on {}", listening_ip);
         for incoming in listener.incoming() {
             match incoming {
                 Ok(stream) => {
-                    println!("Incoming connection from {}", stream.peer_addr().unwrap());
                     thread::spawn(move || {
                         if let Ok(response) = handle_query(&stream) {
                             respond_to_request(stream, response);
@@ -49,9 +39,10 @@ fn handle_query(mut stream: &TcpStream) -> Result<Vec<u8>, Errors> {
         Ok(n) => {
             stream.flush().expect("sds");
             let query = QuerySerializer::deserialize(&buffer[..n])?;
-            let response = query.run()?;
-            println!("response: {:?}", response);
-            Ok(response)
+            match query.run() {
+                Ok(result) => Ok(result),
+                Err(e) => Ok(e.to_string().as_bytes().to_vec()),
+            }
         }
         Err(_) => Err(Errors::ServerError(String::from(""))),
     }

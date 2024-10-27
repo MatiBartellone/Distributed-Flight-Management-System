@@ -4,7 +4,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{Seek, SeekFrom, Write};
 //use std::sync::{Arc, Mutex, MutexGuard};
 use std::{collections::HashMap, io::Read};
-
+use crate::utils::primary_key::PrimaryKey;
 use super::{keyspace::Keyspace, table::Table};
 #[derive(Debug)]
 pub struct KeyspaceMetaDataAccess;
@@ -54,7 +54,7 @@ impl KeyspaceMetaDataAccess {
     }
 
     pub fn get_replication(
-        //&self,
+        &self,
         path: String,
         keyspace_name: &str,
     ) -> Result<usize, Errors> {
@@ -127,13 +127,13 @@ impl KeyspaceMetaDataAccess {
         path: String,
         keyspace_name: &str,
         table_name: &str,
-    ) -> Result<Vec<String>, Errors> {
+    ) -> Result<PrimaryKey, Errors> {
         //let (mut file, mut keyspaces) = self.lock_and_extract_keyspaces()?;
         let mut file = Self::open_file(path)?;
         let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
         let table = get_table_mutable(&mut keyspaces, keyspace_name, table_name)?;
         Self::reset_pointer(&mut file)?;
-        Ok(table.primary_key.clone())
+        Ok(table.primary_key.to_owned())
     }
 
     pub fn add_table(
@@ -141,7 +141,7 @@ impl KeyspaceMetaDataAccess {
         path: String,
         keyspace_name: &str,
         table_name: &str,
-        primary_key: Vec<String>,
+        primary_key: PrimaryKey,
         columns: HashMap<String, DataType>,
     ) -> Result<(), Errors> {
         //let (mut file, mut keyspaces) = self.lock_and_extract_keyspaces()?;
@@ -358,7 +358,7 @@ mod tests {
             file_name.to_string(),
             "test_keyspace",
             "test_table",
-            vec!["column2".to_string()],
+            PrimaryKey::new(vec!["column2".to_string()], None),
             columns,
         )?;
 
@@ -470,7 +470,7 @@ mod tests {
                 file_name.to_string(),
                 "test_keyspace",
                 "test_table_additional",
-                vec!["columnB".to_string()],
+                PrimaryKey::new(vec!["columnB".to_string()], None),
                 additional_columns,
             )
             .expect("Failed to add additional table");
@@ -551,7 +551,7 @@ mod tests {
         let vec_pk = meta_data
             .get_primary_key(file_name.to_string(), "test_keyspace", "test_table")
             .expect("Failed to get primary key");
-        let pk = &vec_pk[0];
+        let pk = &vec_pk.partition_keys[0];
         assert_eq!(pk, "column2", "Expected primary key to be 'column2'.");
         cleanup_test_file(file_name);
     }

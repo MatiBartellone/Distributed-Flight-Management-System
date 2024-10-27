@@ -13,3 +13,4 @@ pub mod set_clause_parser;
 pub mod update_query_parser;
 pub mod use_query_parser;
 pub mod where_clause_parser;
+pub mod create_query_parser;

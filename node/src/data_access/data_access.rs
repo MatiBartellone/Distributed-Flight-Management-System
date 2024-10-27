@@ -52,7 +52,7 @@ impl DataAccess {
 
     pub fn insert(&self, table_name: &String, row: &Row) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
-        if self.pk_already_exists(&path, &row.primary_keys)? {
+        if self.pk_already_exists(&path, &row.primary_key)? {
             return Err(Errors::AlreadyExists(
                 "Primary key already exists".to_string(),
             ));
@@ -116,7 +116,7 @@ impl DataAccess {
         }
         Ok(Row::new(
             new_columns,
-            Vec::from(row.primary_keys.as_slice()),
+            Vec::from(row.primary_key.as_slice()),
         ))
     }
 
@@ -305,7 +305,7 @@ impl DataAccess {
 
     fn pk_already_exists(&self, path: &String, primary_keys: &Vec<String>) -> Result<bool, Errors> {
         for row in self.get_deserialized_stream(path)? {
-            if &row.primary_keys == primary_keys {
+            if &row.primary_key == primary_keys {
                 return Ok(true);
             }
         }

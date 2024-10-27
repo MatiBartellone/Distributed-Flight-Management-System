@@ -50,7 +50,16 @@ impl NodesMetaDataAccess {
         Ok(cluster.get_own_ip().to_string())
     }
 
-    pub fn get_partition_ips(
+    pub fn get_own_port(&self, path: &str) -> Result<String, Errors> {
+        let cluster = Self::read_cluster(path)?;
+        Ok(cluster.get_own_port().to_string())
+    }
+    pub fn get_own_port_(path: &str) -> Result<String, Errors> {
+        let cluster = Self::read_cluster(path)?;
+        Ok(cluster.get_own_port().to_string())
+    }
+
+    pub fn get_partition_full_ips(
         &self,
         path: &str,
         primary_key: &Option<Vec<String>>,
@@ -58,14 +67,14 @@ impl NodesMetaDataAccess {
     ) -> Result<Vec<String>, Errors> {
         let cluster = Self::read_cluster(path)?;
         if let Some(primary_key) = primary_key {
-            let hashing_key = hash_string_murmur3(&primary_key[0]);
-            let pos = hashing_key % cluster.len_nodes();
+            let hashing_key = hash_string_murmur3(&primary_key.join(""));
+            let pos = hashing_key % cluster.len_nodes() + 1;
+            let keyspace_metadata = KeyspaceMetaDataAccess{};
             let replication =
-                KeyspaceMetaDataAccess::get_replication(KEYSPACE_METADATA.to_owned(), &keyspace)?;
-            Ok(cluster.get_nodes(pos, replication))
+                keyspace_metadata.get_replication(KEYSPACE_METADATA.to_owned(), &keyspace)?;
+            cluster.get_nodes(pos, replication)
         } else {
-            // todo, todas las ips
-            Ok(cluster.get_all_ips())
+            cluster.get_all_ips()
         }
     }
 
@@ -74,6 +83,11 @@ impl NodesMetaDataAccess {
         cluster.append_new_node(new_node);
         Self::write_cluster(path, &cluster)?;
         Ok(())
+    }
+
+    pub fn get_nodes_quantity(&self, path: &str) -> Result<usize, Errors> {
+        let cluster = NodesMetaDataAccess::read_cluster(path)?;
+        Ok(cluster.len_nodes())
     }
 }
 

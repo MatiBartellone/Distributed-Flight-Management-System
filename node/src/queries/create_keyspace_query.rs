@@ -5,8 +5,9 @@ use crate::utils::errors::Errors;
 use crate::utils::functions::get_long_string_from_str;
 use std::any::Any;
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct CreateKeyspaceQuery {
     pub keyspace: String,
     pub replication: HashMap<String, String>,
@@ -56,8 +57,12 @@ impl Query for CreateKeyspaceQuery {
         Ok(get_long_string_from_str("Create keyspace was successful"))
     }
 
-    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
+    fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
         Ok(None)
+    }
+
+    fn get_keyspace(&self) -> Result<String, Errors> {
+        Ok(self.keyspace.to_string())
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

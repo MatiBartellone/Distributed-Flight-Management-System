@@ -101,6 +101,7 @@ impl CreateKeyspaceParser {
         tokens_list: &mut Peekable<IntoIter<Token>>,
         replication: &mut HashMap<String, String>,
     ) -> Result<(), Errors> {
+
         self.check_key_literal(tokens_list, replication)
     }
 
@@ -228,7 +229,6 @@ mod tests {
         let barace_list = create_brace_list();
 
         tokens.extend(barace_list);
-
         let parser = CreateKeyspaceParser;
         let result = parser.parse(tokens);
 

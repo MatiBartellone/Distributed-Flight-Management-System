@@ -1,8 +1,9 @@
 use crate::{queries::query::Query, utils::{errors::Errors, constants::KEYSPACE_METADATA}, meta_data::meta_data_handler::MetaDataHandler, data_access::data_access_handler::DataAccessHandler};
 use crate::utils::functions::get_long_string_from_str;
 use std::any::Any;
+use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct DropKeySpaceQuery {
     pub keyspace: String,
     pub if_exist: Option<bool>,
@@ -39,8 +40,12 @@ impl Query for DropKeySpaceQuery {
         Ok(get_long_string_from_str("Drop keyspace was successful"))
     }
 
-    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
+    fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
         Ok(None)
+    }
+
+    fn get_keyspace(&self) -> Result<String, Errors> {
+        Ok(self.keyspace.to_string())
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

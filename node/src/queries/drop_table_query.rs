@@ -4,8 +4,9 @@ use crate::utils::functions::{check_table_name, split_keyspace_table, get_long_s
 use crate::{queries::query::Query, utils::errors::Errors};
 use crate::utils::constants::KEYSPACE_METADATA;
 use std::any::Any;
+use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct DropTableQuery {
     pub table_name: String,
     pub if_exist: Option<bool>,
@@ -31,7 +32,7 @@ impl DropTableQuery {
     fn push_on_data_acces(&self) -> Result<(), Errors> {
         let mut stream = DataAccessHandler::establish_connection()?;
         let data_access = DataAccessHandler::get_instance(&mut stream)?;
-        data_access.drop_table(self.table_name.clone())?;
+        data_access.drop_table(self.table_name.to_string())?;
         Ok(())
     }
 }
@@ -43,8 +44,13 @@ impl Query for DropTableQuery {
         Ok(get_long_string_from_str("Drop table was successful"))
     }
 
-    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
+    fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
         Ok(None)
+    }
+
+    fn get_keyspace(&self) -> Result<String, Errors> {
+        let (kp, _) = split_keyspace_table(&self.table_name)?;
+        Ok(kp.to_string())
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

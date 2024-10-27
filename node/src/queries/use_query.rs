@@ -32,9 +32,13 @@ impl Query for UseQuery {
         Ok(get_long_string_from_str("Use was successful"))
     }
 
-    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
+    fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
         let rng: u8 = rand::random();
         Ok(Some(vec![format!("{}", rng)]))
+    }
+
+    fn get_keyspace(&self) -> Result<String, Errors> {
+        Ok(self.keyspace_name.to_string())
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

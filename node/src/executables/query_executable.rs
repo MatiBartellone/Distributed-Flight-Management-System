@@ -1,5 +1,5 @@
 use crate::executables::executable::Executable;
-use crate::frame::Frame;
+use crate::utils::frame::Frame;
 use crate::node_communication::query_delegator::QueryDelegator;
 use crate::queries::query::{Query, QueryEnum};
 use crate::response_builders::frame_builder::FrameBuilder;
@@ -24,7 +24,7 @@ impl QueryExecutable {
 impl Executable for QueryExecutable {
     fn execute(&mut self, request: Frame) -> Result<Frame, Errors> {
         self.query.set_table()?;
-        let pk = self.query.get_primary_key()?;
+        let pk = self.query.get_partition()?;
         let Some(query_enum) = QueryEnum::from_query(&self.query) else {
             return Err(Errors::ServerError(String::from("")));
         };

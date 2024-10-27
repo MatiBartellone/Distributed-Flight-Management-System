@@ -7,12 +7,14 @@ use crate::utils::errors::Errors;
 use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table};
 use std::any::Any;
 use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+use crate::utils::primary_key::PrimaryKey;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTableQuery {
     pub table_name: String,
     pub columns: HashMap<String, DataType>,
-    pub primary_key: Vec<String>,
+    pub primary_key: PrimaryKey,
 }
 
 impl CreateTableQuery {
@@ -20,7 +22,7 @@ impl CreateTableQuery {
         Self {
             table_name: String::new(),
             columns: HashMap::new(),
-            primary_key: Vec::new(),
+            primary_key: PrimaryKey::new_empty(),
         }
     }
 
@@ -30,7 +32,7 @@ impl CreateTableQuery {
         let mut stream = MetaDataHandler::establish_connection()?;
         let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
         let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
-        keyspace_meta_data.add_table(KEYSPACE_METADATA.to_owned(), kesypace_name, table, self.primary_key.clone(), self.columns.clone())?;
+        keyspace_meta_data.add_table(KEYSPACE_METADATA.to_owned(), kesypace_name, table, self.primary_key.to_owned(), self.columns.to_owned())?;
         Ok(())
     }
 
@@ -55,8 +57,13 @@ impl Query for CreateTableQuery {
         Ok(get_long_string_from_str("Create table was successful"))
     }
 
-    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
+    fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
         Ok(None)
+    }
+
+    fn get_keyspace(&self) -> Result<String, Errors> {
+        let (kp, _) = split_keyspace_table(&self.table_name)?;
+        Ok(kp.to_string())
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {

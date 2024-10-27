@@ -4,8 +4,9 @@ use crate::utils::constants::KEYSPACE_METADATA;
 use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table};
 use crate::{parsers::tokens::data_type::DataType, utils::errors::Errors};
 use std::any::Any;
+use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct AlterTableQuery {
     pub table_name: String,
     pub operation: Option<Operations>,
@@ -13,7 +14,7 @@ pub struct AlterTableQuery {
     pub second_column: String,
     pub data: DataType,
 }
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub enum Operations {
     ADD,
     ALTER,
@@ -44,7 +45,7 @@ impl AlterTableQuery {
         let mut stream = MetaDataHandler::establish_connection()?;
         let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
         let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
-        keyspace_meta_data.new_column(KEYSPACE_METADATA.to_owned(), keyspace_name, table, &self.first_column, self.data.clone())?;
+        keyspace_meta_data.new_column(KEYSPACE_METADATA.to_owned(), keyspace_name, table, &self.first_column, self.data.to_owned())?;
         Ok(())
     }
 
@@ -85,8 +86,13 @@ impl Query for AlterTableQuery {
         Ok(get_long_string_from_str("Alter table was successful"))
     }
 
-    fn get_primary_key(&self) -> Result<Option<Vec<String>>, Errors> {
+    fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
         Ok(None)
+    }
+
+    fn get_keyspace(&self) -> Result<String, Errors> {
+        let (kp, _) = split_keyspace_table(&self.table_name)?;
+        Ok(kp.to_string())
     }
 
     fn set_table(&mut self) -> Result<(), Errors> {
