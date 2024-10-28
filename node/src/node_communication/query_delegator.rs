@@ -2,7 +2,7 @@ use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::node_communication::query_serializer::QuerySerializer;
 use crate::queries::query::{Query, QueryEnum};
 use crate::utils::consistency_level::ConsistencyLevel;
-use crate::utils::constants::{nodes_meta_data_path, KEYSPACE_METADATA, NODES_METADATA, QUERY_DELEGATION_PORT};
+use crate::utils::constants::{nodes_meta_data_path, KEYSPACE_METADATA, NODES_METADATA};
 use crate::utils::errors::Errors;
 use std::io::{Read, Write};
 use std::net::TcpStream;
@@ -87,17 +87,12 @@ impl QueryDelegator {
         let mut stream = MetaDataHandler::establish_connection()?;
         let nodes_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-        let ips = nodes_meta_data.get_partition_ips(
+        let ips = nodes_meta_data.get_partition_full_ips(
             nodes_meta_data_path().as_ref(),
             &self.primary_key,
             self.query.get_keyspace()?,
         )?;
-        let mut full_ips = Vec::new();
-        for ip in ips {
-            full_ips.push(format!("{}:{}", ip, QUERY_DELEGATION_PORT));
-        }
-        dbg!(&full_ips);
-        Ok(full_ips)
+        Ok(ips)
     }
 
     fn send_to_node(ip: String, query: Box<dyn Query>) -> Result<Vec<u8>, Errors> {

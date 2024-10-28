@@ -5,7 +5,7 @@ use test_client::bytes_cursor::BytesCursor;
 use test_client::frame::Frame;
 
 fn main() {
-    print!("Ip: ");
+    print!("FULL IP (ip:port): ");
     io::stdout().flush().unwrap();
     let mut node = String::new();
     io::stdin()
@@ -34,7 +34,7 @@ fn main() {
 
 
     //let mut addrs_iter = ip.to_socket_addrs().expect("Invalid socket address");
-    if let Ok(mut stream) = TcpStream::connect((node, 8080)) {
+    if let Ok(mut stream) = TcpStream::connect(node) {
         let mut input = String::new();
         while io::stdin().read_line(&mut input).is_ok() {
             match input.trim() {

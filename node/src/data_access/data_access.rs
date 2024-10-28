@@ -45,7 +45,6 @@ impl DataAccess {
     }
 
     pub fn drop_table(&self, table_name: String) -> Result<(), Errors> {
-        dbg!(self.get_file_path(&table_name));
         remove_file(self.get_file_path(&table_name))
             .map_err(|_| Errors::ServerError(String::from("Could not remove file")))?;
         Ok(())

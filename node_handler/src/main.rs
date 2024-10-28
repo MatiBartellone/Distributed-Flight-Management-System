@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone)]
 struct NodeInfo {
     ip: String,
+    port: String,
     position: usize,
     clients: i32, // Número de clientes conectados al nodo
 }
@@ -17,6 +18,7 @@ struct NodeInfo {
 #[derive(Clone, Serialize, Deserialize)]
 struct Node {
     ip: String,
+    port: String,
     position: usize,
 }
 
@@ -34,16 +36,18 @@ fn handle_client(mut stream: TcpStream, nodes: Arc<Mutex<HashMap<String, NodeInf
             .values()
             .map(|node| Node {
                 ip: node.ip.to_string(),
+                port: node.port.to_string(),
                 position: node.position,
             })
             .collect::<Vec<_>>();
 
         stream.write_all(&serde_json::to_vec(&nodes_list).unwrap()).unwrap();
-
+        let full_ip = format!("{}:{}", new_node.ip, new_node.port);
         nodes_guard.insert(
-            new_node.ip.to_string(),
+            full_ip.to_string(),
             NodeInfo {
                 ip: new_node.ip.to_string(),
+                port: new_node.port.to_string(),
                 position: new_node.position,
                 clients: 0, // Iniciamos con 0 clientes conectados
             },
@@ -55,7 +59,7 @@ fn handle_client(mut stream: TcpStream, nodes: Arc<Mutex<HashMap<String, NodeInf
     print_node_list(nodes.clone());
 
     // Informar a los demás nodos sobre la nueva IP y su posición
-    broadcast_new_node(new_node.ip.to_string(), new_node.position, nodes.clone());
+    broadcast_new_node(new_node.ip.to_string(), new_node.port.to_string() ,new_node.position, nodes.clone());
 
     // Bucle de manejo de clientes
     let mut buffer = [0; 1024];
@@ -64,7 +68,7 @@ fn handle_client(mut stream: TcpStream, nodes: Arc<Mutex<HashMap<String, NodeInf
             Ok(0) => {
                 {
                     let mut nodes_guard = nodes.lock().unwrap();
-                    nodes_guard.remove(&new_node.ip);
+                    nodes_guard.remove(&format!("{}:{}", new_node.ip, new_node.port));
                 }
                 clear_screen();
                 print_node_list(Arc::clone(&nodes)); // Pasar el Arc<Mutex<_>> completo
@@ -73,7 +77,7 @@ fn handle_client(mut stream: TcpStream, nodes: Arc<Mutex<HashMap<String, NodeInf
             Ok(1) => {
                 {
                     let mut nodes_guard = nodes.lock().unwrap();
-                    if let Some(node) = nodes_guard.get_mut(&new_node.ip) {
+                    if let Some(node) = nodes_guard.get_mut(&format!("{}:{}", new_node.ip, new_node.port)) {
                         node.clients += 1; // Incrementar el contador de clientes
                     }
                 }
@@ -81,7 +85,7 @@ fn handle_client(mut stream: TcpStream, nodes: Arc<Mutex<HashMap<String, NodeInf
                 print_node_list(Arc::clone(&nodes)); // Pasar el Arc<Mutex<_>> completo
             },
             Ok(_) => {
-                handle_client_connection_notification(new_node.ip.to_string(), nodes.clone(), -1);
+                handle_client_connection_notification(format!("{}:{}", new_node.ip, new_node.port).to_string(), nodes.clone(), -1);
             },
             Err(_) => break,
         }
@@ -89,19 +93,20 @@ fn handle_client(mut stream: TcpStream, nodes: Arc<Mutex<HashMap<String, NodeInf
 }
 
 fn clear_screen() {
-    // Código ANSI para limpiar la pantalla y mover el cursor al inicio
     print!("\x1B[2J\x1B[1;1H");
-    std::io::stdout().flush().unwrap(); // Asegura que se envía el comando inmediatamente
+    std::io::stdout().flush().unwrap();
 }
 
-fn broadcast_new_node(new_node_ip: String, new_node_position: usize, nodes: Arc<Mutex<HashMap<String, NodeInfo>>>) {
+fn broadcast_new_node(new_node_ip: String, new_node_port: String , new_node_position: usize, nodes: Arc<Mutex<HashMap<String, NodeInfo>>>) {
     let nodes_guard = nodes.lock().unwrap(); // Obtener el lock
-    for (node_ip, _) in nodes_guard.iter() {
-        if node_ip != &new_node_ip {
-            if let Ok(mut stream) = TcpStream::connect(format!("{}:{}", node_ip, 7676)) {
+    for (full_ip, node_info) in nodes_guard.iter() {
+        if full_ip != &format!("{}:{}", new_node_ip, new_node_port) {
+            let port = (new_node_port.parse::<i32>().unwrap() + 4).to_string();
+            if let Ok(mut stream) = TcpStream::connect(format!("{}:{}", node_info.ip, port)) {
                 stream.write_all(
                     &serde_json::to_vec(&Node {
                         ip: new_node_ip.to_string(),
+                        port: new_node_port.to_string(),
                         position: new_node_position,
                     })
                         .unwrap(),
@@ -112,14 +117,14 @@ fn broadcast_new_node(new_node_ip: String, new_node_position: usize, nodes: Arc<
 }
 
 fn handle_client_connection_notification(
-    node_ip: String,
+    full_ip: String,
     nodes: Arc<Mutex<HashMap<String, NodeInfo>>>,
     client: i32,
 ) {
     // Actualizar el número de clientes de un nodo específico
     {
         let mut nodes_guard = nodes.lock().unwrap();
-        if let Some(node) = nodes_guard.get_mut(&node_ip) {
+        if let Some(node) = nodes_guard.get_mut(&full_ip) {
             node.clients += client; // Incrementar o reducir el contador de clientes
         }
     } // El lock se libera aquí
@@ -148,8 +153,9 @@ fn print_node_list(nodes: Arc<Mutex<HashMap<String, NodeInfo>>>) {
 
     for node in nodes_vec {
         println!(
-            "IP: {} | Posición: {} | Clientes: {} - {}ACTIVE{}",
+            "IP: {} | Port: {} | Position: {} | Clients: {} - {}ACTIVE{}",
             node.ip,
+            node.port,
             node.position,
             node.clients,
             color::Fg(color::Green),
@@ -161,7 +167,7 @@ fn print_node_list(nodes: Arc<Mutex<HashMap<String, NodeInfo>>>) {
 
 fn main() {
     clear_screen();
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
+    let listener = TcpListener::bind("0.0.0.0:7878").unwrap();
     let nodes = Arc::new(Mutex::new(HashMap::new()));
 
     for stream in listener.incoming() {

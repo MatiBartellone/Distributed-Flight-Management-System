@@ -21,6 +21,33 @@ fn is_valid_bigint(input: &str) -> Option<Token> {
     None
 }
 
+fn is_valid_decimal(input: &str) -> Option<Token> {
+    let mut chars = input.chars();
+    if let Some(first_char) = chars.next() {
+        if first_char == '-' {
+            chars.next()?;
+        } 
+        else if !first_char.is_ascii_digit() {
+            return None;
+        }
+    }
+
+    let mut decimal_point_seen = false;
+    for c in input.chars().skip(1) {
+        if c == '.' {
+            if decimal_point_seen {
+                return None;
+            }
+            decimal_point_seen = true;
+        } 
+        else if !c.is_ascii_digit() {
+            return None;
+        }
+    }
+    let literal = Literal::new(input.to_owned(), Decimal);
+    Some(Token::Term(Term::Literal(literal)))
+}
+
 fn is_valid_boolean(input: &str) -> Option<Token> {
     match input {
         "true" => {
@@ -96,6 +123,9 @@ pub fn to_literal(word: &str) -> Option<Token> {
         return Some(token);
     }
     if let Some(token) = is_valid_bigint(word) {
+        return Some(token);
+    }
+   if let Some(token) = is_valid_decimal(word) {
         return Some(token);
     }
     if let Some(token) = is_valid_boolean(word) {
@@ -282,6 +312,16 @@ mod tests {
         let input = "'17:30:00'";
         let result = to_literal(input).unwrap();
         let literal = Literal::new("17:30:00".to_string(), Date);
+        let token = Token::Term(Term::Literal(literal));
+        assert_eq!(result, token);
+    }
+
+
+    #[test]
+    fn test_to_literal_decimal() {
+        let input = "-200.194";
+        let result = to_literal(input).unwrap();
+        let literal = Literal::new("-200.194".to_string(), Decimal);
         let token = Token::Term(Term::Literal(literal));
         assert_eq!(result, token);
     }

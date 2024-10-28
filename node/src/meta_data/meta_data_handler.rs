@@ -6,15 +6,19 @@ use crate::utils::functions::get_meta_data_handler_ip;
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
+use crate::utils::constants::META_DATA_ACCESS_MOD;
 
 #[derive(Serialize, Deserialize)]
 pub struct MetaDataHandler;
 
 impl MetaDataHandler {
-    pub fn start_listening() -> Result<(), Errors> {
-        let listener = TcpListener::bind(get_meta_data_handler_ip()?)
-            .map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
-
+    pub fn start_listening(ip: String, port: String) -> Result<(), Errors> {
+        let meta_data_port = port.parse::<i32>().map_err(|_| Errors::ServerError(String::from("Failed to parse port")))? + META_DATA_ACCESS_MOD;
+        let listener = TcpListener::bind(format!(
+            "{}:{}",
+            ip,
+            meta_data_port
+        )).map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
         for stream in listener.incoming() {
             match stream {
                 Ok(mut stream) => Self::handle_connection(&mut stream)?,

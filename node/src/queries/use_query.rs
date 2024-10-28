@@ -1,8 +1,7 @@
 use super::query::Query;
-use crate::meta_data::meta_data_handler::MetaDataHandler;
-use crate::utils::constants::nodes_meta_data_path;
+use crate::{meta_data::meta_data_handler::MetaDataHandler, utils::constants::CLIENT_METADATA_PATH};
 use crate::utils::errors::Errors;
-use crate::utils::functions::{get_long_string_from_str, split_keyspace_table};
+use crate::utils::functions::get_long_string_from_str;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 
@@ -28,13 +27,9 @@ impl Default for UseQuery {
 impl Query for UseQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
         let mut stream = MetaDataHandler::establish_connection()?;
-        let nodes_meta_data =
-            MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-        let msg = format!(
-            "respuesta desde {}",
-            nodes_meta_data.get_own_ip(nodes_meta_data_path().as_ref())?
-        );
-        Ok(get_long_string_from_str(msg.as_ref()))
+        let client_meta_data = MetaDataHandler::get_instance(&mut stream)?.get_client_meta_data_access();
+        client_meta_data.use_keyspace(CLIENT_METADATA_PATH.to_owned(), &self.keyspace_name)?;
+        Ok(get_long_string_from_str("Use was successful"))
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
