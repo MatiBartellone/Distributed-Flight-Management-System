@@ -45,7 +45,9 @@ impl ComparisonExpr {
                 pk.push(self.literal.value.to_string());
                 Ok(())
             }
-            _ => Err(Errors::SyntaxError(String::from("Partition keys in where_clause only allowed with '=' operator"))),
+            _ => Err(Errors::SyntaxError(String::from(
+                "Partition keys in where_clause only allowed with '=' operator",
+            ))),
         }
     }
 }

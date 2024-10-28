@@ -43,14 +43,8 @@ impl QueryDelegator {
             let tx = tx.clone();
             let handle = thread::spawn(move || {
                 match QueryDelegator::send_to_node(ip, query_enum.into_query()) {
-                    Ok(response) => {
-                        if tx.send(response).is_ok() {
-                        }
-                    },
-                    Err(e) => {
-                        if tx.send(e.to_string().as_bytes().to_vec()).is_ok() {
-                        }
-                    }
+                    Ok(response) => if tx.send(response).is_ok() {},
+                    Err(e) => if tx.send(e.to_string().as_bytes().to_vec()).is_ok() {},
                 }
             });
             handles.push(handle);
@@ -73,14 +67,14 @@ impl QueryDelegator {
 
     fn get_replication(&self) -> Result<usize, Errors> {
         let mut stream = MetaDataHandler::establish_connection()?;
-        let instance =
-            MetaDataHandler::get_instance(&mut stream)?;
+        let instance = MetaDataHandler::get_instance(&mut stream)?;
         let keyspace_metadata = instance.get_keyspace_meta_data_access();
         let nodes_meta_data = instance.get_nodes_metadata_access();
         if self.primary_key.is_none() {
-            return nodes_meta_data.get_nodes_quantity(NODES_METADATA)
+            return nodes_meta_data.get_nodes_quantity(NODES_METADATA);
         }
-        keyspace_metadata.get_replication(KEYSPACE_METADATA.to_string(), &self.query.get_keyspace()?)
+        keyspace_metadata
+            .get_replication(KEYSPACE_METADATA.to_string(), &self.query.get_keyspace()?)
     }
 
     fn get_nodes_ip(&self) -> Result<Vec<String>, Errors> {

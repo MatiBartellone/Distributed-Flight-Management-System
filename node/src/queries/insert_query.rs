@@ -1,7 +1,10 @@
 use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::data_access::row::{Column, Row};
 use crate::parsers::tokens::data_type::DataType;
-use crate::utils::functions::{check_table_name, get_columns_from_table, get_long_string_from_str, get_table_clustering_columns, get_table_partition, get_timestamp, split_keyspace_table};
+use crate::utils::functions::{
+    check_table_name, get_columns_from_table, get_long_string_from_str,
+    get_table_clustering_columns, get_table_partition, get_timestamp, split_keyspace_table,
+};
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -92,7 +95,10 @@ impl InsertQuery {
                 "Primary keys not defined",
             )));
         };
-        Ok(Row::new(row_values, [&partition_keys[..], &clustering_columns[..]].concat()))
+        Ok(Row::new(
+            row_values,
+            [&partition_keys[..], &clustering_columns[..]].concat(),
+        ))
     }
 
     fn get_keys(&self, set: HashSet<String>) -> Result<Option<Vec<String>>, Errors> {

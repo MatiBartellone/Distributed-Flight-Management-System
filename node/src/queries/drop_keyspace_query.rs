@@ -1,7 +1,12 @@
-use crate::{queries::query::Query, utils::{errors::Errors, constants::KEYSPACE_METADATA}, meta_data::meta_data_handler::MetaDataHandler, data_access::data_access_handler::DataAccessHandler};
 use crate::utils::functions::get_long_string_from_str;
-use std::any::Any;
+use crate::{
+    data_access::data_access_handler::DataAccessHandler,
+    meta_data::meta_data_handler::MetaDataHandler,
+    queries::query::Query,
+    utils::{constants::KEYSPACE_METADATA, errors::Errors},
+};
 use serde::{Deserialize, Serialize};
+use std::any::Any;
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct DropKeySpaceQuery {
@@ -17,15 +22,15 @@ impl DropKeySpaceQuery {
         }
     }
 
-    fn push_on_meta_data(&self) -> Result<Vec<String>, Errors>{ 
+    fn push_on_meta_data(&self) -> Result<Vec<String>, Errors> {
         let mut stream = MetaDataHandler::establish_connection()?;
         let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
         let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
-        let tables = keyspace_meta_data.get_tables_from_keyspace(KEYSPACE_METADATA.to_owned(), &self.keyspace)?;
+        let tables = keyspace_meta_data
+            .get_tables_from_keyspace(KEYSPACE_METADATA.to_owned(), &self.keyspace)?;
         keyspace_meta_data.drop_keyspace(KEYSPACE_METADATA.to_owned(), &self.keyspace)?;
         Ok(tables)
     }
-
 }
 
 impl Query for DropKeySpaceQuery {

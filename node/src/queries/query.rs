@@ -1,4 +1,9 @@
+use crate::queries::alter_table_query::AlterTableQuery;
+use crate::queries::create_keyspace_query::CreateKeyspaceQuery;
+use crate::queries::create_table_query::CreateTableQuery;
 use crate::queries::delete_query::DeleteQuery;
+use crate::queries::drop_keyspace_query::DropKeySpaceQuery;
+use crate::queries::drop_table_query::DropTableQuery;
 use crate::queries::insert_query::InsertQuery;
 use crate::queries::select_query::SelectQuery;
 use crate::queries::update_query::UpdateQuery;
@@ -6,13 +11,8 @@ use crate::queries::use_query::UseQuery;
 use crate::utils::errors::Errors;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
-use crate::queries::alter_table_query::AlterTableQuery;
-use crate::queries::create_keyspace_query::CreateKeyspaceQuery;
-use crate::queries::create_table_query::CreateTableQuery;
-use crate::queries::drop_keyspace_query::DropKeySpaceQuery;
-use crate::queries::drop_table_query::DropTableQuery;
 
-pub trait Query: Any{
+pub trait Query: Any {
     fn run(&self) -> Result<Vec<u8>, Errors>;
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors>;
     fn get_keyspace(&self) -> Result<String, Errors>;

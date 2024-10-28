@@ -53,7 +53,7 @@ impl Flight {
         self.status = FlightStatus::OnTime;
     }
 
-    pub fn update_progress(&mut self, step: f32) {
+    pub fn update_progress(&mut self, _step: f32) {
         todo!();
     }
 }

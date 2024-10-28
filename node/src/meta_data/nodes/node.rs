@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::utils::errors::Errors;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Node {
@@ -26,7 +26,11 @@ impl Node {
     }
 
     pub fn get_full_ip(&self, port_modifier: i32) -> Result<String, Errors> {
-        let port = self.port.parse::<i32>().map_err(|_| Errors::ServerError(String::from("Failed to parse port")))? + port_modifier;
+        let port = self
+            .port
+            .parse::<i32>()
+            .map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?
+            + port_modifier;
         Ok(format!("{}:{}", self.ip, port))
     }
 }

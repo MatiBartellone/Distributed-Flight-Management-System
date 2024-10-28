@@ -1,8 +1,8 @@
 use crate::auth::authenticator::Authenticator;
 use crate::executables::executable::Executable;
-use crate::utils::frame::Frame;
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::errors::Errors;
+use crate::utils::frame::Frame;
 use crate::utils::parser_constants::{AUTH_CHALLENGE, AUTH_SUCCESS};
 
 pub struct AuthResponseExecutable {

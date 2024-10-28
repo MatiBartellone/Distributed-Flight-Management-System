@@ -69,7 +69,7 @@ impl NodesMetaDataAccess {
         if let Some(primary_key) = primary_key {
             let hashing_key = hash_string_murmur3(&primary_key.join(""));
             let pos = hashing_key % cluster.len_nodes() + 1;
-            let keyspace_metadata = KeyspaceMetaDataAccess{};
+            let keyspace_metadata = KeyspaceMetaDataAccess {};
             let replication =
                 keyspace_metadata.get_replication(KEYSPACE_METADATA.to_owned(), &keyspace)?;
             cluster.get_nodes(pos, replication)

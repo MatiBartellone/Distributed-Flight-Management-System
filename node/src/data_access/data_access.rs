@@ -111,13 +111,12 @@ impl DataAccess {
             if !changes.contains_key(&column.column_name) {
                 new_columns.push(Column::new_from_column(column))
             } else {
-                new_columns.push(Column::new_from_column(&self.get_updated_column(row, changes, column)?))
+                new_columns.push(Column::new_from_column(
+                    &self.get_updated_column(row, changes, column)?,
+                ))
             }
         }
-        Ok(Row::new(
-            new_columns,
-            Vec::from(row.primary_key.as_slice()),
-        ))
+        Ok(Row::new(new_columns, Vec::from(row.primary_key.as_slice())))
     }
 
     fn get_updated_column(
@@ -133,11 +132,9 @@ impl DataAccess {
                 &row.get_some_column(column)?.value,
                 get_timestamp()?,
             )),
-            Some(AssignmentValue::Simple(literal)) => Ok(Column::new(
-                column_name,
-                literal,
-                get_timestamp()?,
-            )),
+            Some(AssignmentValue::Simple(literal)) => {
+                Ok(Column::new(column_name, literal, get_timestamp()?))
+            }
             Some(AssignmentValue::Arithmetic(column, arith, literal)) => {
                 let value1 = get_int_from_string(&row.get_some_column(column)?.value.value)?;
                 let value2 = get_int_from_string(&literal.value)?;
@@ -416,7 +413,10 @@ mod tests {
 
     fn get_assignment() -> HashMap<String, AssignmentValue> {
         let mut assignments = HashMap::new();
-        assignments.insert("name".to_string(), AssignmentValue::Simple(Literal::new("Jane".to_string(), DataType::Text)));
+        assignments.insert(
+            "name".to_string(),
+            AssignmentValue::Simple(Literal::new("Jane".to_string(), DataType::Text)),
+        );
         assignments
     }
     fn get_row3() -> Row {
