@@ -5,76 +5,1576 @@ CREATE KEYSPACE aviation WITH replication = { 'class': 'SimpleStrategy', 'replic
 //CREACION DE TABLAS
 CREATE TABLE airports ( code text PRIMARY KEY, name text, positionLat decimal, positionLon decimal );
 CREATE TABLE flightsByAirport ( airportCode text PRIMARY KEY, flightCode text );
-CREATE TABLE flightInfo ( flightCode text PRIMARY KEY, departureAirport text, arrivalAirport text, departureTime text, arrivalTime text, status text, positionLat text, positionLon text altitude text, speed text, fuelLevel text );
+CREATE TABLE flightInfo ( flightCode text PRIMARY KEY, departureAirport text, arrivalAirport text, departureTime time, arrivalTime time, status text, positionLat decimal, positionLon decimal, altitude int, speed int, fuelLevel int );
 
 //CREACION DE AEROPUERTOS
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('EZE', 'Aeropuerto Internacional Ministro Pistarini', '-34.812', '-58.535');
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('JFK', 'Aeropuerto Internacional John F. Kennedy', '40.6413', '-73.7781');
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('SCL', 'Aeropuerto Internacional Comodoro Arturo Merino Benítez', '-33.3928', '-70.7859');
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('MIA', 'Aeropuerto Internacional de Miami', '25.7959', '-80.2870');
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('DFW', 'Aeropuerto Internacional de Dallas/Fort Worth', '32.8968', '-97.0382');
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('GRU', 'Aeroporto Internacional de São Paulo/Guarulhos', '-23.4255', '-46.4731');
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('MAD', 'Aeropuerto Adolfo Suárez Madrid-Barajas', '40.4935', '-3.5706');
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('CDG', 'Aéroport de Paris-Charles-de-Gaulle', '49.0097', '2.5479');
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('LAX', 'Aeropuerto Internacional de Los Ángeles', '33.9428', '-118.4108');
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('AMS', 'Luchthaven Schiphol', '52.3086', '4.7642');
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('NRT', 'Narita International Airport', '35.7653', '140.3851');
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('LHR', 'Aeropuerto de Heathrow', '51.4700', '-0.4543');
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('FRA', 'Aeropuerto de Fráncfort del Meno', '50.0333', '8.5706');
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('SYD', 'Aeropuerto de Sídney', '-33.9461', '151.1772');
-INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('SFO', 'Aeropuerto Internacional de San Francisco', '37.6213', '-122.3790');
+//AMERICA
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('EZE', 'Aeropuerto Internacional Ministro Pistarini', -34.812, -58.535);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('SCL', 'Aeropuerto Internacional Comodoro Arturo Merino Benítez', -33.3928, -70.7859);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('MIA', 'Aeropuerto Internacional de Miami', 25.7959, -80.2870);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('GRU', 'Aeroporto Internacional de São Paulo/Guarulhos', -23.4255, -46.4731);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('BOG', 'Aeropuerto Internacional El Dorado', 4.7016, -74.1469);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('MEX', 'Aeropuerto Internacional de la Ciudad de México', 19.4361, -99.0719);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('YYC', 'Aeropuerto Internacional de Calgary', 51.1314, -114.0106);
 
-AVIONES
-let queries = vec![
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1130', '41.6413', '-75.7787', '32000', '560', '85', 'OnTime', 'EZE', '08:30', 'JFK', '16:45');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LA8050', '27.7617', '-82.2903', '34000', '580', '78', 'Delayed', 'SCL', '09:15', 'MIA', '17:00');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AA940', '-22.5505', '-45.6350', '30000', '550', '65', 'OnTime', 'DFW', '07:00', 'GRU', '15:30');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IB6844', '-37.6083', '-62.3019', '31000', '570', '72', 'OnTime', 'MAD', '10:00', 'EZE', '18:00');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AF2280', '35.9416', '-120.4085', '33000', '590', '80', 'Cancelled', 'CDG', '12:30', 'LAX', '20:45');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('KL7028', '38.7749', '-123.4194', '32000', '600', '60', 'OnTime', 'AMS', '11:45', 'SFO', '20:10');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BA246', '51.4700', '-3.4543', '31000', '575', '77', 'OnTime', 'LHR', '14:00', 'EZE', '17:30');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('JL704', '35.6735', '140.3929', '33000', '580', '70', 'OnTime', 'NRT', '16:00', 'LAX', '11:00');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('QF12', '-33.8688', '151.2093', '35000', '590', '82', 'OnTime', 'SYD', '11:30', 'LAX', '06:15');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NZ7', '-36.8485', '174.7633', '34000', '580', '75', 'Delayed', 'AKL', '15:45', 'SFO', '08:30');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EK202', '25.2697', '55.3333', '36000', '600', '88', 'OnTime', 'DXB', '02:00', 'JFK', '07:30');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CA981', '39.9042', '116.4074', '34000', '570', '74', 'OnTime', 'PEK', '06:45', 'JFK', '10:00');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LH400', '50.1109', '8.6821', '32000', '565', '80', 'OnTime', 'FRA', '09:00', 'JFK', '12:00');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SU100', '55.7558', '37.6173', '35000', '600', '81', 'OnTime', 'SVO', '08:30', 'JFK', '12:15');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CX846', '22.3964', '114.1095', '33000', '585', '77', 'Delayed', 'HKG', '12:00', 'JFK', '16:30');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AF006', '48.8566', '2.3522', '32000', '575', '79', 'OnTime', 'CDG', '10:00', 'JFK', '13:30');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('KE85', '37.5665', '126.9780', '35000', '590', '85', 'OnTime', 'ICN', '09:45', 'JFK', '11:00');",
-    "INSERT INTO flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('JL006', '35.6895', '139.6917', '34000', '580', '72', 'OnTime', 'NRT', '13:30', 'JFK', '17:30');",
-];
+//EUROPA
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('MAD', 'Aeropuerto Adolfo Suárez Madrid-Barajas', 40.4935, -3.5706);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('AMS', 'Luchthaven Schiphol', 52.3086, 4.7642);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('LHR', 'Aeropuerto de Heathrow', 51.4700, -0.4543);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('OSL', 'Aeropuerto de Oslo-Gardermoen', 60.1939, 11.1004);
 
-AVIONES EN QUE AEROPUERTOS
-let flights_by_airport_queries = vec![
-    // EZE - Aeropuerto de partida de AR1130 y de llegada de IB6844 y BA246
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1130');".to_string(),
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'IB6844');".to_string(),
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'BA246');".to_string(),
-    
-    // JFK - Aeropuerto de llegada para AR1130, EK202, CA981, LH400, SU100, CX846, AF006, JL006
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('JFK', 'AR1130');".to_string(),
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('JFK', 'EK202');".to_string(),
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('JFK', 'CA981');".to_string(),
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('JFK', 'LH400');".to_string(),
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('JFK', 'SU100');".to_string(),
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('JFK', 'CX846');".to_string(),
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('JFK', 'AF006');".to_string(),
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('JFK', 'JL006');".to_string(),
 
-    // MIA - Aeropuerto de llegada de LA8050
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'LA8050');".to_string(),
+//ASIA
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('NRT', 'Narita International Airport', 35.7653, 140.3851);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('DEL', 'Aeropuerto Internacional Indira Gandhi', 28.5562, 77.1000);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('PEK', 'Aeropuerto Internacional de Pekín-Capital', 40.0801, 116.5846);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('SVO', 'Aeropuerto Internacional Sheremétievo', 55.9726, 37.4146);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('RUH', 'Aeropuerto Internacional Rey Khalid', 24.9576, 46.6988);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('CGK', 'Aeropuerto Internacional Soekarno-Hatta', -6.1256, 106.6559);
 
-    // GRU - Aeropuerto de llegada de AA940
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'AA940');".to_string(),
 
-    // SFO - Aeropuerto de llegada de KL7028 y NZ7
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('SFO', 'KL7028');".to_string(),
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('SFO', 'NZ7');".to_string(),
+//AFRICA
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('JNB', 'Aeropuerto Internacional O. R. Tambo', -26.1337, 28.2420);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('BKO', 'Aeropuerto Internacional Modibo Keïta', 12.5335, -7.9499);
+INSERT INTO aviation.airports (code, name, positionLat, positionLon) VALUES ('CAI', 'Aeropuerto Internacional de El Cairo', 30.1127, 31.4004);
 
-    // LAX - Aeropuerto de llegada de AF2280, JL704, QF12
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('LAX', 'AF2280');".to_string(),
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('LAX', 'JL704');".to_string(),
-    "INSERT INTO flightsByAirport (airportCode, flightCode) VALUES ('LAX', 'QF12');".to_string(),
-];
+
+
+//VUELOS QUE SALEN DE EZEIZA
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1002', -34.0, -65.0, 34000, 520, 85, 'OnTime', 'EZE', '22:30', 'SCL', '02:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'EZE', '23:00', 'MIA', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'EZE', '22:15', 'GRU', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'EZE', '22:45', 'BOG', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'EZE', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'EZE', '22:30', 'YYC', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'EZE', '23:00', 'MAD', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'EZE', '23:30', 'AMS', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'EZE', '23:00', 'LHR', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'EZE', '22:45', 'OSL', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'EZE', '23:15', 'NRT', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'EZE', '23:30', 'DEL', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'EZE', '22:45', 'PEK', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'EZE', '23:00', 'SVO', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'EZE', '22:30', 'RUH', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'EZE', '22:15', 'CGK', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'EZE', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'EZE', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AR1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'EZE', '23:15', 'CAI', '07:15'); 
+
+//VUELOS QUE SALEN DE SCL
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1001', 10.0, -70.0, 34000, 550, 90, 'OnTime', 'SCL', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1003', 28.0, -78.0, 35000, 540, 80, 'OnTime', 'SCL', '23:00', 'MIA', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1004', -22.0, -46.0, 33000, 560, 75, 'OnTime', 'SCL', '22:15', 'GRU', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1005', 5.0, -75.0, 34000, 550, 78, 'OnTime', 'SCL', '22:45', 'BOG', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1006', 20.0, -99.0, 35000, 540, 80, 'OnTime', 'SCL', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1007', 49.0, -112.0, 34000, 520, 70, 'OnTime', 'SCL', '22:30', 'YYC', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1008', 38.0, -2.0, 34000, 550, 80, 'OnTime', 'SCL', '23:00', 'MAD', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1009', 51.0, 5.0, 35000, 540, 85, 'OnTime', 'SCL', '23:30', 'AMS', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1010', 50.0, -1.0, 34000, 550, 82, 'OnTime', 'SCL', '23:00', 'LHR', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1011', 59.0, 10.0, 33000, 530, 75, 'OnTime', 'SCL', '22:45', 'OSL', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1012', 36.0, 140.0, 35000, 550, 78, 'OnTime', 'SCL', '23:15', 'NRT', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1013', 29.0, 76.0, 34000, 540, 80, 'OnTime', 'SCL', '23:30', 'DEL', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1014', 38.0, 115.0, 35000, 550, 75, 'OnTime', 'SCL', '22:45', 'PEK', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1015', 55.0, 36.0, 34000, 530, 80, 'OnTime', 'SCL', '23:00', 'SVO', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1016', 26.0, 46.0, 34000, 550, 82, 'OnTime', 'SCL', '22:30', 'RUH', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1017', -5.0, 105.0, 33000, 520, 70, 'OnTime', 'SCL', '23:15', 'CGK', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1018', -25.0, 29.0, 35000, 540, 75, 'OnTime', 'SCL', '23:00', 'JNB', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1019', 15.0, -8.0, 34000, 550, 80, 'OnTime', 'SCL', '22:45', 'BKO', '10:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('USA1020', 30.0, 31.0, 34000, 560, 85, 'OnTime', 'SCL', '22:30', 'CAI', '10:30'); 
+
+//VUELOS QUE SALEN DE MIA
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'MIA', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'MIA', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'MIA', '22:15', 'GRU', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'MIA', '22:45', 'BOG', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'MIA', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'MIA', '22:30', 'YYC', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'MIA', '23:00', 'MAD', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'MIA', '23:30', 'AMS', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'MIA', '23:00', 'LHR', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'MIA', '22:45', 'OSL', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'MIA', '23:15', 'NRT', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'MIA', '23:30', 'DEL', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'MIA', '22:45', 'PEK', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'MIA', '23:00', 'SVO', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'MIA', '22:30', 'RUH', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'MIA', '22:15', 'CGK', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'MIA', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'MIA', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('AM1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'MIA', '23:15', 'CAI', '07:15'); 
+
+//AVIONES QUE SALEN DE GRU
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'GRU', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'GRU', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'GRU', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'GRU', '22:45', 'BOG', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'GRU', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'GRU', '22:30', 'YYC', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'GRU', '23:00', 'MAD', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'GRU', '23:30', 'AMS', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'GRU', '23:00', 'LHR', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'GRU', '22:45', 'OSL', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'GRU', '23:15', 'NRT', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'GRU', '23:30', 'DEL', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'GRU', '22:45', 'PEK', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'GRU', '23:00', 'SVO', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'GRU', '22:30', 'RUH', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'GRU', '22:15', 'CGK', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'GRU', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'GRU', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('BRA1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'GRU', '23:15', 'CAI', '07:15'); 
+
+//AVIONES QUE SALEN DE BOG
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'BOG', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'BOG', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'BOG', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'BOG', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'BOG', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'BOG', '22:30', 'YYC', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'BOG', '23:00', 'MAD', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'BOG', '23:30', 'AMS', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'BOG', '23:00', 'LHR', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'BOG', '22:45', 'OSL', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'BOG', '23:15', 'NRT', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'BOG', '23:30', 'DEL', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'BOG', '22:45', 'PEK', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'BOG', '23:00', 'SVO', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'BOG', '22:30', 'RUH', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'BOG', '22:15', 'CGK', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'BOG', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'BOG', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('COL1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'BOG', '23:15', 'CAI', '07:15'); 
+
+//AVIONES QUE SALEN DE MEX
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'MEX', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'MEX', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'MEX', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'MEX', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'MEX', '23:15', 'BOG', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'MEX', '22:30', 'YYC', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'MEX', '23:00', 'MAD', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'MEX', '23:30', 'AMS', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'MEX', '23:00', 'LHR', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'MEX', '22:45', 'OSL', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'MEX', '23:15', 'NRT', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'MEX', '23:30', 'DEL', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'MEX', '22:45', 'PEK', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'MEX', '23:00', 'SVO', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'MEX', '22:30', 'RUH', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'MEX', '22:15', 'CGK', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'MEX', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'MEX', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MEX1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'MEX', '23:15', 'CAI', '07:15');
+
+//AVIONES QUE SALEN DE YYC
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'YYC', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'YYC', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'YYC', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'YYC', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'YYC', '23:15', 'BOG', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'YYC', '22:30', 'MEX', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'YYC', '23:00', 'MAD', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'YYC', '23:30', 'AMS', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'YYC', '23:00', 'LHR', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'YYC', '22:45', 'OSL', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'YYC', '23:15', 'NRT', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'YYC', '23:30', 'DEL', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'YYC', '22:45', 'PEK', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'YYC', '23:00', 'SVO', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'YYC', '22:30', 'RUH', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'YYC', '22:15', 'CGK', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'YYC', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'YYC', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CAN1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'YYC', '23:15', 'CAI', '07:15'); 
+
+//AVIONES QUE SALEN DE MAD
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'MAD', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'MAD', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'MAD', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'MAD', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'MAD', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'MAD', '22:30', 'BOG', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'MAD', '23:00', 'YYC', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'MAD', '23:30', 'AMS', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'MAD', '23:00', 'LHR', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'MAD', '22:45', 'OSL', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'MAD', '23:15', 'NRT', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'MAD', '23:30', 'DEL', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'MAD', '22:45', 'PEK', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'MAD', '23:00', 'SVO', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'MAD', '22:30', 'RUH', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'MAD', '22:15', 'CGK', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'MAD', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'MAD', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ESP1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'MAD', '23:15', 'CAI', '07:15'); 
+
+//AVIONES QUE SALEN DE AMS
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'AMS', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'AMS', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'AMS', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'AMS', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'AMS', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'AMS', '22:30', 'BOG', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'AMS', '23:00', 'YYC', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'AMS', '23:30', 'MAD', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'AMS', '23:00', 'LHR', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'AMS', '22:45', 'OSL', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'AMS', '23:15', 'NRT', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'AMS', '23:30', 'DEL', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'AMS', '22:45', 'PEK', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'AMS', '23:00', 'SVO', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'AMS', '22:30', 'RUH', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'AMS', '22:15', 'CGK', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'AMS', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'AMS', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NDL1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'AMS', '23:15', 'CAI', '07:15');
+
+
+//AVIONES QUE SALEN DE LHR
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'LHR', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'LHR', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'LHR', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'LHR', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'LHR', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'LHR', '22:30', 'BOG', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'LHR', '23:00', 'YYC', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'LHR', '23:30', 'MAD', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'LHR', '23:00', 'AMS', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'LHR', '22:45', 'OSL', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'LHR', '23:15', 'NRT', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'LHR', '23:30', 'DEL', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'LHR', '22:45', 'PEK', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'LHR', '23:00', 'SVO', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'LHR', '22:30', 'RUH', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'LHR', '22:15', 'CGK', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'LHR', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'LHR', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('LON1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'LHR', '23:15', 'CAI', '07:15'); 
+
+
+//AVIONES QUE SALEN DE OSL
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'OSL', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'OSL', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'OSL', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'OSL', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'OSL', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'OSL', '22:30', 'BOG', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'OSL', '23:00', 'YYC', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'OSL', '23:30', 'MAD', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'OSL', '23:00', 'AMS', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'OSL', '22:45', 'LHR', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'OSL', '23:15', 'NRT', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'OSL', '23:30', 'DEL', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'OSL', '22:45', 'PEK', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'OSL', '23:00', 'SVO', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'OSL', '22:30', 'RUH', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'OSL', '22:15', 'CGK', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'OSL', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'OSL', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('NOR1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'OSL', '23:15', 'CAI', '07:15'); 
+
+
+//AVIONES QUE SALEN DE DEL
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'DEL', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'DEL', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'DEL', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'DEL', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'DEL', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'DEL', '22:30', 'BOG', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'DEL', '23:00', 'YYC', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'DEL', '23:30', 'MAD', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'DEL', '23:00', 'AMS', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'DEL', '22:45', 'LHR', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'DEL', '23:15', 'OSL', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'DEL', '23:30', 'NRT', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'DEL', '22:45', 'PEK', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'DEL', '23:00', 'SVO', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'DEL', '22:30', 'RUH', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'DEL', '22:15', 'CGK', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'DEL', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'DEL', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('IND1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'DEL', '23:15', 'CAI', '07:15'); 
+
+//AVIONES QUE SALEN DE PEK
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'PEK', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'PEK', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'PEK', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'PEK', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'PEK', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'PEK', '22:30', 'BOG', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'PEK', '23:00', 'YYC', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'PEK', '23:30', 'MAD', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'PEK', '23:00', 'AMS', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'PEK', '22:45', 'LHR', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'PEK', '23:15', 'OSL', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'PEK', '23:30', 'NRT', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'PEK', '22:45', 'DEL', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'PEK', '23:00', 'SVO', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'PEK', '22:30', 'RUH', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'PEK', '22:15', 'CGK', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'PEK', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'PEK', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('CHI1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'PEK', '23:15', 'CAI', '07:15'); 
+
+//AVIONES QUE SALEN DE SVO
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'SVO', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'SVO', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'SVO', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'SVO', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'SVO', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'SVO', '22:30', 'BOG', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'SVO', '23:00', 'YYC', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'SVO', '23:30', 'MAD', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'SVO', '23:00', 'AMS', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'SVO', '22:45', 'LHR', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'SVO', '23:15', 'OSL', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'SVO', '23:30', 'NRT', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'SVO', '22:45', 'DEL', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'SVO', '23:00', 'PEK', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'SVO', '22:30', 'RUH', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'SVO', '22:15', 'CGK', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'SVO', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'SVO', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('RUS1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'SVO', '23:15', 'CAI', '07:15'); 
+
+
+//AVIONES QUE SALEN DE RUH
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'RUH', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'RUH', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'RUH', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'RUH', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'RUH', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'RUH', '22:30', 'BOG', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'RUH', '23:00', 'YYC', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'RUH', '23:30', 'MAD', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'RUH', '23:00', 'AMS', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'RUH', '22:45', 'LHR', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'RUH', '23:15', 'OSL', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'RUH', '23:30', 'NRT', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'RUH', '22:45', 'DEL', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'RUH', '23:00', 'PEK', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'RUH', '22:30', 'SVO', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'RUH', '22:15', 'CGK', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'RUH', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'RUH', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('ASA1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'RUH', '23:15', 'CAI', '07:15'); 
+
+
+//AVIONES QUE SALEN DE CGK
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'CGK', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'CGK', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'CGK', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'CGK', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'CGK', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'CGK', '22:30', 'BOG', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'CGK', '23:00', 'YYC', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'CGK', '23:30', 'MAD', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'CGK', '23:00', 'AMS', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'CGK', '22:45', 'LHR', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'CGK', '23:15', 'OSL', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'CGK', '23:30', 'NRT', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'CGK', '22:45', 'DEL', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'CGK', '23:00', 'PEK', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'CGK', '22:30', 'SVO', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'CGK', '22:15', 'RUH', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'CGK', '23:00', 'JNB', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'CGK', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SING1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'CGK', '23:15', 'CAI', '07:15'); 
+
+
+//AVIONES QUE SALEN DE JNB
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'JNB', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'JNB', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'JNB', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'JNB', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'JNB', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'JNB', '22:30', 'BOG', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'JNB', '23:00', 'YYC', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'JNB', '23:30', 'MAD', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'JNB', '23:00', 'AMS', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'JNB', '22:45', 'LHR', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'JNB', '23:15', 'OSL', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'JNB', '23:30', 'NRT', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'JNB', '22:45', 'DEL', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'JNB', '23:00', 'PEK', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'JNB', '22:30', 'SVO', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'JNB', '22:15', 'RUH', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'JNB', '23:00', 'CGK', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'JNB', '22:45', 'BKO', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('SUD1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'JNB', '23:15', 'CAI', '07:15'); 
+
+
+//AVIONES QUE SALEN DE BKO
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'BKO', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'BKO', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'BKO', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'BKO', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'BKO', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'BKO', '22:30', 'BOG', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'BKO', '23:00', 'YYC', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'BKO', '23:30', 'MAD', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'BKO', '23:00', 'AMS', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'BKO', '22:45', 'LHR', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'BKO', '23:15', 'OSL', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'BKO', '23:30', 'NRT', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'BKO', '22:45', 'DEL', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'BKO', '23:00', 'PEK', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'BKO', '22:30', 'SVO', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'BKO', '22:15', 'RUH', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'BKO', '23:00', 'CGK', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'BKO', '22:45', 'JNB', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('MAL1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'BKO', '23:15', 'CAI', '07:15'); 
+
+
+//AVIONES QUE SALEN DE CAI
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1001', -22.5, -60.5, 34000, 550, 90, 'OnTime', 'CAI', '22:00', 'EZE', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1003', -24.0, -70.0, 35000, 540, 80, 'OnTime', 'CAI', '23:00', 'SCL', '05:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1004', -23.5, -48.0, 33000, 560, 75, 'OnTime', 'CAI', '22:15', 'MIA', '01:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1005', 1.0, -75.0, 34000, 550, 78, 'OnTime', 'CAI', '22:45', 'GRU', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1006', 18.0, -95.0, 35000, 540, 80, 'OnTime', 'CAI', '23:15', 'MEX', '06:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1007', 30.0, -110.0, 34000, 520, 70, 'OnTime', 'CAI', '22:30', 'BOG', '07:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1008', 39.0, -5.0, 34000, 550, 80, 'OnTime', 'CAI', '23:00', 'YYC', '12:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1009', 52.0, 5.0, 35000, 540, 85, 'OnTime', 'CAI', '23:30', 'MAD', '13:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1010', 51.5, -0.5, 34000, 550, 82, 'OnTime', 'CAI', '23:00', 'AMS', '12:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1011', 60.0, 10.0, 33000, 530, 75, 'OnTime', 'CAI', '22:45', 'LHR', '13:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1012', 35.0, 140.0, 35000, 550, 78, 'OnTime', 'CAI', '23:15', 'OSL', '07:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1013', 30.0, 78.0, 34000, 540, 80, 'OnTime', 'CAI', '23:30', 'NRT', '08:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1014', 40.0, 116.0, 35000, 550, 75, 'OnTime', 'CAI', '22:45', 'DEL', '08:45'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1015', 55.0, 37.0, 34000, 530, 80, 'OnTime', 'CAI', '23:00', 'PEK', '09:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1016', 25.0, 45.0, 34000, 550, 82, 'OnTime', 'CAI', '22:30', 'SVO', '09:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1017', -6.0, 106.0, 33000, 520, 70, 'OnTime', 'CAI', '22:15', 'RUH', '11:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1018', -30.0, 25.0, 34000, 540, 80, 'OnTime', 'CAI', '23:00', 'CGK', '06:00'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1019', 10.0, -8.0, 34000, 530, 75, 'OnTime', 'CAI', '22:45', 'JNB', '05:30'); 
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1020', 30.0, 31.0, 34000, 540, 80, 'OnTime', 'CAI', '23:15', 'CAI', '07:15'); 
+
+
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1002');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'AR1002');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AR1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'AR1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'AR1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'AR1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'AR1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'AR1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'AR1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'AR1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'AR1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'AR1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'AR1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'AR1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'AR1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'AR1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'AR1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'AR1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'AR1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AR1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'AR1020');
+
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'USA1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'USA1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'USA1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'USA1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'USA1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'USA1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'USA1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'USA1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'USA1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'USA1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'USA1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'USA1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'USA1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'USA1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'USA1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'USA1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'USA1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'USA1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'USA1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'USA1020');
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'AM1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'AM1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'AM1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'AM1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'AM1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'AM1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'AM1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'AM1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'AM1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'AM1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'AM1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'AM1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'AM1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'AM1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'AM1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'AM1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'AM1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'AM1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'AM1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'AM1020');
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'BRA1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'BRA1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'BRA1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'BRA1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'BRA1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'BRA1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'BRA1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'BRA1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'BRA1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'BRA1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'BRA1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'BRA1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'BRA1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'BRA1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'BRA1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'BRA1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'BRA1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'BRA1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'BRA1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'BRA1020');
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'COL1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'COL1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'COL1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'COL1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'COL1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'COL1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'COL1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'COL1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'COL1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'COL1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'COL1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'COL1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'COL1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'COL1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'COL1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'COL1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'COL1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'COL1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'COL1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'COL1020');
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'MEX1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'MEX1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'MEX1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'MEX1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'MEX1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'MEX1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'MEX1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'MEX1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'MEX1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'MEX1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'MEX1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'MEX1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'MEX1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'MEX1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'MEX1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'MEX1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'MEX1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MEX1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MEX1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'MEX1020');
+
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'CAN1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'CAN1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'CAN1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'CAN1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'CAN1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'CAN1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'CAN1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'CAN1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'CAN1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'CAN1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'CAN1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'CAN1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CAN1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'CAN1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'CAN1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'CAN1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'CAN1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'CAN1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'CAN1020');
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'CAN1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'CAN1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'CAN1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'CAN1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'CAN1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'CAN1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'CAN1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'CAN1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'CAN1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'CAN1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'CAN1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'CAN1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CAN1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'CAN1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'CAN1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'CAN1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'CAN1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'CAN1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CAN1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'CAN1020');
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'ESP1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'ESP1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'ESP1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'ESP1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'ESP1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'ESP1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'ESP1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'ESP1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'ESP1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'ESP1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'ESP1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'ESP1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'ESP1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'ESP1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ESP1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'ESP1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'ESP1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'ESP1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ESP1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'ESP1020');
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'NDL1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'NDL1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'NDL1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'NDL1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'NDL1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'NDL1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'NDL1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'NDL1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'NDL1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NDL1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'NDL1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'NDL1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'NDL1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'NDL1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'NDL1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'NDL1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'NDL1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'NDL1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NDL1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'NDL1020');
+
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'LON1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'LON1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'LON1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'LON1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'LON1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'LON1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'LON1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'LON1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'LON1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'LON1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'LON1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'LON1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'LON1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'LON1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'LON1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'LON1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'LON1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'LON1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'LON1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'LON1020');
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'NOR1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'NOR1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'NOR1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'NOR1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'NOR1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'NOR1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'NOR1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'NOR1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'NOR1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'NOR1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'NOR1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'NOR1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'NOR1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'NOR1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'NOR1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'NOR1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'NOR1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'NOR1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'NOR1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'NOR1020');
+
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'IND1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'IND1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'IND1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'IND1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'IND1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'IND1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'IND1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'IND1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'IND1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'IND1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'IND1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'IND1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'IND1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'IND1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'IND1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'IND1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'IND1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'IND1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'IND1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'IND1020');
+
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'CHI1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'CHI1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'CHI1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'CHI1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'CHI1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'CHI1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'CHI1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'CHI1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'CHI1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'CHI1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'CHI1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'CHI1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'CHI1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'CHI1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'CHI1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'CHI1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'CHI1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'CHI1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'CHI1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'CHI1020');
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'RUS1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'RUS1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'RUS1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'RUS1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'RUS1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'RUS1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'RUS1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'RUS1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'RUS1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'RUS1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'RUS1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'RUS1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'RUS1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'RUS1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'RUS1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'RUS1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'RUS1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'RUS1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'RUS1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'RUS1020');
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'ASA1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'ASA1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'ASA1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'ASA1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'ASA1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'ASA1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'ASA1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'ASA1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'ASA1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'ASA1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'ASA1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'ASA1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'ASA1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'ASA1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'ASA1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'ASA1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'ASA1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'ASA1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'ASA1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'ASA1020');
+
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'SING1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'SING1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'SING1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'SING1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'SING1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'SING1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'SING1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'SING1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'SING1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'SING1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'SING1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'SING1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'SING1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'SING1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'SING1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'SING1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SING1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'SING1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SING1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'SING1020');
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'SUD1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'SUD1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'SUD1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'SUD1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'SUD1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'SUD1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'SUD1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'SUD1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'SUD1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'SUD1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'SUD1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'SUD1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'SUD1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'SUD1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'SUD1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'SUD1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'SUD1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'SUD1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'SUD1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'SUD1020');
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'MAL1001');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'MAL1003');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'MAL1004');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'MAL1005');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'MAL1006');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'MAL1007');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'MAL1008');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'MAL1009');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'MAL1010');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'MAL1011');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'MAL1012');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'MAL1013');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'MAL1014');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'MAL1015');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'MAL1016');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'MAL1017');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'MAL1018');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'MAL1019');
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'MAL1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'MAL1020');
+
+
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('EZE', 'EGYP1001');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SCL', 'EGYP1003');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MIA', 'EGYP1004');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('GRU', 'EGYP1005');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MEX', 'EGYP1006');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BOG', 'EGYP1007');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('YYC', 'EGYP1008');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('MAD', 'EGYP1009');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('AMS', 'EGYP1010');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('LHR', 'EGYP1011');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('OSL', 'EGYP1012');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('NRT', 'EGYP1013');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('DEL', 'EGYP1014');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('PEK', 'EGYP1015');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('SVO', 'EGYP1016');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('RUH', 'EGYP1017');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'EGYP1018');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'EGYP1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1020');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1020');
