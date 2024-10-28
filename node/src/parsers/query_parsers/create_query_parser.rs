@@ -36,6 +36,7 @@ impl CreateQueryParser {
 
 #[cfg(test)]
 mod tests {
+    use crate::parsers::tokens::terms::{BooleanOperations, ComparisonOperators};
     use crate::{
         parsers::{
             query_parsers::create_query_parser::CreateQueryParser,
@@ -58,17 +59,27 @@ mod tests {
             create_reserved_token("KEYSPACE"),
             create_identifier_token("KEYSPACE_NAME"),
             create_reserved_token("WITH"),
+            create_reserved_token("REPLICATION"),
+            Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
+                ComparisonOperators::Equal,
+            ))),
             Token::BraceList(vec![
-                Token::Reserved("class".to_string()),
+                Token::Term(Term::Literal(Literal::new(
+                    "class".to_string(),
+                    DataType::Text,
+                ))),
                 Token::Symbol(":".to_string()),
                 Token::Term(Term::Literal(Literal::new(
                     "SimpleStrategy".to_string(),
                     DataType::Text,
                 ))),
                 Token::Symbol(COMMA.to_string()),
-                Token::Reserved("replication_factor".to_string()),
+                Token::Term(Term::Literal(Literal::new(
+                    "replication_factor".to_string(),
+                    DataType::Text,
+                ))),
                 Token::Symbol(":".to_string()),
-                Token::Term(Term::Literal(Literal::new("1".to_string(), DataType::Int))),
+                Token::Term(Term::Literal(Literal::new(1.to_string(), DataType::Int))),
             ]),
         ];
         let result = CreateQueryParser::parse(tokens);

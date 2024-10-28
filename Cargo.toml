@@ -4,5 +4,8 @@ members = [
     "node", 
     "node_handler", 
     "test-client",
-    "inicializator"]
+    "inicializator",
+    "ui",
+    "flight_simulator"
+    ]
 

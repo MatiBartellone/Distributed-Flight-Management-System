@@ -73,7 +73,7 @@ mod tests {
 
     fn get_user_and_pass(body: Vec<u8>) -> Result<(String, String), Errors> {
         let auth_parser = AuthResponseParser {};
-        let credentials = auth_parser.valid_credentials(body.as_slice()).unwrap();
+        let credentials = auth_parser.valid_credentials(body.as_slice())?;
         auth_parser.get_user_and_password(credentials)
     }
 
