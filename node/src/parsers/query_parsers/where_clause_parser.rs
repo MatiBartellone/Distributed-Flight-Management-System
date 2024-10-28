@@ -2,10 +2,16 @@ use crate::{
     parsers::tokens::{
         terms::{BooleanOperations, LogicalOperators, Term},
         token::Token,
-    }, queries::where_logic::where_clause::{and_where, build_tuple, comparison_where, not_where, or_where, WhereClause}, utils::{
+    },
+    queries::where_logic::where_clause::{
+        and_where, build_tuple, comparison_where, not_where, or_where, WhereClause,
+    },
+    utils::{
         errors::Errors,
-        token_conversor::{get_comparision_operator, get_list, get_literal, get_next_value},
-    }
+        token_conversor::{
+            get_comparision_operator, get_list, get_literal, get_next_value, precedence,
+        },
+    },
 };
 
 use BooleanOperations::*;
@@ -19,7 +25,8 @@ pub struct WhereClauseParser;
 
 impl WhereClauseParser {
     pub fn parse(tokens: Vec<Token>) -> Result<WhereClause, Errors> {
-        where_clause(&mut tokens.into_iter().peekable())
+        let tokens = precedence(tokens);
+        where_clause_rec(&mut tokens.into_iter().peekable())
     }
 }
 
@@ -29,9 +36,14 @@ fn where_and_or(
 ) -> Result<WhereClause, Errors> {
     match get_next_value(tokens) {
         // [left_expre, AND, ...]
-        Ok(Term(BooleanOperations(Logical(And)))) => Ok(and_where(left_expr, where_clause(tokens)?)),
+        Ok(Term(BooleanOperations(Logical(And)))) => {
+            Ok(and_where(left_expr, where_clause_rec(tokens)?))
+        }
         // [left_expre, OR, ...]
-        Ok(Term(BooleanOperations(Logical(Or)))) => Ok(or_where(left_expr, where_clause(tokens)?)),
+        Ok(Term(BooleanOperations(Logical(Or)))) => {
+            Ok(or_where(left_expr, where_clause_rec(tokens)?))
+        }
+        // []
         Err(_) => Ok(left_expr),
         _ => Err(Errors::SyntaxError(
             "Invalid Syntaxis in WHERE_CLAUSE".to_string(),
@@ -45,8 +57,7 @@ fn where_comparision(
 ) -> Result<WhereClause, Errors> {
     let operator = get_comparision_operator(tokens)?;
     let literal = get_literal(tokens)?;
-    let expression = comparison_where(&column_name, operator, literal);
-    where_and_or(tokens, expression)
+    Ok(comparison_where(&column_name, operator, literal))
 }
 
 fn where_tuple(
@@ -58,8 +69,7 @@ fn where_tuple(
     if column_names.len() != literals.len() {
         return Err(Errors::SyntaxError("Invalid tuples len".to_string()));
     }
-    let left_expr = build_tuple(column_names, literals, operator)?;
-    where_and_or(tokens, left_expr)
+    build_tuple(column_names, literals, operator)
 }
 
 fn where_list(
@@ -70,25 +80,27 @@ fn where_list(
         // [tupla, comparison, tupla, ...]
         Some(Term(BooleanOperations(Comparison(_)))) => where_tuple(tokens, list),
         // [lista, ...]
-        _ => {
-            let left_expr = where_clause(&mut list.into_iter().peekable())?;
-            where_and_or(tokens, left_expr)
-        }
+        _ => where_clause_rec(&mut list.into_iter().peekable()),
     }
 }
 
-fn where_clause(tokens: &mut Peekable<IntoIter<Token>>) -> Result<WhereClause, Errors> {
+fn where_cases(tokens: &mut Peekable<IntoIter<Token>>) -> Result<WhereClause, Errors> {
     match get_next_value(tokens)? {
         // [column_name, comparasion, literal, ...]
         Identifier(column_name) => where_comparision(tokens, column_name),
         // [tupla, comparasion, tupla, ...] or [lista, ...]
         ParenList(token_list) => where_list(tokens, token_list),
         // [NOT, ...]
-        Term(BooleanOperations(Logical(Not))) => Ok(not_where(where_clause(tokens)?)),
+        Term(BooleanOperations(Logical(Not))) => Ok(not_where(where_cases(tokens)?)),
         _ => Err(Errors::SyntaxError(
             "Invalid Syntaxis in WHERE_CLAUSE".to_string(),
         )),
     }
+}
+
+fn where_clause_rec(tokens: &mut Peekable<IntoIter<Token>>) -> Result<WhereClause, Errors> {
+    let expresion_inicial = where_cases(tokens)?;
+    where_and_or(tokens, expresion_inicial)
 }
 
 #[cfg(test)]
@@ -99,7 +111,9 @@ mod tests {
     use crate::parsers::tokens::terms::{self, ComparisonOperators, LogicalOperators};
     use crate::parsers::tokens::token::Token;
     use crate::queries::where_logic::comparison::ComparisonExpr;
-    use crate::queries::where_logic::where_clause::{and_where, comparison_where, not_where, or_where, tuple_expr, WhereClause};
+    use crate::queries::where_logic::where_clause::{
+        and_where, comparison_where, not_where, or_where, tuple_expr, WhereClause,
+    };
     use crate::utils::token_conversor::{
         create_comparison_operation_token, create_identifier_token, create_logical_operation_token,
         create_token_literal,
@@ -109,7 +123,6 @@ mod tests {
     use DataType::*;
     use LogicalOperators::*;
     use Token::*;
-
 
     fn test_successful_parser_case(caso: Vec<Token>, expected: Option<WhereClause>) {
         let resultado = WhereClauseParser::parse(caso);
@@ -248,6 +261,7 @@ mod tests {
     #[test]
     fn test_parser_multiple_operations() {
         // (id, name) = (5, 'ivan') AND NOT is_active = true OR age < 30
+        // ((id, name) = (5, 'ivan') AND NOT is_active = true) OR age < 30
         let tokens = vec![
             ParenList(vec![
                 create_identifier_token("id"),
@@ -269,36 +283,36 @@ mod tests {
             create_token_literal("30", Int),
         ];
 
-        let expected = Some(and_where(
-            tuple_expr(vec![
-                ComparisonExpr::new(
-                    "id".to_string(),
-                    &Equal,
-                    Literal::new("5".to_string(), DataType::Int),
-                ),
-                ComparisonExpr::new(
-                    "name".to_string(),
-                    &Equal,
-                    Literal::new("ivan".to_string(), DataType::Text),
-                ),
-            ]),
-            not_where(or_where(
-                comparison_where(
+        let expected = Some(or_where(
+            and_where(
+                tuple_expr(vec![
+                    ComparisonExpr::new(
+                        "id".to_string(),
+                        &Equal,
+                        Literal::new("5".to_string(), DataType::Int),
+                    ),
+                    ComparisonExpr::new(
+                        "name".to_string(),
+                        &Equal,
+                        Literal::new("ivan".to_string(), DataType::Text),
+                    ),
+                ]),
+                not_where(comparison_where(
                     "is_active",
                     ComparisonOperators::Equal,
                     Literal::new("true".to_string(), DataType::Boolean),
-                ),
-                comparison_where(
-                    "age",
-                    ComparisonOperators::Less,
-                    Literal::new("30".to_string(), DataType::Int),
-                ),
-            )),
+                )),
+            ),
+            comparison_where(
+                "age",
+                ComparisonOperators::Less,
+                Literal::new("30".to_string(), DataType::Int),
+            ),
         ));
 
         test_successful_parser_case(tokens, expected);
     }
-    
+
     /// Este test lo cree porque no me estaba funcionando algo del peek que capaz despues intento cambiar asi que lo dejo aca
     #[test]
     fn test_peek() {

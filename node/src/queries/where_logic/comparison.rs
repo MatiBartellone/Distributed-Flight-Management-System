@@ -1,12 +1,14 @@
-use std::collections::HashMap;
-
 use crate::{
-    parsers::tokens::{literal::Literal, terms::ComparisonOperators}, queries::evaluate::Evaluate, utils::errors::Errors
+    parsers::tokens::{literal::Literal, terms::ComparisonOperators},
+    queries::evaluate::Evaluate,
+    utils::errors::Errors,
 };
+use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 use ComparisonOperators::*;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ComparisonExpr {
     column_name: String,
     operator: ComparisonOperators,
@@ -27,6 +29,23 @@ impl ComparisonExpr {
             column_name,
             operator,
             literal,
+        }
+    }
+
+    pub fn get_primary_key(
+        &self,
+        pk: &mut Vec<String>,
+        table_pk: &HashSet<String>,
+    ) -> Result<(), Errors> {
+        if !table_pk.contains(&self.column_name) {
+            return Ok(());
+        }
+        match self.operator {
+            Equal => {
+                pk.push(self.literal.value.to_string());
+                Ok(())
+            }
+            _ => Err(Errors::SyntaxError(String::from("Partition keys in where_clause only allowed with '=' operator"))),
         }
     }
 }

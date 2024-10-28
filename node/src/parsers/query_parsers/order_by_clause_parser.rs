@@ -1,15 +1,15 @@
 use crate::parsers::tokens::token::Token;
 use crate::queries::order_by_clause::OrderByClause;
+use crate::utils::constants::*;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
-use crate::utils::constants::*;
 
 pub struct OrderByClauseParser;
 
 impl OrderByClauseParser {
     pub fn parse(tokens: Vec<Token>) -> Result<Vec<OrderByClause>, Errors> {
         let mut order_clauses = Vec::<OrderByClause>::new();
-        column(&mut tokens.into_iter(), &mut order_clauses, false)?;
+        column(&mut tokens.into_iter(), &mut order_clauses, false, true)?;
         Ok(order_clauses)
     }
 }
@@ -18,14 +18,19 @@ fn column(
     tokens: &mut IntoIter<Token>,
     order_clauses: &mut Vec<OrderByClause>,
     modified: bool,
+    coming_from_comma: bool,
 ) -> Result<(), Errors> {
     let Some(token) = tokens.next() else {
         return Ok(());
     };
     match token {
+        Token::Symbol(symbol) if symbol == COMMA => {column(tokens, order_clauses, false, true)}
         Token::Identifier(identifier) => {
+            if !coming_from_comma{
+                return Err(Errors::SyntaxError(String::from("Order clauses must be separated by commas")))
+            }
             order_clauses.push(OrderByClause::new(identifier));
-            column(tokens, order_clauses, false)
+            column(tokens, order_clauses, false, false)
         }
         Token::Reserved(res) if res == *ASC => {
             if modified {
@@ -38,7 +43,7 @@ fn column(
                     "No column provided for ASC modifier",
                 )));
             };
-            column(tokens, order_clauses, true)
+            column(tokens, order_clauses, true, false)
         }
         Token::Reserved(res) if res == *DESC => {
             if modified {
@@ -47,13 +52,14 @@ fn column(
                 )));
             }
             change_last_to_desc(order_clauses)?;
-            column(tokens, order_clauses, true)
+            column(tokens, order_clauses, true, false)
         }
         _ => Err(Errors::SyntaxError(String::from(
             "Unexpected token in order by clause",
         ))),
     }
 }
+
 fn change_last_to_desc(order_clauses: &mut Vec<OrderByClause>) -> Result<(), Errors> {
     let Some(order_clause) = order_clauses.pop() else {
         return Err(Errors::SyntaxError(String::from(
@@ -130,7 +136,9 @@ mod tests {
         let tokens = vec![
             Token::Identifier(String::from("column1")),
             Token::Reserved(String::from(ASC)),
+            Token::Symbol(String::from(COMMA)),
             Token::Identifier(String::from("column2")),
+            Token::Symbol(String::from(COMMA)),
             Token::Identifier(String::from("column3")),
             Token::Reserved(String::from(DESC)),
         ];

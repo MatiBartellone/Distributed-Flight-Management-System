@@ -2,9 +2,9 @@ use crate::parsers::tokens::literal::Literal;
 use crate::parsers::tokens::terms::Term;
 use crate::parsers::tokens::token::Token;
 use crate::queries::insert_query::InsertQuery;
+use crate::utils::constants::*;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
-use crate::utils::constants::*;
 pub struct InsertQueryParser;
 
 impl InsertQueryParser {
@@ -27,7 +27,7 @@ fn into(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Err
 fn table(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Identifier(identifier) => {
-            query.table = identifier;
+            query.table_name = identifier;
             headers(tokens, query)
         }
         _ => Err(Errors::SyntaxError(String::from(
@@ -74,27 +74,50 @@ fn values_list(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<
 
 fn get_headers(list: Vec<Token>) -> Result<Vec<String>, Errors> {
     let mut headers = Vec::new();
-    for elem in list {
-        match elem {
-            Token::Identifier(header) => headers.push(header),
-            _ => {
-                return Err(Errors::SyntaxError(String::from(
-                    "Unexpected token in headers",
-                )))
+    for (index, elem) in list.iter().enumerate() {
+        if index % 2 == 0 {
+            match elem {
+                Token::Identifier(header) => headers.push(header.to_string()),
+                _ => {
+                    return Err(Errors::SyntaxError(String::from(
+                        "Unexpected token in headers",
+                    )))
+                }
+            }
+        } else {
+            match elem {
+                Token::Symbol(symbol) if symbol == COMMA => continue,
+                _ => {
+                    return Err(Errors::SyntaxError(String::from(
+                        "Column names must be separated by comma",
+                    )))
+                }
             }
         }
+
     }
     Ok(headers)
 }
 fn get_values(list: Vec<Token>) -> Result<Vec<Literal>, Errors> {
     let mut values = Vec::new();
-    for elem in list {
-        match elem {
-            Token::Term(Term::Literal(literal)) => values.push(literal),
-            _ => {
-                return Err(Errors::SyntaxError(String::from(
-                    "Unexpected token in values",
-                )))
+    for (index, elem) in list.iter().enumerate() {
+        if index % 2 == 0 {
+            match elem {
+                Token::Term(Term::Literal(literal)) => values.push(literal.to_owned()),
+                _ => {
+                    return Err(Errors::SyntaxError(String::from(
+                        "Unexpected token in values",
+                    )))
+                }
+            }
+        } else {
+            match elem {
+                Token::Symbol(symbol) if symbol == COMMA => continue,
+                _ => {
+                    return Err(Errors::SyntaxError(String::from(
+                        "Values must be separated by comma",
+                    )))
+                }
             }
         }
     }
@@ -136,11 +159,13 @@ mod tests {
             Token::Identifier(String::from(table)),
             Token::ParenList(vec![
                 Token::Identifier(String::from(hd1)),
+                Token::Symbol(String::from(COMMA)),
                 Token::Identifier(String::from(hd2)),
             ]),
             Token::Reserved(String::from(values)),
             Token::ParenList(vec![
                 Token::Term(Term::Literal(Literal::new(col1.to_string(), DataType::Int))),
+                Token::Symbol(String::from(COMMA)),
                 Token::Term(Term::Literal(Literal::new(
                     col2.to_string(),
                     DataType::Text,
@@ -150,7 +175,7 @@ mod tests {
     }
     fn get_insert_query(table: &str, hd1: &str, hd2: &str, col1: &str, col2: &str) -> InsertQuery {
         InsertQuery {
-            table: table.to_string(),
+            table_name: table.to_string(),
             headers: vec![String::from(hd1), String::from(hd2)],
             values_list: vec![vec![
                 Literal::new(col1.to_string(), DataType::Int),
@@ -161,8 +186,8 @@ mod tests {
 
     #[test]
     fn test_insert_query_parser_valid() {
-        let tokens = get_insert_tokens(INTO, "table_name", "id", "name", VALUES, "3", "Thiago");
-        let expected = get_insert_query("table_name", "id", "name", "3", "Thiago");
+        let tokens = get_insert_tokens(INTO, "kp.table_name", "id", "name", VALUES, "3", "Thiago");
+        let expected = get_insert_query("kp.table_name", "id", "name", "3", "Thiago");
         assert_eq!(expected, InsertQueryParser::parse(tokens).unwrap());
     }
 
@@ -188,7 +213,7 @@ mod tests {
     fn test_insert_query_parser_unexpected_headers() {
         let tokens = vec![
             Token::Reserved(String::from(INTO)),
-            Token::Identifier(String::from("table_name")),
+            Token::Identifier(String::from("kp.table_name")),
             Token::Reserved(String::from(VALUES)),
         ];
         let result = InsertQueryParser::parse(tokens);
@@ -198,7 +223,7 @@ mod tests {
     fn test_insert_query_parser_headers_are_not_identifiers() {
         let tokens = vec![
             Token::Reserved(String::from(INTO)),
-            Token::Identifier(String::from("table_name")),
+            Token::Identifier(String::from("kp.table_name")),
             Token::ParenList(vec![Token::Reserved(String::from("NOT AN IDENTIFIER"))]),
         ];
         let result = InsertQueryParser::parse(tokens);
@@ -207,7 +232,7 @@ mod tests {
 
     #[test]
     fn test_insert_query_parser_missing_values() {
-        let tokens = get_insert_tokens(INTO, "table_name", "id", "name", "NOT VALUES", "", "");
+        let tokens = get_insert_tokens(INTO, "kp.table_name", "id", "name", "NOT VALUES", "", "");
         let result = InsertQueryParser::parse(tokens);
         assert_error(result, "headers not followed by VALUES");
     }
@@ -216,9 +241,10 @@ mod tests {
     fn test_insert_query_parser_values_are_not_literals() {
         let tokens = vec![
             Token::Reserved(String::from(INTO)),
-            Token::Identifier(String::from("table_name")),
+            Token::Identifier(String::from("kp.table_name")),
             Token::ParenList(vec![
                 Token::Identifier(String::from("id")),
+                Token::Symbol(String::from(COMMA)),
                 Token::Identifier(String::from("name")),
             ]),
             Token::Reserved(String::from(VALUES)),

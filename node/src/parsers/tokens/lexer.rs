@@ -68,7 +68,7 @@ fn out_section(
     match c {
         DOLLAR | DOUBLE_QUOTE | SINGLE_QUOTE => {
             if !section.is_empty() {
-                res.push(section.clone());
+                res.push(section.to_string());
                 section.clear();
             }
             *delimiter = Some(c);
@@ -131,11 +131,12 @@ fn divide_words(query: &str) -> Vec<String> {
         .replace("%", MOD) // Modulus
         .replace("<", LT) // Less Than
         .replace(">", GT) // Greater Than
-        .replace("(", OPEN_PAREN) // Open Parenthesis
-        .replace(")", CLOSE_PAREN) // Close Parenthesis
-        .replace("{", OPEN_BRACE) // Open Brace
-        .replace("}", CLOSE_BRACE) // Close Brace
-        .replace(";", EMPTY); // Remove semicolon
+        .replace("(", " ( ") // Open Parenthesis
+        .replace(")", " ) ") // Close Parenthesis
+        .replace("{", " { ") // Open Brace
+        .replace("}", " } ") // Close Brace
+        .replace(";", EMPTY) // Remove semicolon
+        .replace(",", " , "); // Remove semicolon
     query.split_whitespace().map(|s| s.to_string()).collect()
 }
 
@@ -235,7 +236,7 @@ mod tests {
         let resultado = standardize(input);
 
         let esperado = vec![
-            "SELECT", "name,", "age", "FROM", "users", "WHERE", "age", ">",  // Operador >
+            "SELECT", "name", ",", "age", "FROM", "users", "WHERE", "age", ">",  // Operador >
             "25", // El punto y coma se mantiene al final
         ];
 
@@ -259,7 +260,7 @@ mod tests {
         let resultado = standardize(input);
 
         let esperado = vec![
-            "SELECT", "name,", "age", "FROM", "users", "WHERE", "age",
+            "SELECT", "name", ",", "age", "FROM", "users", "WHERE", "age",
             "_GE_", // Para el operador >=
             "30", "AND", "age", "=", "age", "+", // Para el operador +
             "2", "LIMIT", "10",
