@@ -22,7 +22,7 @@ impl MapPanel {
             Err(_) => return,
         };
 
-        let aiport_is_some = (&*selected_airport).is_some();
+        let aiport_is_some = (*selected_airport).is_some();
         drop(selected_airport);
         map_widget = map_widget.with_plugin(&mut app.airports);
 

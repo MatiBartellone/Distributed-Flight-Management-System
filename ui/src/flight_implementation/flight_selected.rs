@@ -1,7 +1,7 @@
 use egui::{Color32, Painter, Pos2, Stroke};
 use walkers::Projector;
 
-use crate::airport::airports::get_airport_position;
+use crate::airport_implementation::airports::get_airport_position;
 
 use super::{flight_status::FlightStatus, flights::get_flight_pos2};
 
@@ -42,7 +42,7 @@ impl FlightSelected {
     }
 
     pub fn list_information(&self, ui: &mut egui::Ui) {
-        ui.label(format!("{}", self.code));
+        ui.label(&self.code);
         ui.label(format!(
             "Posición: ({:.2}, {:.2})",
             self.position.0, self.position.1

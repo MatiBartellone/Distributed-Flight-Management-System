@@ -8,7 +8,7 @@ use eframe::egui;
 use egui::Context;
 use walkers::{sources::OpenStreetMap, HttpTiles, MapMemory};
 
-use crate::{airport::{airport::Airport, airports::Airports}, cassandra_client::CassandraClient, flight::{flight::Flight, flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}};
+use crate::{airport_implementation::{airport::Airport, airports::Airports}, cassandra_client::CassandraClient, flight_implementation::{flight::Flight, flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}};
 
 fn get_airports_codes() -> Vec<String> {
     vec![

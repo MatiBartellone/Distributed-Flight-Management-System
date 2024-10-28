@@ -66,8 +66,8 @@ impl Plugin for &mut Airports {
     }
 }
 
-pub fn get_airport_coordinates(airport: &String) -> (f64, f64) {
-    match airport.as_str() {
+pub fn get_airport_coordinates(airport: &str) -> (f64, f64) {
+    match airport {
         "JFK" => (-73.7781, 40.6413),  // JFK, Nueva York
         "LAX" => (-118.4085, 33.9416), // LAX, Los Ángeles
         "EZE" => (-58.5358, -34.8222), // EZE, Buenos Aires (Ezeiza)
@@ -88,7 +88,7 @@ pub fn get_airport_coordinates(airport: &String) -> (f64, f64) {
 }
 
 pub fn get_airport_position(airport: &str, projector: &Projector) -> Pos2 {
-    let airport_coordinates = get_airport_coordinates(&airport.to_string());
+    let airport_coordinates = get_airport_coordinates(airport);
     let airport_position = Position::from_lon_lat(airport_coordinates.0, airport_coordinates.1);
     projector.project(airport_position).to_pos2()
 }

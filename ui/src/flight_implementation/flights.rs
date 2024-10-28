@@ -7,7 +7,6 @@ use walkers::{Plugin, Position, Projector};
 use super::flight::Flight;
 use super::flight_selected::FlightSelected;
 
-#[derive(Clone)]
 pub struct Flights {
     pub flights: Arc<Mutex<Vec<Flight>>>,
     pub on_flight_selected: Arc<Mutex<Option<FlightSelected>>>,
@@ -57,8 +56,14 @@ impl Plugin for &mut Flights {
             );
         }
 
+        // Intenta abrir el lock
+        let selected_flight = match self.on_flight_selected.lock() {
+            Ok(lock) => lock,
+            Err(_) => return,
+        };
+    
         // Si hay avion seleccionado dibuja la linea al aeropuerto
-        if let Some(flight) = self.on_flight_selected.lock().unwrap().as_ref() {
+        if let Some(flight) = &*selected_flight {
             flight.draw_flight_path(painter, projector);
         }
     }

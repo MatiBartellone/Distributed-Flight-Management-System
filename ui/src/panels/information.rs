@@ -31,7 +31,7 @@ impl InformationPanel {
         if ui.button("⬅").clicked() {
             self.clear_selection(app);
         }
-        ui.heading(format!("{}", airport_name));
+        ui.heading(airport_name);
     }
 
     fn clear_selection(&self, app: &mut FlightApp) {

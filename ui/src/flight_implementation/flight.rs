@@ -5,11 +5,11 @@ use std::{
 };
 use walkers::{extras::Image, Position, Projector, Texture};
 
-use crate::airport::airports::{calculate_angle_to_airport, get_airport_position};
+use crate::airport_implementation::airports::{calculate_angle_to_airport, get_airport_position};
 
 use super::{flight_selected::FlightSelected, flight_status::FlightStatus, flights::{get_flight_pos2, get_flight_vec2}};
 
-#[derive(Clone, PartialEq)]
+#[derive(PartialEq)]
 pub struct Flight {
     // weak consistency
     pub position: (f64, f64),
@@ -82,8 +82,13 @@ impl Flight {
 
     // Dibuja la imagen del avion en su posicion
     pub fn draw_image_flight(&self, response: &Response, painter: Painter, projector: &Projector) {
-        let image_data = read("../src/img/flight32.png").expect("Failed to load image");
-        let airplane_texture = Texture::new(&image_data, &painter.ctx()).unwrap();
+        let airplane_texture = match self.image_texture(&painter){
+            Ok(airplane_texture) => airplane_texture,
+            Err(_) => {
+                self.draw_icon_flight(painter, projector);
+                return;
+            }
+        };
         let flight_position = Position::from_lon_lat(self.position.0, self.position.1);
         let mut image = Image::new(airplane_texture, flight_position);
 
@@ -94,6 +99,14 @@ impl Flight {
 
         image.scale(0.6, 0.6);
         image.draw(response, painter, projector);
+    }
+
+    fn image_texture(&self, painter: &Painter) -> Result<Texture, ()> {
+        let image_data = read("../ui/src/img/flight32.png")
+            .map_err(|_| ())?;
+        let airplane_texture = Texture::new(&image_data, painter.ctx())
+            .map_err(|_| ())?;
+        Ok(airplane_texture)
     }
 
     // Si lo clikea cambia el vuelo seleccionado

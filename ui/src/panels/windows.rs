@@ -24,7 +24,7 @@ pub fn zoom(ui: &Ui, map_memory: &mut MapMemory) {
 
 /// When map is "detached", show a windows with an option to go back to my position.
 pub fn go_to_my_position(ui: &Ui, map_memory: &mut MapMemory) {
-    if let Some(_) = map_memory.detached() {
+    if map_memory.detached().is_some() {
         Window::new("Center")
             .collapsible(false)
             .resizable(false)
