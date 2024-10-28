@@ -194,7 +194,7 @@ mod tests {
         vec![
             Token::Identifier(KEYSPACE_NAME.to_string()),
             Token::Reserved(WITH.to_string()),
-            Token::Identifier(REPLICATION_RES.to_string()),
+            Token::Reserved(REPLICATION_RES.to_string()),
             Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(ComparisonOperators::Equal)))
         ]
     }

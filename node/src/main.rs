@@ -25,11 +25,11 @@ fn main() {
         false => (ip.to_string(), ip, server_addr.to_string())
     };
     let port = get_user_data("Node's port ([port, port+4] are used): ");
-    let position = get_user_data("Node's position in cluster: ").parse::<i32>().unwrap() as usize;
+    let position = get_user_data("Node's position in cluster: ").parse::<i32>().expect("Error in parsing position to int") as usize;
 
     let node = Node::new(network_ip.to_string(), port.to_string(), position);
     let mut server_stream = TcpStream::connect(server_addr).expect("Failed to connect to server");
-    server_stream.write_all(serde_json::to_string(&node).unwrap().as_bytes()).unwrap();
+    server_stream.write_all(serde_json::to_string(&node).expect("Failed to serialize node").as_bytes()).expect("Failed to write to server");
 
     set_cluster(&mut server_stream, node);
 
@@ -42,14 +42,14 @@ fn main() {
 
 fn add_node_to_cluster(node: Node) -> Result<(), Errors> {
     let mut stream = MetaDataHandler::establish_connection()?;
-    MetaDataHandler::get_instance(&mut stream).unwrap().get_nodes_metadata_access()
+    MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access()
         .append_new_node(nodes_meta_data_path().as_ref(), node)?;
     Ok(())
 }
 
 fn get_user_data(msg: &str) -> String {
     print!("{}", msg);
-    io::stdout().flush().unwrap();
+    io::stdout().flush().expect("Failed to flush stdout");
     let mut data = String::new();
     io::stdin().read_line(&mut data).expect("Error reading data");
     data.trim().to_string()
@@ -63,21 +63,21 @@ fn start_listeners(ip: &String, port: &String) {
     let dtas_port = port.to_string();
     let qyrv_port = port.to_string();
     thread::spawn(move || {
-        MetaDataHandler::start_listening(mtdt_ip, mtdt_port).unwrap();
+        MetaDataHandler::start_listening(mtdt_ip, mtdt_port).expect("Failed to start metadata listener");
     });
     thread::spawn(move || {
-        DataAccessHandler::start_listening(dtas_ip, dtas_port).unwrap();
+        DataAccessHandler::start_listening(dtas_ip, dtas_port).expect("Failed to start data access");
     });
     thread::spawn(move || {
-        QueryReceiver::start_listening(qyrv_ip, qyrv_port).unwrap();
+        QueryReceiver::start_listening(qyrv_ip, qyrv_port).expect("Failed to start query receiver");
     });
 }
 
 fn set_cluster(server_stream: &mut TcpStream, node: Node) {
     // Leer la lista de nodos activos del servidor
     let mut buffer = [0; 1024];
-    let size = server_stream.read(&mut buffer).unwrap();
-    let nodes: Vec<Node> = serde_json::from_slice(&buffer[..size]).unwrap();
+    let size = server_stream.read(&mut buffer).expect("Failed to read from server stream");
+    let nodes: Vec<Node> = serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
     let cluster = Cluster::new(node, nodes);
     if let Err(e) = NodesMetaDataAccess::write_cluster(nodes_meta_data_path().as_ref(), &cluster) {
         println!("{}", e);
@@ -87,16 +87,16 @@ fn set_cluster(server_stream: &mut TcpStream, node: Node) {
 fn listen_incoming_new_nodes(ip: String, port: String) {
     thread::spawn(move || {
         // Mantener el nodo corriendo y escuchando nuevos mensajes
-        let port = (port.parse::<i32>().unwrap() + 4).to_string();
-        let listener = TcpListener::bind(format!("{}:{}", ip, port)).unwrap();
+        let port = (port.parse::<i32>().expect("Failed to parse port into int") + 4).to_string();
+        let listener = TcpListener::bind(format!("{}:{}", ip, port)).expect("Failed to bind TCP listener");
         for mut stream in listener.incoming().flatten(){
             // Leer nuevos mensajes del servidor (nuevos nodos que se conectan)
             let mut buffer = [0; 1024];
-            let size = stream.read(&mut buffer).unwrap();
+            let size = stream.read(&mut buffer).expect("Failed to read from server stream");
             if size > 0{
-                let node: Node = serde_json::from_slice(&buffer[..size]).unwrap();
+                let node: Node = serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
                 {
-                    add_node_to_cluster(node).unwrap();
+                    add_node_to_cluster(node).expect("Failed to add node to cluster");
                 }
             }
 
@@ -112,11 +112,11 @@ fn set_node_listener(ip: String, port: String, server_stream: &mut TcpStream) {
         match incoming {
             Ok(stream) => {
                 println!("Cliente conectado: {:?}", stream.peer_addr());
-                server_stream.write_all(b"1").unwrap();
-                let mut value = server_stream.try_clone().unwrap();
+                server_stream.write_all(b"1").expect("Failed to write to server stream");
+                let mut value = server_stream.try_clone().expect("Failed to clone server stream");
                 thread::spawn(move || {
                     handle_client(stream);
-                    value.write_all(b"__").unwrap();
+                    value.write_all(b"__").expect("Failed to write to server stream");
                 });
             }
             Err(e) => {
@@ -130,7 +130,7 @@ fn set_node_listener(ip: String, port: String, server_stream: &mut TcpStream) {
 fn handle_client(mut stream: TcpStream) {
     let mut buffer = [0; 1024];
     loop {
-        stream.flush().unwrap();
+        stream.flush().expect("Failed to flush client");
         match stream.read(&mut buffer) {
             Ok(0) => {
                 println!("Cliente desconectado");
@@ -138,18 +138,18 @@ fn handle_client(mut stream: TcpStream) {
             }
             Ok(n) => match execute_request(buffer[0..n].to_vec()) {
                 Ok(response) => {
-                    stream.flush().unwrap();
+                    stream.flush().expect("Failed to flush client");
                     stream
                         .write_all(response.as_slice())
                         .expect("Error writing response");
                 }
                 Err(e) => {
                     let frame = ErrorBuilder::build_error_frame(
-                        Frame::parse_frame(buffer.as_slice()).unwrap(),
+                        Frame::parse_frame(buffer.as_slice()).expect("Failed to parse frame"),
                         e,
                     )
-                    .unwrap();
-                    stream.flush().unwrap();
+                    .expect("Failed to build error frame");
+                    stream.flush().expect("Failed to flush client");
                     stream
                         .write_all(frame.to_bytes().as_slice())
                         .expect("Error writing response");

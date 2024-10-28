@@ -33,8 +33,7 @@ impl Query for UseQuery {
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
-        let rng: u8 = rand::random();
-        Ok(Some(vec![format!("{}", rng)]))
+        Ok(None)
     }
 
     fn get_keyspace(&self) -> Result<String, Errors> {
