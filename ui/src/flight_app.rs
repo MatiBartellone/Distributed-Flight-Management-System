@@ -149,7 +149,9 @@ fn load_flights(
         Ok(lock) => lock,
         Err(_) => return,
     };
-    *flights_lock = information.get_flights(airport_code);
+    let mut flights = information.get_flights(airport_code);
+    flights.sort_by_key(|flight| flight.code.to_string());
+    *flights_lock = flights;
 }
 
 fn get_selected_flight(
