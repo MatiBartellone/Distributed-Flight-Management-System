@@ -9,7 +9,7 @@ use std::{collections::HashMap, vec::IntoIter};
 
 const INVALID_PARAMETERS: &str = "Query lacks parameters";
 const WITH: &str = "WITH";
-const REPLICATION_RES: &str = "replication";
+const REPLICATION_RES: &str = "REPLICATION";
 const UNEXPECTED_TOKEN: &str = "Unexpected token in table_name";
 const MISSING_COLON: &str = "Missing colon for separating parameters in replication";
 const MISSING_WITH: &str = "Missing WITH keyword";
@@ -62,7 +62,7 @@ impl CreateKeyspaceParser {
         query: &mut CreateKeyspaceQuery,
     ) -> Result<(), Errors> {
         match self.get_next_value(tokens)? {
-            Token::Identifier(replication) if replication == *REPLICATION_RES => self.equal(tokens, query),
+            Token::Reserved(replication) if replication == *REPLICATION_RES => self.equal(tokens, query),
             _ => Err(Errors::SyntaxError(String::from(MISSING_REPLICATION))),
         }
     }
