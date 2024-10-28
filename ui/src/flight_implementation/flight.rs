@@ -7,7 +7,11 @@ use walkers::{extras::Image, Position, Projector, Texture};
 
 use crate::airport_implementation::airports::{calculate_angle_to_airport, get_airport_position};
 
-use super::{flight_selected::FlightSelected, flight_status::FlightStatus, flights::{get_flight_pos2, get_flight_vec2}};
+use super::{
+    flight_selected::FlightSelected,
+    flight_status::FlightStatus,
+    flights::{get_flight_pos2, get_flight_vec2},
+};
 
 #[derive(PartialEq)]
 pub struct Flight {
@@ -82,7 +86,7 @@ impl Flight {
 
     // Dibuja la imagen del avion en su posicion
     pub fn draw_image_flight(&self, response: &Response, painter: Painter, projector: &Projector) {
-        let airplane_texture = match self.image_texture(&painter){
+        let airplane_texture = match self.image_texture(&painter) {
             Ok(airplane_texture) => airplane_texture,
             Err(_) => {
                 self.draw_icon_flight(painter, projector);
@@ -93,8 +97,10 @@ impl Flight {
         let mut image = Image::new(airplane_texture, flight_position);
 
         let screen_airport_position = get_airport_position(&self.arrival_airport, projector);
-        let angle =
-            calculate_angle_to_airport(get_flight_pos2(&self.position, projector), screen_airport_position);
+        let angle = calculate_angle_to_airport(
+            get_flight_pos2(&self.position, projector),
+            screen_airport_position,
+        );
         image.angle(angle);
 
         image.scale(0.6, 0.6);
@@ -102,10 +108,8 @@ impl Flight {
     }
 
     fn image_texture(&self, painter: &Painter) -> Result<Texture, ()> {
-        let image_data = read("../ui/src/img/flight32.png")
-            .map_err(|_| ())?;
-        let airplane_texture = Texture::new(&image_data, painter.ctx())
-            .map_err(|_| ())?;
+        let image_data = read("../ui/src/img/flight32.png").map_err(|_| ())?;
+        let airplane_texture = Texture::new(&image_data, painter.ctx()).map_err(|_| ())?;
         Ok(airplane_texture)
     }
 

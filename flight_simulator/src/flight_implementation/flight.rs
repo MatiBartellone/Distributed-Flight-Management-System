@@ -19,7 +19,18 @@ pub struct Flight {
 }
 
 impl Flight {
-    pub fn new(code: String, status: FlightStatus, departure_airport: String, arrival_airport: String, departure_time: String, arrival_time: String, position: (f64, f64), altitude: f64, speed: f32, fuel_level: f32) -> Self {
+    pub fn new(
+        code: String,
+        status: FlightStatus,
+        departure_airport: String,
+        arrival_airport: String,
+        departure_time: String,
+        arrival_time: String,
+        position: (f64, f64),
+        altitude: f64,
+        speed: f32,
+        fuel_level: f32,
+    ) -> Self {
         Flight {
             code,
             status,
@@ -33,7 +44,7 @@ impl Flight {
             fuel_level,
         }
     }
-    
+
     pub fn restart(&mut self) {
         self.position = get_airport_coordinates(&self.departure_airport);
         self.altitude = 0.0;

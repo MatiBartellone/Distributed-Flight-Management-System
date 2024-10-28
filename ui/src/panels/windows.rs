@@ -1,5 +1,5 @@
-use egui::{Color32, Frame, Shadow};
 use egui::{Align2, RichText, Ui, Window};
+use egui::{Color32, Frame, Shadow};
 use walkers::MapMemory;
 
 /// Simple GUI to zoom in and out.

@@ -13,7 +13,10 @@ pub struct Flights {
 }
 
 impl Flights {
-    pub fn new(flights: Vec<Flight>, on_flight_selected: Arc<Mutex<Option<FlightSelected>>>) -> Self {
+    pub fn new(
+        flights: Vec<Flight>,
+        on_flight_selected: Arc<Mutex<Option<FlightSelected>>>,
+    ) -> Self {
         Self {
             flights: Arc::new(Mutex::new(flights)),
             on_flight_selected,
@@ -61,7 +64,7 @@ impl Plugin for &mut Flights {
             Ok(lock) => lock,
             Err(_) => return,
         };
-    
+
         // Si hay avion seleccionado dibuja la linea al aeropuerto
         if let Some(flight) = &*selected_flight {
             flight.draw_flight_path(painter, projector);

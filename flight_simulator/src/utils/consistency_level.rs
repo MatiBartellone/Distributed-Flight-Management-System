@@ -8,7 +8,7 @@ use ConsistencyLevel::*;
 pub enum ConsistencyLevel {
     One,
     Quorum,
-    All
+    All,
 }
 
 impl ConsistencyLevel {
@@ -34,7 +34,7 @@ impl ConsistencyLevel {
         match self {
             ConsistencyLevel::One => 0x0001,
             ConsistencyLevel::Quorum => 0x0004,
-            ConsistencyLevel::All => 0x0005
+            ConsistencyLevel::All => 0x0005,
         }
     }
 }

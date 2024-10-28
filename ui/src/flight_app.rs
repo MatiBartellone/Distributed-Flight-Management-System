@@ -8,7 +8,12 @@ use eframe::egui;
 use egui::Context;
 use walkers::{sources::OpenStreetMap, HttpTiles, MapMemory};
 
-use crate::{airport_implementation::{airport::Airport, airports::Airports}, cassandra_client::CassandraClient, flight_implementation::{flight::Flight, flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}};
+use crate::{
+    airport_implementation::{airport::Airport, airports::Airports},
+    cassandra_client::CassandraClient,
+    flight_implementation::{flight::Flight, flight_selected::FlightSelected, flights::Flights},
+    panels::{information::InformationPanel, map::MapPanel},
+};
 
 fn get_airports_codes() -> Vec<String> {
     vec![
@@ -45,7 +50,10 @@ impl FlightApp {
         Self::set_scroll_style(&egui_ctx);
 
         let selected_airport = Arc::new(Mutex::new(None));
-        let airports = Airports::new(information.get_airports(get_airports_codes()), Arc::clone(&selected_airport));
+        let airports = Airports::new(
+            information.get_airports(get_airports_codes()),
+            Arc::clone(&selected_airport),
+        );
 
         let selected_flight = Arc::new(Mutex::new(None));
         let flights = Flights::new(Vec::new(), Arc::clone(&selected_flight));
@@ -59,7 +67,7 @@ impl FlightApp {
             flights,
             selected_flight,
             tiles: HttpTiles::new(OpenStreetMap, egui_ctx.clone()),
-            map_memory
+            map_memory,
         };
         app.loop_update_flights(egui_ctx, information);
         app
@@ -71,12 +79,17 @@ impl FlightApp {
         let flights = Arc::clone(&self.flights.flights);
 
         thread::spawn(move || loop {
-            update_flights(&selected_flight, &selected_airport, &flights, &mut information);
+            update_flights(
+                &selected_flight,
+                &selected_airport,
+                &flights,
+                &mut information,
+            );
             ctx.request_repaint();
             thread::sleep(Duration::from_millis(300));
         });
     }
-    
+
     fn set_scroll_style(egui_ctx: &Context) {
         let mut style = egui::Style::default();
         style.spacing.scroll = egui::style::ScrollStyle::solid();
@@ -99,15 +112,13 @@ impl eframe::App for FlightApp {
     }
 }
 
-
-
 // FUNCIONES DEL LOOP PARA ACTUALIZAR
 
 fn update_flights(
     selected_flight: &Arc<Mutex<Option<FlightSelected>>>,
     selected_airport: &Arc<Mutex<Option<Airport>>>,
     flights: &Arc<Mutex<Vec<Flight>>>,
-    information: &mut CassandraClient
+    information: &mut CassandraClient,
 ) {
     // Intenta abrir el lock del aeropuerto seleccionado
     let selected_airport = match selected_airport.lock() {
@@ -132,7 +143,7 @@ fn update_flights(
 fn load_flights(
     flights: &Arc<Mutex<Vec<Flight>>>,
     information: &mut CassandraClient,
-    airport_code: &str
+    airport_code: &str,
 ) {
     let mut flights_lock = match flights.lock() {
         Ok(lock) => lock,
@@ -143,7 +154,7 @@ fn load_flights(
 
 fn get_selected_flight(
     selected_flight: &Arc<Mutex<Option<FlightSelected>>>,
-    information: &mut CassandraClient
+    information: &mut CassandraClient,
 ) {
     if let Ok(mut selected_flight_lock) = selected_flight.lock() {
         if let Some(selected_flight) = &*selected_flight_lock {
@@ -154,7 +165,7 @@ fn get_selected_flight(
 
 fn clear_flight_data(
     selected_flight: &Arc<Mutex<Option<FlightSelected>>>,
-    flights: &Arc<Mutex<Vec<Flight>>>
+    flights: &Arc<Mutex<Vec<Flight>>>,
 ) {
     if let Ok(mut flight_lock) = selected_flight.lock() {
         *flight_lock = None;

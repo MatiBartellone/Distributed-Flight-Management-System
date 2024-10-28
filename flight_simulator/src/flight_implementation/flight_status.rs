@@ -7,7 +7,7 @@ pub enum FlightStatus {
     Cancelled,
     Arrived,
     #[default]
-    Inactive
+    Inactive,
 }
 
 impl FlightStatus {
@@ -18,7 +18,7 @@ impl FlightStatus {
             "Canceled" => Cancelled,
             "Arrived" => Arrived,
             "Inactive" => Inactive,
-            _ => FlightStatus::default()
+            _ => FlightStatus::default(),
         }
     }
 
@@ -28,7 +28,7 @@ impl FlightStatus {
             Delayed => "Delayed".to_string(),
             Cancelled => "Canceled".to_string(),
             Arrived => "Arrived".to_string(),
-            Inactive => "Inactive".to_string()
+            Inactive => "Inactive".to_string(),
         }
     }
 }

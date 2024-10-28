@@ -25,9 +25,7 @@ fn get_input(message: &str) -> String {
     println!("{}", message);
     io::stdout().flush().unwrap();
     let mut node = String::new();
-    io::stdin()
-        .read_line(&mut node)
-        .expect("Error reading");
+    io::stdin().read_line(&mut node).expect("Error reading");
     node.trim().to_string()
 }
 

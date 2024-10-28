@@ -1,4 +1,8 @@
-use std::{io::{self, Write}, thread, time::Duration};
+use std::{
+    io::{self, Write},
+    thread,
+    time::Duration,
+};
 
 use flight_simulator::cassandra_client::CassandraClient;
 
@@ -28,9 +32,7 @@ fn get_input(message: &str) -> String {
     println!("{}", message);
     io::stdout().flush().unwrap();
     let mut node = String::new();
-    io::stdin()
-        .read_line(&mut node)
-        .expect("Error reading");
+    io::stdin().read_line(&mut node).expect("Error reading");
     node.trim().to_string()
 }
 
@@ -44,7 +46,12 @@ fn restart_flights(cassandra_client: &mut CassandraClient, airport_code: &str) {
 }
 
 // Update the progress of the flights
-fn flight_updates_loop(cassandra_client: &mut CassandraClient, airport_code: &str, step: f32, interval: u64) {
+fn flight_updates_loop(
+    cassandra_client: &mut CassandraClient,
+    airport_code: &str,
+    step: f32,
+    interval: u64,
+) {
     loop {
         let flights = cassandra_client.get_flights(airport_code);
         for mut flight in flights {

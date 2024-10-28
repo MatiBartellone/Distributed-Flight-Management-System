@@ -1,7 +1,6 @@
-pub mod utils;
 pub mod cassandra_client;
 pub mod flight_implementation;
-
+pub mod utils;
 
 use rand::Rng;
 

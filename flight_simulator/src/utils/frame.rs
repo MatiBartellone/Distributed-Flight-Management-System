@@ -1,6 +1,5 @@
 use super::{bytes_cursor::BytesCursor, types_to_bytes::TypesToBytes};
 
-
 #[derive(Debug, PartialEq)]
 pub struct Frame {
     pub version: u8,
@@ -13,14 +12,21 @@ pub struct Frame {
 
 impl Frame {
     // El unico que ya lo recibe en bytes es el body porque varia el formato
-    pub fn new(version: u8, flags: u8, stream: i16, opcode: u8, length: u32, body: Vec<u8>) -> Self {
+    pub fn new(
+        version: u8,
+        flags: u8,
+        stream: i16,
+        opcode: u8,
+        length: u32,
+        body: Vec<u8>,
+    ) -> Self {
         Frame {
             version,
             flags,
             stream,
             opcode,
             length,
-            body
+            body,
         }
     }
 
@@ -32,7 +38,7 @@ impl Frame {
         types_to_bytes.write_u8(self.opcode)?;
         types_to_bytes.write_u32(self.length)?;
         types_to_bytes.write_bytes(&self.body);
-        Ok(types_to_bytes.into_bytes()) 
+        Ok(types_to_bytes.into_bytes())
     }
 
     pub fn parse_frame(bytes: &[u8]) -> Result<Frame, String> {
@@ -57,16 +63,10 @@ impl Frame {
 
     pub fn validate_request_frame(&self) -> Result<(), String> {
         if self.version != 0x03 {
-            return Err(format!(
-                "Version {} is incorrect",
-                self.version
-            ));
+            return Err(format!("Version {} is incorrect", self.version));
         }
         if self.flags != 0x00 {
-            return Err(format!(
-                "Flag {} is incorrect",
-                self.flags
-            ));
+            return Err(format!("Flag {} is incorrect", self.flags));
         }
         if self.stream < 0x00 {
             return Err("Stream cannot be negative".to_string());
