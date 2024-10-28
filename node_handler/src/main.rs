@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
-use std::thread;
+use std::{io, thread};
 use termion::{color, style}; // Para el color verde
 
 // Estructura para guardar la información de los nodos (IP, posición y número de clientes)
@@ -186,8 +186,21 @@ fn print_node_list(nodes: Arc<Mutex<HashMap<String, NodeInfo>>>) {
 }
 
 fn main() {
+    print!("Will this be used across netowrk? [Y][N]: ");
+    io::stdout().flush().expect("Failed to flush stdout");
+    let mut network = String::new();
+    io::stdin()
+        .read_line(&mut network)
+        .expect("Error reading data");
+    network.trim().to_string();
+    let ip = match network.as_str() {
+        "Y" => "0.0.0.0:7878",
+        _ => "127.0.0.1:7878",
+    };
+
+
     clear_screen();
-    let listener = TcpListener::bind("0.0.0.0:7878").unwrap();
+    let listener = TcpListener::bind(ip).unwrap();
     let nodes = Arc::new(Mutex::new(HashMap::new()));
 
     for stream in listener.incoming() {
