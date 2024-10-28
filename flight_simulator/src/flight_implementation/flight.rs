@@ -53,8 +53,8 @@ fn gen_random(min: f32, max: f32) -> f32 {
     rng.gen_range(min..=max)
 }
 
-pub fn get_airport_coordinates(airport: &String) -> (f64, f64) {
-    match airport.as_str() {
+pub fn get_airport_coordinates(airport: &str) -> (f64, f64) {
+    match airport {
         "JFK" => (-73.7781, 40.6413),  // JFK, Nueva York
         "LAX" => (-118.4085, 33.9416), // LAX, Los Ángeles
         "EZE" => (-58.5358, -34.8222), // EZE, Buenos Aires (Ezeiza)

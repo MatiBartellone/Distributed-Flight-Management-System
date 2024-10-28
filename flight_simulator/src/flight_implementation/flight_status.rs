@@ -1,18 +1,13 @@
-#[derive(Clone, PartialEq, Debug)]
+use FlightStatus::*;
+
+#[derive(PartialEq, Debug, Default)]
 pub enum FlightStatus {
     OnTime,
     Delayed,
     Cancelled,
     Arrived,
+    #[default]
     Inactive
-}
-
-use FlightStatus::*;
-
-impl Default for FlightStatus {
-    fn default() -> Self {
-        FlightStatus::Inactive
-    }
 }
 
 impl FlightStatus {

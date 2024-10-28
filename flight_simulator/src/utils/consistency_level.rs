@@ -1,5 +1,3 @@
-use super::errors::Errors;
-
 const ONE: i16 = 0x0001;
 const QUORUM: i16 = 0x0004;
 const ALL: i16 = 0x0005;
@@ -14,12 +12,12 @@ pub enum ConsistencyLevel {
 }
 
 impl ConsistencyLevel {
-    pub fn from_i16(value: i16) -> Result<ConsistencyLevel, Errors> {
+    pub fn from_i16(value: i16) -> Result<ConsistencyLevel, String> {
         let consistency = match value {
             ONE => ConsistencyLevel::One,
             QUORUM => ConsistencyLevel::Quorum,
             ALL => ConsistencyLevel::All,
-            _ => return Err(Errors::ProtocolError(format!("Unknown consistency level: {}", value))),
+            _ => return Err(format!("Unknown consistency level: {}", value)),
         };
         Ok(consistency)
     }
