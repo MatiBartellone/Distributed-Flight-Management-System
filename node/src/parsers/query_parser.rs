@@ -15,8 +15,8 @@ use super::query_parsers::update_query_parser::UpdateQueryParser;
 use super::query_parsers::use_query_parser::UseQueryParser;
 use super::tokens::lexer::standardize;
 use super::tokens::token::{tokenize, Token};
-use Token::*;
 use crate::parsers::query_parsers::create_query_parser::CreateQueryParser;
+use Token::*;
 
 pub struct QueryParser;
 

@@ -1,10 +1,10 @@
 use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
-use crate::utils::functions::{check_table_name, split_keyspace_table, get_long_string_from_str};
-use crate::{queries::query::Query, utils::errors::Errors};
 use crate::utils::constants::KEYSPACE_METADATA;
-use std::any::Any;
+use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table};
+use crate::{queries::query::Query, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
+use std::any::Any;
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct DropTableQuery {
@@ -20,7 +20,7 @@ impl DropTableQuery {
         }
     }
 
-    fn push_on_meta_data(&self) -> Result<(), Errors>{ 
+    fn push_on_meta_data(&self) -> Result<(), Errors> {
         let (keyspace_name, table) = split_keyspace_table(&self.table_name)?;
         let mut stream = MetaDataHandler::establish_connection()?;
         let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;

@@ -6,7 +6,10 @@ use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{check_table_name, get_columns_from_table, get_long_string_from_str, get_partition_key_from_where, get_table_pk, split_keyspace_table};
+use crate::utils::functions::{
+    check_table_name, get_columns_from_table, get_long_string_from_str,
+    get_partition_key_from_where, get_table_pk, split_keyspace_table,
+};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::cmp::PartialEq;
@@ -49,7 +52,9 @@ impl UpdateQuery {
         let table_primary_keys = get_table_pk(&self.table_name)?;
         for column in self.changes.keys() {
             if table_primary_keys.contains(column) {
-                return Err(Errors::SyntaxError(String::from("Cannot change primary keys")));
+                return Err(Errors::SyntaxError(String::from(
+                    "Cannot change primary keys",
+                )));
             }
         }
         Ok(())
@@ -124,7 +129,10 @@ impl Query for UpdateQuery {
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
-        Ok(Some(get_partition_key_from_where(&self.table_name, &self.where_clause)?))
+        Ok(Some(get_partition_key_from_where(
+            &self.table_name,
+            &self.where_clause,
+        )?))
     }
 
     fn get_keyspace(&self) -> Result<String, Errors> {

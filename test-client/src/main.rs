@@ -31,8 +31,6 @@ fn main() {
         b'E', b' ', b'k', b'p', 0x00, 0x01,
     ];
 
-
-
     //let mut addrs_iter = ip.to_socket_addrs().expect("Invalid socket address");
     if let Ok(mut stream) = TcpStream::connect(node) {
         let mut input = String::new();
@@ -77,10 +75,12 @@ fn main() {
                     let mut body = Vec::new();
                     body.extend_from_slice((query.len() as i32).to_be_bytes().as_slice());
                     body.extend_from_slice(query.as_bytes());
-                    body.extend_from_slice((consistency.parse::<i32>().unwrap() as i16).to_be_bytes().as_slice());
-                    let mut query_bytes = vec![
-                        0x03, 0x00, 0x00, 0x01, 0x07
-                    ];
+                    body.extend_from_slice(
+                        (consistency.parse::<i32>().unwrap() as i16)
+                            .to_be_bytes()
+                            .as_slice(),
+                    );
+                    let mut query_bytes = vec![0x03, 0x00, 0x00, 0x01, 0x07];
 
                     query_bytes.extend_from_slice((body.len() as i32).to_be_bytes().as_slice());
                     query_bytes.extend_from_slice(body.as_slice());
@@ -107,7 +107,10 @@ fn main() {
                                 if let Ok(string) = cursor.read_long_string() {
                                     println!("{}", string);
                                 } else {
-                                    println!("{:?}", &String::from_utf8_lossy(frame.body.as_slice()));
+                                    println!(
+                                        "{:?}",
+                                        &String::from_utf8_lossy(frame.body.as_slice())
+                                    );
                                 }
                             }
                             0x03 => {
@@ -133,7 +136,10 @@ fn main() {
                                 if let Ok(string) = cursor.read_long_string() {
                                     println!("{}", string);
                                 } else {
-                                    println!("{:?}", &String::from_utf8_lossy(frame.body.as_slice()));
+                                    println!(
+                                        "{:?}",
+                                        &String::from_utf8_lossy(frame.body.as_slice())
+                                    );
                                 }
                             }
                             _ => {}

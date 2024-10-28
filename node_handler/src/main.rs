@@ -1,10 +1,10 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use termion::{color, style}; // Para el color verde
-use serde::{Deserialize, Serialize};
 
 // Estructura para guardar la información de los nodos (IP, posición y número de clientes)
 #[derive(Clone)]
@@ -41,7 +41,9 @@ fn handle_client(mut stream: TcpStream, nodes: Arc<Mutex<HashMap<String, NodeInf
             })
             .collect::<Vec<_>>();
 
-        stream.write_all(&serde_json::to_vec(&nodes_list).unwrap()).unwrap();
+        stream
+            .write_all(&serde_json::to_vec(&nodes_list).unwrap())
+            .unwrap();
         let full_ip = format!("{}:{}", new_node.ip, new_node.port);
         nodes_guard.insert(
             full_ip.to_string(),
@@ -59,7 +61,12 @@ fn handle_client(mut stream: TcpStream, nodes: Arc<Mutex<HashMap<String, NodeInf
     print_node_list(nodes.clone());
 
     // Informar a los demás nodos sobre la nueva IP y su posición
-    broadcast_new_node(new_node.ip.to_string(), new_node.port.to_string() ,new_node.position, nodes.clone());
+    broadcast_new_node(
+        new_node.ip.to_string(),
+        new_node.port.to_string(),
+        new_node.position,
+        nodes.clone(),
+    );
 
     // Bucle de manejo de clientes
     let mut buffer = [0; 1024];
@@ -77,16 +84,22 @@ fn handle_client(mut stream: TcpStream, nodes: Arc<Mutex<HashMap<String, NodeInf
             Ok(1) => {
                 {
                     let mut nodes_guard = nodes.lock().unwrap();
-                    if let Some(node) = nodes_guard.get_mut(&format!("{}:{}", new_node.ip, new_node.port)) {
+                    if let Some(node) =
+                        nodes_guard.get_mut(&format!("{}:{}", new_node.ip, new_node.port))
+                    {
                         node.clients += 1; // Incrementar el contador de clientes
                     }
                 }
 
                 print_node_list(Arc::clone(&nodes)); // Pasar el Arc<Mutex<_>> completo
-            },
+            }
             Ok(_) => {
-                handle_client_connection_notification(format!("{}:{}", new_node.ip, new_node.port).to_string(), nodes.clone(), -1);
-            },
+                handle_client_connection_notification(
+                    format!("{}:{}", new_node.ip, new_node.port).to_string(),
+                    nodes.clone(),
+                    -1,
+                );
+            }
             Err(_) => break,
         }
     }
@@ -97,20 +110,27 @@ fn clear_screen() {
     std::io::stdout().flush().unwrap();
 }
 
-fn broadcast_new_node(new_node_ip: String, new_node_port: String , new_node_position: usize, nodes: Arc<Mutex<HashMap<String, NodeInfo>>>) {
+fn broadcast_new_node(
+    new_node_ip: String,
+    new_node_port: String,
+    new_node_position: usize,
+    nodes: Arc<Mutex<HashMap<String, NodeInfo>>>,
+) {
     let nodes_guard = nodes.lock().unwrap(); // Obtener el lock
     for (full_ip, node_info) in nodes_guard.iter() {
         if full_ip != &format!("{}:{}", new_node_ip, new_node_port) {
             let port = (new_node_port.parse::<i32>().unwrap() + 4).to_string();
             if let Ok(mut stream) = TcpStream::connect(format!("{}:{}", node_info.ip, port)) {
-                stream.write_all(
-                    &serde_json::to_vec(&Node {
-                        ip: new_node_ip.to_string(),
-                        port: new_node_port.to_string(),
-                        position: new_node_position,
-                    })
+                stream
+                    .write_all(
+                        &serde_json::to_vec(&Node {
+                            ip: new_node_ip.to_string(),
+                            port: new_node_port.to_string(),
+                            position: new_node_position,
+                        })
                         .unwrap(),
-                ).unwrap();
+                    )
+                    .unwrap();
             }
         }
     }

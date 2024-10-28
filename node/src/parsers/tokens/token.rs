@@ -35,7 +35,7 @@ fn string_to_identifier(word: &str) -> Option<Token> {
                     return None;
                 }
             }
-            if !c.is_alphanumeric() && c != '.' && c != '_'{
+            if !c.is_alphanumeric() && c != '.' && c != '_' {
                 return None;
             }
         }

@@ -24,10 +24,12 @@ fn column(
         return Ok(());
     };
     match token {
-        Token::Symbol(symbol) if symbol == COMMA => {column(tokens, order_clauses, false, true)}
+        Token::Symbol(symbol) if symbol == COMMA => column(tokens, order_clauses, false, true),
         Token::Identifier(identifier) => {
-            if !coming_from_comma{
-                return Err(Errors::SyntaxError(String::from("Order clauses must be separated by commas")))
+            if !coming_from_comma {
+                return Err(Errors::SyntaxError(String::from(
+                    "Order clauses must be separated by commas",
+                )));
             }
             order_clauses.push(OrderByClause::new(identifier));
             column(tokens, order_clauses, false, false)

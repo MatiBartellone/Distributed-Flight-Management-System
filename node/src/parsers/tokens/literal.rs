@@ -26,8 +26,7 @@ fn is_valid_decimal(input: &str) -> Option<Token> {
     if let Some(first_char) = chars.next() {
         if first_char == '-' {
             chars.next()?;
-        } 
-        else if !first_char.is_ascii_digit() {
+        } else if !first_char.is_ascii_digit() {
             return None;
         }
     }
@@ -39,8 +38,7 @@ fn is_valid_decimal(input: &str) -> Option<Token> {
                 return None;
             }
             decimal_point_seen = true;
-        } 
-        else if !c.is_ascii_digit() {
+        } else if !c.is_ascii_digit() {
             return None;
         }
     }
@@ -75,8 +73,7 @@ fn is_valid_text(input: &str) -> Option<Token> {
     None
 }
 fn is_valid_date(input: &str) -> Option<Token> {
-    if input.starts_with('\'') && input.ends_with('\'') && input.contains("-"){
-        
+    if input.starts_with('\'') && input.ends_with('\'') && input.contains("-") {
         let instances: Vec<&str> = input[1..input.len() - 1].split('-').collect();
         if instances.len() == 3 {
             let _ = instances[0].parse::<usize>().ok()?;
@@ -96,13 +93,16 @@ fn is_valid_date(input: &str) -> Option<Token> {
 }
 
 fn is_valid_time(input: &str) -> Option<Token> {
-    if input.starts_with('\'') && input.ends_with('\'') && input.contains(":"){
+    if input.starts_with('\'') && input.ends_with('\'') && input.contains(":") {
         let instances: Vec<&str> = input[1..input.len() - 1].split(':').collect();
         if instances.len() == 3 {
             let hour = instances[0].parse::<usize>().ok()?;
             let minutes = instances[1].parse::<usize>().ok()?;
             let seconds = instances[2].parse::<usize>().ok()?;
-            if (0..=23).contains(&hour) && (0..=59).contains(&minutes) && (0..=59).contains(&seconds) {
+            if (0..=23).contains(&hour)
+                && (0..=59).contains(&minutes)
+                && (0..=59).contains(&seconds)
+            {
                 let inner = &input[1..input.len() - 1];
                 let literal = Literal {
                     value: inner.to_string(),
@@ -125,7 +125,7 @@ pub fn to_literal(word: &str) -> Option<Token> {
     if let Some(token) = is_valid_bigint(word) {
         return Some(token);
     }
-   if let Some(token) = is_valid_decimal(word) {
+    if let Some(token) = is_valid_decimal(word) {
         return Some(token);
     }
     if let Some(token) = is_valid_boolean(word) {
@@ -297,7 +297,6 @@ mod tests {
         assert_eq!(result, None);
     }
 
-
     #[test]
     fn test_to_literal_date() {
         let input = "'2004-05-23'";
@@ -315,7 +314,6 @@ mod tests {
         let token = Token::Term(Term::Literal(literal));
         assert_eq!(result, token);
     }
-
 
     #[test]
     fn test_to_literal_decimal() {

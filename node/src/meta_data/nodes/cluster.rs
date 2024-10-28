@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
+use super::node::Node;
 use crate::utils::constants::QUERY_DELEGATION_PORT_MOD;
 use crate::utils::errors::Errors;
-use super::node::Node;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Cluster {
@@ -56,7 +56,6 @@ impl Cluster {
             let modified_end = end - maximum;
             position >= start || position < modified_end
         }
-
     }
 
     pub fn get_all_ips(&self) -> Result<Vec<String>, Errors> {

@@ -1,5 +1,4 @@
 use node::data_access::data_access_handler::DataAccessHandler;
-use node::utils::frame::Frame;
 use node::meta_data::meta_data_handler::MetaDataHandler;
 use node::meta_data::nodes::cluster::Cluster;
 use node::meta_data::nodes::node::Node;
@@ -9,6 +8,7 @@ use node::parsers::parser_factory::ParserFactory;
 use node::response_builders::error_builder::ErrorBuilder;
 use node::utils::constants::nodes_meta_data_path;
 use node::utils::errors::Errors;
+use node::utils::frame::Frame;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
@@ -16,20 +16,32 @@ use std::thread;
 fn main() {
     let server_addr = "127.0.0.1:7878";
     let network = get_user_data("Will this be used across netowrk? [Y][N]: ");
-    let (ip, uses_network)= match network.as_str() {
+    let (ip, uses_network) = match network.as_str() {
         "Y" => (get_user_data("Device's ip (e.g. tailscale): "), true),
-        _ => (get_user_data("Node's ip: "), false)
+        _ => (get_user_data("Node's ip: "), false),
     };
     let (ip, network_ip, server_addr) = match uses_network {
-        true => ("0.0.0.0".to_string(), ip, format!("{}:{}",get_user_data("Server's decive ip: "),7878)),
-        false => (ip.to_string(), ip, server_addr.to_string())
+        true => (
+            "0.0.0.0".to_string(),
+            ip,
+            format!("{}:{}", get_user_data("Server's decive ip: "), 7878),
+        ),
+        false => (ip.to_string(), ip, server_addr.to_string()),
     };
     let port = get_user_data("Node's port ([port, port+4] are used): ");
-    let position = get_user_data("Node's position in cluster: ").parse::<i32>().expect("Error in parsing position to int") as usize;
+    let position = get_user_data("Node's position in cluster: ")
+        .parse::<i32>()
+        .expect("Error in parsing position to int") as usize;
 
     let node = Node::new(network_ip.to_string(), port.to_string(), position);
     let mut server_stream = TcpStream::connect(server_addr).expect("Failed to connect to server");
-    server_stream.write_all(serde_json::to_string(&node).expect("Failed to serialize node").as_bytes()).expect("Failed to write to server");
+    server_stream
+        .write_all(
+            serde_json::to_string(&node)
+                .expect("Failed to serialize node")
+                .as_bytes(),
+        )
+        .expect("Failed to write to server");
 
     set_cluster(&mut server_stream, node);
 
@@ -42,7 +54,8 @@ fn main() {
 
 fn add_node_to_cluster(node: Node) -> Result<(), Errors> {
     let mut stream = MetaDataHandler::establish_connection()?;
-    MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access()
+    MetaDataHandler::get_instance(&mut stream)?
+        .get_nodes_metadata_access()
         .append_new_node(nodes_meta_data_path().as_ref(), node)?;
     Ok(())
 }
@@ -51,7 +64,9 @@ fn get_user_data(msg: &str) -> String {
     print!("{}", msg);
     io::stdout().flush().expect("Failed to flush stdout");
     let mut data = String::new();
-    io::stdin().read_line(&mut data).expect("Error reading data");
+    io::stdin()
+        .read_line(&mut data)
+        .expect("Error reading data");
     data.trim().to_string()
 }
 
@@ -63,10 +78,12 @@ fn start_listeners(ip: &String, port: &String) {
     let dtas_port = port.to_string();
     let qyrv_port = port.to_string();
     thread::spawn(move || {
-        MetaDataHandler::start_listening(mtdt_ip, mtdt_port).expect("Failed to start metadata listener");
+        MetaDataHandler::start_listening(mtdt_ip, mtdt_port)
+            .expect("Failed to start metadata listener");
     });
     thread::spawn(move || {
-        DataAccessHandler::start_listening(dtas_ip, dtas_port).expect("Failed to start data access");
+        DataAccessHandler::start_listening(dtas_ip, dtas_port)
+            .expect("Failed to start data access");
     });
     thread::spawn(move || {
         QueryReceiver::start_listening(qyrv_ip, qyrv_port).expect("Failed to start query receiver");
@@ -76,8 +93,11 @@ fn start_listeners(ip: &String, port: &String) {
 fn set_cluster(server_stream: &mut TcpStream, node: Node) {
     // Leer la lista de nodos activos del servidor
     let mut buffer = [0; 1024];
-    let size = server_stream.read(&mut buffer).expect("Failed to read from server stream");
-    let nodes: Vec<Node> = serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
+    let size = server_stream
+        .read(&mut buffer)
+        .expect("Failed to read from server stream");
+    let nodes: Vec<Node> =
+        serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
     let cluster = Cluster::new(node, nodes);
     if let Err(e) = NodesMetaDataAccess::write_cluster(nodes_meta_data_path().as_ref(), &cluster) {
         println!("{}", e);
@@ -88,35 +108,43 @@ fn listen_incoming_new_nodes(ip: String, port: String) {
     thread::spawn(move || {
         // Mantener el nodo corriendo y escuchando nuevos mensajes
         let port = (port.parse::<i32>().expect("Failed to parse port into int") + 4).to_string();
-        let listener = TcpListener::bind(format!("{}:{}", ip, port)).expect("Failed to bind TCP listener");
-        for mut stream in listener.incoming().flatten(){
+        let listener =
+            TcpListener::bind(format!("{}:{}", ip, port)).expect("Failed to bind TCP listener");
+        for mut stream in listener.incoming().flatten() {
             // Leer nuevos mensajes del servidor (nuevos nodos que se conectan)
             let mut buffer = [0; 1024];
-            let size = stream.read(&mut buffer).expect("Failed to read from server stream");
-            if size > 0{
-                let node: Node = serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
+            let size = stream
+                .read(&mut buffer)
+                .expect("Failed to read from server stream");
+            if size > 0 {
+                let node: Node =
+                    serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
                 {
                     add_node_to_cluster(node).expect("Failed to add node to cluster");
                 }
             }
-
         }
     });
 }
 
 fn set_node_listener(ip: String, port: String, server_stream: &mut TcpStream) {
-    let listener =
-        TcpListener::bind(format!("{}:{}", ip, port)).expect("Error binding socket");
+    let listener = TcpListener::bind(format!("{}:{}", ip, port)).expect("Error binding socket");
     println!("Servidor escuchando en {}:{}", ip, port);
     for incoming in listener.incoming() {
         match incoming {
             Ok(stream) => {
                 println!("Cliente conectado: {:?}", stream.peer_addr());
-                server_stream.write_all(b"1").expect("Failed to write to server stream");
-                let mut value = server_stream.try_clone().expect("Failed to clone server stream");
+                server_stream
+                    .write_all(b"1")
+                    .expect("Failed to write to server stream");
+                let mut value = server_stream
+                    .try_clone()
+                    .expect("Failed to clone server stream");
                 thread::spawn(move || {
                     handle_client(stream);
-                    value.write_all(b"__").expect("Failed to write to server stream");
+                    value
+                        .write_all(b"__")
+                        .expect("Failed to write to server stream");
                 });
             }
             Err(e) => {
@@ -125,7 +153,6 @@ fn set_node_listener(ip: String, port: String, server_stream: &mut TcpStream) {
         }
     }
 }
-
 
 fn handle_client(mut stream: TcpStream) {
     let mut buffer = [0; 1024];

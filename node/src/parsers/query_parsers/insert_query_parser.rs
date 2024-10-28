@@ -94,7 +94,6 @@ fn get_headers(list: Vec<Token>) -> Result<Vec<String>, Errors> {
                 }
             }
         }
-
     }
     Ok(headers)
 }

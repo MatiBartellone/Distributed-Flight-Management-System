@@ -73,7 +73,7 @@ impl Row {
             }
         }
         if let Some(column) = column {
-            return Some(Column::new_from_column(column))
+            return Some(Column::new_from_column(column));
         }
         None
     }

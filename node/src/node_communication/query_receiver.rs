@@ -9,13 +9,12 @@ pub struct QueryReceiver {}
 
 impl QueryReceiver {
     pub fn start_listening(ip: String, port: String) -> Result<(), Errors> {
-        let query_receiver_port = port.parse::<i32>().map_err(|_| Errors::ServerError(String::from("Failed to parse port")))? + QUERY_DELEGATION_PORT_MOD;
-        let listener = TcpListener::bind(format!(
-            "{}:{}",
-            ip,
-            query_receiver_port
-        ))
-        .map_err(|_| Errors::ServerError(String::from("Can't bind the port")))?;
+        let query_receiver_port = port
+            .parse::<i32>()
+            .map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?
+            + QUERY_DELEGATION_PORT_MOD;
+        let listener = TcpListener::bind(format!("{}:{}", ip, query_receiver_port))
+            .map_err(|_| Errors::ServerError(String::from("Can't bind the port")))?;
         for incoming in listener.incoming() {
             match incoming {
                 Ok(stream) => {

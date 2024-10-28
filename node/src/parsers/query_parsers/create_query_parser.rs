@@ -1,7 +1,17 @@
-use crate::{parsers::tokens::token::Token, queries::query::Query, utils::{constants::{KEYSPACE, TABLE}, errors::Errors, token_conversor::get_next_value}};
+use crate::{
+    parsers::tokens::token::Token,
+    queries::query::Query,
+    utils::{
+        constants::{KEYSPACE, TABLE},
+        errors::Errors,
+        token_conversor::get_next_value,
+    },
+};
 use Token::*;
 
-use super::{create_keyspace_parser::CreateKeyspaceParser, create_table_query_parser::CreateTableQueryParser};
+use super::{
+    create_keyspace_parser::CreateKeyspaceParser, create_table_query_parser::CreateTableQueryParser,
+};
 pub struct CreateQueryParser;
 
 impl CreateQueryParser {
@@ -17,7 +27,7 @@ impl CreateQueryParser {
                     _ => Err(Errors::SyntaxError(format!("Unknown CREATE type: {}", res))),
                 }
             }
-            _=> Err(Errors::SyntaxError(
+            _ => Err(Errors::SyntaxError(
                 "Invalid Syntaxis in CREATE".to_string(),
             )),
         }
@@ -26,8 +36,21 @@ impl CreateQueryParser {
 
 #[cfg(test)]
 mod tests {
-    use crate::{parsers::{query_parsers::create_query_parser::CreateQueryParser, tokens::{data_type::DataType, literal::Literal, terms::Term, token::Token}}, utils::{constants::COMMA, errors::Errors, token_conversor::{create_identifier_token, create_paren_list_token, create_reserved_token, create_symbol_token, create_token_literal}}};
     use crate::parsers::tokens::terms::{BooleanOperations, ComparisonOperators};
+    use crate::{
+        parsers::{
+            query_parsers::create_query_parser::CreateQueryParser,
+            tokens::{data_type::DataType, literal::Literal, terms::Term, token::Token},
+        },
+        utils::{
+            constants::COMMA,
+            errors::Errors,
+            token_conversor::{
+                create_identifier_token, create_paren_list_token, create_reserved_token,
+                create_symbol_token, create_token_literal,
+            },
+        },
+    };
 
     #[test]
     fn test_create_keyspace() {
@@ -37,7 +60,9 @@ mod tests {
             create_identifier_token("KEYSPACE_NAME"),
             create_reserved_token("WITH"),
             create_reserved_token("REPLICATION"),
-            Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(ComparisonOperators::Equal))),
+            Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
+                ComparisonOperators::Equal,
+            ))),
             Token::BraceList(vec![
                 Token::Term(Term::Literal(Literal::new(
                     "class".to_string(),
@@ -54,12 +79,8 @@ mod tests {
                     DataType::Text,
                 ))),
                 Token::Symbol(":".to_string()),
-                Token::Term(Term::Literal(Literal::new(
-                    1.to_string(),
-                    DataType::Int,
-                ))),
-            ])
-            
+                Token::Term(Term::Literal(Literal::new(1.to_string(), DataType::Int))),
+            ]),
         ];
         let result = CreateQueryParser::parse(tokens);
         assert!(result.is_ok(), "Expected Ok for CREATE KEYSPACE");
@@ -80,7 +101,6 @@ mod tests {
                 Token::DataType(DataType::Text),
                 create_symbol_token(COMMA),
             ]),
-            
         ];
 
         let result = CreateQueryParser::parse(tokens);
@@ -90,14 +110,15 @@ mod tests {
     #[test]
     fn test_unknown_create_type() {
         // UNKNOWN CREATE
-        let tokens = vec![
-            create_reserved_token("UNKNOWN_CREATE")
-        ];
+        let tokens = vec![create_reserved_token("UNKNOWN_CREATE")];
 
         let result = CreateQueryParser::parse(tokens);
         assert!(result.is_err(), "Expected Err for unknown CREATE type");
         if let Err(Errors::SyntaxError(msg)) = result {
-            assert!(msg.contains("Unknown CREATE type"), "Error message does not match");
+            assert!(
+                msg.contains("Unknown CREATE type"),
+                "Error message does not match"
+            );
         } else {
             panic!("Expected a SyntaxError");
         }
@@ -106,14 +127,15 @@ mod tests {
     #[test]
     fn test_invalid_syntax() {
         // UNKNOWN TYPE
-        let tokens = vec![
-            create_token_literal("UNKNOWN_TYPE", DataType::Text)
-        ];
+        let tokens = vec![create_token_literal("UNKNOWN_TYPE", DataType::Text)];
 
         let result = CreateQueryParser::parse(tokens);
         assert!(result.is_err(), "Expected Err for invalid syntax");
         if let Err(Errors::SyntaxError(msg)) = result {
-            assert!(msg.contains("Invalid Syntaxis in CREATE"), "Error message does not match");
+            assert!(
+                msg.contains("Invalid Syntaxis in CREATE"),
+                "Error message does not match"
+            );
         } else {
             panic!("Expected a SyntaxError");
         }

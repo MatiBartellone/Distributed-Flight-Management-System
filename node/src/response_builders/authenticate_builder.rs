@@ -1,6 +1,6 @@
-use crate::utils::frame::Frame;
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::errors::Errors;
+use crate::utils::frame::Frame;
 use crate::utils::parser_constants::AUTHENTICATE;
 
 pub struct AuthenticateBuilder;

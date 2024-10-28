@@ -1,9 +1,11 @@
 use super::{query::Query, where_logic::where_clause::WhereClause};
+use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{check_table_name, get_long_string_from_str, get_partition_key_from_where, split_keyspace_table};
+use crate::utils::functions::{
+    check_table_name, get_long_string_from_str, get_partition_key_from_where, split_keyspace_table,
+};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
-use crate::data_access::data_access_handler::DataAccessHandler;
 
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct DeleteQuery {
@@ -40,7 +42,10 @@ impl Query for DeleteQuery {
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
-        Ok(Some(get_partition_key_from_where(&self.table_name, &self.where_clause)?))
+        Ok(Some(get_partition_key_from_where(
+            &self.table_name,
+            &self.where_clause,
+        )?))
     }
 
     fn get_keyspace(&self) -> Result<String, Errors> {
