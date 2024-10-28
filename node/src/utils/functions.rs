@@ -1,11 +1,14 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::parsers::tokens::data_type::DataType;
-use crate::utils::constants::{nodes_meta_data_path, CLIENT_METADATA_PATH, DATA_ACCESS_PORT_MOD, KEYSPACE_METADATA, META_DATA_ACCESS_MOD};
+use crate::queries::where_logic::where_clause::WhereClause;
+use crate::utils::constants::{
+    nodes_meta_data_path, CLIENT_METADATA_PATH, DATA_ACCESS_PORT_MOD, KEYSPACE_METADATA,
+    META_DATA_ACCESS_MOD,
+};
 use crate::utils::errors::Errors;
 use std::collections::{HashMap, HashSet};
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::queries::where_logic::where_clause::WhereClause;
 
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -61,7 +64,13 @@ pub fn get_meta_data_handler_ip() -> Result<String, Errors> {
     ))
 }
 fn mod_port(modifier: i32) -> Result<String, Errors> {
-    Ok((NodesMetaDataAccess::get_own_port_(nodes_meta_data_path().as_ref())?.parse::<i32>().map_err(|_| Errors::SyntaxError(String::from("Port")))? + modifier).to_string())
+    Ok(
+        (NodesMetaDataAccess::get_own_port_(nodes_meta_data_path().as_ref())?
+            .parse::<i32>()
+            .map_err(|_| Errors::SyntaxError(String::from("Port")))?
+            + modifier)
+            .to_string(),
+    )
 }
 
 pub fn get_columns_from_table(table_name: &str) -> Result<HashMap<String, DataType>, Errors> {
@@ -88,7 +97,8 @@ pub fn get_table_pk(table_name: &str) -> Result<HashSet<String>, Errors> {
             KEYSPACE_METADATA.to_string(),
             identifiers[0],
             identifiers[1],
-        )?.get_full_pk_in_hash())
+        )?
+        .get_full_pk_in_hash())
 }
 
 pub fn get_table_partition(table_name: &str) -> Result<HashSet<String>, Errors> {
@@ -97,12 +107,11 @@ pub fn get_table_partition(table_name: &str) -> Result<HashSet<String>, Errors> 
     let mut stream = MetaDataHandler::establish_connection()?;
     let keyspace_meta_data =
         MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
-    let pk = keyspace_meta_data
-        .get_primary_key(
-            KEYSPACE_METADATA.to_string(),
-            identifiers[0],
-            identifiers[1],
-        )?;
+    let pk = keyspace_meta_data.get_primary_key(
+        KEYSPACE_METADATA.to_string(),
+        identifiers[0],
+        identifiers[1],
+    )?;
     Ok(pk.partition_keys.into_iter().collect())
 }
 pub fn get_table_clustering_columns(table_name: &str) -> Result<HashSet<String>, Errors> {
@@ -111,21 +120,26 @@ pub fn get_table_clustering_columns(table_name: &str) -> Result<HashSet<String>,
     let mut stream = MetaDataHandler::establish_connection()?;
     let keyspace_meta_data =
         MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
-    let pk = keyspace_meta_data
-        .get_primary_key(
-            KEYSPACE_METADATA.to_string(),
-            identifiers[0],
-            identifiers[1],
-        )?;
+    let pk = keyspace_meta_data.get_primary_key(
+        KEYSPACE_METADATA.to_string(),
+        identifiers[0],
+        identifiers[1],
+    )?;
     Ok(pk.clustering_columns.into_iter().collect())
 }
 
 pub fn split_keyspace_table(input: &str) -> Result<(&str, &str), Errors> {
     let mut parts = input.split('.');
-    let keyspace = parts.next().ok_or_else(|| Errors::SyntaxError("Missing keyspace".to_string()))?;
-    let table = parts.next().ok_or_else(|| Errors::SyntaxError("Missing table".to_string()))?;
+    let keyspace = parts
+        .next()
+        .ok_or_else(|| Errors::SyntaxError("Missing keyspace".to_string()))?;
+    let table = parts
+        .next()
+        .ok_or_else(|| Errors::SyntaxError("Missing table".to_string()))?;
     if parts.next().is_some() {
-        return Err(Errors::SyntaxError("Too many parts, expected only keyspace and table".to_string()));
+        return Err(Errors::SyntaxError(
+            "Too many parts, expected only keyspace and table".to_string(),
+        ));
     }
     Ok((keyspace, table))
 }
@@ -136,7 +150,10 @@ pub fn get_int_from_string(string: &String) -> Result<i32, Errors> {
         .map_err(|_| Errors::SyntaxError(format!("Could not parse int: {}", string)))
 }
 
-pub fn get_partition_key_from_where(table_name: &str, where_clause: &Option<WhereClause>) -> Result<Vec<String>, Errors> {
+pub fn get_partition_key_from_where(
+    table_name: &str,
+    where_clause: &Option<WhereClause>,
+) -> Result<Vec<String>, Errors> {
     let Some(where_clause) = where_clause else {
         return Err(Errors::SyntaxError(String::from(
             "Where clause must be defined",
@@ -155,16 +172,17 @@ pub fn get_partition_key_from_where(table_name: &str, where_clause: &Option<Wher
 
 pub fn get_own_ip() -> Result<String, Errors> {
     let mut stream = MetaDataHandler::establish_connection()?;
-    let nodes_meta_data =
-        MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
+    let nodes_meta_data = MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
     nodes_meta_data.get_own_ip(nodes_meta_data_path().as_ref())
 }
 
 pub fn get_own_modified_port(modifier: i32) -> Result<String, Errors> {
     let mut stream = MetaDataHandler::establish_connection()?;
-    let nodes_meta_data =
-        MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-    let mut port = nodes_meta_data.get_own_port(nodes_meta_data_path().as_ref())?.parse::<i32>().map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?;
+    let nodes_meta_data = MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
+    let mut port = nodes_meta_data
+        .get_own_port(nodes_meta_data_path().as_ref())?
+        .parse::<i32>()
+        .map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?;
     port += modifier;
     Ok(format!("{}", port))
 }

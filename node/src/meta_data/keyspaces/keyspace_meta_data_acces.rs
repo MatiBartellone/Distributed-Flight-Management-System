@@ -3,9 +3,9 @@ use serde_json;
 use std::fs::{File, OpenOptions};
 use std::io::{Seek, SeekFrom, Write};
 //use std::sync::{Arc, Mutex, MutexGuard};
-use std::{collections::HashMap, io::Read};
-use crate::utils::primary_key::PrimaryKey;
 use super::{keyspace::Keyspace, table::Table};
+use crate::utils::primary_key::PrimaryKey;
+use std::{collections::HashMap, io::Read};
 #[derive(Debug)]
 pub struct KeyspaceMetaDataAccess;
 
@@ -53,11 +53,7 @@ impl KeyspaceMetaDataAccess {
         Ok(())
     }
 
-    pub fn get_replication(
-        &self,
-        path: String,
-        keyspace_name: &str,
-    ) -> Result<usize, Errors> {
+    pub fn get_replication(&self, path: String, keyspace_name: &str) -> Result<usize, Errors> {
         let mut file = Self::open_file(path)?;
         let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
         let keyspace = get_keyspace_mutable(&mut keyspaces, keyspace_name)?;
@@ -74,7 +70,6 @@ impl KeyspaceMetaDataAccess {
         let keyspace = get_keyspace_mutable(&mut keyspaces, keyspace_name)?;
         Ok(keyspace.tables.keys().cloned().collect())
     }
-
 
     pub fn alter_keyspace(
         &self,
@@ -183,7 +178,7 @@ impl KeyspaceMetaDataAccess {
         keyspace_name: &str,
         table_name: &str,
         column_name: &str,
-        data_type: DataType
+        data_type: DataType,
     ) -> Result<(), Errors> {
         let mut file = Self::open_file(path)?;
         let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
@@ -219,7 +214,11 @@ impl KeyspaceMetaDataAccess {
         let mut file = Self::open_file(path)?;
         let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
         let table = get_table_mutable(&mut keyspaces, keyspace_name, table_name)?;
-        rename_key(&mut table.columns, column_name1.to_owned(), column_name2.to_owned());
+        rename_key(
+            &mut table.columns,
+            column_name1.to_owned(),
+            column_name2.to_owned(),
+        );
         Self::save_hash_to_json(&mut file, &keyspaces)?;
         Ok(())
     }

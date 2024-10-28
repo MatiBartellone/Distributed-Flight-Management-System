@@ -1,11 +1,11 @@
 use super::where_clause_parser::WhereClauseParser;
 use crate::parsers::query_parsers::order_by_clause_parser::OrderByClauseParser;
+use crate::parsers::tokens::terms::{ArithMath, Term};
 use crate::parsers::tokens::token::Token;
 use crate::queries::select_query::SelectQuery;
 use crate::utils::constants::*;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
-use crate::parsers::tokens::terms::{ArithMath, Term};
 
 pub struct SelectQueryParser;
 
@@ -112,12 +112,14 @@ fn order_clause(tokens: &mut IntoIter<Token>, query: &mut SelectQuery) -> Result
 }
 
 fn get_columns(list: Vec<Token>) -> Result<Vec<String>, Errors> {
-    let mut columns : Vec<String> = Vec::new();
+    let mut columns: Vec<String> = Vec::new();
     for (index, elem) in list.iter().enumerate() {
         if index % 2 == 0 {
             match elem {
                 Token::Identifier(column) => columns.push(column.to_string()),
-                Token::Term(Term::ArithMath(ArithMath::Multiplication)) => columns.push("*".to_string()),
+                Token::Term(Term::ArithMath(ArithMath::Multiplication)) => {
+                    columns.push("*".to_string())
+                }
                 _ => {
                     return Err(Errors::SyntaxError(String::from(
                         "Unexpected token in columns",

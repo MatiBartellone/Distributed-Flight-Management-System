@@ -1,4 +1,4 @@
-use crate::parsers::tokens::terms::{Term, ComparisonOperators, BooleanOperations};
+use crate::parsers::tokens::terms::{BooleanOperations, ComparisonOperators, Term};
 use crate::utils::constants::{REPLICATION, STRATEGY};
 use crate::{
     parsers::tokens::token::Token, queries::create_keyspace_query::CreateKeyspaceQuery,
@@ -62,7 +62,9 @@ impl CreateKeyspaceParser {
         query: &mut CreateKeyspaceQuery,
     ) -> Result<(), Errors> {
         match self.get_next_value(tokens)? {
-            Token::Identifier(replication) if replication == *REPLICATION_RES => self.equal(tokens, query),
+            Token::Identifier(replication) if replication == *REPLICATION_RES => {
+                self.equal(tokens, query)
+            }
             _ => Err(Errors::SyntaxError(String::from(MISSING_REPLICATION))),
         }
     }
@@ -73,7 +75,9 @@ impl CreateKeyspaceParser {
         query: &mut CreateKeyspaceQuery,
     ) -> Result<(), Errors> {
         match self.get_next_value(tokens)? {
-            Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(ComparisonOperators::Equal))) => self.brace_list(tokens, query),
+            Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
+                ComparisonOperators::Equal,
+            ))) => self.brace_list(tokens, query),
             _ => Err(Errors::SyntaxError(String::from(MISSING_REPLICATION))),
         }
     }
@@ -101,7 +105,6 @@ impl CreateKeyspaceParser {
         tokens_list: &mut Peekable<IntoIter<Token>>,
         replication: &mut HashMap<String, String>,
     ) -> Result<(), Errors> {
-
         self.check_key_literal(tokens_list, replication)
     }
 
@@ -118,7 +121,6 @@ impl CreateKeyspaceParser {
                 } else {
                     Err(Errors::SyntaxError(String::from(MISSING_KEY)))
                 }
-                
             }
             _ => Err(Errors::SyntaxError(String::from(MISSING_KEY))),
         }
@@ -195,7 +197,9 @@ mod tests {
             Token::Identifier(KEYSPACE_NAME.to_string()),
             Token::Reserved(WITH.to_string()),
             Token::Identifier(REPLICATION_RES.to_string()),
-            Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(ComparisonOperators::Equal)))
+            Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
+                ComparisonOperators::Equal,
+            ))),
         ]
     }
 

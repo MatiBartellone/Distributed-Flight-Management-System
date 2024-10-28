@@ -1,10 +1,10 @@
 use crate::executables::executable::Executable;
-use crate::utils::frame::Frame;
 use crate::node_communication::query_delegator::QueryDelegator;
 use crate::queries::query::{Query, QueryEnum};
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
+use crate::utils::frame::Frame;
 use crate::utils::parser_constants::RESULT;
 
 pub struct QueryExecutable {

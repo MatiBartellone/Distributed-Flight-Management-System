@@ -8,7 +8,7 @@ use crate::utils::primary_key::PrimaryKey;
 pub struct Table {
     pub primary_key: PrimaryKey,
     pub columns: HashMap<String, DataType>,
-} 
+}
 
 impl Table {
     pub fn new(primary_key: PrimaryKey, columns: HashMap<String, DataType>) -> Self {

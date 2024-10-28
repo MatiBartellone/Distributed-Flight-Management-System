@@ -3,9 +3,9 @@ use crate::queries::query::Query;
 use crate::utils::constants::{KEYSPACE_METADATA, REPLICATION, STRATEGY};
 use crate::utils::errors::Errors;
 use crate::utils::functions::get_long_string_from_str;
+use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct CreateKeyspaceQuery {
@@ -39,21 +39,22 @@ impl CreateKeyspaceQuery {
     fn get_strategy(&self) -> Option<String> {
         if let Some(strategy) = self.replication.get(STRATEGY) {
             return Some(strategy.to_string());
-            
         }
         None
     }
 }
 
 impl Query for CreateKeyspaceQuery {
-
-    
-
     fn run(&self) -> Result<Vec<u8>, Errors> {
         let mut stream = MetaDataHandler::establish_connection()?;
         let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
         let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
-        keyspace_meta_data.add_keyspace(KEYSPACE_METADATA.to_owned(), &self.keyspace, self.get_strategy(), self.get_replication())?;
+        keyspace_meta_data.add_keyspace(
+            KEYSPACE_METADATA.to_owned(),
+            &self.keyspace,
+            self.get_strategy(),
+            self.get_replication(),
+        )?;
         Ok(get_long_string_from_str("Create keyspace was successful"))
     }
 

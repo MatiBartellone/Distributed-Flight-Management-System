@@ -1,6 +1,8 @@
 [workspace]
 resolver = "2"
 members = [
-    "node"
-, "node_handler", "test-client"]
+    "node", 
+    "node_handler", 
+    "test-client",
+    "simulator"]
 
