@@ -455,7 +455,7 @@ INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude,
 INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1017', 30.1127, 31.4004, 33000, 520, 70, 'OnTime', 'CAI', '22:15:00', 'RUH', '11:00:00'); 
 INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1018', 30.1127, 31.4004, 34000, 540, 80, 'OnTime', 'CAI', '23:00:00', 'CGK', '06:00:00'); 
 INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1019', 30.1127, 31.4004, 34000, 530, 75, 'OnTime', 'CAI', '22:45:00', 'JNB', '05:30:00'); 
-INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1020', 30.1127, 31.4004, 34000, 540, 80, 'OnTime', 'CAI', '23:15:00', 'CAI', '07:15:00');
+INSERT INTO aviation.flightInfo (flightCode, positionLat, positionLon, altitude, speed, fuelLevel, status, departureAirport, departureTime, arrivalAirport, arrivalTime) VALUES ('EGYP1020', 30.1127, 31.4004, 34000, 540, 80, 'OnTime', 'CAI', '23:15:00', 'BKO', '07:15:00');
 
 
 
@@ -1587,5 +1587,6 @@ INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', '
 INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CGK', 'EGYP1018');
 INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1019');
 INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('JNB', 'EGYP1019');
+INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('BKO', 'EGYP1020');
 INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1020');
-INSERT INTO aviation.flightsByAirport (airportCode, flightCode) VALUES ('CAI', 'EGYP1020');
+
