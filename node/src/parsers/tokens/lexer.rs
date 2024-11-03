@@ -1,4 +1,4 @@
-use std::{collections::HashSet, fmt::format};
+use std::collections::HashSet;
 
 use crate::utils::constants::*;
 
@@ -167,9 +167,9 @@ fn divide_double(query: &str) -> String {
 fn divide_simple(query: &str) -> String {
     let chars_set: HashSet<char> = ['+', '/', '%', '<', '>', '(', ')', '}', '{', ','].into_iter().collect();
     let filter_set: HashSet<char> = ['\n', '\t'].into_iter().collect();
-    let mut iter = query.chars().peekable();
+    let iter = query.chars().peekable();
     let mut final_query = String::new();
-    while let Some(elem) = iter.next() {
+    for elem in iter {
         if chars_set.contains(&elem) {
             replace_simple(&mut final_query, &elem)
         }
