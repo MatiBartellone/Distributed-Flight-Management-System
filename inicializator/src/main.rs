@@ -27,10 +27,10 @@ fn main() -> Result<(), Errors> {
     let consistency = 1;
 
     for line in reader.lines() {
-        println!("Leo linea");
+        println!("{:?}", line);
         let query =
             line.map_err(|_| Errors::ReadTimeout("Error reading line from file".to_string()))?;
-        if query.is_empty() || query.starts_with("//") {
+        if query.is_empty() || query.starts_with("//") || query.starts_with(" "){
             continue;
         }
         let mut body = Vec::new();
@@ -63,6 +63,7 @@ fn main() -> Result<(), Errors> {
                             } else {
                                 println!("{:?}", &String::from_utf8_lossy(frame.body.as_slice()));
                             }
+                            return Ok(());
                         }
                         0x08 => {
                             let mut cursor = BytesCursor::new(frame.body.as_slice());
