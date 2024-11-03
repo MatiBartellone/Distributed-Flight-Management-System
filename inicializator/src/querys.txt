@@ -3,9 +3,9 @@
 CREATE KEYSPACE aviation WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 3 };
 
 //CREACION DE TABLAS
-CREATE TABLE airports ( code text PRIMARY KEY, name text, positionLat decimal, positionLon decimal );
-CREATE TABLE flightsByAirport ( airportCode text PRIMARY KEY, flightCode text );
-CREATE TABLE flightInfo ( flightCode text PRIMARY KEY, departureAirport text, arrivalAirport text, departureTime time, arrivalTime time, status text, positionLat decimal, positionLon decimal, altitude int, speed int, fuelLevel int );
+CREATE TABLE aviation.airports ( code text PRIMARY KEY, name text, positionLat decimal, positionLon decimal );
+CREATE TABLE aviation.flightsByAirport ( airportCode text, flightCode text, PRIMARY KEY (airportCode, flightCode) );
+CREATE TABLE aviation.flightInfo ( flightCode text PRIMARY KEY, departureAirport text, arrivalAirport text, departureTime time, arrivalTime time, status text, positionLat decimal, positionLon decimal, altitude int, speed int, fuelLevel int );
 
 //CREACION DE AEROPUERTOS
 //AMERICA
