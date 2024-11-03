@@ -1,3 +1,5 @@
+use std::{collections::HashSet, fmt::format};
+
 use crate::utils::constants::*;
 
 fn characters(word: &str, start: usize, end: usize) -> String {
@@ -119,25 +121,76 @@ fn remove_comments(input: &str) -> String {
     remove_between(&without_bar, "*/", "/*")
 }
 
+
+fn replace_double(final_query: &mut String, double_op: &str) {
+    let mut replace = "";
+    match double_op {
+        ">=" => replace = GE,
+        "<=" => replace = LE,
+        "!=" => replace = DF,
+        _ => {}
+    }
+    final_query.push_str(replace)
+}
+
+fn replace_simple(final_query: &mut String, simple_op: &char) {
+    let replace = format!(" {} ", simple_op);
+    final_query.push_str(&replace)
+}
+
+fn divide_double(query: &str) -> String { 
+    let doble_chars_set: HashSet<String> = [">=", "<=", "!="].iter().map(|&s| s.to_string()).collect();
+    let mut iter = query.chars().peekable();
+    let mut final_query = String::new();
+    while let Some(elem) = iter.next() {
+        if let Some(next_char) = iter.peek(){
+            let possible_double = format!("{}{}", elem, next_char);
+            if doble_chars_set.contains(&possible_double) {
+                replace_double(&mut final_query, &possible_double);
+                iter.next();
+            }
+            else if elem == '-' {
+                if !next_char.is_ascii_digit(){
+                    replace_simple(&mut final_query, &elem)
+                }
+            }
+            else {
+                final_query.push(elem)
+            }
+        } else {
+            final_query.push(elem)
+        }
+    }
+    final_query
+}
+
+fn divide_simple(query: &str) -> String {
+    let chars_set: HashSet<char> = ['+', '/', '%', '<', '>', '(', ')', '}', '{', ','].into_iter().collect();
+    let filter_set: HashSet<char> = ['\n', '\t'].into_iter().collect();
+    let mut iter = query.chars().peekable();
+    let mut final_query = String::new();
+    while let Some(elem) = iter.next() {
+        if chars_set.contains(&elem) {
+            replace_simple(&mut final_query, &elem)
+        }
+        else if filter_set.contains(&elem) {
+            final_query.push(' ')
+        }
+        else if elem == ';' {
+            continue;
+        }
+        else {
+            final_query.push(elem)
+        }
+    }
+    final_query
+}
+
+
 fn divide_words(query: &str) -> Vec<String> {
-    let query = query.replace("\n", SPACE).replace("\t", SPACE);
-    let query = query
-        .replace(">=", GE) // Greater Equal
-        .replace("<=", LE) // Less Equal
-        .replace("!=", DF) // Different
-        .replace("+", PLUS) // Plus
-        .replace("-", MINUS) // Minus
-        .replace("/", DIV) // Division
-        .replace("%", MOD) // Modulus
-        .replace("<", LT) // Less Than
-        .replace(">", GT) // Greater Than
-        .replace("(", " ( ") // Open Parenthesis
-        .replace(")", " ) ") // Close Parenthesis
-        .replace("{", " { ") // Open Brace
-        .replace("}", " } ") // Close Brace
-        .replace(";", EMPTY) // Remove semicolon
-        .replace(",", " , "); // Remove semicolon
-    query.split_whitespace().map(|s| s.to_string()).collect()
+    let mid_query = divide_double(query);
+    let final_query = divide_simple(&mid_query);
+    final_query.split_whitespace().map(|s| s.to_string()).collect()
 }
 
 fn is_section(word: &str) -> bool {
