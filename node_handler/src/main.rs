@@ -194,8 +194,8 @@ fn main() {
         .expect("Error reading data");
     network.trim().to_string();
     let ip = match network.as_str() {
-        "Y" => "0.0.0.0:7878",
-        _ => "127.0.0.1:7878",
+        "Y" => "0.0.0.0:7878".to_string(),
+        _ => "127.0.0.1:7878".to_string(),
     };
 
 

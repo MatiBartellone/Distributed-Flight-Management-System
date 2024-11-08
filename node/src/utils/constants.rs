@@ -10,6 +10,8 @@ pub fn nodes_meta_data_path() -> String {
 pub const QUERY_DELEGATION_PORT_MOD: i32 = 1;
 pub const DATA_ACCESS_PORT_MOD: i32 = 2;
 pub const META_DATA_ACCESS_MOD: i32 = 3;
+pub const GOSSIP_MOD: i32 = 4;
+pub const SEED_LISTENER_MOD: i32 = 5;
 //pub const QUERY_DELEGATION_PORT: i32 = 9090;
 //pub const DATA_ACCESS_PORT: i32 = 9191;
 pub const META_DATA_ACCESS_PORT: i32 = 9292;
