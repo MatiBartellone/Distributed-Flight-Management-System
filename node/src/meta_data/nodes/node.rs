@@ -1,6 +1,6 @@
 use crate::utils::errors::Errors;
-use serde::{Deserialize, Serialize};
 use crate::utils::functions::get_timestamp;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Node {
@@ -14,11 +14,18 @@ pub struct Node {
 
 impl Node {
     pub fn new(ip: String, port: String, position: usize, is_seed: bool) -> Result<Self, Errors> {
-        Ok(Self { ip, port, position, is_seed, is_active: true, timestamp: get_timestamp()? })
+        Ok(Self {
+            ip,
+            port,
+            position,
+            is_seed,
+            is_active: true,
+            timestamp: get_timestamp()?,
+        })
     }
 
     pub fn new_from_node(node: &Node) -> Self {
-        Self{
+        Self {
             ip: node.ip.to_string(),
             port: node.port.to_string(),
             position: node.position,
@@ -60,5 +67,13 @@ impl Node {
             .map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?
             + port_modifier;
         Ok(format!("{}:{}", self.ip, port))
+    }
+
+    pub fn set_inactive(&mut self) {
+        self.is_active = false
+    }
+
+    pub fn set_active(&mut self) {
+        self.is_active = true
     }
 }

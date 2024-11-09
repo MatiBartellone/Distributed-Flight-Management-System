@@ -24,6 +24,10 @@ pub fn get_timestamp() -> Result<u64, Errors> {
     Err(Errors::ServerError(String::from("Time went backwards")))
 }
 
+pub fn generate_random_number(limit: u64, offset: u64) -> Result<u64, Errors> {
+    Ok((get_timestamp()? % limit) + offset)
+}
+
 pub fn check_table_name(table_name: &String) -> Result<String, Errors> {
     let mut stream = MetaDataHandler::establish_connection()?;
     let client_meta_data =
