@@ -58,7 +58,6 @@ impl GossipListener {
             )?;
         }
         Self::send_required_changes(stream, required_changes)
-
     }
 
     fn send_required_changes(
@@ -81,12 +80,12 @@ impl GossipListener {
     ) {
         let (own_node, nodes_list) = (cluster.get_own_node(), cluster.get_other_nodes());
         for registered_node in nodes_list {
-            if None == Self::get_node(&registered_node, &received_nodes) {
-                required_changes.push(Node::new_from_node(&registered_node));
+            if Self::get_node(registered_node, received_nodes).is_none() {
+                required_changes.push(Node::new_from_node(registered_node));
             }
         }
-        if None == Self::get_node(&own_node, &received_nodes) {
-            required_changes.push(Node::new_from_node(&own_node));
+        if Self::get_node(own_node, received_nodes).is_none() {
+            required_changes.push(Node::new_from_node(own_node));
         }
     }
 
@@ -112,10 +111,8 @@ impl GossipListener {
                     }
                     None => new_nodes.push(received_node),
                 }
-            } else {
-                if Self::needs_to_update(&own_node, &received_node) == -1 {
-                    required_changes.push(Node::new_from_node(&own_node));
-                }
+            } else if Self::needs_to_update(own_node, &received_node) == -1 {
+                required_changes.push(Node::new_from_node(own_node));
             }
         }
     }

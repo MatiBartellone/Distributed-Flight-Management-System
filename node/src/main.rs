@@ -1,4 +1,6 @@
 use node::data_access::data_access_handler::DataAccessHandler;
+use node::gossip::gossip_emitter::GossipEmitter;
+use node::gossip::gossip_listener::GossipListener;
 use node::gossip::seed_listener::SeedListener;
 use node::meta_data::meta_data_handler::MetaDataHandler;
 use node::meta_data::nodes::cluster::Cluster;
@@ -15,8 +17,6 @@ use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
-use node::gossip::gossip_emitter::GossipEmitter;
-use node::gossip::gossip_listener::GossipListener;
 
 fn main() {
     //let server_addr = "127.0.0.1:7878";
@@ -31,27 +31,29 @@ fn main() {
         false => (ip.to_string(), ip),
     };
     let port = get_user_data("Node's port ([port, port+4] are used): ");
-    let position = get_user_data("Node's position in cluster: ")
-        .parse::<i32>()
-        .expect("Error in parsing position to int") as usize;
+    // let position = get_user_data("Node's position in cluster: ")
+    //     .parse::<i32>()
+    //     .expect("Error in parsing position to int") as usize;
 
-    let (seed_ip, seed_port, is_first) = match get_user_data("Is this the fisrst node? [Y][N]: ").as_str() {
-        "Y" => ("".to_string(), "".to_string(), true),
-        _ => (get_user_data("Seed node ip: "),get_user_data("Seed node port: "), false),
-    };
+    let (seed_ip, seed_port, is_first) =
+        match get_user_data("Is this the fisrst node? [Y][N]: ").as_str() {
+            "Y" => ("".to_string(), "".to_string(), true),
+            _ => (
+                get_user_data("Seed node ip: "),
+                get_user_data("Seed node port: "),
+                false,
+            ),
+        };
 
     let is_seed = match is_first {
         true => true,
-        _ => match get_user_data("Is this a seed node? [Y][N]: ").as_str() {
-            "Y" => true,
-            _ => false,
-        },
+        _ => matches!(get_user_data("Is this a seed node? [Y][N]: ").as_str(), "Y"),
     };
 
-    let node = Node::new(network_ip.to_string(), port.to_string(), position, is_seed)
+    let mut node = Node::new(network_ip.to_string(), port.to_string(), 1, is_seed)
         .expect("Error creating node");
 
-    set_cluster(node, seed_ip, seed_port, is_first);
+    set_cluster(&mut node, seed_ip, seed_port, is_first);
 
     //listen_incoming_new_nodes(ip.to_string(), port.to_string());
 
@@ -117,24 +119,43 @@ fn start_gossip() -> Result<(), Errors> {
     Ok(())
 }
 
-fn set_cluster(node: Node, seed_ip: String, seed_port: String, is_first: bool) {
+fn set_cluster(node: &mut Node, seed_ip: String, seed_port: String, is_first: bool) {
     let mut nodes = Vec::<Node>::new();
     if !is_first {
-        let seed_listener_port = seed_port.parse::<i32>().expect("Error in parsing seed port") + SEED_LISTENER_MOD;
-        let mut stream = TcpStream::connect(format!("{}:{}", seed_ip, seed_listener_port)).expect("Error connecting to seed");
-        stream
-            .write_all(serde_json::to_string(&node).expect("").as_bytes())
-            .expect("Error writing to seed");
+        let seed_listener_port = seed_port
+            .parse::<i32>()
+            .expect("Error in parsing seed port")
+            + SEED_LISTENER_MOD;
+        let mut stream = TcpStream::connect(format!("{}:{}", seed_ip, seed_listener_port))
+            .expect("Error connecting to seed");
         let mut buffer = [0; 1024];
         let size = stream
             .read(&mut buffer)
             .expect("Failed to read from server stream");
         nodes = serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
+        set_node_pos(node, &nodes);
+        stream
+            .write_all(serde_json::to_string(&node).expect("").as_bytes())
+            .expect("Error writing to seed");
     }
-    let cluster = Cluster::new(node, nodes);
+    let cluster = Cluster::new(Node::new_from_node(node), nodes);
     if let Err(e) = NodesMetaDataAccess::write_cluster(nodes_meta_data_path().as_ref(), &cluster) {
         println!("{}", e);
     }
+}
+
+fn set_node_pos(node: &mut Node, nodes: &Vec<Node>) {
+    let mut higher_position = 1;
+    for n in nodes {
+        if n.get_ip() == node.get_ip() && n.get_port() == node.get_port() {
+            node.position = n.get_pos();
+            return;
+        }
+        if n.get_pos() > higher_position {
+            higher_position = n.get_pos();
+        }
+    }
+    node.position = higher_position + 1;
 }
 
 // fn listen_incoming_new_nodes(ip: String, port: String) {

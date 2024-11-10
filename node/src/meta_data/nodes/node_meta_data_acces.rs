@@ -36,9 +36,9 @@ impl NodesMetaDataAccess {
         let cluster = Self::read_cluster(path)?;
         let mut nodes_list = Vec::new();
         for node in cluster.get_other_nodes() {
-            nodes_list.push(Node::new_from_node(&node))
+            nodes_list.push(Node::new_from_node(node))
         }
-        nodes_list.push(Node::new_from_node(&cluster.get_own_node()));
+        nodes_list.push(Node::new_from_node(cluster.get_own_node()));
         Ok(nodes_list)
     }
 
@@ -82,14 +82,31 @@ impl NodesMetaDataAccess {
         let mut nodes_list = Vec::new();
         for node in cluster.get_other_nodes() {
             if node.get_pos() != node_pos {
-                nodes_list.push(Node::new_from_node(&node))
+                nodes_list.push(Node::new_from_node(node))
             } else {
-                let mut inactive = Node::new_from_node(&node);
+                let mut inactive = Node::new_from_node(node);
                 inactive.set_inactive();
                 nodes_list.push(inactive);
             }
         }
-        let new_cluster = Cluster::new(Node::new_from_node(&cluster.get_own_node()), nodes_list);
+        let new_cluster = Cluster::new(Node::new_from_node(cluster.get_own_node()), nodes_list);
+        Self::write_cluster(path, &new_cluster)?;
+        Ok(())
+    }
+
+    pub fn set_active(&self, path: &str, node_pos: usize) -> Result<(), Errors> {
+        let cluster = NodesMetaDataAccess::read_cluster(path)?;
+        let mut nodes_list = Vec::new();
+        for node in cluster.get_other_nodes() {
+            if node.get_pos() != node_pos {
+                nodes_list.push(Node::new_from_node(node))
+            } else {
+                let mut inactive = Node::new_from_node(node);
+                inactive.set_active();
+                nodes_list.push(inactive);
+            }
+        }
+        let new_cluster = Cluster::new(Node::new_from_node(cluster.get_own_node()), nodes_list);
         Self::write_cluster(path, &new_cluster)?;
         Ok(())
     }

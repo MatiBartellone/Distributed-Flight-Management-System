@@ -33,7 +33,11 @@ impl GossipEmitter {
             .get_other_nodes()
         {
             if node.get_pos() == node_number {
-                let node_port = (node.get_port().parse::<i32>().map_err(|e| Errors::ServerError(e.to_string()))?) + GOSSIP_MOD;
+                let node_port = (node
+                    .get_port()
+                    .parse::<i32>()
+                    .map_err(|e| Errors::ServerError(e.to_string()))?)
+                    + GOSSIP_MOD;
                 ip = format!("{}:{}", node.get_ip(), node_port);
                 break;
             }
@@ -99,7 +103,7 @@ impl GossipEmitter {
         ))
     }
 
-    fn is_node_in_list(node_list: &Vec<Node>, node: &Node) -> bool {
+    fn is_node_in_list(node_list: &[Node], node: &Node) -> bool {
         for n in node_list.iter() {
             if n.get_pos() == node.get_pos() {
                 return true;
