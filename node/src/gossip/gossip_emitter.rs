@@ -1,7 +1,7 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
-use crate::utils::constants::NODES_METADATA;
+use crate::utils::constants::{GOSSIP_MOD, NODES_METADATA};
 use crate::utils::errors::Errors;
 use crate::utils::functions::generate_random_number;
 use std::io::{Read, Write};
@@ -33,7 +33,8 @@ impl GossipEmitter {
             .get_other_nodes()
         {
             if node.get_pos() == node_number {
-                ip = format!("{}:{}", node.get_ip(), node.get_port());
+                let node_port = (node.get_port().parse::<i32>().map_err(|e| Errors::ServerError(e.to_string()))?) + GOSSIP_MOD;
+                ip = format!("{}:{}", node.get_ip(), node_port);
                 break;
             }
         }

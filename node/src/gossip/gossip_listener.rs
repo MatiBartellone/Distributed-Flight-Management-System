@@ -48,16 +48,17 @@ impl GossipListener {
             &mut required_changes,
             &mut new_nodes,
         );
+        {
+            let mut meta_data_stream = MetaDataHandler::establish_connection()?;
+            let node_meta_data =
+                MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
+            node_meta_data.set_new_cluster(
+                NODES_METADATA,
+                &Cluster::new(Node::new_from_node(own_node), new_nodes),
+            )?;
+        }
+        Self::send_required_changes(stream, required_changes)
 
-        let mut stream = MetaDataHandler::establish_connection()?;
-        let node_meta_data =
-            MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-        node_meta_data.set_new_cluster(
-            NODES_METADATA,
-            &Cluster::new(Node::new_from_node(own_node), new_nodes),
-        )?;
-
-        Self::send_required_changes(&mut stream, required_changes)
     }
 
     fn send_required_changes(

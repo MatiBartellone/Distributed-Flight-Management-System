@@ -7,7 +7,7 @@ use node::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use node::node_communication::query_receiver::QueryReceiver;
 use node::parsers::parser_factory::ParserFactory;
 use node::response_builders::error_builder::ErrorBuilder;
-use node::utils::constants::nodes_meta_data_path;
+use node::utils::constants::{nodes_meta_data_path, SEED_LISTENER_MOD};
 use node::utils::errors::Errors;
 use node::utils::frame::Frame;
 use std::io::{self, Read, Write};
@@ -16,6 +16,7 @@ use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 use node::gossip::gossip_emitter::GossipEmitter;
+use node::gossip::gossip_listener::GossipListener;
 
 fn main() {
     //let server_addr = "127.0.0.1:7878";
@@ -34,9 +35,9 @@ fn main() {
         .parse::<i32>()
         .expect("Error in parsing position to int") as usize;
 
-    let (seed_ip, is_first) = match get_user_data("Is this the fisrst node? [Y][N]: ").as_str() {
-        "Y" => ("".to_string(), true),
-        _ => (get_user_data("Seed node ip: "), false),
+    let (seed_ip, seed_port, is_first) = match get_user_data("Is this the fisrst node? [Y][N]: ").as_str() {
+        "Y" => ("".to_string(), "".to_string(), true),
+        _ => (get_user_data("Seed node ip: "),get_user_data("Seed node port: "), false),
     };
 
     let is_seed = match is_first {
@@ -50,7 +51,7 @@ fn main() {
     let node = Node::new(network_ip.to_string(), port.to_string(), position, is_seed)
         .expect("Error creating node");
 
-    set_cluster(node, seed_ip, is_first);
+    set_cluster(node, seed_ip, seed_port, is_first);
 
     //listen_incoming_new_nodes(ip.to_string(), port.to_string());
 
@@ -83,6 +84,7 @@ fn start_listeners(ip: &String, port: &String, is_seed: bool) {
     let (meta_data_ip, meta_data_port) = (ip.to_string(), port.to_string());
     let (data_access_ip, data_access_port) = (ip.to_string(), port.to_string());
     let (query_receiver_ip, query_receiver_port) = (ip.to_string(), port.to_string());
+    let (gossip_listener_ip, gossip_listener_port) = (ip.to_string(), port.to_string());
     thread::spawn(move || {
         MetaDataHandler::start_listening(meta_data_ip, meta_data_port)
             .expect("Failed to start metadata listener");
@@ -94,6 +96,10 @@ fn start_listeners(ip: &String, port: &String, is_seed: bool) {
     thread::spawn(move || {
         QueryReceiver::start_listening(query_receiver_ip, query_receiver_port)
             .expect("Failed to start query receiver");
+    });
+    thread::spawn(move || {
+        GossipListener::start_listening(gossip_listener_ip, gossip_listener_port)
+            .expect("Failed to start gossip listener");
     });
     if is_seed {
         let (seed_ip, seed_port) = (ip.to_string(), port.to_string());
@@ -111,10 +117,11 @@ fn start_gossip() -> Result<(), Errors> {
     Ok(())
 }
 
-fn set_cluster(node: Node, seed_ip: String, is_first: bool) {
+fn set_cluster(node: Node, seed_ip: String, seed_port: String, is_first: bool) {
     let mut nodes = Vec::<Node>::new();
     if !is_first {
-        let mut stream = TcpStream::connect(seed_ip).expect("Error connecting to seed");
+        let seed_listener_port = seed_port.parse::<i32>().expect("Error in parsing seed port") + SEED_LISTENER_MOD;
+        let mut stream = TcpStream::connect(format!("{}:{}", seed_ip, seed_listener_port)).expect("Error connecting to seed");
         stream
             .write_all(serde_json::to_string(&node).expect("").as_bytes())
             .expect("Error writing to seed");
