@@ -4,29 +4,16 @@ use crate::meta_data::nodes::node::Node;
 use crate::utils::constants::{GOSSIP_MOD, NODES_METADATA};
 use crate::utils::errors::Errors;
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::TcpStream;
+use crate::utils::functions::start_listener;
 
 pub struct GossipListener;
 
 impl GossipListener {
+
+
     pub fn start_listening(ip: String, port: String) -> Result<(), Errors> {
-        let seed_listener_port = port
-            .parse::<i32>()
-            .map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?
-            + GOSSIP_MOD;
-        let listener = TcpListener::bind(format!("{}:{}", ip, seed_listener_port))
-            .map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
-        for stream in listener.incoming() {
-            match stream {
-                Ok(mut stream) => Self::handle_connection(&mut stream)?,
-                Err(_) => {
-                    return Err(Errors::ServerError(String::from(
-                        "Failed to connect to gossip handler",
-                    )))
-                }
-            }
-        }
-        Ok(())
+        start_listener(ip, port, GOSSIP_MOD, Self::handle_connection)
     }
 
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
@@ -131,6 +118,7 @@ impl GossipListener {
         if node1.get_pos() != node2.get_pos()
             || node1.get_ip() != node2.get_ip()
             || node1.is_active != node2.is_active
+            || node1.is_seed != node2.is_seed
         {
             if node1.get_timestamp() > node2.get_timestamp() {
                 return 1;

@@ -3,29 +3,14 @@ use crate::meta_data::nodes::node::Node;
 use crate::utils::constants::{NODES_METADATA, SEED_LISTENER_MOD};
 use crate::utils::errors::Errors;
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::TcpStream;
+use crate::utils::functions::start_listener;
 
 pub struct SeedListener;
 
 impl SeedListener {
     pub fn start_listening(ip: String, port: String) -> Result<(), Errors> {
-        let seed_listener_port = port
-            .parse::<i32>()
-            .map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?
-            + SEED_LISTENER_MOD;
-        let listener = TcpListener::bind(format!("{}:{}", ip, seed_listener_port))
-            .map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
-        for stream in listener.incoming() {
-            match stream {
-                Ok(mut stream) => Self::handle_connection(&mut stream)?,
-                Err(_) => {
-                    return Err(Errors::ServerError(String::from(
-                        "Failed to connect to data access handler",
-                    )))
-                }
-            }
-        }
-        Ok(())
+        start_listener(ip, port, SEED_LISTENER_MOD, Self::handle_connection)
     }
 
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
