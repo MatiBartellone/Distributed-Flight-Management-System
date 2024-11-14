@@ -1,9 +1,10 @@
-use std::{collections::{HashMap, HashSet}, sync::mpsc::Receiver};
+use std::{collections::{HashMap, HashSet}, sync::{mpsc::{self, Receiver}, Arc, Mutex}, thread, time::Duration};
 
-use crate::{flight_implementation::{flight::{Flight, FlightStatus, FlightTracking}, flight_state::FlightState}, utils::{constants::OP_RESULT, frame::Frame}};
+use crate::{flight_implementation::{flight::{Flight, FlightStatus, FlightTracking}, flight_state::FlightState}, thread_pool::thread_pool::ThreadPool, utils::{constants::OP_RESULT, frame::Frame}};
 
 use super::cassandra_client::{CassandraClient, FLAGS, OP_CODE_QUERY, STREAM, VERSION};
 
+#[derive(Clone)]
 pub struct FlightSimulatorClient {
     client: CassandraClient
 }
@@ -14,7 +15,7 @@ impl FlightSimulatorClient {
         Ok(Self { client })
     }
 
-    pub fn use_aviation_keyspace(&mut self) -> Result<(), String> {
+    pub fn use_aviation_keyspace(&self) -> Result<(), String> {
         let mut frame = self.get_strong_query_frame("USE aviation;")?;
         let frame_id = STREAM as usize;
         self.send_frame(&mut frame, frame_id)?;
@@ -22,8 +23,79 @@ impl FlightSimulatorClient {
         Ok(())
     }
 
+    // Gets all de flights codes going or leaving the aiport
+    pub fn get_flight_codes_by_airport(&self, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
+        let query = format!(
+            "SELECT flightCode FROM aviation.flightsByAirport WHERE airportCode = '{}'",
+            airport_code
+        );
+        let mut frame = self.get_strong_query_frame(&query).ok()?;
+        let rx = self.send_frame(&mut frame, *frame_id).ok()?;
+        let response = self.get_body_result(rx).ok()?;
+        self.extract_flight_codes(&response, vec!["flightCode".to_string()])
+    }
+
+    // Transforms the rows to flight codes
+    fn extract_flight_codes(
+        &self,
+        response: &[u8],
+        header: Vec<String>,
+    ) -> Option<HashSet<String>> {
+        let rows_codes = self.get_rows(response, header)?;
+        let mut codes = HashSet::new();
+
+        for row in rows_codes {
+            let code = row.get("flightCode").unwrap_or(&String::new()).to_string();
+            codes.insert(code);
+        }
+        Some(codes)
+    }
+    
+    pub fn get_codes(
+        &self,
+        airport_code: &str,
+        thread_pool: &ThreadPool
+    ) -> HashSet<String> {
+        let (tx, rx) = mpsc::channel();
+        let airport_code = airport_code.to_string();
+        let simulator = self.clone(); 
+        thread_pool.execute(move |frame_id| {
+            if let Some(flight_codes) = simulator.get_flight_codes_by_airport(&airport_code, &frame_id) {
+                tx.send(flight_codes).expect("Error sending the flight codes");
+            }
+        });
+    
+        thread_pool.wait();
+        rx.recv().unwrap()
+    }
+
+    pub fn get_flights(
+        &self,
+        airport_code: &str,
+        thread_pool: &ThreadPool
+    ) -> Vec<Flight> {
+        let flight_codes = self.get_codes(airport_code, thread_pool);
+    
+        let (tx, rx) = mpsc::channel();
+        let tx = Arc::new(Mutex::new(tx));
+        for code in flight_codes {
+            let simulator = self.clone(); 
+            let tx = Arc::clone(&tx);
+            thread_pool.execute(move |frame_id| {
+                if let Some(flight) = simulator.get_flight(&code, &frame_id) {
+                    if let Err(e) = tx.lock().unwrap().send(flight) {
+                        eprintln!("Error sending flight: {}", e);
+                    }
+                }
+            });
+        }
+    
+        thread_pool.wait();
+        rx.into_iter().collect()
+    }
+
     // Get the information of the flight
-    pub fn get_flight(&mut self, flight_code: &str, frame_id: &usize) -> Option<Flight> {
+    fn get_flight(&self, flight_code: &str, frame_id: &usize) -> Option<Flight> {
         let flight_status = self.get_flight_status(flight_code, frame_id)?;
         let flight_tracking = self.get_flight_tracking(flight_code, frame_id)?;
         Some(Flight {
@@ -32,7 +104,7 @@ impl FlightSimulatorClient {
         })
     }
 
-    fn get_flight_status(&mut self, flight_code: &str, frame_id: &usize) -> Option<FlightStatus> {
+    fn get_flight_status(&self, flight_code: &str, frame_id: &usize) -> Option<FlightStatus> {
         let query = format!(
             "SELECT flightCode, status, departureAirport, arrivalAirport, departureTime, arrivalTime FROM aviation.flightInfo WHERE flightCode = '{}';",
             flight_code
@@ -78,7 +150,7 @@ impl FlightSimulatorClient {
         })
     }
 
-    fn get_flight_tracking(&mut self, flight_code: &str, frame_id: &usize) -> Option<FlightTracking> {
+    fn get_flight_tracking(&self, flight_code: &str, frame_id: &usize) -> Option<FlightTracking> {
         let query = format!(
             "SELECT positionLat, positionLon, altitude, speed, fuelLevel FROM aviation.flightInfo WHERE flightCode = '{}'",
             flight_code
@@ -115,34 +187,6 @@ impl FlightSimulatorClient {
             speed,
             fuel_level,
         })
-    }
-
-    // Gets all de flights codes going or leaving the aiport
-    pub fn get_flight_codes_by_airport(&mut self, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
-        let query = format!(
-            "SELECT flightCode FROM aviation.flightsByAirport WHERE airportCode = '{}'",
-            airport_code
-        );
-        let mut frame = self.get_strong_query_frame(&query).ok()?;
-        let rx = self.send_frame(&mut frame, *frame_id).ok()?;
-        let response = self.get_body_result(rx).ok()?;
-        self.extract_flight_codes(&response, vec!["flightCode".to_string()])
-    }
-
-    // Transforms the rows to flight codes
-    fn extract_flight_codes(
-        &self,
-        response: &[u8],
-        header: Vec<String>,
-    ) -> Option<HashSet<String>> {
-        let rows_codes = self.get_rows(response, header)?;
-        let mut codes = HashSet::new();
-
-        for row in rows_codes {
-            let code = row.get("flightCode").unwrap_or(&String::new()).to_string();
-            codes.insert(code);
-        }
-        Some(codes)
     }
 
     fn get_rows(&self, body: &[u8], headers: Vec<String>) -> Option<Vec<HashMap<String, String>>> {
@@ -183,12 +227,12 @@ impl FlightSimulatorClient {
         Ok(rows)*/
     }
 
-    pub fn update_flight(&mut self, flight: &Flight, frame_id: &usize) -> Result<(), String> {
+    pub fn update_flight(&self, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         self.update_flight_status(flight, frame_id)?;
         self.update_flight_tracking(flight, frame_id)
     }
 
-    fn update_flight_status(&mut self, flight: &Flight, frame_id: &usize) -> Result<(), String> {
+    fn update_flight_status(&self, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
             "UPDATE aviation.flightInfo SET status = '{}', departureAirport = '{}', arrivalAirport = '{}', departureTime = '{}', arrivalTime = '{}' WHERE flightCode = '{}';",
             flight.get_status().to_string(), flight.get_departure_airport(), flight.get_arrival_airport(), flight.get_departure_time(), flight.get_arrival_time(),
@@ -200,7 +244,7 @@ impl FlightSimulatorClient {
         Ok(())
     }
 
-    fn update_flight_tracking(&mut self, flight: &Flight, frame_id: &usize) -> Result<(), String> {
+    fn update_flight_tracking(&self, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
             "UPDATE aviation.flightInfo SET positionLat = '{}', positionLon = '{}', altitude = '{}', speed = '{}', fuelLevel = '{}' WHERE flightCode = '{}';",
             flight.get_position().0, flight.get_position().1, flight.get_altitude(), flight.get_speed(), flight.get_fuel_level(),
@@ -212,8 +256,44 @@ impl FlightSimulatorClient {
         Ok(())
     }
 
+    // Restarts all the flights in the airport
+    pub fn restart_flights(&self, airport_code: &str, thread_pool: &ThreadPool) {
+        let flights = self.get_flights(airport_code, &thread_pool);
+
+        for mut flight in flights {
+            let simulator = self.clone(); 
+            thread_pool.execute(move |frame_id| {
+                flight.restart((0.0, 0.0));
+                _ = simulator.update_flight(&flight, &frame_id);
+            });
+        }
+
+        thread_pool.wait();
+    }
+
+    // Updates the flights in the simulator
+    pub fn flight_updates_loop(
+        &self,
+        airport_code: &str,
+        step: f32,
+        interval: u64,
+        thread_pool: &ThreadPool
+    ) {
+        loop {
+            for mut flight in self.get_flights(airport_code, &thread_pool) {
+                let simulator = self.clone();
+                thread_pool.execute(move |frame_id| {
+                    flight.update_progress(step);
+                    _ = simulator.update_flight(&flight, &frame_id);
+                });
+            }
+            thread_pool.wait();
+            thread::sleep(Duration::from_millis(interval));
+        }
+    }
+
     // Get the result of the query
-    fn get_body_result(&mut self, rx: Receiver<Frame>) -> Result<Vec<u8>, String> {
+    fn get_body_result(&self, rx: Receiver<Frame>) -> Result<Vec<u8>, String> {
         let _ = self.read_frame_response()?;
         let frame = rx.recv().unwrap();
         if frame.opcode != OP_RESULT {
@@ -244,7 +324,7 @@ impl FlightSimulatorClient {
     }
 
     // Wrap functions of CassandraClient
-    pub fn inicializate(&mut self) -> Result<(), String> {
+    pub fn inicializate(&self) -> Result<(), String> {
         self.client.inicializate()
     }
 
@@ -256,11 +336,11 @@ impl FlightSimulatorClient {
         self.client.get_body_query_weak(query)
     }
 
-    fn send_frame(&mut self, frame: &mut Frame, frame_id: usize) -> Result<Receiver<Frame>, String> {
+    fn send_frame(&self, frame: &mut Frame, frame_id: usize) -> Result<Receiver<Frame>, String> {
         self.client.send_frame(frame, &frame_id)
     }
 
-    fn read_frame_response(&mut self) -> Result<(), String> {
+    fn read_frame_response(&self) -> Result<(), String> {
         self.client.read_frame_response()
     }
 }
