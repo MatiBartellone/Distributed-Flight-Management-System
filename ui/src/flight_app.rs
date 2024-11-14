@@ -9,7 +9,7 @@ use egui::Context;
 use walkers::{sources::OpenStreetMap, HttpTiles, MapMemory};
 
 use crate::{
-    airport_implementation::{airport::Airport, airports::Airports}, cassandra_comunication::ui_client::UIClient, flight_implementation::{flight::Flight, flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}
+    airport_implementation::{airport::Airport, airports::Airports}, cassandra_comunication::ui_client::UIClient, flight_implementation::{flight::Flight, flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}, thread_pool::thread_pool::ThreadPool
 };
 
 // List of the airports codes to use in the app
@@ -40,16 +40,18 @@ pub struct FlightApp {
     pub selected_flight: Arc<Mutex<Option<FlightSelected>>>,
     // Map
     pub tiles: HttpTiles,
-    pub map_memory: MapMemory,
+    pub map_memory: MapMemory
 }
 
 impl FlightApp {
     pub fn new(egui_ctx: Context, mut information: UIClient) -> Self {
         Self::set_scroll_style(&egui_ctx);
 
+        let thread_pool = ThreadPool::new(8);
+
         let selected_airport = Arc::new(Mutex::new(None));
         let airports = Airports::new(
-            information.get_airports(get_airports_codes()),
+            information.get_airports(get_airports_codes(), &thread_pool),
             Arc::clone(&selected_airport),
         );
 
@@ -67,11 +69,11 @@ impl FlightApp {
             tiles: HttpTiles::new(OpenStreetMap, egui_ctx.clone()),
             map_memory,
         };
-        app.loop_update_flights(egui_ctx, information);
+        app.loop_update_flights(egui_ctx, information, thread_pool);
         app
     }
 
-    fn loop_update_flights(&mut self, ctx: egui::Context, mut information: UIClient) {
+    fn loop_update_flights(&mut self, ctx: egui::Context, mut information: UIClient, thread_pool: ThreadPool) {
         let selected_flight = Arc::clone(&self.selected_flight);
         let selected_airport = Arc::clone(&self.selected_airport);
         let flights = Arc::clone(&self.flights.flights);
@@ -82,6 +84,7 @@ impl FlightApp {
                 &selected_airport,
                 &flights,
                 &mut information,
+                &thread_pool
             );
             ctx.request_repaint();
             thread::sleep(Duration::from_millis(10000));
@@ -117,24 +120,26 @@ fn update_flights(
     selected_airport: &Arc<Mutex<Option<Airport>>>,
     flights: &Arc<Mutex<Vec<Flight>>>,
     information: &mut UIClient,
+    thread_pool: &ThreadPool,
 ) {
-    // Intenta abrir el lock del aeropuerto seleccionado
-    let selected_airport = match selected_airport.lock() {
-        Ok(lock) => lock,
-        Err(_) => return,
-    };
-
-    // Se fija si hay un aeropuerto seleccionado
-    let airport = match &*selected_airport {
-        Some(airport) => airport,
-        None => {
-            clear_flight_data(selected_flight, flights);
-            return;
+    let airport_code = {
+        // Intenta abrir el lock del aeropuerto seleccionado
+        let selected_airport = match selected_airport.lock() {
+            Ok(lock) => lock,
+            Err(_) => return,
+        };
+        // Se fija si hay un aeropuerto seleccionado
+        match &*selected_airport {
+            Some(airport) => airport.code.to_string(),
+            None => {
+                clear_flight_data(selected_flight, flights);
+                return;
+            }
         }
     };
 
-    load_flights(flights, information, &airport.code);
-    get_selected_flight(selected_flight, information);
+    load_flights(flights, information, &airport_code, thread_pool);
+    get_selected_flight(selected_flight, information, thread_pool);
 }
 
 // Carga todos los vuelos si la lista está vacía o actualiza solo los datos básicos.
@@ -142,23 +147,27 @@ fn load_flights(
     flights: &Arc<Mutex<Vec<Flight>>>,
     information: &mut UIClient,
     airport_code: &str,
+    thread_pool: &ThreadPool,
 ) {
+    let mut flights_information = information.get_flights(airport_code, thread_pool);
+    flights_information.sort_by_key(|flight| flight.code.to_string());
+
     let mut flights_lock = match flights.lock() {
         Ok(lock) => lock,
         Err(_) => return,
     };
-    let mut flights = information.get_flights(airport_code);
-    flights.sort_by_key(|flight| flight.code.to_string());
-    *flights_lock = flights;
+
+    *flights_lock = flights_information;
 }
 
 fn get_selected_flight(
     selected_flight: &Arc<Mutex<Option<FlightSelected>>>,
     information: &mut UIClient,
+    thread_pool: &ThreadPool,
 ) {
     if let Ok(mut selected_flight_lock) = selected_flight.lock() {
         if let Some(selected_flight) = &*selected_flight_lock {
-            *selected_flight_lock = information.get_flight_selected(&selected_flight.get_code());
+            *selected_flight_lock = information.get_flight_selected(&selected_flight.get_code(), thread_pool);
         }
     }
 }

@@ -23,6 +23,26 @@ impl FlightSimulatorClient {
         Ok(())
     }
 
+    pub fn get_codes(
+        &self,
+        airport_code: &str,
+        thread_pool: &ThreadPool
+    ) -> HashSet<String> {
+        let (tx, rx) = mpsc::channel();
+        let airport_code = airport_code.to_string();
+        let simulator = self.clone(); 
+        thread_pool.execute(move |frame_id| {
+            if let Some(flight_codes) = simulator.get_flight_codes_by_airport(&airport_code, &frame_id) {
+                tx.send(flight_codes).expect("Error sending the flight codes");
+            } else {
+                tx.send(HashSet::new()).expect("Error sending the flight codes");
+            }
+        });
+    
+        thread_pool.wait();
+        rx.recv().unwrap()
+    }
+
     // Gets all de flights codes going or leaving the aiport
     pub fn get_flight_codes_by_airport(&self, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
         let query = format!(
@@ -50,25 +70,8 @@ impl FlightSimulatorClient {
         }
         Some(codes)
     }
-    
-    pub fn get_codes(
-        &self,
-        airport_code: &str,
-        thread_pool: &ThreadPool
-    ) -> HashSet<String> {
-        let (tx, rx) = mpsc::channel();
-        let airport_code = airport_code.to_string();
-        let simulator = self.clone(); 
-        thread_pool.execute(move |frame_id| {
-            if let Some(flight_codes) = simulator.get_flight_codes_by_airport(&airport_code, &frame_id) {
-                tx.send(flight_codes).expect("Error sending the flight codes");
-            }
-        });
-    
-        thread_pool.wait();
-        rx.recv().unwrap()
-    }
 
+    // Get the information of the flights
     pub fn get_flights(
         &self,
         airport_code: &str,

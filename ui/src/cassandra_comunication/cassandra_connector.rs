@@ -6,8 +6,9 @@ use std::sync::{Arc, Mutex};
 
 use crate::utils::frame::Frame;
 
+#[derive(Clone)]
 pub struct CassandraConnection {
-    stream: TcpStream,
+    stream: Arc<Mutex<TcpStream>>,
     response_map: Arc<Mutex<HashMap<i16, Sender<Frame>>>> // Map to store the response of the server
 }
 
@@ -16,7 +17,7 @@ impl CassandraConnection {
     pub fn new(node: &str) -> Result<Self, String> {
         match TcpStream::connect(node) {
             Ok(stream) => Ok(Self {
-                stream,
+                stream: Arc::new(Mutex::new(stream)),
                 response_map: Arc::new(Mutex::new(HashMap::new())),
             }),
             Err(e) => Err(format!("Failed to connect to node {}: {}", node, e)),
@@ -24,20 +25,23 @@ impl CassandraConnection {
     }
 
     // Send a frame to the server and return a receiver to get the response
-    pub fn send_frame(&mut self, frame: &[u8], id: i16) -> Result<Receiver<Frame>, String> {
+    pub fn send_frame(&self, frame: &mut Frame) -> Result<Receiver<Frame>, String> {
         let (tx, rx) = channel();
-        self.response_map.lock().unwrap().insert(id, tx);
+        let mut stream = self.stream.lock().unwrap();
+        self.response_map.lock().unwrap().insert(frame.stream, tx);
         
-        self.stream.write_all(frame).map_err(|_| "Error al escribir".to_string())?;
-        self.stream.flush().map_err(|_| "Error al hacer flush".to_string())?;
+        let frame = frame.to_bytes().map_err(|_| "Error al convertir a bytes".to_string())?;
+        stream.write_all(&frame).map_err(|_| "Error al escribir".to_string())?;
+        stream.flush().map_err(|_| "Error al hacer flush".to_string())?;
         
         Ok(rx)
     }
 
-    // Read the response from the server
-    pub fn read_frame_response(&mut self) -> Result<(), String> {
+    // Read the response from the server and send it to the receiver
+    pub fn read_frame_response(&self) -> Result<(), String> {
         let mut buf = [0; 1024];
-        match self.stream.read(&mut buf) {
+        let mut stream = self.stream.lock().unwrap();
+        match stream.read(&mut buf) {
             Ok(n) if n > 0 => {
                 let frame = Frame::parse_frame(&buf[..n])?;
                 let id = frame.stream;

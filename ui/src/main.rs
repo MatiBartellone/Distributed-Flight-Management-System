@@ -30,7 +30,7 @@ fn get_input(message: &str) -> String {
 }
 
 fn inicializate_client(node: &str) -> Result<UIClient, String> {
-    let mut client = UIClient::new(node)?;
+    let client = UIClient::new(node)?;
     client.inicializate()?;
     client.use_aviation_keyspace()?;
     Ok(client)
