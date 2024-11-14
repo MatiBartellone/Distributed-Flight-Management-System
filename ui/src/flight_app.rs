@@ -12,6 +12,7 @@ use crate::{
     airport_implementation::{airport::Airport, airports::Airports}, cassandra_comunication::ui_client::UIClient, flight_implementation::{flight::Flight, flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}
 };
 
+// List of the airports codes to use in the app
 fn get_airports_codes() -> Vec<String> {
     vec![
         "EZE".to_string(),
@@ -83,7 +84,7 @@ impl FlightApp {
                 &mut information,
             );
             ctx.request_repaint();
-            thread::sleep(Duration::from_millis(300));
+            thread::sleep(Duration::from_millis(10000));
         });
     }
 
@@ -109,7 +110,7 @@ impl eframe::App for FlightApp {
     }
 }
 
-// FUNCIONES DEL LOOP PARA ACTUALIZAR
+// Functions of the loop thread upgrade the flights data
 
 fn update_flights(
     selected_flight: &Arc<Mutex<Option<FlightSelected>>>,

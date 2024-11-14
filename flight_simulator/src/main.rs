@@ -4,7 +4,7 @@ use std::{
     time::Duration,
 };
 
-use flight_simulator::cassandra_comunication::flight_simulator_client::FlightSimulatorClient;
+use flight_simulator::{cassandra_comunication::flight_simulator_client::FlightSimulatorClient, thread_pool};
 
 fn main() {
     let node = get_input("FULL IP (ip:port): ");
@@ -39,11 +39,16 @@ fn get_input(message: &str) -> String {
 // Restarts all the flights in the airport
 fn restart_flights(simulator_client: &mut FlightSimulatorClient, airport_code: &str) {
     let flights = simulator_client.get_flights(airport_code);
+    
+    let thread_pool = ThreadPool::new(8);
     for mut flight in flights {
-        // let position = simulator_client.get_airport_position(&flight.info.departure_airport);
-        flight.restart((0.0, 0.0));
-        _ = simulator_client.update_flight(&flight);
+        thread_pool.execute(move |_| {
+            // let position = simulator_client.get_airport_position(&flight.info.departure_airport);
+            flight.restart((0.0, 0.0));
+            _ = simulator_client.update_flight(&flight);
+        });
     }
+    thread_pool.wait();
 }
 
 // Update the progress of the flights
@@ -53,12 +58,16 @@ fn flight_updates_loop(
     step: f32,
     interval: u64,
 ) {
+    let thread_pool = ThreadPool::new(8);
     loop {
         let flights = simulator_client.get_flights(airport_code);
         for mut flight in flights {
-            flight.update_progress(step);
-            _ = simulator_client.update_flight(&flight);
+            thread_pool.execute(move |_| {
+                flight.update_progress(position);
+                _ = simulator_client.update_flight(&flight);
+            });
         }
+        thread_pool.wait();
         thread::sleep(Duration::from_millis(interval));
     }
 }

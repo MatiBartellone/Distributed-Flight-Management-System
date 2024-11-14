@@ -273,3 +273,15 @@ impl FlightSimulatorClient {
     }
     
 }
+
+
+pub fn send_request(&self, frame: &[u8]) -> Result<(), String> {
+    let connection = &self.connection;
+    let mut response;
+    self.thread_pool.execute(move |id| {
+        let rx = connection.send_frame(frame, id).expect("Error en el envío");
+        let frame = rx.recv().expect("Error al recibir la respuesta");
+        
+    });
+    Ok(())
+}
