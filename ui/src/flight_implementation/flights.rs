@@ -37,7 +37,7 @@ impl Flights {
                 };
 
                 for flight in flights.iter() {
-                    ui.label(format!("{}: {}", flight.code, flight.status.get_status()));
+                    ui.label(format!("{}: {}", flight.code, flight.status.to_string()));
                 }
             });
     }

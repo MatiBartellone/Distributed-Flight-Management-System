@@ -9,10 +9,7 @@ use egui::Context;
 use walkers::{sources::OpenStreetMap, HttpTiles, MapMemory};
 
 use crate::{
-    airport_implementation::{airport::Airport, airports::Airports},
-    cassandra_client::CassandraClient,
-    flight_implementation::{flight::Flight, flight_selected::FlightSelected, flights::Flights},
-    panels::{information::InformationPanel, map::MapPanel},
+    airport_implementation::{airport::Airport, airports::Airports}, cassandra_comunication::ui_client::UIClient, flight_implementation::{flight::Flight, flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}
 };
 
 fn get_airports_codes() -> Vec<String> {
@@ -46,7 +43,7 @@ pub struct FlightApp {
 }
 
 impl FlightApp {
-    pub fn new(egui_ctx: Context, mut information: CassandraClient) -> Self {
+    pub fn new(egui_ctx: Context, mut information: UIClient) -> Self {
         Self::set_scroll_style(&egui_ctx);
 
         let selected_airport = Arc::new(Mutex::new(None));
@@ -73,7 +70,7 @@ impl FlightApp {
         app
     }
 
-    fn loop_update_flights(&mut self, ctx: egui::Context, mut information: CassandraClient) {
+    fn loop_update_flights(&mut self, ctx: egui::Context, mut information: UIClient) {
         let selected_flight = Arc::clone(&self.selected_flight);
         let selected_airport = Arc::clone(&self.selected_airport);
         let flights = Arc::clone(&self.flights.flights);
@@ -118,7 +115,7 @@ fn update_flights(
     selected_flight: &Arc<Mutex<Option<FlightSelected>>>,
     selected_airport: &Arc<Mutex<Option<Airport>>>,
     flights: &Arc<Mutex<Vec<Flight>>>,
-    information: &mut CassandraClient,
+    information: &mut UIClient,
 ) {
     // Intenta abrir el lock del aeropuerto seleccionado
     let selected_airport = match selected_airport.lock() {
@@ -142,7 +139,7 @@ fn update_flights(
 // Carga todos los vuelos si la lista está vacía o actualiza solo los datos básicos.
 fn load_flights(
     flights: &Arc<Mutex<Vec<Flight>>>,
-    information: &mut CassandraClient,
+    information: &mut UIClient,
     airport_code: &str,
 ) {
     let mut flights_lock = match flights.lock() {
@@ -156,11 +153,11 @@ fn load_flights(
 
 fn get_selected_flight(
     selected_flight: &Arc<Mutex<Option<FlightSelected>>>,
-    information: &mut CassandraClient,
+    information: &mut UIClient,
 ) {
     if let Ok(mut selected_flight_lock) = selected_flight.lock() {
         if let Some(selected_flight) = &*selected_flight_lock {
-            *selected_flight_lock = information.get_flight_selected(&selected_flight.code);
+            *selected_flight_lock = information.get_flight_selected(&selected_flight.get_code());
         }
     }
 }

@@ -1,16 +1,26 @@
 use rand::Rng;
 
-use super::flight_status::FlightStatus;
+use super::flight_state::FlightState;
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct Flight {
+    pub status: FlightStatus,
+    pub info: FlightTracking,
+}
+
+#[derive(Default)]
+pub struct FlightStatus {
     // strong consistency
     pub code: String,
-    pub status: FlightStatus,
+    pub status: FlightState,
     pub departure_airport: String,
     pub arrival_airport: String,
     pub departure_time: String,
     pub arrival_time: String,
+}
+
+#[derive(Default)]
+pub struct FlightTracking  {
     // weak consistency
     pub position: (f64, f64),
     pub altitude: f64,
@@ -19,42 +29,94 @@ pub struct Flight {
 }
 
 impl Flight {
-    pub fn new(
-        code: String,
-        status: FlightStatus,
-        departure_airport: String,
-        arrival_airport: String,
-        departure_time: String,
-        arrival_time: String,
-        position: (f64, f64),
-        altitude: f64,
-        speed: f32,
-        fuel_level: f32,
-    ) -> Self {
-        Flight {
-            code,
-            status,
-            departure_airport,
-            arrival_airport,
-            departure_time,
-            arrival_time,
-            position,
-            altitude,
-            speed,
-            fuel_level,
-        }
+    pub fn new(info: FlightTracking, status: FlightStatus) -> Self {
+        Self { info, status }
     }
 
-    pub fn restart(&mut self) {
-        self.position = get_airport_coordinates(&self.departure_airport);
-        self.altitude = 0.0;
-        self.speed = 0.0;
-        self.fuel_level = gen_random(80.0, 100.0);
-        self.status = FlightStatus::OnTime;
+    // Restart with initial values
+    pub fn restart(&mut self, position: (f64, f64)) {
+        self.set_position(position);
+        self.set_altitude(0.0);
+        self.set_speed(0.0);
+        self.set_fuel_level(gen_random(80.0, 100.0));
+        self.set_status(FlightState::OnTime);
     }
 
+    // Update the flight progress
     pub fn update_progress(&mut self, _step: f32) {
         todo!();
+    }
+
+    pub fn get_code(&self) -> &String {
+        &self.status.code
+    }
+
+    pub fn set_code(&mut self, code: String) {
+        self.status.code = code;
+    }
+
+    pub fn get_status(&self) -> &FlightState {
+        &self.status.status
+    }
+
+    pub fn set_status(&mut self, status: FlightState) {
+        self.status.status = status;
+    }
+
+    pub fn get_position(&self) -> &(f64, f64) {
+        &self.info.position
+    }
+
+    pub fn set_position(&mut self, position: (f64, f64)) {
+        self.info.position = position;
+    }
+
+    pub fn get_altitude(&self) -> f64 {
+        self.info.altitude
+    }
+
+    pub fn set_altitude(&mut self, altitude: f64) {
+        self.info.altitude = altitude;
+    }
+
+    pub fn get_departure_airport(&self) -> &String {
+        &self.status.departure_airport
+    }
+
+    pub fn set_departure_airport(&mut self, airport: String) {
+        self.status.departure_airport = airport;
+    }
+
+    pub fn get_arrival_airport(&self) -> &String {
+        &self.status.arrival_airport
+    }
+
+    pub fn set_arrival_airport(&mut self, airport: String) {
+        self.status.arrival_airport = airport;
+    }
+
+    pub fn get_speed(&self) -> f32 {
+        self.info.speed
+    }
+
+    pub fn set_speed(&mut self, speed: f32) {
+        self.info.speed = speed;
+    }
+
+    pub fn get_fuel_level(&self) -> f32 {
+        self.info.fuel_level
+    }
+
+    pub fn set_fuel_level(&mut self, fuel_level: f32) {
+        self.info.fuel_level = fuel_level;
+    }
+
+    pub fn get_departure_time(&self) -> &String {
+        &self.status.departure_time
+    }
+
+    pub fn get_arrival_time(&self) -> &String {
+        &self.status.arrival_time
     }
 }
 

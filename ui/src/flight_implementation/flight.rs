@@ -9,17 +9,17 @@ use crate::airport_implementation::airports::{calculate_angle_to_airport, get_ai
 
 use super::{
     flight_selected::FlightSelected,
-    flight_status::FlightStatus,
+    flight_state::FlightState,
     flights::{get_flight_pos2, get_flight_vec2},
 };
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Default)]
 pub struct Flight {
     // weak consistency
     pub position: (f64, f64),
     // strong consistency
     pub code: String,
-    pub status: FlightStatus,
+    pub status: FlightState,
     pub arrival_airport: String,
 }
 
@@ -31,7 +31,6 @@ impl Flight {
         projector: &Projector,
         on_flight_selected: &Arc<Mutex<Option<FlightSelected>>>,
     ) {
-        //self.draw_icon_flight(painter.clone(), projector);
         self.draw_image_flight(response, painter.clone(), projector);
         self.clickeable_flight(response, projector, on_flight_selected);
         self.holdeable_flight(response, painter, projector);
@@ -130,11 +129,11 @@ impl Flight {
             };
             *selected_flight = match &*selected_flight {
                 // Si lo vuelve a clickear lo deseleciona
-                Some(flight) if flight.code == self.code => None,
+                Some(flight) if flight.get_code() == &self.code => None,
                 // Si no estaba seleccionado el lo selecciona
                 Some(_) | None => {
                     let mut flight_selected = FlightSelected::default();
-                    flight_selected.set_code(&self.code);
+                    flight_selected.set_code(self.code.to_string());
                     Some(flight_selected)
                 }
             }

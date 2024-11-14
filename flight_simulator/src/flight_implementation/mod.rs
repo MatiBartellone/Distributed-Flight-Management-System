@@ -1,2 +1,2 @@
 pub mod flight;
-pub mod flight_status;
+pub mod flight_state;

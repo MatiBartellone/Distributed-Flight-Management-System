@@ -1,10 +1,10 @@
 use std::io::{self, Write};
 
-use app::{cassandra_client::CassandraClient, flight_app::FlightApp};
+use app::{cassandra_comunication::ui_client::UIClient, flight_app::FlightApp};
 
 fn main() -> Result<(), eframe::Error> {
     let node = get_input("FULL IP (ip:port): ");
-    let cassandra = match inicializate_cassandra(&node) {
+    let cassandra = match inicializate_client(&node) {
         Ok(cliente) => cliente,
         Err(e) => {
             println!("{}", e);
@@ -29,9 +29,9 @@ fn get_input(message: &str) -> String {
     node.trim().to_string()
 }
 
-fn inicializate_cassandra(node: &str) -> Result<CassandraClient, String> {
-    let mut cassandra_client = CassandraClient::new(node)?;
-    cassandra_client.inicializate()?;
-    cassandra_client.use_aviation_keyspace()?;
-    Ok(cassandra_client)
+fn inicializate_client(node: &str) -> Result<UIClient, String> {
+    let mut client = UIClient::new(node)?;
+    client.inicializate()?;
+    client.use_aviation_keyspace()?;
+    Ok(client)
 }
