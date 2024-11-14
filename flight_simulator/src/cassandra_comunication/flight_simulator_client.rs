@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}, sync::mpsc::Receiver};
 
 use crate::{flight_implementation::{flight::{Flight, FlightStatus, FlightTracking}, flight_state::FlightState}, utils::{constants::OP_RESULT, frame::Frame}};
 
@@ -15,41 +15,31 @@ impl FlightSimulatorClient {
     }
 
     pub fn use_aviation_keyspace(&mut self) -> Result<(), String> {
-        let frame = self.get_strong_query_frame("USE aviation;")?;
-        self.send_frame(&frame.to_bytes()?)?;
+        let mut frame = self.get_strong_query_frame("USE aviation;")?;
+        let frame_id = STREAM as usize;
+        self.send_frame(&mut frame, frame_id)?;
         self.read_frame_response()?;
         Ok(())
     }
 
-    // Get the information of the flights
-    pub fn get_flights(&mut self, airport_code: &str) -> Vec<Flight> {
-        let Some(flight_codes) = self.get_flight_codes_by_airport(airport_code) else {
-            return Vec::new();
-        };
-        flight_codes
-            .into_iter()
-            .filter_map(|code| self.get_flight(&code))
-            .collect()
-    }
-
     // Get the information of the flight
-    pub fn get_flight(&mut self, flight_code: &str) -> Option<Flight> {
-        let flight_status = self.get_flight_status(flight_code)?;
-        let flight_tracking = self.get_flight_tracking(flight_code)?;
+    pub fn get_flight(&mut self, flight_code: &str, frame_id: &usize) -> Option<Flight> {
+        let flight_status = self.get_flight_status(flight_code, frame_id)?;
+        let flight_tracking = self.get_flight_tracking(flight_code, frame_id)?;
         Some(Flight {
             info: flight_tracking,
             status: flight_status
         })
     }
 
-    fn get_flight_status(&mut self, flight_code: &str) -> Option<FlightStatus> {
+    fn get_flight_status(&mut self, flight_code: &str, frame_id: &usize) -> Option<FlightStatus> {
         let query = format!(
             "SELECT flightCode, status, departureAirport, arrivalAirport, departureTime, arrivalTime FROM aviation.flightInfo WHERE flightCode = '{}';",
             flight_code
         );
-        let frame = self.get_strong_query_frame(&query).ok()?;
-        self.send_frame(&frame.to_bytes().ok()?).ok()?;
-        let response = self.get_body_result().ok()?;
+        let mut frame = self.get_strong_query_frame(&query).ok()?;
+        let rx = self.send_frame(&mut frame, *frame_id).ok()?;
+        let response = self.get_body_result(rx).ok()?;
         self.extract_flight_status(&response, vec![
             "flightCode".to_string(),
             "status".to_string(),
@@ -88,7 +78,7 @@ impl FlightSimulatorClient {
         })
     }
 
-    fn get_flight_tracking(&mut self, flight_code: &str) -> Option<FlightTracking> {
+    fn get_flight_tracking(&mut self, flight_code: &str, frame_id: &usize) -> Option<FlightTracking> {
         let query = format!(
             "SELECT positionLat, positionLon, altitude, speed, fuelLevel FROM aviation.flightInfo WHERE flightCode = '{}'",
             flight_code
@@ -100,9 +90,9 @@ impl FlightSimulatorClient {
             "speed".to_string(),
             "fuelLevel".to_string(),
         ];
-        let frame = self.get_weak_query_frame(&query).ok()?;
-        self.send_frame(&frame.to_bytes().ok()?).ok()?;
-        let body_weak = self.get_body_result().ok()?;
+        let mut frame = self.get_weak_query_frame(&query).ok()?;
+        let rx = self.send_frame(&mut frame, *frame_id).ok()?;
+        let body_weak = self.get_body_result(rx).ok()?;
         self.extract_flight_tracking(&body_weak, header_weak)
     }
 
@@ -128,14 +118,14 @@ impl FlightSimulatorClient {
     }
 
     // Gets all de flights codes going or leaving the aiport
-    fn get_flight_codes_by_airport(&mut self, airport_code: &str) -> Option<HashSet<String>> {
+    pub fn get_flight_codes_by_airport(&mut self, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
         let query = format!(
             "SELECT flightCode FROM aviation.flightsByAirport WHERE airportCode = '{}'",
             airport_code
         );
-        let frame = self.get_strong_query_frame(&query).ok()?;
-        self.send_frame(&frame.to_bytes().ok()?).ok()?;
-        let response = self.get_body_result().ok()?;
+        let mut frame = self.get_strong_query_frame(&query).ok()?;
+        let rx = self.send_frame(&mut frame, *frame_id).ok()?;
+        let response = self.get_body_result(rx).ok()?;
         self.extract_flight_codes(&response, vec!["flightCode".to_string()])
     }
 
@@ -193,37 +183,39 @@ impl FlightSimulatorClient {
         Ok(rows)*/
     }
 
-    pub fn update_flight(&mut self, flight: &Flight) -> Result<(), String> {
-        self.update_flight_status(flight)?;
-        self.update_flight_tracking(flight)
+    pub fn update_flight(&mut self, flight: &Flight, frame_id: &usize) -> Result<(), String> {
+        self.update_flight_status(flight, frame_id)?;
+        self.update_flight_tracking(flight, frame_id)
     }
 
-    fn update_flight_status(&mut self, flight: &Flight) -> Result<(), String> {
+    fn update_flight_status(&mut self, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
             "UPDATE aviation.flightInfo SET status = '{}', departureAirport = '{}', arrivalAirport = '{}', departureTime = '{}', arrivalTime = '{}' WHERE flightCode = '{}';",
             flight.get_status().to_string(), flight.get_departure_airport(), flight.get_arrival_airport(), flight.get_departure_time(), flight.get_arrival_time(),
             flight.get_code()
         );
-        let frame = self.get_strong_query_frame(&query)?;
-        self.send_frame(&frame.to_bytes()?)?;
-        self.get_body_result()?;
+        let mut frame = self.get_strong_query_frame(&query)?;
+        let rx = self.send_frame(&mut frame, *frame_id)?;
+        let _ = self.get_body_result(rx)?;
         Ok(())
     }
 
-    fn update_flight_tracking(&mut self, flight: &Flight) -> Result<(), String> {
+    fn update_flight_tracking(&mut self, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
             "UPDATE aviation.flightInfo SET positionLat = '{}', positionLon = '{}', altitude = '{}', speed = '{}', fuelLevel = '{}' WHERE flightCode = '{}';",
             flight.get_position().0, flight.get_position().1, flight.get_altitude(), flight.get_speed(), flight.get_fuel_level(),
             flight.get_code()
         );
-        let frame = self.get_weak_query_frame(&query)?;
-        self.send_frame(&frame.to_bytes()?)?;
-        self.get_body_result()?;
+        let mut frame = self.get_weak_query_frame(&query)?;
+        let rx = self.send_frame(&mut frame, *frame_id)?;
+        let _ = self.get_body_result(rx)?;
         Ok(())
     }
 
-    fn get_body_result(&mut self) -> Result<Vec<u8>, String> {
-        let frame = self.read_frame_response()?;
+    // Get the result of the query
+    fn get_body_result(&mut self, rx: Receiver<Frame>) -> Result<Vec<u8>, String> {
+        let _ = self.read_frame_response()?;
+        let frame = rx.recv().unwrap();
         if frame.opcode != OP_RESULT {
             return Err("Error reading the frame".to_string());
         }
@@ -264,24 +256,11 @@ impl FlightSimulatorClient {
         self.client.get_body_query_weak(query)
     }
 
-    fn send_frame(&mut self, frame: &[u8]) -> Result<(), String> {
-        self.client.send_frame(frame)
+    fn send_frame(&mut self, frame: &mut Frame, frame_id: usize) -> Result<Receiver<Frame>, String> {
+        self.client.send_frame(frame, &frame_id)
     }
 
-    fn read_frame_response(&mut self) -> Result<Frame, String> {
+    fn read_frame_response(&mut self) -> Result<(), String> {
         self.client.read_frame_response()
     }
-    
-}
-
-
-pub fn send_request(&self, frame: &[u8]) -> Result<(), String> {
-    let connection = &self.connection;
-    let mut response;
-    self.thread_pool.execute(move |id| {
-        let rx = connection.send_frame(frame, id).expect("Error en el envío");
-        let frame = rx.recv().expect("Error al recibir la respuesta");
-        
-    });
-    Ok(())
 }

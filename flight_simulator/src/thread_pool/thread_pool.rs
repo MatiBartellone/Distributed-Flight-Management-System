@@ -5,7 +5,7 @@ use std::thread;
 type Job = Box<dyn FnOnce(usize) + Send + 'static>;
 
 pub struct ThreadPool {
-    workers: Vec<Worker>,
+    _workers: Vec<Worker>,
     sender: Sender<Job>,
     task_cont: Arc<Mutex<usize>>,
     notification_receiver: Arc<Mutex<Receiver<()>>>,
@@ -29,9 +29,9 @@ impl ThreadPool {
         let is_waiting = Arc::new(Mutex::new(false)); 
 
         // Create the workers
-        let mut workers = Vec::with_capacity(size);
+        let mut _workers = Vec::with_capacity(size);
         for id in 0..size {
-            workers.push(Worker::new(
+            _workers.push(Worker::new(
                 id, 
                 Arc::clone(&receiver), 
                 Arc::clone(&task_cont),
@@ -41,7 +41,7 @@ impl ThreadPool {
         }
 
         ThreadPool {
-            workers,
+            _workers,
             sender,
             task_cont,
             notification_receiver: Arc::clone(&notification_receiver),
@@ -82,8 +82,8 @@ impl ThreadPool {
 }
 
 struct Worker {
-    id: usize,
-    thread: Option<thread::JoinHandle<()>>,
+    _id: usize,
+    _thread: Option<thread::JoinHandle<()>>,
 }
 
 impl Worker {
@@ -108,6 +108,6 @@ impl Worker {
             }
         });
 
-        Worker { id, thread: Some(thread) }
+        Worker { _id: id, _thread: Some(thread) }
     }
 }

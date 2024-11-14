@@ -24,20 +24,18 @@ impl CassandraConnection {
     }
 
     // Send a frame to the server and return a receiver to get the response
-    pub fn send_frame(&mut self, frame: &mut Frame, id: usize) -> Result<Receiver<Frame>, String> {
-        frame.stream = id as i16;
-        let frame = frame.to_bytes().map_err(|_| "Error al convertir a bytes".to_string())?;
-
+    pub fn send_frame(&mut self, frame: &mut Frame) -> Result<Receiver<Frame>, String> {
         let (tx, rx) = channel();
-        self.response_map.lock().unwrap().insert(id as i16, tx);
+        self.response_map.lock().unwrap().insert(frame.stream, tx);
         
+        let frame = frame.to_bytes().map_err(|_| "Error al convertir a bytes".to_string())?;
         self.stream.write_all(&frame).map_err(|_| "Error al escribir".to_string())?;
         self.stream.flush().map_err(|_| "Error al hacer flush".to_string())?;
         
         Ok(rx)
     }
 
-    // Read the response from the server
+    // Read the response from the server and send it to the receiver
     pub fn read_frame_response(&mut self) -> Result<(), String> {
         let mut buf = [0; 1024];
         match self.stream.read(&mut buf) {
