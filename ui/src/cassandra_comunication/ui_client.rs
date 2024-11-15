@@ -38,8 +38,8 @@ impl UIClient {
                 }
             });
         }
-    
         thread_pool.wait();
+        drop(tx);
         rx.into_iter().collect()
     }
 
@@ -151,6 +151,8 @@ impl UIClient {
         }
     
         thread_pool.wait();
+        drop(tx);
+        dbg!("Finished getting flighths");
         rx.into_iter().collect()
     }
 

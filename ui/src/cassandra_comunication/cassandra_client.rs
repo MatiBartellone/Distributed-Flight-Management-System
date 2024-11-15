@@ -36,7 +36,7 @@ impl CassandraClient {
     }
 
     // Get ready the client for use in keyspace airport
-    pub fn inicializate(&self, ) -> Result<(), String> {
+    pub fn inicializate(&self) -> Result<(), String> {
         self.start_up()
     }
 

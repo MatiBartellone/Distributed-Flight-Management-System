@@ -54,10 +54,6 @@ impl ThreadPool {
     where
         F: FnOnce(usize) + Send + 'static,
     {
-        // Increase the task counter
-        let mut counter = self.task_cont.lock().unwrap();
-        *counter += 1;
-
         // Send the job to the worker
         let job = Box::new(f);
         self.sender.send(job).unwrap();
@@ -65,19 +61,25 @@ impl ThreadPool {
     
     // Wait until all the jobs are done
     pub fn wait(&self) {
-        let mut is_waiting = self.is_waiting.lock().unwrap();
-        *is_waiting = true;
-
+        // If there are no jobs, return
         {
+            let mut is_waiting = self.is_waiting.lock().unwrap();
+            *is_waiting = true;
             let counter = self.task_cont.lock().unwrap();
             if *counter == 0 {
+                *is_waiting = false;
                 return;
             }
         }
 
+        // Wait for a notification
         let receiver = self.notification_receiver.lock().unwrap();
         receiver.recv().unwrap();
-        *is_waiting = false; 
+
+        {
+            let mut is_waiting = self.is_waiting.lock().unwrap();
+            *is_waiting = false;
+        }
     }
 }
 
@@ -90,10 +92,17 @@ impl Worker {
     fn new(id: usize, receiver: Arc<Mutex<Receiver<Job>>>, task_cont: Arc<Mutex<usize>>, sender: Arc<Mutex<Sender<()>>>, is_waiting: Arc<Mutex<bool>>) -> Worker {
         let thread = thread::spawn(move || {
             loop {
-                // Get and do the job
+                // Get the job from the channel
                 let job = receiver.lock().unwrap().recv().unwrap();
+                {
+                    // Increase the task counter
+                    let mut counter = task_cont.lock().unwrap();
+                    *counter += 1;
+                }
+                // Execute the job
                 job(id);
 
+                // Decrease the task counter
                 let mut counter = task_cont.lock().unwrap();
                 *counter -= 1;
 

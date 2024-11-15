@@ -122,20 +122,15 @@ fn update_flights(
     information: &mut UIClient,
     thread_pool: &ThreadPool,
 ) {
-    let airport_code = {
-        // Intenta abrir el lock del aeropuerto seleccionado
-        let selected_airport = match selected_airport.lock() {
-            Ok(lock) => lock,
-            Err(_) => return,
-        };
-        // Se fija si hay un aeropuerto seleccionado
-        match &*selected_airport {
+    let airport_code = match selected_airport.lock() {
+        Ok(lock) => match &*lock {
             Some(airport) => airport.code.to_string(),
             None => {
-                clear_flight_data(selected_flight, flights);
+                clear_flight_data(selected_flight, flights); // Clear flight data if no airport is selected
                 return;
             }
-        }
+        },
+        Err(_) => return,
     };
 
     load_flights(flights, information, &airport_code, thread_pool);

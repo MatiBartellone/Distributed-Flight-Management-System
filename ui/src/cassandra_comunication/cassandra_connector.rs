@@ -4,6 +4,7 @@ use std::net::TcpStream;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
+use crate::utils::bytes_cursor::BytesCursor;
 use crate::utils::frame::Frame;
 
 #[derive(Clone)]
@@ -26,6 +27,8 @@ impl CassandraConnection {
 
     // Send a frame to the server and return a receiver to get the response
     pub fn send_frame(&self, frame: &mut Frame) -> Result<Receiver<Frame>, String> {
+        let mut cursor = BytesCursor::new(&frame.body);
+        println!("Send: {:?}", cursor.read_long_string());
         let (tx, rx) = channel();
         let mut stream = self.stream.lock().unwrap();
         self.response_map.lock().unwrap().insert(frame.stream, tx);
@@ -44,6 +47,8 @@ impl CassandraConnection {
         match stream.read(&mut buf) {
             Ok(n) if n > 0 => {
                 let frame = Frame::parse_frame(&buf[..n])?;
+                let mut cursor = BytesCursor::new(&frame.body);
+                println!("REsponse: {:?}", cursor.read_long_string());
                 let id = frame.stream;
                 if let Some(tx) = self.response_map.lock().unwrap().remove(&id) {
                     let _ = tx.send(frame);
