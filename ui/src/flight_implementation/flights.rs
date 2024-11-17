@@ -6,6 +6,7 @@ use walkers::{Plugin, Position, Projector};
 
 use super::flight::Flight;
 use super::flight_selected::FlightSelected;
+use super::flight_state::FlightState;
 
 pub struct Flights {
     pub flights: Arc<Mutex<Vec<Flight>>>,
@@ -37,28 +38,22 @@ impl Flights {
                 };
 
                 for flight in flights.iter() {
-                    ui.label(format!("{}: {}", flight.code, flight.status.to_string()));
+                    let status_text = flight.status.to_string();
+                    let status_color = match flight.status {
+                        FlightState::OnTime => egui::Color32::GREEN,
+                        FlightState::Delayed => egui::Color32::RED,
+                        _ => egui::Color32::default(),
+                    };
+                
+                    ui.horizontal(|ui| {
+                        ui.label(flight.code.to_string() + ": ");
+                        ui.label(egui::RichText::new(status_text).color(status_color));
+                    });
                 }
             });
     }
-}
 
-impl Plugin for &mut Flights {
-    fn run(&mut self, response: &Response, painter: Painter, projector: &Projector) {
-        let flights = match self.flights.lock() {
-            Ok(lock) => lock,
-            Err(_) => return,
-        };
-        // Dibuja todos los vuelos
-        for flight in flights.iter() {
-            flight.draw(
-                response,
-                painter.clone(),
-                projector,
-                &self.on_flight_selected,
-            );
-        }
-
+    fn draw_line_to_airport(&self, painter: Painter, projector: &Projector) {
         // Intenta abrir el lock
         let selected_flight = match self.on_flight_selected.lock() {
             Ok(lock) => lock,
@@ -69,6 +64,29 @@ impl Plugin for &mut Flights {
         if let Some(flight) = &*selected_flight {
             flight.draw_flight_path(painter, projector);
         }
+    }
+
+    fn draw_flights(&self, response: &Response, painter: Painter, projector: &Projector) {
+        let flights = match self.flights.lock() {
+            Ok(lock) => lock,
+            Err(_) => return,
+        };
+        for flight in flights.iter() {
+            flight.draw(
+                response,
+                painter.clone(),
+                projector,
+                &self.on_flight_selected,
+            );
+        }
+    }
+
+}
+
+impl Plugin for &mut Flights {
+    fn run(&mut self, response: &Response, painter: Painter, projector: &Projector) {
+        self.draw_flights(response, painter.clone(), projector);
+        self.draw_line_to_airport(painter, projector);
     }
 }
 

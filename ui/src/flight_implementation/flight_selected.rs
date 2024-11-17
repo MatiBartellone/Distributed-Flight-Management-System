@@ -59,8 +59,8 @@ impl FlightSelected {
         draw_flight_curve(painter, screen_flight_position, screen_airport_position);
     }
 
-    pub fn get_code(&self) -> &String {
-        &self.status.code
+    pub fn get_code(&self) -> String {
+        self.status.code.to_string()
     }
 
     pub fn set_code(&mut self, code: String) {

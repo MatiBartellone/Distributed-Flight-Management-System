@@ -1,6 +1,7 @@
-use crate::flight_app::FlightApp;
 use eframe::egui;
 use walkers::{Map, Position};
+
+use crate::app_implementation::flight_app::FlightApp;
 
 use super::windows::{go_to_my_position, zoom};
 
@@ -15,18 +16,9 @@ impl MapPanel {
         let (lon, lat) = self.get_inicial_coordinates(app);
         let my_position = Position::from_lon_lat(lon, lat);
         let mut map_widget = Map::new(Some(&mut app.tiles), &mut app.map_memory, my_position);
-
-        // Intenta abrir el lock del aeropuerto seleccionado
-        let selected_airport = match app.selected_airport.lock() {
-            Ok(lock) => lock,
-            Err(_) => return,
-        };
-
-        let aiport_is_some = (*selected_airport).is_some();
-        drop(selected_airport);
         map_widget = map_widget.with_plugin(&mut app.airports);
 
-        if aiport_is_some {
+        if FlightApp::is_airport_selected(&app.selected_airport) {
             map_widget = map_widget.with_plugin(&mut app.flights);
         }
 

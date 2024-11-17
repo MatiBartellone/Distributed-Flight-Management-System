@@ -129,7 +129,7 @@ impl Flight {
             };
             *selected_flight = match &*selected_flight {
                 // Si lo vuelve a clickear lo deseleciona
-                Some(flight) if flight.get_code() == &self.code => None,
+                Some(flight) if flight.get_code() == self.code => None,
                 // Si no estaba seleccionado el lo selecciona
                 Some(_) | None => {
                     let mut flight_selected = FlightSelected::default();

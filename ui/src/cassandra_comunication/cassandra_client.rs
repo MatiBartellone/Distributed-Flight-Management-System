@@ -10,7 +10,7 @@ use super::cassandra_connector::CassandraConnection;
 
 pub const VERSION: u8 = 3;
 pub const FLAGS: u8 = 0;
-pub const STREAM: i16 = 4;
+pub const STREAM: i16 = 10;
 pub const OP_CODE_QUERY: u8 = 7;
 pub const OP_CODE_START: u8 = 1;
 
@@ -26,8 +26,7 @@ impl CassandraClient {
     }
 
     // Wraps functions of CassandraConnection
-    pub fn send_frame(&self, frame: &mut Frame, frame_id: &usize) -> Result<Receiver<Frame>, String> {
-        frame.stream = *frame_id as i16;
+    pub fn send_frame(&self, frame: &mut Frame) -> Result<Receiver<Frame>, String> {
         self.connection.send_frame(frame)
     }
 
@@ -51,8 +50,7 @@ impl CassandraClient {
             body.len() as u32,
             body,
         );
-        let frame_id = STREAM as usize;
-        let rx = self.send_frame(&mut frame, &frame_id)?;
+        let rx = self.send_frame(&mut frame)?;
         self.handle_frame_response(rx)
     }
 
@@ -75,8 +73,7 @@ impl CassandraClient {
             body.len() as u32,
             body,
         );
-        let frame_id = STREAM as usize;
-        let rx = self.send_frame(&mut frame, &frame_id)?;
+        let rx = self.send_frame(&mut frame)?;
         self.handle_frame_response(rx)
     }
 

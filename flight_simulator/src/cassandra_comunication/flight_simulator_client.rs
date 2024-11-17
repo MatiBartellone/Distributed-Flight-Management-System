@@ -94,6 +94,7 @@ impl FlightSimulatorClient {
         }
     
         thread_pool.wait();
+        drop(tx);
         rx.into_iter().collect()
     }
 

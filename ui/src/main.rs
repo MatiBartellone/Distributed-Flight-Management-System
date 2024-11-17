@@ -1,8 +1,9 @@
 use std::io::{self, Write};
 
-use app::{cassandra_comunication::ui_client::UIClient, flight_app::FlightApp};
+use app::{app_implementation::flight_app::FlightApp, cassandra_comunication::ui_client::UIClient, utils::system_functions::clear_screen};
 
 fn main() -> Result<(), eframe::Error> {
+    clear_screen();
     let node = get_input("FULL IP (ip:port): ");
     let cassandra = match inicializate_client(&node) {
         Ok(cliente) => cliente,
@@ -11,6 +12,8 @@ fn main() -> Result<(), eframe::Error> {
             return Ok(());
         }
     };
+    
+    clear_screen();
 
     let options = eframe::NativeOptions::default();
     eframe::run_native(

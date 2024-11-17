@@ -35,35 +35,47 @@ impl Airports {
 
 impl Plugin for &mut Airports {
     fn run(&mut self, response: &Response, painter: Painter, projector: &Projector) {
-        // Intenta abrir el lock del aeropuerto seleccionado
-        let selected_airport_lock = match self.on_airport_selected.lock() {
-            Ok(lock) => lock,
-            Err(_) => return,
-        };
+        {
+            // Intenta abrir el lock del aeropuerto seleccionado
+            let selected_airport_lock = match self.on_airport_selected.lock() {
+                Ok(lock) => lock,
+                Err(_) => return,
+            };
 
-        if let Some(airport) = &*selected_airport_lock {
             // Si hay un aeropuerto seleccionado dibuja solo ese
-            let airport = airport.clone();
-            drop(selected_airport_lock);
-            airport.draw(
-                response,
-                painter.clone(),
-                projector,
-                &self.on_airport_selected,
-            );
-        } else {
-            // Sino dibuja todos los aeropuertos
-            drop(selected_airport_lock);
-            for airport in &self.airports {
+            if let Some(airport) = &*selected_airport_lock {
                 airport.draw(
                     response,
                     painter.clone(),
                     projector,
                     &self.on_airport_selected,
                 );
+                return;
             }
         }
+
+        // Sino dibuja todos los aeropuertos
+        for airport in &self.airports {
+            airport.draw(
+                response,
+                painter.clone(),
+                projector,
+                &self.on_airport_selected,
+            );
+        }
     }
+}
+
+pub fn get_airport_position(airport: &str, projector: &Projector) -> Pos2 {
+    let airport_coordinates = get_airport_coordinates(airport);
+    let airport_position = Position::from_lon_lat(airport_coordinates.0, airport_coordinates.1);
+    projector.project(airport_position).to_pos2()
+}
+
+pub fn calculate_angle_to_airport(flight_position: Pos2, airport_position: Pos2) -> f32 {
+    let delta_x = airport_position.x - flight_position.x;
+    let delta_y = airport_position.y - flight_position.y;
+    delta_y.atan2(delta_x)
 }
 
 pub fn get_airport_coordinates(airport: &str) -> (f64, f64) {
@@ -85,16 +97,4 @@ pub fn get_airport_coordinates(airport: &str) -> (f64, f64) {
         "SFO" => (-122.4194, 37.6213), // SFO, San Francisco
         _ => (0.0, 0.0),
     }
-}
-
-pub fn get_airport_position(airport: &str, projector: &Projector) -> Pos2 {
-    let airport_coordinates = get_airport_coordinates(airport);
-    let airport_position = Position::from_lon_lat(airport_coordinates.0, airport_coordinates.1);
-    projector.project(airport_position).to_pos2()
-}
-
-pub fn calculate_angle_to_airport(flight_position: Pos2, airport_position: Pos2) -> f32 {
-    let delta_x = airport_position.x - flight_position.x;
-    let delta_y = airport_position.y - flight_position.y;
-    delta_y.atan2(delta_x)
 }

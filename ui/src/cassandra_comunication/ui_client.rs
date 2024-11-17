@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, sync::{mpsc::{self, Receiver}, Arc, Mutex}};
 
-use crate::{airport_implementation::airport::Airport, flight_implementation::{flight::Flight, flight_selected::{FlightSelected, FlightStatus, FlightTracking}, flight_state::FlightState}, thread_pool::thread_pool::ThreadPool, utils::{constants::OP_RESULT, frame::Frame}};
+use crate::{airport_implementation::airport::Airport, app_implementation::thread_pool::ThreadPool, flight_implementation::{flight::Flight, flight_selected::{FlightSelected, FlightStatus, FlightTracking}, flight_state::FlightState}, utils::{constants::OP_RESULT, frame::Frame}};
 
 use super::cassandra_client::{CassandraClient, FLAGS, OP_CODE_QUERY, STREAM, VERSION};
 
@@ -16,15 +16,16 @@ impl UIClient {
     }
 
     pub fn use_aviation_keyspace(&self) -> Result<(), String> {
-        let mut frame = self.get_strong_query_frame("USE aviation;")?;
         let frame_id = STREAM as usize;
-        self.send_frame(&mut frame, frame_id)?;
+        let mut frame = self.get_strong_query_frame("USE aviation;", &frame_id)?;
+        let rx = self.send_frame(&mut frame)?;
         self.read_frame_response()?;
+        rx.recv().unwrap();
         Ok(())
     }
 
     // Get the information of the airports
-    pub fn get_airports(&mut self, airports_codes: Vec<String>, thread_pool: &ThreadPool) -> Vec<Airport> {
+    pub fn get_airports(&self, airports_codes: Vec<String>, thread_pool: &ThreadPool) -> Vec<Airport> {
         let (tx, rx) = mpsc::channel();
         let tx = Arc::new(Mutex::new(tx));
         for code in airports_codes {
@@ -48,8 +49,8 @@ impl UIClient {
             "SELECT name, positionLat, positionLon, code FROM aviation.airports WHERE code = '{}';",
             airport_code
         );
-        let mut frame = self.get_strong_query_frame(&query).ok()?;
-        let rx = self.send_frame(&mut frame, *frame_id).ok()?;
+        let mut frame = self.get_strong_query_frame(&query, frame_id).ok()?;
+        let rx = self.send_frame(&mut frame).ok()?;
         let response = self.get_body_result(rx).ok()?;
         self.row_to_airport(&response, vec![
             "name".to_string(),
@@ -105,8 +106,8 @@ impl UIClient {
             "SELECT flightCode FROM aviation.flightsByAirport WHERE airportCode = '{}'",
             airport_code
         );
-        let mut frame = self.get_strong_query_frame(&query).ok()?;
-        let rx = self.send_frame(&mut frame, *frame_id).ok()?;
+        let mut frame = self.get_strong_query_frame(&query, frame_id).ok()?;
+        let rx = self.send_frame(&mut frame).ok()?;
         let response = self.get_body_result(rx).ok()?;
         self.extract_flight_codes(&response, vec!["flightCode".to_string()])
     }
@@ -152,7 +153,6 @@ impl UIClient {
     
         thread_pool.wait();
         drop(tx);
-        dbg!("Finished getting flighths");
         rx.into_iter().collect()
     }
 
@@ -170,8 +170,8 @@ impl UIClient {
             "SELECT flightCode, status, arrivalAirport FROM aviation.flightInfo WHERE flightCode = '{}';",
             flight.code
         );
-        let mut frame = self.get_strong_query_frame(&query).ok()?;
-        let rx = self.send_frame(&mut frame, *frame_id).ok()?;
+        let mut frame = self.get_strong_query_frame(&query, frame_id).ok()?;
+        let rx = self.send_frame(&mut frame).ok()?;
         let response = self.get_body_result(rx).ok()?;
         self.extract_flight_status(
             flight,
@@ -214,8 +214,8 @@ impl UIClient {
             "SELECT positionLat, positionLon FROM aviation.flightInfo WHERE flightCode = '{}';",
             flight.code
         );
-        let mut frame = self.get_weak_query_frame(&query).ok()?;
-        let rx = self.send_frame(&mut frame, *frame_id).ok()?;
+        let mut frame = self.get_weak_query_frame(&query, frame_id).ok()?;
+        let rx = self.send_frame(&mut frame).ok()?;
         let response = self.get_body_result(rx).ok()?;
         self.extract_flight_tracking(
             flight,
@@ -274,8 +274,8 @@ impl UIClient {
             "SELECT flightCode, status, departureAirport, arrivalAirport, departureTime, arrivalTime FROM aviation.flightInfo WHERE flightCode = '{}';",
             flight_code
         );
-        let mut frame = self.get_strong_query_frame(&query).ok()?;
-        let rx = self.send_frame(&mut frame, *frame_id).ok()?;
+        let mut frame = self.get_strong_query_frame(&query, frame_id).ok()?;
+        let rx = self.send_frame(&mut frame).ok()?;
         let response = self.get_body_result(rx).ok()?;
         self.extract_flight_selected_status(&response, vec![
             "flightCode".to_string(),
@@ -327,8 +327,8 @@ impl UIClient {
             "speed".to_string(),
             "fuelLevel".to_string(),
         ];
-        let mut frame = self.get_weak_query_frame(&query).ok()?;
-        let rx = self.send_frame(&mut frame, *frame_id).ok()?;
+        let mut frame = self.get_weak_query_frame(&query, frame_id).ok()?;
+        let rx = self.send_frame(&mut frame).ok()?;
         let body_weak = self.get_body_result(rx).ok()?;
         self.extract_flight_selected_tracking(&body_weak, header_weak)
     }
@@ -402,21 +402,21 @@ impl UIClient {
         Ok(frame.body)
     }
 
-    fn get_strong_query_frame(&self, query: &str) -> Result<Frame, String> {
+    fn get_strong_query_frame(&self, query: &str, frame_id: &usize) -> Result<Frame, String> {
         let body = self.get_body_query_strong(query)?;
-        self.get_query_frame(&body)
+        self.get_query_frame(&body, frame_id)
     }
 
-    fn get_weak_query_frame(&self, query: &str) -> Result<Frame, String> {
+    fn get_weak_query_frame(&self, query: &str, frame_id: &usize) -> Result<Frame, String> {
         let body = self.get_body_query_weak(query)?;
-        self.get_query_frame(&body)
+        self.get_query_frame(&body, frame_id)
     }
 
-    fn get_query_frame(&self, body: &[u8]) -> Result<Frame, String> {
+    fn get_query_frame(&self, body: &[u8], frame_id: &usize) -> Result<Frame, String> {
         Ok(Frame::new(
             VERSION,
             FLAGS,
-            STREAM,
+            *frame_id as i16,
             OP_CODE_QUERY,
             body.len() as u32,
             body.to_vec(),
@@ -436,8 +436,8 @@ impl UIClient {
         self.client.get_body_query_weak(query)
     }
 
-    fn send_frame(&self, frame: &mut Frame, frame_id: usize) -> Result<Receiver<Frame>, String> {
-        self.client.send_frame(frame, &frame_id)
+    fn send_frame(&self, frame: &mut Frame) -> Result<Receiver<Frame>, String> {
+        self.client.send_frame(frame)
     }
 
     fn read_frame_response(&self) -> Result<(), String> {
