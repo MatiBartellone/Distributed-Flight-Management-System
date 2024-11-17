@@ -400,7 +400,7 @@ mod tests {
                     value: "John".to_string(),
                     data_type: DataType::Text,
                 },
-                time_stamp: "2024-10-22".to_string(),
+                time_stamp: 1235,
             }],
             vec!["name".to_string()],
         )
@@ -427,7 +427,7 @@ mod tests {
                     value: "Jane".to_string(),
                     data_type: DataType::Text,
                 },
-                time_stamp: "2024-10-23".to_string(),
+                time_stamp: 1234,
             }],
             vec!["_".to_string()],
         )

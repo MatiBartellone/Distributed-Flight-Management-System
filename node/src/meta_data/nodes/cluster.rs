@@ -17,6 +17,14 @@ impl Cluster {
         }
     }
 
+    pub fn get_own_node(&self) -> &Node {
+        &self.own_node
+    }
+
+    pub fn get_other_nodes(&self) -> &Vec<Node> {
+        &self.other_nodes
+    }
+
     pub fn get_own_ip(&self) -> &str {
         self.own_node.get_ip()
     }
@@ -29,7 +37,9 @@ impl Cluster {
     }
 
     pub fn append_new_node(&mut self, node: Node) {
-        self.other_nodes.push(node)
+        if self.other_nodes.contains(&node) {
+            self.other_nodes.push(node)
+        }
     }
 
     pub fn get_nodes(&self, position: usize, replication: usize) -> Result<Vec<String>, Errors> {

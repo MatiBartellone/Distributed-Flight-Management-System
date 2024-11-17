@@ -1,6 +1,9 @@
+extern crate core;
+
 pub mod auth;
 pub mod data_access;
 pub mod executables;
+pub mod gossip;
 pub mod meta_data;
 pub mod node_communication;
 pub mod parsers;

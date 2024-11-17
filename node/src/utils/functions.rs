@@ -8,6 +8,7 @@ use crate::utils::constants::{
 };
 use crate::utils::errors::Errors;
 use std::collections::{HashMap, HashSet};
+use std::net::{TcpListener, TcpStream};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
@@ -17,11 +18,15 @@ pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
     bytes
 }
 
-pub fn get_timestamp() -> Result<String, Errors> {
+pub fn get_timestamp() -> Result<u64, Errors> {
     if let Ok(timestamp) = SystemTime::now().duration_since(UNIX_EPOCH) {
-        return Ok(timestamp.as_secs().to_string());
+        return Ok(timestamp.as_secs());
     }
     Err(Errors::ServerError(String::from("Time went backwards")))
+}
+
+pub fn generate_random_number(limit: u64, offset: u64) -> Result<u64, Errors> {
+    Ok((get_timestamp()? % limit) + offset)
 }
 
 pub fn check_table_name(table_name: &String) -> Result<String, Errors> {
@@ -185,4 +190,27 @@ pub fn get_own_modified_port(modifier: i32) -> Result<String, Errors> {
         .map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?;
     port += modifier;
     Ok(format!("{}", port))
+}
+
+pub fn start_listener<F>(ip: String, port: String, port_mod: i32, handle_connection: F) -> Result<(), Errors>
+where
+    F: Fn(&mut TcpStream) -> Result<(), Errors>,
+{
+    let seed_listener_port = port
+        .parse::<i32>()
+        .map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?
+        + port_mod;
+    let listener = TcpListener::bind(format!("{}:{}", ip, seed_listener_port))
+        .map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
+    for stream in listener.incoming() {
+        match stream {
+            Ok(mut stream) => handle_connection(&mut stream)?,
+            Err(_) => {
+                return Err(Errors::ServerError(String::from(
+                    "Failed to connect to listener",
+                )))
+            }
+        }
+    }
+    Ok(())
 }
