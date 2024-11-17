@@ -1,7 +1,8 @@
 pub const NODES_METADATA: &str = "src/meta_data/nodes/metadata.json";
 pub const CLIENT_METADATA_PATH: &str = "src/meta_data/clients/";
 pub const KEYSPACE_METADATA: &str = "src/meta_data/keyspaces/metadata.json";
-
+pub const HINTED_HANDOF_DATA: &str = "src/hinted_handoff/data/";
+pub const HINTED_HANDOFF_HOURS: i64 = 3;
 pub const REPLICATION: &str = "replication_factor";
 pub const STRATEGY: &str = "class";
 pub fn nodes_meta_data_path() -> String {
@@ -12,8 +13,6 @@ pub const DATA_ACCESS_PORT_MOD: i32 = 2;
 pub const META_DATA_ACCESS_MOD: i32 = 3;
 pub const GOSSIP_MOD: i32 = 4;
 pub const SEED_LISTENER_MOD: i32 = 5;
-//pub const QUERY_DELEGATION_PORT: i32 = 9090;
-//pub const DATA_ACCESS_PORT: i32 = 9191;
 pub const META_DATA_ACCESS_PORT: i32 = 9292;
 pub const CLIENTS_PORT: i32 = 8080;
 pub const DOLLAR: char = '$';

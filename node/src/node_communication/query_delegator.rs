@@ -109,7 +109,12 @@ impl QueryDelegator {
                     ))),
                 }
             }
-            Err(e) => Err(Errors::ServerError(e.to_string())),
+            Err(e) => {
+                // let mut stream = MetaDataHandler::establish_connection()?;
+                // let nodes_meta_data =
+                //     MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
+                // nodes_meta_data.set_inactive(NODES_METADATA)
+                Err(Errors::ServerError(e.to_string())) },
         }
     }
 
