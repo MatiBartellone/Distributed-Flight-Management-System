@@ -1,7 +1,6 @@
 use egui::{Color32, Painter, Pos2, Stroke};
 use walkers::Projector;
-
-use crate::airport_implementation::airports::get_airport_position;
+use crate::airport_implementation::airports::get_airport_screen_position;
 
 use super::{flight_state::FlightState, flights::get_flight_pos2};
 
@@ -53,8 +52,8 @@ impl FlightSelected {
         ui.label(format!("Hora estimada de llegada: {}", self.get_arrival_time()));
     }
 
-    pub fn draw_flight_path(&self, painter: Painter, projector: &Projector) {
-        let screen_airport_position = get_airport_position(self.get_arrival_airport(), projector);
+    pub fn draw_flight_path(&self, painter: Painter, projector: &Projector, airport_coordinates: (f64, f64)) {
+        let screen_airport_position = get_airport_screen_position(airport_coordinates, projector);
         let screen_flight_position = get_flight_pos2(self.get_position(), projector);
         draw_flight_curve(painter, screen_flight_position, screen_airport_position);
     }
@@ -75,6 +74,10 @@ impl FlightSelected {
         &self.info.position
     }
 
+    pub fn set_position(&mut self, position: (f64, f64)) {
+        self.info.position = position;
+    }
+
     pub fn get_altitude(&self) -> f64 {
         self.info.altitude
     }
@@ -83,8 +86,16 @@ impl FlightSelected {
         &self.status.departure_airport
     }
 
+    pub fn set_departure_airport(&mut self, departure_airport: String) {
+        self.status.departure_airport = departure_airport;
+    }
+
     pub fn get_arrival_airport(&self) -> &String {
         &self.status.arrival_airport
+    }
+
+    pub fn set_arrival_airport(&mut self, arrival_airport: String) {
+        self.status.arrival_airport = arrival_airport;
     }
 
     pub fn get_speed(&self) -> f32 {

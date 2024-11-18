@@ -18,7 +18,7 @@ impl MapPanel {
         let mut map_widget = Map::new(Some(&mut app.tiles), &mut app.map_memory, my_position);
         map_widget = map_widget.with_plugin(&mut app.airports);
 
-        if FlightApp::is_airport_selected(&app.selected_airport) {
+        if FlightApp::is_airport_selected(&app.selected_airport_code) {
             map_widget = map_widget.with_plugin(&mut app.flights);
         }
 
@@ -28,12 +28,12 @@ impl MapPanel {
     }
 
     fn get_inicial_coordinates(&self, app: &mut FlightApp) -> (f64, f64) {
-        let selected_airport = match app.selected_airport.lock() {
+        let selected_airport_code = match app.selected_airport_code.lock() {
             Ok(lock) => lock,
             Err(_) => return (0., 0.),
         };
-        if let Some(airport) = &*selected_airport {
-            return airport.position;
+        if let Some(code) = &*selected_airport_code {
+            return app.airports.get_airport_coordinates(code);
         }
         (0., 0.)
     }

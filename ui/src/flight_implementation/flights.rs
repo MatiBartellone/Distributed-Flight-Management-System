@@ -53,20 +53,7 @@ impl Flights {
             });
     }
 
-    fn draw_line_to_airport(&self, painter: Painter, projector: &Projector) {
-        // Intenta abrir el lock
-        let selected_flight = match self.on_flight_selected.lock() {
-            Ok(lock) => lock,
-            Err(_) => return,
-        };
-
-        // Si hay avion seleccionado dibuja la linea al aeropuerto
-        if let Some(flight) = &*selected_flight {
-            flight.draw_flight_path(painter, projector);
-        }
-    }
-
-    fn draw_flights(&self, response: &Response, painter: Painter, projector: &Projector) {
+    fn draw_flights(&self, response: &Response, painter: &Painter, projector: &Projector) {
         let flights = match self.flights.lock() {
             Ok(lock) => lock,
             Err(_) => return,
@@ -85,8 +72,7 @@ impl Flights {
 
 impl Plugin for &mut Flights {
     fn run(&mut self, response: &Response, painter: Painter, projector: &Projector) {
-        self.draw_flights(response, painter.clone(), projector);
-        self.draw_line_to_airport(painter, projector);
+        self.draw_flights(response, &painter, projector);
     }
 }
 

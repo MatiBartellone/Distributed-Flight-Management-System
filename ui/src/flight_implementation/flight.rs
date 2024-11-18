@@ -29,10 +29,10 @@ impl Flight {
         response: &Response,
         painter: Painter,
         projector: &Projector,
-        on_flight_selected: &Arc<Mutex<Option<FlightSelected>>>,
+        selected_flight: &Arc<Mutex<Option<FlightSelected>>>,
     ) {
         self.draw_image_flight(response, painter.clone(), projector);
-        self.clickeable_flight(response, projector, on_flight_selected);
+        self.clickeable_flight(response, projector, selected_flight);
         self.holdeable_flight(response, painter, projector);
     }
 
@@ -130,10 +130,13 @@ impl Flight {
             *selected_flight = match &*selected_flight {
                 // Si lo vuelve a clickear lo deseleciona
                 Some(flight) if flight.get_code() == self.code => None,
-                // Si no estaba seleccionado el lo selecciona
+                // Si no estaba seleccionado lo selecciona
                 Some(_) | None => {
                     let mut flight_selected = FlightSelected::default();
                     flight_selected.set_code(self.code.to_string());
+                    flight_selected.set_position(self.position);
+                    flight_selected.set_arrival_airport(self.arrival_airport.to_string());
+                    flight_selected.set_departure_airport(self.arrival_airport.to_string());
                     Some(flight_selected)
                 }
             }

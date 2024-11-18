@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Mutex};
-use std::thread;
+//use std::thread;
 
 use crate::utils::frame::Frame;
 
@@ -49,8 +49,6 @@ impl CassandraConnection {
     pub fn read_frame_response(&self) -> Result<(), String> {
         let mut buf = [0; 1024];
         let mut stream = self.stream.lock().unwrap();
-        let thread_id = thread::current().id();
-        self.dbg_response_map();
         match stream.read(&mut buf) {
             Ok(n) if n > 0 => {
                 drop(stream);
@@ -62,8 +60,6 @@ impl CassandraConnection {
                 let mut response_map = self.response_map.lock().unwrap();
                 if let Some(tx) = response_map.remove(&id) {
                     let _ = tx.send(frame);
-                } else {
-                    println!("No se encontro el id {}", id);
                 }
                 Ok(())
             },
@@ -71,8 +67,22 @@ impl CassandraConnection {
         }
     }
 
-    pub fn dbg_response_map(&self) {
-        let response_map = self.response_map.lock().unwrap();
-        println!("Id: {:?}\n{:?}", thread::current().id(), response_map);
+    // Send a frame to the server and wait for the response
+    pub fn send_and_receive(&self, frame: &mut Frame) -> Result<Frame, String> {
+        let frame = frame.to_bytes().map_err(|_| "Error al convertir a bytes".to_string())?;
+
+        let mut stream = self.stream.lock().unwrap();
+        stream.write_all(&frame).map_err(|_| "Error al escribir".to_string())?;
+        stream.flush().map_err(|_| "Error al hacer flush".to_string())?;
+
+
+        let mut buf = [0; 1024];
+        match stream.read(&mut buf) {
+            Ok(n) if n > 0 => {
+                let frame = Frame::parse_frame(&buf[..n])?;
+                Ok(frame)
+            },
+            _ => Err("Fail reading the response".to_string()),
+        }
     }
 }

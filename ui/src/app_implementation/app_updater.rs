@@ -4,13 +4,13 @@ use std::{
     time::Duration,
 };
 
-use crate::{airport_implementation::airport::Airport, cassandra_comunication::ui_client::UIClient, flight_implementation::{flight::Flight, flight_selected::FlightSelected}};
+use crate::{cassandra_comunication::ui_client::UIClient, flight_implementation::{flight::Flight, flight_selected::FlightSelected}};
 
 use super::thread_pool::ThreadPool;
 
 pub struct AppUpdater {
     selected_flight: Arc<Mutex<Option<FlightSelected>>>,
-    selected_airport: Arc<Mutex<Option<Airport>>>,
+    selected_airport_code: Arc<Mutex<Option<String>>>,
     flights: Arc<Mutex<Vec<Flight>>>,
     client: UIClient,
     thread_pool: ThreadPool,
@@ -19,14 +19,14 @@ pub struct AppUpdater {
 impl AppUpdater {
     pub fn new(
         selected_flight: Arc<Mutex<Option<FlightSelected>>>,
-        selected_airport: Arc<Mutex<Option<Airport>>>,
+        selected_airport_code: Arc<Mutex<Option<String>>>,
         flights: Arc<Mutex<Vec<Flight>>>,
         client: UIClient,
         thread_pool: ThreadPool,
     ) -> Self {
         Self {
             selected_flight,
-            selected_airport,
+            selected_airport_code,
             flights,
             client,
             thread_pool,
@@ -37,14 +37,15 @@ impl AppUpdater {
         thread::spawn(move || loop {
             self.update_flights();
             ctx.request_repaint();
-            thread::sleep(Duration::from_millis(100));
+            println!("Waiting");
+            thread::sleep(Duration::from_millis(1000));
         });
     }
 
     fn update_flights(&self) {
-        let airport_code = match self.selected_airport.lock() {
+        let airport_code = match self.selected_airport_code.lock() {
             Ok(lock) => match &*lock {
-                Some(airport) => airport.code.to_string(),
+                Some(code) => code.to_string(),
                 None => {
                     self.clear_flight_data();
                     return;

@@ -39,7 +39,7 @@ impl UIClient {
                 }
             });
         }
-        thread_pool.wait();
+        thread_pool.join();
         drop(tx);
         rx.into_iter().collect()
     }
@@ -50,8 +50,7 @@ impl UIClient {
             airport_code
         );
         let mut frame = self.get_strong_query_frame(&query, frame_id).ok()?;
-        let rx = self.send_frame(&mut frame).ok()?;
-        let response = self.get_body_result(rx).ok()?;
+        let response = self.get_body_frame_response(&mut frame).ok()?;
         self.row_to_airport(&response, vec![
             "name".to_string(),
             "positionLat".to_string(),
@@ -96,7 +95,7 @@ impl UIClient {
             }
         });
     
-        thread_pool.wait();
+        thread_pool.join();
         rx.recv().unwrap()
     }
 
@@ -107,8 +106,7 @@ impl UIClient {
             airport_code
         );
         let mut frame = self.get_strong_query_frame(&query, frame_id).ok()?;
-        let rx = self.send_frame(&mut frame).ok()?;
-        let response = self.get_body_result(rx).ok()?;
+        let response = self.get_body_frame_response(&mut frame).ok()?;
         self.extract_flight_codes(&response, vec!["flightCode".to_string()])
     }
 
@@ -151,7 +149,7 @@ impl UIClient {
             });
         }
     
-        thread_pool.wait();
+        thread_pool.join();
         drop(tx);
         rx.into_iter().collect()
     }
@@ -171,8 +169,7 @@ impl UIClient {
             flight.code
         );
         let mut frame = self.get_strong_query_frame(&query, frame_id).ok()?;
-        let rx = self.send_frame(&mut frame).ok()?;
-        let response = self.get_body_result(rx).ok()?;
+        let response = self.get_body_frame_response(&mut frame).ok()?;
         self.extract_flight_status(
             flight,
             &response, 
@@ -215,8 +212,7 @@ impl UIClient {
             flight.code
         );
         let mut frame = self.get_weak_query_frame(&query, frame_id).ok()?;
-        let rx = self.send_frame(&mut frame).ok()?;
-        let response = self.get_body_result(rx).ok()?;
+        let response = self.get_body_frame_response(&mut frame).ok()?;
         self.extract_flight_tracking(
             flight,
             &response,
@@ -265,7 +261,7 @@ impl UIClient {
             }
         });
     
-        thread_pool.wait();
+        thread_pool.join();
         rx.recv().unwrap()
     }
 
@@ -275,8 +271,7 @@ impl UIClient {
             flight_code
         );
         let mut frame = self.get_strong_query_frame(&query, frame_id).ok()?;
-        let rx = self.send_frame(&mut frame).ok()?;
-        let response = self.get_body_result(rx).ok()?;
+        let response = self.get_body_frame_response(&mut frame).ok()?;
         self.extract_flight_selected_status(&response, vec![
             "flightCode".to_string(),
             "status".to_string(),
@@ -328,9 +323,8 @@ impl UIClient {
             "fuelLevel".to_string(),
         ];
         let mut frame = self.get_weak_query_frame(&query, frame_id).ok()?;
-        let rx = self.send_frame(&mut frame).ok()?;
-        let body_weak = self.get_body_result(rx).ok()?;
-        self.extract_flight_selected_tracking(&body_weak, header_weak)
+        let response = self.get_body_frame_response(&mut frame).ok()?;
+        self.extract_flight_selected_tracking(&response, header_weak)
     }
 
     fn extract_flight_selected_tracking(
@@ -393,9 +387,7 @@ impl UIClient {
     }
     
     // Get the result of the query
-    fn get_body_result(&self, rx: Receiver<Frame>) -> Result<Vec<u8>, String> {
-        let _ = self.read_frame_response()?;
-        let frame = rx.recv().unwrap();
+    fn get_body_result(&self, frame: Frame) -> Result<Vec<u8>, String> {
         if frame.opcode != OP_RESULT {
             return Err("Error reading the frame".to_string());
         }
@@ -423,6 +415,17 @@ impl UIClient {
         ))
     }
 
+    fn get_body_frame_response(&self, frame: &mut Frame) -> Result<Vec<u8>, String> {
+        let frame_response = self.send_and_receive(frame)?;
+        // let rx = self.send_frame(frame)?;
+        // self.read_frame_response()?;
+        // let frame_response = rx.recv().unwrap();
+
+        let body_response = self.get_body_result(frame_response)?;
+        println!("Body response: {:?}", String::from_utf8(body_response.to_vec()));
+        Ok(body_response)
+    }
+
     // Wrap functions of CassandraClient
     pub fn inicializate(&self) -> Result<(), String> {
         self.client.inicializate()
@@ -442,6 +445,10 @@ impl UIClient {
 
     fn read_frame_response(&self) -> Result<(), String> {
         self.client.read_frame_response()
+    }
+
+    fn send_and_receive(&self, frame: &mut Frame) -> Result<Frame, String> {
+        self.client.send_and_receive(frame)
     }
     
 }

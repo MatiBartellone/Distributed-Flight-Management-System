@@ -66,7 +66,7 @@ impl ThreadPool {
     }
     
     // Wait until all the jobs are done
-    pub fn wait(&self) {
+    pub fn join(&self) {
         // If there are no jobs, return
         if *self.task_cont.lock().unwrap() == 0 {
             return;

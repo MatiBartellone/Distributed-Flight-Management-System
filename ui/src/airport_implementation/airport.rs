@@ -41,10 +41,10 @@ impl Airport {
         response: &Response,
         painter: Painter,
         projector: &Projector,
-        on_airport_selected: &Arc<Mutex<Option<Airport>>>,
+        selected_airport_code: &Arc<Mutex<Option<String>>>,
     ) {
         self.draw_icon_airport(painter.clone(), projector);
-        self.clickeable_airport(response, projector, on_airport_selected);
+        self.clickeable_airport(response, projector, selected_airport_code);
         self.holdeable_airport(response, painter, projector);
     }
 
@@ -101,19 +101,19 @@ impl Airport {
         &self,
         response: &Response,
         projector: &Projector,
-        on_airport_selected: &Arc<Mutex<Option<Airport>>>,
+        selected_airport_code: &Arc<Mutex<Option<String>>>,
     ) {
         let screen_airport_position = self.get_airport_pos2(projector);
         if self.is_hovering_on_airport(response, screen_airport_position)
             && response.clicked_by(egui::PointerButton::Primary)
         {
-            let mut selected_airport = match on_airport_selected.lock() {
+            let mut selected_airport = match selected_airport_code.lock() {
                 Ok(lock) => lock,
                 Err(_) => return,
             };
             match &*selected_airport {
-                Some(airport) if airport == self => *selected_airport = None,
-                Some(_) | None => *selected_airport = Some(self.clone()),
+                Some(airport) if airport == &self.code => *selected_airport = None,
+                Some(_) | None => *selected_airport = Some(self.code.to_string()),
             }
         }
     }
