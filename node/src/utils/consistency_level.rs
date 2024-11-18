@@ -36,4 +36,12 @@ impl ConsistencyLevel {
             All => replication_factor,
         }
     }
+
+    pub fn to_i16(&self) -> i16 {
+        match self {
+            ConsistencyLevel::One => 0x0001,
+            ConsistencyLevel::Quorum => 0x0004,
+            ConsistencyLevel::All => 0x0005,
+        }
+    }
 }
