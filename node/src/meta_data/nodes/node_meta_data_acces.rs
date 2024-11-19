@@ -27,9 +27,12 @@ impl NodesMetaDataAccess {
     }
 
     fn read_cluster(path: &str) -> Result<Cluster, Errors> {
-        let file = Self::open(path)?;
-        let cluster: Cluster = serde_json::from_reader(&file).map_err(|_| {
-            Errors::ServerError("Failed to read or deserialize Cluster".to_string())
+        //let file = Self::open(path)?;
+        let content = std::fs::read_to_string(path).map_err(|_| {
+            Errors::ServerError(String::from("Error leyendo el archivo"))
+        })?;
+        let cluster: Cluster = serde_json::from_str::<Cluster>(&content).map_err(|e| {
+            Errors::ServerError(e.to_string())
         })?;
         Ok(cluster)
     }
@@ -69,15 +72,6 @@ impl NodesMetaDataAccess {
         let cluster = Self::read_cluster(path)?;
         Ok(NodeIp::new_from_ip(cluster.get_own_ip()))
     }
-
-    // pub fn get_own_port(&self, path: &str) -> Result<String, Errors> {
-    //     let cluster = Self::read_cluster(path)?;
-    //     Ok(cluster.get_own_port().to_string())
-    // }
-    // pub fn get_own_port_(path: &str) -> Result<String, Errors> {
-    //     let cluster = Self::read_cluster(path)?;
-    //     Ok(cluster.get_own_port().to_string())
-    // }
 
     pub fn set_state(&self, path: &str, ip: &NodeIp, state: State) -> Result<(), Errors> {
         let cluster = NodesMetaDataAccess::read_cluster(path)?;

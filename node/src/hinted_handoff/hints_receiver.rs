@@ -22,7 +22,6 @@ impl HintsReceiver {
         println!("Booting...");
         loop {
             if last_connection_time.elapsed() >= timeout {
-                println!("hola");
                 break;
             }
             match listener.accept() {
@@ -50,9 +49,11 @@ impl HintsReceiver {
                 Ok(hint) => hints.push(hint),
                 _ => break,
             }
+            stream.flush().map_err(|_| ServerError(String::from("Failed to flush stream")))?;
             stream
                 .write_all(b"ACK")
                 .map_err(|_| ServerError(String::from("Failed to write to stream")))?;
+            stream.flush().map_err(|_| ServerError(String::from("Failed to flush stream")))?;
         }
         Ok(())
     }

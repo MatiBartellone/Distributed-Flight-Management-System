@@ -12,7 +12,7 @@ pub struct Handler;
 
 impl Handler {
     pub fn store_query(query: StoredQuery, ip: NodeIp) -> Result<(), Errors> {
-        fs::create_dir(HINTED_HANDOF_DATA).map_err(|e| ServerError(e.to_string()))?;
+        fs::create_dir_all(HINTED_HANDOF_DATA).map_err(|e| ServerError(e.to_string()))?;
         let path = format!("{}/{}.txt", HINTED_HANDOF_DATA, ip.get_string_ip());
         let mut file = OpenOptions::new()
             .create(true)

@@ -7,12 +7,13 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
 use std::path::Path;
+use crate::hinted_handoff::stored_query::StoredQuery;
 
 pub struct HintsSender;
 
 impl HintsSender {
     pub fn send_hints(ip: NodeIp) -> Result<(), Errors> {
-        let hints_path = format!("{}/{}", HINTED_HANDOF_DATA, ip.get_string_ip());
+        let hints_path = format!("{}/{}.txt", HINTED_HANDOF_DATA, ip.get_string_ip());
         if Path::new(&hints_path).exists() {
             let mut stream = TcpStream::connect(ip.get_hints_receiver_socket())
                 .map_err(|_| ServerError(String::from("Error connecting to handoff.")))?;
@@ -22,12 +23,12 @@ impl HintsSender {
             for line in reader.lines() {
                 let line =
                     line.map_err(|_| ServerError(String::from("Error reading from handoff.")))?;
-                let serialized = serde_json::to_string(&line.trim())
-                    .map_err(|_| ServerError(String::from("Error serializing handoff.")))?;
                 stream
-                    .write_all(serialized.as_bytes())
+                    .write_all(line.trim().as_bytes())
                     .map_err(|_| ServerError(String::from("Error writing to handoff.")))?;
-                Self::expect_acknowledge(&mut stream)?
+                stream.flush().map_err(|_| ServerError(String::from("Failed to flush stream")))?;
+                Self::expect_acknowledge(&mut stream)?;
+                stream.flush().map_err(|_| ServerError(String::from("Failed to flush stream")))?;
             }
             stream
                 .write_all(b"FINISHED")
