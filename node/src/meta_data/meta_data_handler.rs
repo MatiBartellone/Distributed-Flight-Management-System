@@ -1,23 +1,19 @@
 use crate::meta_data::clients::meta_data_client::ClientMetaDataAcces;
 use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess;
 use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
-use crate::utils::constants::META_DATA_ACCESS_MOD;
 use crate::utils::errors::Errors;
-use crate::utils::functions::get_meta_data_handler_ip;
+use crate::utils::functions::get_own_ip;
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
+use crate::utils::node_ip::NodeIp;
 
 #[derive(Serialize, Deserialize)]
 pub struct MetaDataHandler;
 
 impl MetaDataHandler {
-    pub fn start_listening(ip: String, port: String) -> Result<(), Errors> {
-        let meta_data_port = port
-            .parse::<i32>()
-            .map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?
-            + META_DATA_ACCESS_MOD;
-        let listener = TcpListener::bind(format!("{}:{}", ip, meta_data_port))
+    pub fn start_listening(ip: NodeIp) -> Result<(), Errors> {
+        let listener = TcpListener::bind(ip.get_meta_data_access_socket())
             .map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
         for stream in listener.incoming() {
             match stream {
@@ -53,7 +49,7 @@ impl MetaDataHandler {
     }
 
     pub fn establish_connection() -> Result<TcpStream, Errors> {
-        match TcpStream::connect(get_meta_data_handler_ip()?) {
+        match TcpStream::connect(get_own_ip()?.get_meta_data_access_socket()) {
             Ok(stream) => Ok(stream),
             Err(e) => Err(Errors::ServerError(e.to_string())),
         }

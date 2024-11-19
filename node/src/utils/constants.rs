@@ -1,7 +1,7 @@
 pub const NODES_METADATA: &str = "src/meta_data/nodes/metadata.json";
 pub const CLIENT_METADATA_PATH: &str = "src/meta_data/clients/";
 pub const KEYSPACE_METADATA: &str = "src/meta_data/keyspaces/metadata.json";
-pub const HINTED_HANDOF_DATA: &str = "src/hinted_handoff/data/";
+pub const HINTED_HANDOF_DATA: &str = "src/hinted_handoff/data";
 pub const HINTED_HANDOFF_HOURS: i64 = 3;
 pub const REPLICATION: &str = "replication_factor";
 pub const STRATEGY: &str = "class";

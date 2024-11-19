@@ -1,11 +1,11 @@
 use crate::utils::errors::Errors;
 use crate::utils::functions::get_timestamp;
 use serde::{Deserialize, Serialize};
+use crate::utils::node_ip::NodeIp;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Node {
-    pub ip: String,
-    pub port: String,
+    pub ip: NodeIp,
     pub position: usize,
     pub is_seed: bool,
     pub is_active: bool,
@@ -13,10 +13,9 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new(ip: String, port: String, position: usize, is_seed: bool) -> Result<Self, Errors> {
+    pub fn new(ip: NodeIp, position: usize, is_seed: bool) -> Result<Self, Errors> {
         Ok(Self {
             ip,
-            port,
             position,
             is_seed,
             is_active: true,
@@ -26,8 +25,7 @@ impl Node {
 
     pub fn new_from_node(node: &Node) -> Self {
         Self {
-            ip: node.ip.to_string(),
-            port: node.port.to_string(),
+            ip: NodeIp::new_from_ip(&node.ip),
             position: node.position,
             is_seed: node.is_seed,
             is_active: node.is_active,
@@ -35,12 +33,8 @@ impl Node {
         }
     }
 
-    pub fn get_ip(&self) -> &str {
+    pub fn get_ip(&self) -> &NodeIp {
         &self.ip
-    }
-
-    pub fn get_port(&self) -> &str {
-        &self.port
     }
 
     pub fn get_pos(&self) -> usize {
@@ -58,15 +52,6 @@ impl Node {
     pub fn update_timestamp(&mut self) -> Result<(), Errors> {
         self.timestamp = get_timestamp()?;
         Ok(())
-    }
-
-    pub fn get_full_ip(&self, port_modifier: i32) -> Result<String, Errors> {
-        let port = self
-            .port
-            .parse::<i32>()
-            .map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?
-            + port_modifier;
-        Ok(format!("{}:{}", self.ip, port))
     }
 
     pub fn set_inactive(&mut self) {

@@ -8,6 +8,9 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
+use crate::hinted_handoff::handler::Handler;
+use crate::hinted_handoff::stored_query::StoredQuery;
+use crate::utils::node_ip::NodeIp;
 
 pub struct QueryDelegator {
     #[allow(dead_code)]
@@ -77,7 +80,7 @@ impl QueryDelegator {
             .get_replication(KEYSPACE_METADATA.to_string(), &self.query.get_keyspace()?)
     }
 
-    fn get_nodes_ip(&self) -> Result<Vec<String>, Errors> {
+    fn get_nodes_ip(&self) -> Result<Vec<NodeIp>, Errors> {
         let mut stream = MetaDataHandler::establish_connection()?;
         let nodes_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
@@ -89,8 +92,8 @@ impl QueryDelegator {
         Ok(ips)
     }
 
-    fn send_to_node(ip: String, query: Box<dyn Query>) -> Result<Vec<u8>, Errors> {
-        match TcpStream::connect(ip) {
+    fn send_to_node(ip: NodeIp, query: Box<dyn Query>) -> Result<Vec<u8>, Errors> {
+        match TcpStream::connect(ip.get_query_delegation_socket()) {
             Ok(mut stream) => {
                 if stream
                     .write(QuerySerializer::serialize(&query)?.as_slice())
@@ -110,10 +113,11 @@ impl QueryDelegator {
                 }
             }
             Err(e) => {
-                // let mut stream = MetaDataHandler::establish_connection()?;
-                // let nodes_meta_data =
-                //     MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-                // nodes_meta_data.set_inactive(NODES_METADATA)
+                let mut stream = MetaDataHandler::establish_connection()?;
+                let nodes_meta_data =
+                     MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
+                nodes_meta_data.set_inactive(NODES_METADATA, &ip)?;
+                Handler::store_query(StoredQuery::new(&query)?, ip)?;
                 Err(Errors::ServerError(e.to_string())) },
         }
     }

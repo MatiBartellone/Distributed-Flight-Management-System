@@ -8,6 +8,8 @@ use std::{
     fs::{File, OpenOptions},
     io::Cursor,
 };
+use std::cmp::PartialEq;
+use crate::utils::node_ip::NodeIp;
 
 #[derive(Debug)]
 pub struct NodesMetaDataAccess;
@@ -59,29 +61,29 @@ impl NodesMetaDataAccess {
         Self::write_cluster(path, cluster)
     }
 
-    pub fn get_own_ip(&self, path: &str) -> Result<String, Errors> {
+    pub fn get_own_ip(&self, path: &str) -> Result<NodeIp, Errors> {
         let cluster = Self::read_cluster(path)?;
-        Ok(cluster.get_own_ip().to_string())
+        Ok(NodeIp::new_from_ip(cluster.get_own_ip()))
     }
-    pub fn get_own_ip_(path: &str) -> Result<String, Errors> {
+    pub fn get_own_ip_(path: &str) -> Result<NodeIp, Errors> {
         let cluster = Self::read_cluster(path)?;
-        Ok(cluster.get_own_ip().to_string())
-    }
-
-    pub fn get_own_port(&self, path: &str) -> Result<String, Errors> {
-        let cluster = Self::read_cluster(path)?;
-        Ok(cluster.get_own_port().to_string())
-    }
-    pub fn get_own_port_(path: &str) -> Result<String, Errors> {
-        let cluster = Self::read_cluster(path)?;
-        Ok(cluster.get_own_port().to_string())
+        Ok(NodeIp::new_from_ip(cluster.get_own_ip()))
     }
 
-    pub fn set_inactive(&self, path: &str, node_pos: usize) -> Result<(), Errors> {
+    // pub fn get_own_port(&self, path: &str) -> Result<String, Errors> {
+    //     let cluster = Self::read_cluster(path)?;
+    //     Ok(cluster.get_own_port().to_string())
+    // }
+    // pub fn get_own_port_(path: &str) -> Result<String, Errors> {
+    //     let cluster = Self::read_cluster(path)?;
+    //     Ok(cluster.get_own_port().to_string())
+    // }
+
+    pub fn set_inactive(&self, path: &str, ip: &NodeIp) -> Result<(), Errors> {
         let cluster = NodesMetaDataAccess::read_cluster(path)?;
         let mut nodes_list = Vec::new();
         for node in cluster.get_other_nodes() {
-            if node.get_pos() != node_pos {
+            if node.get_ip() != ip {
                 nodes_list.push(Node::new_from_node(node))
             } else {
                 let mut inactive = Node::new_from_node(node);
@@ -116,7 +118,7 @@ impl NodesMetaDataAccess {
         path: &str,
         primary_key: &Option<Vec<String>>,
         keyspace: String,
-    ) -> Result<Vec<String>, Errors> {
+    ) -> Result<Vec<NodeIp>, Errors> {
         let cluster = Self::read_cluster(path)?;
         if let Some(primary_key) = primary_key {
             let hashing_key = hash_string_murmur3(&primary_key.join(""));

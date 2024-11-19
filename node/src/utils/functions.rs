@@ -1,15 +1,14 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
-use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::parsers::tokens::data_type::DataType;
 use crate::queries::where_logic::where_clause::WhereClause;
 use crate::utils::constants::{
-    nodes_meta_data_path, CLIENT_METADATA_PATH, DATA_ACCESS_PORT_MOD, KEYSPACE_METADATA,
-    META_DATA_ACCESS_MOD,
+    nodes_meta_data_path, CLIENT_METADATA_PATH, KEYSPACE_METADATA,
 };
 use crate::utils::errors::Errors;
 use std::collections::{HashMap, HashSet};
-use std::net::{TcpListener, TcpStream};
+use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::time::{SystemTime, UNIX_EPOCH};
+use crate::utils::node_ip::NodeIp;
 
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -52,30 +51,6 @@ pub fn check_table_name(table_name: &String) -> Result<String, Errors> {
     };
     println!("setting tablwe!!");
     Ok(format!("{}.{}", kp, table_name))
-}
-
-pub fn get_data_access_ip() -> Result<String, Errors> {
-    Ok(format!(
-        "{}:{}",
-        get_own_ip()?,
-        get_own_modified_port(DATA_ACCESS_PORT_MOD)?
-    ))
-}
-pub fn get_meta_data_handler_ip() -> Result<String, Errors> {
-    Ok(format!(
-        "{}:{}",
-        NodesMetaDataAccess::get_own_ip_(nodes_meta_data_path().as_ref())?,
-        mod_port(META_DATA_ACCESS_MOD)?
-    ))
-}
-fn mod_port(modifier: i32) -> Result<String, Errors> {
-    Ok(
-        (NodesMetaDataAccess::get_own_port_(nodes_meta_data_path().as_ref())?
-            .parse::<i32>()
-            .map_err(|_| Errors::SyntaxError(String::from("Port")))?
-            + modifier)
-            .to_string(),
-    )
 }
 
 pub fn get_columns_from_table(table_name: &str) -> Result<HashMap<String, DataType>, Errors> {
@@ -175,32 +150,29 @@ pub fn get_partition_key_from_where(
     Ok(partition_key)
 }
 
-pub fn get_own_ip() -> Result<String, Errors> {
+pub fn get_own_ip() -> Result<NodeIp, Errors> {
     let mut stream = MetaDataHandler::establish_connection()?;
     let nodes_meta_data = MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
     nodes_meta_data.get_own_ip(nodes_meta_data_path().as_ref())
 }
 
-pub fn get_own_modified_port(modifier: i32) -> Result<String, Errors> {
-    let mut stream = MetaDataHandler::establish_connection()?;
-    let nodes_meta_data = MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-    let mut port = nodes_meta_data
-        .get_own_port(nodes_meta_data_path().as_ref())?
-        .parse::<i32>()
-        .map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?;
-    port += modifier;
-    Ok(format!("{}", port))
-}
+// pub fn get_own_modified_port(modifier: i32) -> Result<String, Errors> {
+//     let mut stream = MetaDataHandler::establish_connection()?;
+//     let nodes_meta_data = MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
+//     let mut port = nodes_meta_data
+//         .get_own_port(nodes_meta_data_path().as_ref())?
+//         .parse::<i32>()
+//         .map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?;
+//     port += modifier;
+//     Ok(format!("{}", port))
+// }
 
-pub fn start_listener<F>(ip: String, port: String, port_mod: i32, handle_connection: F) -> Result<(), Errors>
+pub fn start_listener<F>(socket: SocketAddr, handle_connection: F) -> Result<(), Errors>
 where
     F: Fn(&mut TcpStream) -> Result<(), Errors>,
 {
-    let seed_listener_port = port
-        .parse::<i32>()
-        .map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?
-        + port_mod;
-    let listener = TcpListener::bind(format!("{}:{}", ip, seed_listener_port))
+
+    let listener = TcpListener::bind(socket)
         .map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
     for stream in listener.incoming() {
         match stream {

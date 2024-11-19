@@ -1,18 +1,20 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
-use crate::utils::constants::{GOSSIP_MOD, NODES_METADATA};
+use crate::utils::constants::NODES_METADATA;
 use crate::utils::errors::Errors;
 use crate::utils::functions::generate_random_number;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use crate::utils::errors::Errors::ServerError;
+use crate::utils::node_ip::NodeIp;
 
 pub struct GossipEmitter;
 
 impl GossipEmitter {
     pub fn start_gossip() -> Result<(), Errors> {
         let (node, ip) = Self::get_random_ip()?;
-        if let Ok(mut stream) = TcpStream::connect(ip) {
+        if let Ok(mut stream) = TcpStream::connect(ip.get_gossip_socket()) {
             Self::send_nodes_list(&mut stream)?;
             Self::get_nodes_list(&mut stream)
         } else {
@@ -20,29 +22,22 @@ impl GossipEmitter {
         }
     }
 
-    fn get_random_ip() -> Result<(usize, String), Errors> {
+    fn get_random_ip() -> Result<(usize, NodeIp), Errors> {
         let mut stream = MetaDataHandler::establish_connection()?;
         let node_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
         let node_number =
             generate_random_number(node_meta_data.get_nodes_quantity(NODES_METADATA)? as u64, 1)?
                 as usize;
-        let mut ip = String::new();
         for node in node_meta_data
             .get_cluster(NODES_METADATA)?
             .get_other_nodes()
         {
             if node.get_pos() == node_number {
-                let node_port = (node
-                    .get_port()
-                    .parse::<i32>()
-                    .map_err(|e| Errors::ServerError(e.to_string()))?)
-                    + GOSSIP_MOD;
-                ip = format!("{}:{}", node.get_ip(), node_port);
-                break;
+                return Ok((node_number, NodeIp::new_from_ip(node.get_ip())));
             }
         }
-        Ok((node_number, ip))
+        Err(ServerError(String::from("Could not pick node")))
     }
 
     fn set_inactive(node: usize) -> Result<(), Errors> {

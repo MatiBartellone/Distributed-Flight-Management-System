@@ -1,19 +1,20 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
-use crate::utils::constants::{GOSSIP_MOD, NODES_METADATA};
+use crate::utils::constants::NODES_METADATA;
 use crate::utils::errors::Errors;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use crate::utils::functions::start_listener;
+use crate::utils::node_ip::NodeIp;
 
 pub struct GossipListener;
 
 impl GossipListener {
 
 
-    pub fn start_listening(ip: String, port: String) -> Result<(), Errors> {
-        start_listener(ip, port, GOSSIP_MOD, Self::handle_connection)
+    pub fn start_listening(ip: NodeIp) -> Result<(), Errors> {
+        start_listener(ip.get_gossip_socket(), Self::handle_connection)
     }
 
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {

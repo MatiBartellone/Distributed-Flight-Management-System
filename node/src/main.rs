@@ -17,6 +17,7 @@ use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
+use node::utils::node_ip::NodeIp;
 
 fn main() {
     //let server_addr = "127.0.0.1:7878";
@@ -50,18 +51,21 @@ fn main() {
         _ => matches!(get_user_data("Is this a seed node? [Y][N]: ").as_str(), "Y"),
     };
 
-    let mut node = Node::new(network_ip.to_string(), port.to_string(), 1, is_seed)
+    let port = port.parse::<u16>().unwrap();
+    let network_ip = NodeIp::new_from_string(network_ip.as_str(), port).unwrap();
+    let ip = NodeIp::new_from_string(ip.as_str(), port).unwrap();
+    let mut node = Node::new(network_ip, 1, is_seed)
         .expect("Error creating node");
 
     set_cluster(&mut node, seed_ip, seed_port, is_first);
 
     //listen_incoming_new_nodes(ip.to_string(), port.to_string());
 
-    start_listeners(&ip, &port, is_seed);
+    start_listeners(&ip, is_seed);
 
     start_gossip().expect("Error starting gossip");
 
-    set_node_listener(ip.to_string(), port.to_string());
+    set_node_listener(ip);
 }
 
 // fn add_node_to_cluster(node: Node) -> Result<(), Errors> {
@@ -82,30 +86,30 @@ fn get_user_data(msg: &str) -> String {
     data.trim().to_string()
 }
 
-fn start_listeners(ip: &String, port: &String, is_seed: bool) {
-    let (meta_data_ip, meta_data_port) = (ip.to_string(), port.to_string());
-    let (data_access_ip, data_access_port) = (ip.to_string(), port.to_string());
-    let (query_receiver_ip, query_receiver_port) = (ip.to_string(), port.to_string());
-    let (gossip_listener_ip, gossip_listener_port) = (ip.to_string(), port.to_string());
+fn start_listeners(ip: &NodeIp, is_seed: bool) {
+    let meta_data_ip = NodeIp::new_from_ip(ip);
+    let data_access_ip= NodeIp::new_from_ip(ip);
+    let query_receiver_ip = NodeIp::new_from_ip(ip);
+    let gossip_listener_ip= NodeIp::new_from_ip(ip);
     thread::spawn(move || {
-        MetaDataHandler::start_listening(meta_data_ip, meta_data_port)
+        MetaDataHandler::start_listening(meta_data_ip)
             .expect("Failed to start metadata listener");
     });
     thread::spawn(move || {
-        DataAccessHandler::start_listening(data_access_ip, data_access_port)
+        DataAccessHandler::start_listening(data_access_ip)
             .expect("Failed to start data access");
     });
     thread::spawn(move || {
-        QueryReceiver::start_listening(query_receiver_ip, query_receiver_port)
+        QueryReceiver::start_listening(query_receiver_ip)
             .expect("Failed to start query receiver");
     });
     thread::spawn(move || {
-        GossipListener::start_listening(gossip_listener_ip, gossip_listener_port)
+        GossipListener::start_listening(gossip_listener_ip)
             .expect("Failed to start gossip listener");
     });
     if is_seed {
-        let (seed_ip, seed_port) = (ip.to_string(), port.to_string());
-        thread::spawn(move || SeedListener::start_listening(seed_ip, seed_port));
+        let seed_ip = NodeIp::new_from_ip(ip);
+        thread::spawn(move || SeedListener::start_listening(seed_ip));
     }
 }
 
@@ -147,7 +151,7 @@ fn set_cluster(node: &mut Node, seed_ip: String, seed_port: String, is_first: bo
 fn set_node_pos(node: &mut Node, nodes: &Vec<Node>) {
     let mut higher_position = 1;
     for n in nodes {
-        if n.get_ip() == node.get_ip() && n.get_port() == node.get_port() {
+        if n.get_ip() == node.get_ip() {
             node.position = n.get_pos();
             return;
         }
@@ -181,9 +185,9 @@ fn set_node_pos(node: &mut Node, nodes: &Vec<Node>) {
 //     });
 // }
 
-fn set_node_listener(ip: String, port: String) {
-    let listener = TcpListener::bind(format!("{}:{}", ip, port)).expect("Error binding socket");
-    println!("Servidor escuchando en {}:{}", ip, port);
+fn set_node_listener(ip: NodeIp) {
+    let listener = TcpListener::bind(ip.get_std_socket()).expect("Error binding socket");
+    println!("Servidor escuchando en {}:{}", ip.get_string_ip(), 1);
     for incoming in listener.incoming() {
         match incoming {
             Ok(stream) => {
