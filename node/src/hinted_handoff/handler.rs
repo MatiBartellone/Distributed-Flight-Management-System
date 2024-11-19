@@ -65,16 +65,16 @@ impl Handler {
         let mut temp_file =
             File::create(&temp_path).map_err(|_| ServerError(String::from("cannot open file")))?;
 
-        for line in reader.lines() {
-            if let Ok(line) = line {
-                let stored_query: StoredQuery = serde_json::from_slice(line.trim().as_bytes())
+        for line in reader.lines().map_while(Result::ok) {
+
+            let stored_query: StoredQuery = serde_json::from_slice(line.trim().as_bytes())
+                .map_err(|_| ServerError(String::from("invalid query")))?;
+            if !stored_query.has_perished() {
+                temp_file
+                    .write_all(line.as_bytes())
                     .map_err(|_| ServerError(String::from("invalid query")))?;
-                if !stored_query.has_perished() {
-                    temp_file
-                        .write_all(line.as_bytes())
-                        .map_err(|_| ServerError(String::from("invalid query")))?;
-                }
             }
+
         }
         rename(temp_path, path).map_err(|_| ServerError(String::from("cannot rename file")))?;
         Ok(())

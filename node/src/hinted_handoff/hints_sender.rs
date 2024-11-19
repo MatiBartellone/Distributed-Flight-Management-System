@@ -41,7 +41,7 @@ impl HintsSender {
     fn expect_acknowledge(stream: &mut TcpStream) -> Result<(), Errors> {
         let mut buffer = [0; 1024];
         match stream.read(&mut buffer) {
-            Ok(_) => Ok(()),
+            Ok(_n) => Ok(()),
             Err(_) => Err(ServerError(String::from("Failed to read from stream"))),
         }
     }

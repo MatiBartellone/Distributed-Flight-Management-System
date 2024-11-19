@@ -4,7 +4,6 @@ use crate::meta_data::nodes::node::Node;
 use crate::utils::constants::NODES_METADATA;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
-use crate::utils::functions::generate_random_number;
 use crate::utils::node_ip::NodeIp;
 use std::io::{Read, Write};
 use std::net::TcpStream;
@@ -37,7 +36,7 @@ impl GossipEmitter {
         let cluster = node_meta_data
             .get_cluster(NODES_METADATA)?;
         let nodes = cluster.get_other_nodes();
-        if let Some(&ref random_node) = nodes.choose(&mut rng) {
+        if let Some(random_node) = nodes.choose(&mut rng) {
             if random_node.state != Booting {
                 return Ok(Some(NodeIp::new_from_ip(random_node.get_ip())));
             }

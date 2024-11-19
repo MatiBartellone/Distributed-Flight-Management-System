@@ -63,6 +63,6 @@ impl NodeIp {
     }
 
     pub fn get_string_ip(&self) -> String {
-        format!("{}:{}", self.ip.to_string(), self.port)
+        format!("{}:{}", self.ip, self.port)
     }
 }

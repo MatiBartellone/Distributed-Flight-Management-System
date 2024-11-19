@@ -1,6 +1,5 @@
 use crate::hinted_handoff::stored_query::StoredQuery;
-use crate::meta_data::meta_data_handler::MetaDataHandler;
-use crate::utils::constants::{HINTED_HANDOFF_TIMEOUT_SECS, NODES_METADATA};
+use crate::utils::constants::HINTED_HANDOFF_TIMEOUT_SECS;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::node_ip::NodeIp;
@@ -58,10 +57,10 @@ impl HintsReceiver {
         Ok(())
     }
 
-    fn execute_queries(hints: &mut Vec<StoredQuery>) -> Result<(), Errors> {
+    fn execute_queries(hints: &mut [StoredQuery]) -> Result<(), Errors> {
         hints.sort_by_key(|stored_query| stored_query.timestamp.timestamp);
         for stored in hints.iter() {
-            if let Ok(_) = stored.get_query().run() {};
+            if stored.get_query().run().is_ok() {};
         }
         Ok(())
     }

@@ -109,7 +109,7 @@ impl NodesMetaDataAccess {
         self.set_state(path, ip, State::Active)
     }
 
-    pub fn set_own_node_active(&self, path: &str, ip: &NodeIp) -> Result<(), Errors> {
+    pub fn set_own_node_active(&self, path: &str) -> Result<(), Errors> {
         let cluster = NodesMetaDataAccess::read_cluster(path)?;
         let mut new_node = Node::new_from_node(cluster.get_own_node());
         new_node.set_active();

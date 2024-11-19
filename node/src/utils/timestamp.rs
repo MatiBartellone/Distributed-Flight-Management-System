@@ -26,3 +26,9 @@ impl Timestamp {
         Utc::now().timestamp_millis() > self.timestamp + milliseconds
     }
 }
+
+impl Default for Timestamp {
+    fn default() -> Self {
+        Self::new()
+    }
+}

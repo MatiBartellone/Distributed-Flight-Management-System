@@ -83,7 +83,7 @@ fn finish_booting() -> Result<(), Errors> {
     let mut meta_data_stream = MetaDataHandler::establish_connection()?;
     let node_metadata =
         MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
-    node_metadata.set_active(NODES_METADATA, &node_metadata.get_own_ip(NODES_METADATA)?)?;
+    node_metadata.set_own_node_active(NODES_METADATA)?;
     println!("Finished booting");
     Ok(())
 }
@@ -141,9 +141,9 @@ fn set_cluster(node: &mut Node, seed_ip: NodeIp, is_first: bool) -> bool {
             .read(&mut buffer)
             .expect("Failed to read from server stream");
         nodes = serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
-        needs_booting = set_node_pos(node, &mut nodes);
+        needs_booting = set_node_pos(node, &nodes);
         if needs_booting {
-            nodes = eliminate_node_by_ip(&nodes, &node.get_ip())
+            nodes = eliminate_node_by_ip(&nodes, node.get_ip())
         }
         stream
             .write_all(serde_json::to_string(&node).expect("").as_bytes())

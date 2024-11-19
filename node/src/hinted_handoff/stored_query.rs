@@ -11,6 +11,7 @@ pub struct StoredQuery {
 }
 
 impl StoredQuery {
+    #[allow(clippy::borrowed_box)]
     pub fn new(query: &Box<dyn Query>) -> Result<Self, Errors> {
         let Some(query_enum) = QueryEnum::from_query(query) else {
             return Err(Errors::ServerError(String::from("")));
