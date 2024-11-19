@@ -8,7 +8,6 @@ use std::{
     fs::{File, OpenOptions},
     io::Cursor,
 };
-use std::cmp::PartialEq;
 use crate::utils::node_ip::NodeIp;
 
 #[derive(Debug)]

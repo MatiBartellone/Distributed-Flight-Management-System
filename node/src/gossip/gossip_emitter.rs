@@ -13,19 +13,25 @@ pub struct GossipEmitter;
 
 impl GossipEmitter {
     pub fn start_gossip() -> Result<(), Errors> {
-        let (node, ip) = Self::get_random_ip()?;
+        let Some(ip) = Self::get_random_ip()? else {
+            return Ok(())
+        };
+
         if let Ok(mut stream) = TcpStream::connect(ip.get_gossip_socket()) {
             Self::send_nodes_list(&mut stream)?;
             Self::get_nodes_list(&mut stream)
         } else {
-            Self::set_inactive(node)
+            Self::set_inactive(ip)
         }
     }
 
-    fn get_random_ip() -> Result<(usize, NodeIp), Errors> {
+    fn get_random_ip() -> Result<Option<NodeIp>, Errors> {
         let mut stream = MetaDataHandler::establish_connection()?;
         let node_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
+        if node_meta_data.get_nodes_quantity(NODES_METADATA)? == 1 {
+            return Ok(None)
+        }
         let node_number =
             generate_random_number(node_meta_data.get_nodes_quantity(NODES_METADATA)? as u64, 1)?
                 as usize;
@@ -34,17 +40,17 @@ impl GossipEmitter {
             .get_other_nodes()
         {
             if node.get_pos() == node_number {
-                return Ok((node_number, NodeIp::new_from_ip(node.get_ip())));
+                return Ok(Some(NodeIp::new_from_ip(node.get_ip())));
             }
         }
         Err(ServerError(String::from("Could not pick node")))
     }
 
-    fn set_inactive(node: usize) -> Result<(), Errors> {
+    fn set_inactive(ip: NodeIp) -> Result<(), Errors> {
         let mut stream = MetaDataHandler::establish_connection()?;
         let node_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-        node_meta_data.set_inactive(NODES_METADATA, node)
+        node_meta_data.set_inactive(NODES_METADATA, &ip)
     }
 
     fn send_nodes_list(stream: &mut TcpStream) -> Result<(), Errors> {

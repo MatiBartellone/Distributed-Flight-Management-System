@@ -162,32 +162,9 @@ fn set_node_pos(node: &mut Node, nodes: &Vec<Node>) {
     node.position = higher_position + 1;
 }
 
-// fn listen_incoming_new_nodes(ip: String, port: String) {
-//     thread::spawn(move || {
-//         // Mantener el nodo corriendo y escuchando nuevos mensajes
-//         let port = (port.parse::<i32>().expect("Failed to parse port into int") + 4).to_string();
-//         let listener =
-//             TcpListener::bind(format!("{}:{}", ip, port)).expect("Failed to bind TCP listener");
-//         for mut stream in listener.incoming().flatten() {
-//             // Leer nuevos mensajes del servidor (nuevos nodos que se conectan)
-//             let mut buffer = [0; 1024];
-//             let size = stream
-//                 .read(&mut buffer)
-//                 .expect("Failed to read from server stream");
-//             if size > 0 {
-//                 let node: Node =
-//                     serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
-//                 {
-//                     add_node_to_cluster(node).expect("Failed to add node to cluster");
-//                 }
-//             }
-//         }
-//     });
-// }
-
 fn set_node_listener(ip: NodeIp) {
     let listener = TcpListener::bind(ip.get_std_socket()).expect("Error binding socket");
-    println!("Servidor escuchando en {}:{}", ip.get_string_ip(), 1);
+    println!("Servidor escuchando en {}", ip.get_string_ip());
     for incoming in listener.incoming() {
         match incoming {
             Ok(stream) => {

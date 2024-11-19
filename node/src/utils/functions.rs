@@ -8,6 +8,7 @@ use crate::utils::errors::Errors;
 use std::collections::{HashMap, HashSet};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::time::{SystemTime, UNIX_EPOCH};
+use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::utils::node_ip::NodeIp;
 
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
@@ -151,21 +152,9 @@ pub fn get_partition_key_from_where(
 }
 
 pub fn get_own_ip() -> Result<NodeIp, Errors> {
-    let mut stream = MetaDataHandler::establish_connection()?;
-    let nodes_meta_data = MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-    nodes_meta_data.get_own_ip(nodes_meta_data_path().as_ref())
+    NodesMetaDataAccess::get_own_ip_(nodes_meta_data_path().as_ref())
 }
 
-// pub fn get_own_modified_port(modifier: i32) -> Result<String, Errors> {
-//     let mut stream = MetaDataHandler::establish_connection()?;
-//     let nodes_meta_data = MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-//     let mut port = nodes_meta_data
-//         .get_own_port(nodes_meta_data_path().as_ref())?
-//         .parse::<i32>()
-//         .map_err(|_| Errors::ServerError(String::from("Failed to parse port")))?;
-//     port += modifier;
-//     Ok(format!("{}", port))
-// }
 
 pub fn start_listener<F>(socket: SocketAddr, handle_connection: F) -> Result<(), Errors>
 where
