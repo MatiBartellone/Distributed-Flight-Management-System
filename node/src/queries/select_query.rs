@@ -1,12 +1,10 @@
 use super::query::Query;
 use super::where_logic::where_clause::WhereClause;
 use crate::data_access::data_access_handler::DataAccessHandler;
-use crate::data_access::row::Row;
-use crate::meta_data::keyspaces::keyspace;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
-    check_table_name, get_columns_from_table, get_long_string_from_str,
+    check_table_name, get_columns_from_table,
     get_partition_key_from_where, split_keyspace_table,
 };
 use crate::utils::response::Response;
@@ -52,7 +50,7 @@ impl SelectQuery {
         Ok(())
     }
 
-    fn get_rows_string(&self, rows: Vec<Row>) -> Result<String, Errors> {
+    /*fn get_rows_string(&self, rows: Vec<Row>) -> Result<String, Errors> {
         let mut display_columns = Vec::new();
         if self.columns.contains(&'*'.to_string()) {
             display_columns = get_columns_from_table(&self.table_name)?
@@ -78,7 +76,7 @@ impl SelectQuery {
             text.push('\n');
         }
         Ok(text)
-    }
+    }*/
 }
 
 impl Default for SelectQuery {

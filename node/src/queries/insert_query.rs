@@ -2,7 +2,7 @@ use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::data_access::row::{Column, Row};
 use crate::parsers::tokens::data_type::DataType;
 use crate::utils::functions::{
-    check_table_name, get_columns_from_table, get_long_string_from_str,
+    check_table_name, get_columns_from_table,
     get_table_clustering_columns, get_table_partition, get_timestamp, split_keyspace_table,
 };
 use crate::utils::response::Response;
