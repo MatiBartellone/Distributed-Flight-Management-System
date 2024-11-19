@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Timestamp {
-    timestamp: i64,
+    pub timestamp: i64,
 }
 
 impl Timestamp {

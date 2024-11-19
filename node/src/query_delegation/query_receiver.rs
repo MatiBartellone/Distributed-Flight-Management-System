@@ -1,4 +1,4 @@
-use crate::node_communication::query_serializer::QuerySerializer;
+use crate::query_delegation::query_serializer::QuerySerializer;
 use crate::utils::errors::Errors;
 use crate::utils::node_ip::NodeIp;
 use std::io::{Read, Write};

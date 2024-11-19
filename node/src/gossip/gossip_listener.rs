@@ -116,7 +116,7 @@ impl GossipListener {
     fn needs_to_update(node1: &Node, node2: &Node) -> i8 {
         if node1.get_pos() != node2.get_pos()
             || node1.get_ip() != node2.get_ip()
-            || node1.is_active != node2.is_active
+            || node1.state != node2.state
             || node1.is_seed != node2.is_seed
         {
             if node1.get_timestamp() > node2.get_timestamp() {

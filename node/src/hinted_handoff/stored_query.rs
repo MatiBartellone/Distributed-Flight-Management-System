@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct StoredQuery {
-    query: QueryEnum,
-    timestamp: Timestamp,
+    pub query: QueryEnum,
+    pub timestamp: Timestamp,
 }
 
 impl StoredQuery {
@@ -19,6 +19,10 @@ impl StoredQuery {
             query: query_enum,
             timestamp: Timestamp::new(),
         })
+    }
+
+    pub fn get_query(&self) -> Box<dyn Query> {
+        QueryEnum::into_query(QueryEnum::new_from(&self.query))
     }
 
     pub fn has_perished(&self) -> bool {

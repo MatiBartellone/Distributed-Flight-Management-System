@@ -1,6 +1,6 @@
 use crate::utils::constants::{
-    DATA_ACCESS_PORT_MOD, GOSSIP_MOD, META_DATA_ACCESS_MOD, QUERY_DELEGATION_PORT_MOD,
-    SEED_LISTENER_MOD,
+    DATA_ACCESS_PORT_MOD, GOSSIP_MOD, HINTS_RECEIVER_MOD, META_DATA_ACCESS_MOD,
+    QUERY_DELEGATION_PORT_MOD, SEED_LISTENER_MOD,
 };
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
@@ -56,6 +56,10 @@ impl NodeIp {
 
     pub fn get_gossip_socket(&self) -> SocketAddr {
         SocketAddr::new(self.ip, self.port + GOSSIP_MOD as u16)
+    }
+
+    pub fn get_hints_receiver_socket(&self) -> SocketAddr {
+        SocketAddr::new(self.ip, self.port + HINTS_RECEIVER_MOD as u16)
     }
 
     pub fn get_string_ip(&self) -> String {

@@ -1,10 +1,12 @@
 use crate::hinted_handoff::handler::Handler;
 use crate::hinted_handoff::stored_query::StoredQuery;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
-use crate::node_communication::query_serializer::QuerySerializer;
 use crate::queries::query::{Query, QueryEnum};
+use crate::query_delegation::query_serializer::QuerySerializer;
 use crate::utils::consistency_level::ConsistencyLevel;
-use crate::utils::constants::{nodes_meta_data_path, KEYSPACE_METADATA, NODES_METADATA, TIMEOUT_SECS};
+use crate::utils::constants::{
+    nodes_meta_data_path, KEYSPACE_METADATA, NODES_METADATA, TIMEOUT_SECS,
+};
 use crate::utils::errors::Errors;
 use crate::utils::node_ip::NodeIp;
 use std::io::{Read, Write};
@@ -52,7 +54,7 @@ impl QueryDelegator {
                     Err(e) => {
                         let mut error_lock = error.lock().unwrap();
                         *error_lock = Some(e);
-                    },
+                    }
                 }
             });
         }

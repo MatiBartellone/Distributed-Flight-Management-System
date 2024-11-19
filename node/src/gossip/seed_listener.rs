@@ -53,7 +53,7 @@ impl SeedListener {
         let cluster = node_metadata.get_cluster(NODES_METADATA)?;
         for node in cluster.get_other_nodes().iter() {
             if node.get_pos() == new_node.get_pos() {
-                node_metadata.set_active(NODES_METADATA, new_node.get_pos())?;
+                node_metadata.set_booting(NODES_METADATA, new_node.get_ip())?;
                 return Ok(()); //todo HINTED HANDOFF?????
             }
         }

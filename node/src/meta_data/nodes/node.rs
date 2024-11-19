@@ -1,24 +1,32 @@
+use crate::meta_data::nodes::node::State::{Active, Booting, Inactive};
 use crate::utils::errors::Errors;
 use crate::utils::functions::get_timestamp;
 use crate::utils::node_ip::NodeIp;
 use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub enum State {
+    Active,
+    Inactive,
+    Booting,
+}
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Node {
     pub ip: NodeIp,
     pub position: usize,
     pub is_seed: bool,
-    pub is_active: bool,
+    pub state: State,
     pub timestamp: u64,
 }
 
 impl Node {
-    pub fn new(ip: NodeIp, position: usize, is_seed: bool) -> Result<Self, Errors> {
+    pub fn new(ip: &NodeIp, position: usize, is_seed: bool) -> Result<Self, Errors> {
         Ok(Self {
-            ip,
+            ip: NodeIp::new_from_ip(ip),
             position,
             is_seed,
-            is_active: true,
+            state: Active,
             timestamp: get_timestamp()?,
         })
     }
@@ -28,7 +36,7 @@ impl Node {
             ip: NodeIp::new_from_ip(&node.ip),
             position: node.position,
             is_seed: node.is_seed,
-            is_active: node.is_active,
+            state: node.state.clone(),
             timestamp: node.timestamp,
         }
     }
@@ -55,10 +63,18 @@ impl Node {
     }
 
     pub fn set_inactive(&mut self) {
-        self.is_active = false
+        self.state = Inactive;
     }
 
     pub fn set_active(&mut self) {
-        self.is_active = true
+        self.state = Active
+    }
+
+    pub fn set_booting(&mut self) {
+        self.state = Booting
+    }
+
+    pub fn set_state(&mut self, state: &State) {
+        self.state = state.clone();
     }
 }

@@ -2,14 +2,15 @@ use node::data_access::data_access_handler::DataAccessHandler;
 use node::gossip::gossip_emitter::GossipEmitter;
 use node::gossip::gossip_listener::GossipListener;
 use node::gossip::seed_listener::SeedListener;
+use node::hinted_handoff::hints_receiver::HintsReceiver;
 use node::meta_data::meta_data_handler::MetaDataHandler;
 use node::meta_data::nodes::cluster::Cluster;
 use node::meta_data::nodes::node::Node;
 use node::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
-use node::node_communication::query_receiver::QueryReceiver;
 use node::parsers::parser_factory::ParserFactory;
+use node::query_delegation::query_receiver::QueryReceiver;
 use node::response_builders::error_builder::ErrorBuilder;
-use node::utils::constants::{nodes_meta_data_path, SEED_LISTENER_MOD};
+use node::utils::constants::nodes_meta_data_path;
 use node::utils::errors::Errors;
 use node::utils::frame::Frame;
 use node::utils::node_ip::NodeIp;
@@ -53,24 +54,20 @@ fn main() {
     let network_ip = NodeIp::new_from_string(network_ip.as_str(), port).unwrap();
     let ip = NodeIp::new_from_string(ip.as_str(), port).unwrap();
     let seed_ip = NodeIp::new_from_string(seed_ip.as_str(), seed_port).unwrap();
-    let mut node = Node::new(network_ip, 1, is_seed).expect("Error creating node");
+    let mut node = Node::new(&network_ip, 1, is_seed).expect("Error creating node");
 
-    set_cluster(&mut node, seed_ip, is_first);
+    let needs_booting = set_cluster(&mut node, seed_ip, is_first);
 
     start_listeners(&ip, is_seed);
+
+    if needs_booting {
+        HintsReceiver::start_listening(network_ip).expect("Error starting Hints listener");
+    };
 
     start_gossip().expect("Error starting gossip");
 
     set_node_listener(ip);
 }
-
-// fn add_node_to_cluster(node: Node) -> Result<(), Errors> {
-//     let mut stream = MetaDataHandler::establish_connection()?;
-//     MetaDataHandler::get_instance(&mut stream)?
-//         .get_nodes_metadata_access()
-//         .append_new_node(nodes_meta_data_path().as_ref(), node)?;
-//     Ok(())
-// }
 
 fn get_user_data(msg: &str) -> String {
     print!("{}", msg);
@@ -116,8 +113,9 @@ fn start_gossip() -> Result<(), Errors> {
     Ok(())
 }
 
-fn set_cluster(node: &mut Node, seed_ip: NodeIp, is_first: bool) {
+fn set_cluster(node: &mut Node, seed_ip: NodeIp, is_first: bool) -> bool {
     let mut nodes = Vec::<Node>::new();
+    let mut needs_booting = false;
     if !is_first {
         let mut stream = TcpStream::connect(seed_ip.get_seed_listener_socket())
             .expect("Error connecting to seed");
@@ -126,7 +124,7 @@ fn set_cluster(node: &mut Node, seed_ip: NodeIp, is_first: bool) {
             .read(&mut buffer)
             .expect("Failed to read from server stream");
         nodes = serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
-        set_node_pos(node, &nodes);
+        needs_booting = set_node_pos(node, &nodes);
         stream
             .write_all(serde_json::to_string(&node).expect("").as_bytes())
             .expect("Error writing to seed");
@@ -135,20 +133,23 @@ fn set_cluster(node: &mut Node, seed_ip: NodeIp, is_first: bool) {
     if let Err(e) = NodesMetaDataAccess::write_cluster(nodes_meta_data_path().as_ref(), &cluster) {
         println!("{}", e);
     }
+    needs_booting
 }
 
-fn set_node_pos(node: &mut Node, nodes: &Vec<Node>) {
+fn set_node_pos(node: &mut Node, nodes: &Vec<Node>) -> bool {
     let mut higher_position = 1;
-    for n in nodes {
-        if n.get_ip() == node.get_ip() {
-            node.position = n.get_pos();
-            return;
+    for received_node in nodes {
+        if received_node.get_ip() == node.get_ip() {
+            node.position = received_node.get_pos();
+            node.set_booting();
+            return true;
         }
-        if n.get_pos() > higher_position {
-            higher_position = n.get_pos();
+        if received_node.get_pos() > higher_position {
+            higher_position = received_node.get_pos();
         }
     }
     node.position = higher_position + 1;
+    false
 }
 
 fn set_node_listener(ip: NodeIp) {

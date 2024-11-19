@@ -1,4 +1,5 @@
 use super::{cluster::Cluster, node::Node};
+use crate::meta_data::nodes::node::State;
 use crate::utils::node_ip::NodeIp;
 use crate::{
     meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess,
@@ -78,7 +79,7 @@ impl NodesMetaDataAccess {
     //     Ok(cluster.get_own_port().to_string())
     // }
 
-    pub fn set_inactive(&self, path: &str, ip: &NodeIp) -> Result<(), Errors> {
+    pub fn set_state(&self, path: &str, ip: &NodeIp, state: State) -> Result<(), Errors> {
         let cluster = NodesMetaDataAccess::read_cluster(path)?;
         let mut nodes_list = Vec::new();
         for node in cluster.get_other_nodes() {
@@ -86,7 +87,7 @@ impl NodesMetaDataAccess {
                 nodes_list.push(Node::new_from_node(node))
             } else {
                 let mut inactive = Node::new_from_node(node);
-                inactive.set_inactive();
+                inactive.set_state(&state);
                 nodes_list.push(inactive);
             }
         }
@@ -95,21 +96,16 @@ impl NodesMetaDataAccess {
         Ok(())
     }
 
-    pub fn set_active(&self, path: &str, node_pos: usize) -> Result<(), Errors> {
-        let cluster = NodesMetaDataAccess::read_cluster(path)?;
-        let mut nodes_list = Vec::new();
-        for node in cluster.get_other_nodes() {
-            if node.get_pos() != node_pos {
-                nodes_list.push(Node::new_from_node(node))
-            } else {
-                let mut inactive = Node::new_from_node(node);
-                inactive.set_active();
-                nodes_list.push(inactive);
-            }
-        }
-        let new_cluster = Cluster::new(Node::new_from_node(cluster.get_own_node()), nodes_list);
-        Self::write_cluster(path, &new_cluster)?;
-        Ok(())
+    pub fn set_inactive(&self, path: &str, ip: &NodeIp) -> Result<(), Errors> {
+        self.set_state(path, ip, State::Inactive)
+    }
+
+    pub fn set_booting(&self, path: &str, ip: &NodeIp) -> Result<(), Errors> {
+        self.set_state(path, ip, State::Booting)
+    }
+
+    pub fn set_active(&self, path: &str, ip: &NodeIp) -> Result<(), Errors> {
+        self.set_state(path, ip, State::Active)
     }
 
     pub fn get_partition_full_ips(
