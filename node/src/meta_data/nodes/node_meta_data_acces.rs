@@ -88,6 +88,7 @@ impl NodesMetaDataAccess {
             } else {
                 let mut inactive = Node::new_from_node(node);
                 inactive.set_state(&state);
+                inactive.update_timestamp()?;
                 nodes_list.push(inactive);
             }
         }
@@ -106,6 +107,20 @@ impl NodesMetaDataAccess {
 
     pub fn set_active(&self, path: &str, ip: &NodeIp) -> Result<(), Errors> {
         self.set_state(path, ip, State::Active)
+    }
+
+    pub fn set_own_node_active(&self, path: &str, ip: &NodeIp) -> Result<(), Errors> {
+        let cluster = NodesMetaDataAccess::read_cluster(path)?;
+        let mut new_node = Node::new_from_node(cluster.get_own_node());
+        new_node.set_active();
+        new_node.update_timestamp()?;
+        let mut nodes_list = Vec::new();
+        for node in cluster.get_other_nodes() {
+            nodes_list.push(Node::new_from_node(node))
+        }
+        let new_cluster = Cluster::new(new_node, nodes_list);
+        Self::write_cluster(path, &new_cluster)?;
+        Ok(())
     }
 
     pub fn get_partition_full_ips(

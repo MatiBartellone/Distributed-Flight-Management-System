@@ -52,9 +52,9 @@ impl SeedListener {
             MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
         let cluster = node_metadata.get_cluster(NODES_METADATA)?;
         for node in cluster.get_other_nodes().iter() {
-            if node.get_pos() == new_node.get_pos() {
+            if node.get_ip() == new_node.get_ip() {
                 node_metadata.set_booting(NODES_METADATA, new_node.get_ip())?;
-                return Ok(()); //todo HINTED HANDOFF?????
+                return Ok(());
             }
         }
         node_metadata.append_new_node(NODES_METADATA, new_node)?;

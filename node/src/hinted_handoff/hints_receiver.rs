@@ -20,8 +20,10 @@ impl HintsReceiver {
         let mut hints = Vec::new();
         let timeout = Duration::from_secs(HINTED_HANDOFF_TIMEOUT_SECS);
         let mut last_connection_time = Instant::now();
+        println!("Booting...");
         loop {
             if last_connection_time.elapsed() >= timeout {
+                println!("hola");
                 break;
             }
             match listener.accept() {
@@ -33,7 +35,6 @@ impl HintsReceiver {
             }
         }
         Self::execute_queries(&mut hints)?;
-        Self::finish_booting()?;
         Ok(())
     }
 
@@ -63,12 +64,5 @@ impl HintsReceiver {
             if let Ok(_) = stored.get_query().run() {};
         }
         Ok(())
-    }
-
-    fn finish_booting() -> Result<(), Errors> {
-        let mut meta_data_stream = MetaDataHandler::establish_connection()?;
-        let node_metadata =
-            MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
-        node_metadata.set_active(NODES_METADATA, &node_metadata.get_own_ip(NODES_METADATA)?)
     }
 }

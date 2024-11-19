@@ -8,6 +8,8 @@ use crate::utils::functions::generate_random_number;
 use crate::utils::node_ip::NodeIp;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use rand::seq::SliceRandom;
+use crate::meta_data::nodes::node::State::Booting;
 
 pub struct GossipEmitter;
 
@@ -16,7 +18,6 @@ impl GossipEmitter {
         let Some(ip) = Self::get_random_ip()? else {
             return Ok(());
         };
-
         if let Ok(mut stream) = TcpStream::connect(ip.get_gossip_socket()) {
             Self::send_nodes_list(&mut stream)?;
             Self::get_nodes_list(&mut stream)
@@ -32,18 +33,16 @@ impl GossipEmitter {
         if node_meta_data.get_nodes_quantity(NODES_METADATA)? == 1 {
             return Ok(None);
         }
-        let node_number =
-            generate_random_number(node_meta_data.get_nodes_quantity(NODES_METADATA)? as u64, 1)?
-                as usize;
-        for node in node_meta_data
-            .get_cluster(NODES_METADATA)?
-            .get_other_nodes()
-        {
-            if node.get_pos() == node_number {
-                return Ok(Some(NodeIp::new_from_ip(node.get_ip())));
+        let mut rng = rand::thread_rng();
+        let cluster = node_meta_data
+            .get_cluster(NODES_METADATA)?;
+        let nodes = cluster.get_other_nodes();
+        if let Some(&ref random_node) = nodes.choose(&mut rng) {
+            if random_node.state != Booting {
+                return Ok(Some(NodeIp::new_from_ip(random_node.get_ip())));
             }
         }
-        Err(ServerError(String::from("Could not pick node")))
+        Ok(None)
     }
 
     fn set_inactive(ip: NodeIp) -> Result<(), Errors> {

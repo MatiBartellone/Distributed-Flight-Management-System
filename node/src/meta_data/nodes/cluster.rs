@@ -34,7 +34,7 @@ impl Cluster {
     }
 
     pub fn append_new_node(&mut self, node: Node) {
-        if self.other_nodes.contains(&node) {
+        if !self.other_nodes.contains(&node) {
             self.other_nodes.push(node)
         }
     }

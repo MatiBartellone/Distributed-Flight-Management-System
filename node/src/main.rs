@@ -61,6 +61,7 @@ fn main() {
 
     if needs_booting {
         HintsReceiver::start_listening(network_ip).expect("Error starting Hints listener");
+        finish_booting().expect("Error finishing Hints listener");
     };
 
     start_gossip().expect("Error starting gossip");
@@ -76,6 +77,15 @@ fn get_user_data(msg: &str) -> String {
         .read_line(&mut data)
         .expect("Error reading data");
     data.trim().to_string()
+}
+
+fn finish_booting() -> Result<(), Errors> {
+    let mut meta_data_stream = MetaDataHandler::establish_connection()?;
+    let node_metadata =
+        MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
+    node_metadata.set_active(NODES_METADATA, &node_metadata.get_own_ip(NODES_METADATA)?)?;
+    println!("Finished booting");
+    Ok(())
 }
 
 fn start_listeners(ip: &NodeIp, is_seed: bool) {
@@ -131,7 +141,10 @@ fn set_cluster(node: &mut Node, seed_ip: NodeIp, is_first: bool) -> bool {
             .read(&mut buffer)
             .expect("Failed to read from server stream");
         nodes = serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
-        needs_booting = set_node_pos(node, &nodes);
+        needs_booting = set_node_pos(node, &mut nodes);
+        if needs_booting {
+            nodes = eliminate_node_by_ip(&nodes, &node.get_ip())
+        }
         stream
             .write_all(serde_json::to_string(&node).expect("").as_bytes())
             .expect("Error writing to seed");
@@ -157,6 +170,16 @@ fn set_node_pos(node: &mut Node, nodes: &Vec<Node>) -> bool {
     }
     node.position = higher_position + 1;
     false
+}
+
+fn eliminate_node_by_ip(nodes:  &Vec<Node>, ip: &NodeIp) -> Vec<Node> {
+    let mut new_nodes = Vec::<Node>::new();
+    for node in nodes{
+        if &node.ip != ip {
+            new_nodes.push(Node::new_from_node(node));
+        }
+    }
+    new_nodes
 }
 
 fn set_node_listener(ip: NodeIp) {
