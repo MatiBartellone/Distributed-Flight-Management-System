@@ -5,6 +5,7 @@ use crate::utils::functions::{
     check_table_name, get_columns_from_table, get_long_string_from_str,
     get_table_clustering_columns, get_table_partition, get_timestamp, split_keyspace_table,
 };
+use crate::utils::response::Response;
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -143,7 +144,7 @@ impl Query for InsertQuery {
             let row = self.build_row(values)?;
             data_access.insert(&self.table_name, &row)?
         }
-        Ok(get_long_string_from_str("Insertion was successful"))
+        Response::void()
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {

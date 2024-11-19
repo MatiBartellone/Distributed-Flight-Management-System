@@ -192,7 +192,12 @@ pub fn get_own_modified_port(modifier: i32) -> Result<String, Errors> {
     Ok(format!("{}", port))
 }
 
-pub fn start_listener<F>(ip: String, port: String, port_mod: i32, handle_connection: F) -> Result<(), Errors>
+pub fn start_listener<F>(
+    ip: String,
+    port: String,
+    port_mod: i32,
+    handle_connection: F,
+) -> Result<(), Errors>
 where
     F: Fn(&mut TcpStream) -> Result<(), Errors>,
 {

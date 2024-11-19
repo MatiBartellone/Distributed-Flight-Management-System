@@ -2,9 +2,9 @@ use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::node::Node;
 use crate::utils::constants::{NODES_METADATA, SEED_LISTENER_MOD};
 use crate::utils::errors::Errors;
+use crate::utils::functions::start_listener;
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use crate::utils::functions::start_listener;
 
 pub struct SeedListener;
 

@@ -2,7 +2,6 @@ use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::queries::query::Query;
 use crate::utils::constants::{KEYSPACE_METADATA, REPLICATION, STRATEGY};
 use crate::utils::errors::Errors;
-use crate::utils::functions::get_long_string_from_str;
 use crate::utils::response::Response;
 use serde::{Deserialize, Serialize};
 use std::any::Any;

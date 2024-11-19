@@ -2,12 +2,14 @@ use super::query::Query;
 use super::where_logic::where_clause::WhereClause;
 use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::data_access::row::Row;
+use crate::meta_data::keyspaces::keyspace;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
     check_table_name, get_columns_from_table, get_long_string_from_str,
     get_partition_key_from_where, split_keyspace_table,
 };
+use crate::utils::response::Response;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 
@@ -96,7 +98,8 @@ impl Query for SelectQuery {
             )));
         };
         let rows = data_access.select_rows(&self.table_name, where_clause, &self.order_clauses)?;
-        Ok(get_long_string_from_str(&self.get_rows_string(rows)?))
+        let (kesypace_name, table) = split_keyspace_table(&self.table_name)?;
+        Response::rows(rows, kesypace_name, table)
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {

@@ -3,15 +3,13 @@ use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
 use crate::utils::constants::{GOSSIP_MOD, NODES_METADATA};
 use crate::utils::errors::Errors;
+use crate::utils::functions::start_listener;
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use crate::utils::functions::start_listener;
 
 pub struct GossipListener;
 
 impl GossipListener {
-
-
     pub fn start_listening(ip: String, port: String) -> Result<(), Errors> {
         start_listener(ip, port, GOSSIP_MOD, Self::handle_connection)
     }

@@ -10,6 +10,7 @@ use crate::utils::functions::{
     check_table_name, get_columns_from_table, get_long_string_from_str,
     get_partition_key_from_where, get_table_pk, split_keyspace_table,
 };
+use crate::utils::response::Response;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::cmp::PartialEq;
@@ -125,7 +126,7 @@ impl Query for UpdateQuery {
             )));
         };
         data_access.update_row(&self.table_name, &self.changes, where_clause)?;
-        Ok(get_long_string_from_str("Update was successful"))
+        Response::void()
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {

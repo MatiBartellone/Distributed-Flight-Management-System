@@ -1,7 +1,7 @@
 use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::utils::constants::KEYSPACE_METADATA;
-use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table};
+use crate::utils::functions::{check_table_name, split_keyspace_table};
 use crate::utils::response::Response;
 use crate::{queries::query::Query, utils::errors::Errors};
 use serde::{Deserialize, Serialize};

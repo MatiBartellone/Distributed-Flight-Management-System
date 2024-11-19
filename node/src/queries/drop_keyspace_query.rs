@@ -1,4 +1,3 @@
-use crate::utils::functions::get_long_string_from_str;
 use crate::utils::response::Response;
 use crate::{
     data_access::data_access_handler::DataAccessHandler,

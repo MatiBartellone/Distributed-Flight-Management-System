@@ -91,21 +91,24 @@ impl Query for AlterTableQuery {
         if let Some(operation) = &self.operation {
             let (change_type, target, options) = match operation {
                 Operations::ADD => {
-                    self.add().map_err(|e| Errors::ServerError(format!("Failed to add: {}", e)))?;
+                    self.add()
+                        .map_err(|e| Errors::ServerError(format!("Failed to add: {}", e)))?;
                     let options = format!("{} {}", self.table_name, "ADD column_name column_type");
                     ("ALTERED", "TABLE", options)
                 }
                 Operations::DROP => {
-                    self.drop().map_err(|e| Errors::ServerError(format!("Failed to drop: {}", e)))?;
+                    self.drop()
+                        .map_err(|e| Errors::ServerError(format!("Failed to drop: {}", e)))?;
                     let options = format!("{} {}", self.table_name, "DROP column_name");
                     ("ALTERED", "TABLE", options)
                 }
                 Operations::RENAME => {
-                    self.rename().map_err(|e| Errors::ServerError(format!("Failed to rename: {}", e)))?;
-                    let options = format!("{} RENAME {} TO {}", 
-                          self.table_name, 
-                          self.first_column, 
-                          self.second_column);
+                    self.rename()
+                        .map_err(|e| Errors::ServerError(format!("Failed to rename: {}", e)))?;
+                    let options = format!(
+                        "{} RENAME {} TO {}",
+                        self.table_name, self.first_column, self.second_column
+                    );
                     ("ALTERED", "TABLE", options)
                 }
                 _ => {
@@ -119,8 +122,8 @@ impl Query for AlterTableQuery {
             return Err(Errors::SyntaxError(
                 "Invalid Operation to Alter Table".to_string(),
             ));
-            }
         }
+    }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
         Ok(None)

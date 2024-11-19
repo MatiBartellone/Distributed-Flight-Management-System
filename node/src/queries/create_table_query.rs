@@ -4,13 +4,12 @@ use crate::parsers::tokens::data_type::DataType;
 use crate::queries::query::Query;
 use crate::utils::constants::KEYSPACE_METADATA;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table};
+use crate::utils::functions::{check_table_name, split_keyspace_table};
 use crate::utils::primary_key::PrimaryKey;
 use crate::utils::response::Response;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
-use std::fmt::format;
 
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTableQuery {
@@ -61,7 +60,7 @@ impl Query for CreateTableQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
         self.push_on_data_acces()?;
         let (kesypace_name, table) = self.push_on_meta_data()?;
-        let options = format!("{}.{}",kesypace_name, table);
+        let options = format!("{}.{}", kesypace_name, table);
         Response::schema_change("CREATED", "TABLE", &options)
     }
 

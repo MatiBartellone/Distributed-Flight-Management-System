@@ -198,7 +198,6 @@ fn main() {
         _ => "127.0.0.1:7878".to_string(),
     };
 
-
     clear_screen();
     let listener = TcpListener::bind(ip).unwrap();
     let nodes = Arc::new(Mutex::new(HashMap::new()));
