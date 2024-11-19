@@ -138,6 +138,17 @@ impl NodesMetaDataAccess {
         let cluster = NodesMetaDataAccess::read_cluster(path)?;
         Ok(cluster.len_nodes())
     }
+
+    pub fn get_booting_nodes(&self, path: &str) -> Result<Vec<NodeIp>, Errors> {
+        let mut nodes = Vec::new();
+        let cluster = NodesMetaDataAccess::read_cluster(path)?;
+        for node in cluster.get_other_nodes() {
+            if node.state == State::Booting {
+                nodes.push(NodeIp::new_from_ip(node.get_ip()));
+            }
+        }
+        Ok(nodes)
+    }
 }
 
 fn hash_string_murmur3(input: &str) -> usize {

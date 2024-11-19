@@ -59,10 +59,10 @@ impl GossipEmitter {
             MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
         let serialized =
             serde_json::to_string(&node_meta_data.get_full_nodes_list(NODES_METADATA)?)
-                .map_err(|_| Errors::ServerError(String::from("Error serializing nodes list")))?;
+                .map_err(|_| ServerError(String::from("Error serializing nodes list")))?;
         stream
             .write_all(serialized.as_bytes())
-            .map_err(|_| Errors::ServerError(String::from("Error sending nodes list")))?;
+            .map_err(|_| ServerError(String::from("Error sending nodes list")))?;
         Ok(())
     }
 

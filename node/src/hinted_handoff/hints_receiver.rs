@@ -48,10 +48,7 @@ impl HintsReceiver {
                 .map_err(|_| ServerError(String::from("Failed to read from stream")))?;
             match serde_json::from_slice::<StoredQuery>(&buffer[..size]) {
                 Ok(hint) => hints.push(hint),
-                _ => match serde_json::from_slice::<String>(&buffer[..size]) {
-                    Ok(_) => break,
-                    Err(_) => return Err(ServerError(String::from("Failed to parse json"))),
-                },
+                _ => break,
             }
             stream
                 .write_all(b"ACK")

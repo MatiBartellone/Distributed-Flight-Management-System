@@ -3,6 +3,7 @@ use node::gossip::gossip_emitter::GossipEmitter;
 use node::gossip::gossip_listener::GossipListener;
 use node::gossip::seed_listener::SeedListener;
 use node::hinted_handoff::hints_receiver::HintsReceiver;
+use node::hinted_handoff::hints_sender::HintsSender;
 use node::meta_data::meta_data_handler::MetaDataHandler;
 use node::meta_data::nodes::cluster::Cluster;
 use node::meta_data::nodes::node::Node;
@@ -10,7 +11,7 @@ use node::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use node::parsers::parser_factory::ParserFactory;
 use node::query_delegation::query_receiver::QueryReceiver;
 use node::response_builders::error_builder::ErrorBuilder;
-use node::utils::constants::nodes_meta_data_path;
+use node::utils::constants::{nodes_meta_data_path, NODES_METADATA};
 use node::utils::errors::Errors;
 use node::utils::frame::Frame;
 use node::utils::node_ip::NodeIp;
@@ -21,8 +22,6 @@ use std::thread::sleep;
 use std::time::Duration;
 
 fn main() {
-    //let server_addr = "127.0.0.1:7878";
-
     let (ip, uses_network) =
         match get_user_data("Will this be used across netowrk? [Y][N]: ").as_str() {
             "Y" => (get_user_data("Device's ip (e.g. tailscale): "), true),
@@ -37,7 +36,7 @@ fn main() {
 
     let (seed_ip, seed_port, is_first) =
         match get_user_data("Is this the fisrst node? [Y][N]: ").as_str() {
-            "Y" => ("".to_string(), "".to_string(), true),
+            "Y" => (ip.to_string(), port.to_string(), true),
             _ => (
                 get_user_data("Seed node ip: "),
                 get_user_data("Seed node port: "),
@@ -108,6 +107,14 @@ fn start_gossip() -> Result<(), Errors> {
         loop {
             sleep(Duration::from_secs(1));
             GossipEmitter::start_gossip()?;
+            {
+                let mut stream = MetaDataHandler::establish_connection()?;
+                let node_metadata =
+                    MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
+                for ip in node_metadata.get_booting_nodes(NODES_METADATA)? {
+                    HintsSender::send_hints(ip)?;
+                }
+            }
         }
     });
     Ok(())
