@@ -1,4 +1,5 @@
 use super::{cluster::Cluster, node::Node};
+use crate::utils::node_ip::NodeIp;
 use crate::{
     meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess,
     utils::{constants::KEYSPACE_METADATA, errors::Errors},
@@ -8,7 +9,6 @@ use std::{
     fs::{File, OpenOptions},
     io::Cursor,
 };
-use crate::utils::node_ip::NodeIp;
 
 #[derive(Debug)]
 pub struct NodesMetaDataAccess;

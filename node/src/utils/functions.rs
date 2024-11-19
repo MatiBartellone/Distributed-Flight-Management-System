@@ -1,15 +1,13 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
+use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::parsers::tokens::data_type::DataType;
 use crate::queries::where_logic::where_clause::WhereClause;
-use crate::utils::constants::{
-    nodes_meta_data_path, CLIENT_METADATA_PATH, KEYSPACE_METADATA,
-};
+use crate::utils::constants::{nodes_meta_data_path, CLIENT_METADATA_PATH, KEYSPACE_METADATA};
 use crate::utils::errors::Errors;
+use crate::utils::node_ip::NodeIp;
 use std::collections::{HashMap, HashSet};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
-use crate::utils::node_ip::NodeIp;
 
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -155,12 +153,10 @@ pub fn get_own_ip() -> Result<NodeIp, Errors> {
     NodesMetaDataAccess::get_own_ip_(nodes_meta_data_path().as_ref())
 }
 
-
 pub fn start_listener<F>(socket: SocketAddr, handle_connection: F) -> Result<(), Errors>
 where
     F: Fn(&mut TcpStream) -> Result<(), Errors>,
 {
-
     let listener = TcpListener::bind(socket)
         .map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
     for stream in listener.incoming() {

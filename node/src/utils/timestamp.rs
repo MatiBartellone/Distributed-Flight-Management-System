@@ -8,7 +8,9 @@ pub struct Timestamp {
 
 impl Timestamp {
     pub fn new() -> Self {
-        Self {timestamp: Utc::now().timestamp_millis()}
+        Self {
+            timestamp: Utc::now().timestamp_millis(),
+        }
     }
 
     pub fn is_newer_than(&self, timestamp: Timestamp) -> bool {

@@ -1,7 +1,7 @@
 use super::node::Node;
 use crate::utils::errors::Errors;
-use serde::{Deserialize, Serialize};
 use crate::utils::node_ip::NodeIp;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Cluster {
@@ -41,7 +41,7 @@ impl Cluster {
 
     pub fn get_nodes(&self, position: usize, replication: usize) -> Result<Vec<NodeIp>, Errors> {
         let end_position = position + replication;
-        let mut ips : Vec<NodeIp> = Vec::new();
+        let mut ips: Vec<NodeIp> = Vec::new();
         let total_nodes = self.len_nodes();
         for node in self.other_nodes.iter() {
             let node_pos = node.get_pos();

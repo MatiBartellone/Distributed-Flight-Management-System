@@ -12,12 +12,12 @@ use node::response_builders::error_builder::ErrorBuilder;
 use node::utils::constants::{nodes_meta_data_path, SEED_LISTENER_MOD};
 use node::utils::errors::Errors;
 use node::utils::frame::Frame;
+use node::utils::node_ip::NodeIp;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
-use node::utils::node_ip::NodeIp;
 
 fn main() {
     //let server_addr = "127.0.0.1:7878";
@@ -31,10 +31,8 @@ fn main() {
         true => ("0.0.0.0".to_string(), ip),
         false => (ip.to_string(), ip),
     };
-    let port = get_user_data("Node's port ([port, port+4] are used): ");
-    // let position = get_user_data("Node's position in cluster: ")
-    //     .parse::<i32>()
-    //     .expect("Error in parsing position to int") as usize;
+    let port = get_user_data("Node's port ([port, port+5] are used): ");
+    let port = port.parse::<u16>().expect("Could not parse port");
 
     let (seed_ip, seed_port, is_first) =
         match get_user_data("Is this the fisrst node? [Y][N]: ").as_str() {
@@ -45,21 +43,19 @@ fn main() {
                 false,
             ),
         };
+    let seed_port = seed_port.parse::<u16>().expect("Could not parse port");
 
     let is_seed = match is_first {
         true => true,
         _ => matches!(get_user_data("Is this a seed node? [Y][N]: ").as_str(), "Y"),
     };
 
-    let port = port.parse::<u16>().unwrap();
     let network_ip = NodeIp::new_from_string(network_ip.as_str(), port).unwrap();
     let ip = NodeIp::new_from_string(ip.as_str(), port).unwrap();
-    let mut node = Node::new(network_ip, 1, is_seed)
-        .expect("Error creating node");
+    let seed_ip = NodeIp::new_from_string(seed_ip.as_str(), seed_port).unwrap();
+    let mut node = Node::new(network_ip, 1, is_seed).expect("Error creating node");
 
-    set_cluster(&mut node, seed_ip, seed_port, is_first);
-
-    //listen_incoming_new_nodes(ip.to_string(), port.to_string());
+    set_cluster(&mut node, seed_ip, is_first);
 
     start_listeners(&ip, is_seed);
 
@@ -88,20 +84,17 @@ fn get_user_data(msg: &str) -> String {
 
 fn start_listeners(ip: &NodeIp, is_seed: bool) {
     let meta_data_ip = NodeIp::new_from_ip(ip);
-    let data_access_ip= NodeIp::new_from_ip(ip);
+    let data_access_ip = NodeIp::new_from_ip(ip);
     let query_receiver_ip = NodeIp::new_from_ip(ip);
-    let gossip_listener_ip= NodeIp::new_from_ip(ip);
+    let gossip_listener_ip = NodeIp::new_from_ip(ip);
     thread::spawn(move || {
-        MetaDataHandler::start_listening(meta_data_ip)
-            .expect("Failed to start metadata listener");
+        MetaDataHandler::start_listening(meta_data_ip).expect("Failed to start metadata listener");
     });
     thread::spawn(move || {
-        DataAccessHandler::start_listening(data_access_ip)
-            .expect("Failed to start data access");
+        DataAccessHandler::start_listening(data_access_ip).expect("Failed to start data access");
     });
     thread::spawn(move || {
-        QueryReceiver::start_listening(query_receiver_ip)
-            .expect("Failed to start query receiver");
+        QueryReceiver::start_listening(query_receiver_ip).expect("Failed to start query receiver");
     });
     thread::spawn(move || {
         GossipListener::start_listening(gossip_listener_ip)
@@ -123,14 +116,10 @@ fn start_gossip() -> Result<(), Errors> {
     Ok(())
 }
 
-fn set_cluster(node: &mut Node, seed_ip: String, seed_port: String, is_first: bool) {
+fn set_cluster(node: &mut Node, seed_ip: NodeIp, is_first: bool) {
     let mut nodes = Vec::<Node>::new();
     if !is_first {
-        let seed_listener_port = seed_port
-            .parse::<i32>()
-            .expect("Error in parsing seed port")
-            + SEED_LISTENER_MOD;
-        let mut stream = TcpStream::connect(format!("{}:{}", seed_ip, seed_listener_port))
+        let mut stream = TcpStream::connect(seed_ip.get_seed_listener_socket())
             .expect("Error connecting to seed");
         let mut buffer = [0; 1024];
         let size = stream

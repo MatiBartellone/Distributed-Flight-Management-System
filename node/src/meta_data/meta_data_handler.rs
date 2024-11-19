@@ -3,10 +3,10 @@ use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAcces
 use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::utils::errors::Errors;
 use crate::utils::functions::get_own_ip;
+use crate::utils::node_ip::NodeIp;
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
-use crate::utils::node_ip::NodeIp;
 
 #[derive(Serialize, Deserialize)]
 pub struct MetaDataHandler;

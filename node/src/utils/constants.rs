@@ -15,6 +15,7 @@ pub const GOSSIP_MOD: i32 = 4;
 pub const SEED_LISTENER_MOD: i32 = 5;
 pub const META_DATA_ACCESS_PORT: i32 = 9292;
 pub const CLIENTS_PORT: i32 = 8080;
+pub const TIMEOUT_SECS: u64 = 5;
 pub const DOLLAR: char = '$';
 pub const DOUBLE_QUOTE: char = '"';
 pub const SINGLE_QUOTE: char = '\'';

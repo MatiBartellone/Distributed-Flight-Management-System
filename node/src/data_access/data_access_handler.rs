@@ -1,9 +1,9 @@
 use crate::data_access::data_access::DataAccess;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{get_own_ip, start_listener};
+use crate::utils::node_ip::NodeIp;
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use crate::utils::node_ip::NodeIp;
 
 pub struct DataAccessHandler {}
 

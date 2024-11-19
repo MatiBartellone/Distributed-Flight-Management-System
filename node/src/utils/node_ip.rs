@@ -1,9 +1,12 @@
-use std::net::{IpAddr, SocketAddr};
-use std::str::FromStr;
-use serde::{Deserialize, Serialize};
-use crate::utils::constants::{DATA_ACCESS_PORT_MOD, GOSSIP_MOD, META_DATA_ACCESS_MOD, QUERY_DELEGATION_PORT_MOD, SEED_LISTENER_MOD};
+use crate::utils::constants::{
+    DATA_ACCESS_PORT_MOD, GOSSIP_MOD, META_DATA_ACCESS_MOD, QUERY_DELEGATION_PORT_MOD,
+    SEED_LISTENER_MOD,
+};
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
+use serde::{Deserialize, Serialize};
+use std::net::{IpAddr, SocketAddr};
+use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct NodeIp {
@@ -13,15 +16,19 @@ pub struct NodeIp {
 
 impl NodeIp {
     pub fn new(ip: IpAddr, port: u16) -> NodeIp {
-        NodeIp {ip, port}
+        NodeIp { ip, port }
     }
 
     pub fn new_from_string(ip_string: &str, port: u16) -> Result<NodeIp, Errors> {
-        Ok(NodeIp {ip: IpAddr::from_str(ip_string).map_err(|_| ServerError(String::from("Could not parse ip")))?, port})
+        Ok(NodeIp {
+            ip: IpAddr::from_str(ip_string)
+                .map_err(|_| ServerError(String::from("Could not parse ip")))?,
+            port,
+        })
     }
 
     pub fn new_from_ip(node_ip: &NodeIp) -> NodeIp {
-        Self{
+        Self {
             ip: node_ip.ip,
             port: node_ip.port,
         }

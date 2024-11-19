@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
 use crate::queries::query::{Query, QueryEnum};
 use crate::utils::constants::HINTED_HANDOFF_HOURS;
 use crate::utils::errors::Errors;
 use crate::utils::timestamp::Timestamp;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct StoredQuery {
@@ -15,7 +15,10 @@ impl StoredQuery {
         let Some(query_enum) = QueryEnum::from_query(query) else {
             return Err(Errors::ServerError(String::from("")));
         };
-        Ok(Self { query: query_enum, timestamp: Timestamp::new() })
+        Ok(Self {
+            query: query_enum,
+            timestamp: Timestamp::new(),
+        })
     }
 
     pub fn has_perished(&self) -> bool {

@@ -1,2 +1,2 @@
-pub mod stored_query;
 pub mod handler;
+pub mod stored_query;

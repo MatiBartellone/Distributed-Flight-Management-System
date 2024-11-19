@@ -1,7 +1,7 @@
 use crate::utils::errors::Errors;
 use crate::utils::functions::get_timestamp;
-use serde::{Deserialize, Serialize};
 use crate::utils::node_ip::NodeIp;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Node {

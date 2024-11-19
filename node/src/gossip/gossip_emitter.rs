@@ -3,18 +3,18 @@ use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
 use crate::utils::constants::NODES_METADATA;
 use crate::utils::errors::Errors;
+use crate::utils::errors::Errors::ServerError;
 use crate::utils::functions::generate_random_number;
+use crate::utils::node_ip::NodeIp;
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use crate::utils::errors::Errors::ServerError;
-use crate::utils::node_ip::NodeIp;
 
 pub struct GossipEmitter;
 
 impl GossipEmitter {
     pub fn start_gossip() -> Result<(), Errors> {
         let Some(ip) = Self::get_random_ip()? else {
-            return Ok(())
+            return Ok(());
         };
 
         if let Ok(mut stream) = TcpStream::connect(ip.get_gossip_socket()) {
@@ -30,7 +30,7 @@ impl GossipEmitter {
         let node_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
         if node_meta_data.get_nodes_quantity(NODES_METADATA)? == 1 {
-            return Ok(None)
+            return Ok(None);
         }
         let node_number =
             generate_random_number(node_meta_data.get_nodes_quantity(NODES_METADATA)? as u64, 1)?
