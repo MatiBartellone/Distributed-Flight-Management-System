@@ -1,4 +1,5 @@
 use crate::utils::functions::get_long_string_from_str;
+use crate::utils::response::Response;
 use crate::{
     data_access::data_access_handler::DataAccessHandler,
     meta_data::meta_data_handler::MetaDataHandler,
@@ -42,7 +43,7 @@ impl Query for DropKeySpaceQuery {
             let table_id = format!("{}.{}", self.keyspace, table);
             data_access.drop_table(table_id)?;
         }
-        Ok(get_long_string_from_str("Drop keyspace was successful"))
+        Response::schema_change("DROPPED", "KEYSPACE", &self.keyspace)
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {

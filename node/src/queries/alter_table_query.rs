@@ -91,25 +91,22 @@ impl Query for AlterTableQuery {
         if let Some(operation) = &self.operation {
             let (change_type, target, options) = match operation {
                 Operations::ADD => {
-                    // Ejecuta la operación `add` y maneja posibles errores
                     self.add().map_err(|e| Errors::ServerError(format!("Failed to add: {}", e)))?;
                     let options = format!("{} {}", self.table_name, "ADD column_name column_type");
-                    ("ALTER", "TABLE", options)
+                    ("ALTERED", "TABLE", options)
                 }
                 Operations::DROP => {
-                    // Ejecuta la operación `drop` y maneja posibles errores
                     self.drop().map_err(|e| Errors::ServerError(format!("Failed to drop: {}", e)))?;
                     let options = format!("{} {}", self.table_name, "DROP column_name");
-                    ("ALTER", "TABLE", options)
+                    ("ALTERED", "TABLE", options)
                 }
                 Operations::RENAME => {
-                    // Ejecuta la operación `rename` y maneja posibles errores
                     self.rename().map_err(|e| Errors::ServerError(format!("Failed to rename: {}", e)))?;
                     let options = format!("{} RENAME {} TO {}", 
                           self.table_name, 
                           self.first_column, 
                           self.second_column);
-                    ("ALTER", "TABLE", options)
+                    ("ALTERED", "TABLE", options)
                 }
                 _ => {
                     return Err(Errors::SyntaxError(
