@@ -64,7 +64,7 @@ impl Response {
             let column_name_bytes = column.column_name.as_bytes();
             encoder.write_int(column_name_bytes.len() as i32).map_err(Errors::TruncateError)?;
             encoder.write_bytes(column_name_bytes);
-            let data_type_id = Response::data_type_to_byte(column.value.data_type.clone());
+            let data_type_id = Response::data_type_to_byte(&column.value.data_type);
             encoder.write_i16(data_type_id).map_err(Errors::TruncateError)?;
         }
         encoder.write_int(rows.len() as i32).map_err(Errors::TruncateError)?;
@@ -78,7 +78,7 @@ impl Response {
         Ok(encoder.into_bytes())
     }
 
-    fn data_type_to_byte(data: DataType) -> i16 {
+    fn data_type_to_byte(data: &DataType) -> i16 {
         match data {
             DataType::Boolean => 0x0004,  // Código de tipo para `BOOLEAN`
             DataType::Date => 0x000B,     // Código de tipo para `DATE`

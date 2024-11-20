@@ -119,9 +119,11 @@ impl QueryDelegator {
         };
         for r in &responses {
             if r != response {
-                // READ REPAIR
+                
             }
         }
         Ok(response.clone())
     }
+
+
 }
