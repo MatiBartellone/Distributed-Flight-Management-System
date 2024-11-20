@@ -11,10 +11,11 @@ use node::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use node::parsers::parser_factory::ParserFactory;
 use node::query_delegation::query_receiver::QueryReceiver;
 use node::response_builders::error_builder::ErrorBuilder;
-use node::utils::constants::{nodes_meta_data_path, NODES_METADATA};
+use node::utils::constants::{nodes_meta_data_path, IP_FILE, NODES_METADATA};
 use node::utils::errors::Errors;
 use node::utils::frame::Frame;
 use node::utils::node_ip::NodeIp;
+use std::fs::File;
 use std::io::{self, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::thread;
@@ -52,6 +53,7 @@ fn main() {
 
     let network_ip = NodeIp::new_from_string(network_ip.as_str(), port).unwrap();
     let ip = NodeIp::new_from_string(ip.as_str(), port).unwrap();
+    store_ip(&ip).unwrap();
     let seed_ip = NodeIp::new_from_string(seed_ip.as_str(), seed_port).unwrap();
     let mut node = Node::new(&network_ip, 1, is_seed).expect("Error creating node");
 
@@ -172,9 +174,9 @@ fn set_node_pos(node: &mut Node, nodes: &Vec<Node>) -> bool {
     false
 }
 
-fn eliminate_node_by_ip(nodes:  &Vec<Node>, ip: &NodeIp) -> Vec<Node> {
+fn eliminate_node_by_ip(nodes: &Vec<Node>, ip: &NodeIp) -> Vec<Node> {
     let mut new_nodes = Vec::<Node>::new();
-    for node in nodes{
+    for node in nodes {
         if &node.ip != ip {
             new_nodes.push(Node::new_from_node(node));
         }
@@ -243,4 +245,11 @@ fn execute_request(bytes: Vec<u8>) -> Result<Vec<u8>, Errors> {
     let mut executable = parser.parse(frame.body.as_slice())?;
     let frame = executable.execute(frame)?;
     Ok(frame.to_bytes())
+}
+
+fn store_ip(ip: &NodeIp) -> Result<(), Errors> {
+    let mut file = File::create(IP_FILE).expect("Error creating file");
+    file.write_all(ip.get_string_ip().as_bytes())
+        .expect("Error writing to file");
+    Ok(())
 }

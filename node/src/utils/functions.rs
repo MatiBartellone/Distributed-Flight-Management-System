@@ -1,11 +1,12 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
-use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::parsers::tokens::data_type::DataType;
 use crate::queries::where_logic::where_clause::WhereClause;
-use crate::utils::constants::{nodes_meta_data_path, CLIENT_METADATA_PATH, KEYSPACE_METADATA};
+use crate::utils::constants::{CLIENT_METADATA_PATH, IP_FILE, KEYSPACE_METADATA};
 use crate::utils::errors::Errors;
+use crate::utils::errors::Errors::ServerError;
 use crate::utils::node_ip::NodeIp;
 use std::collections::{HashMap, HashSet};
+use std::fs;
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -150,7 +151,11 @@ pub fn get_partition_key_from_where(
 }
 
 pub fn get_own_ip() -> Result<NodeIp, Errors> {
-    NodesMetaDataAccess::get_own_ip_(nodes_meta_data_path().as_ref())
+    let content = fs::read_to_string(IP_FILE).map_err(|e| ServerError(e.to_string()))?; // Lee el contenido completo como un String
+    let split = content.split(":").collect::<Vec<&str>>();
+    let port = split[1].parse::<u16>().unwrap();
+    NodeIp::new_from_string(split[0], port)
+    //NodesMetaDataAccess::get_own_ip_(nodes_meta_data_path().as_ref())
 }
 
 pub fn start_listener<F>(socket: SocketAddr, handle_connection: F) -> Result<(), Errors>

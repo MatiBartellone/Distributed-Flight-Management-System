@@ -1,14 +1,14 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
+use crate::meta_data::nodes::node::State::Booting;
 use crate::utils::constants::NODES_METADATA;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::node_ip::NodeIp;
+use rand::seq::SliceRandom;
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use rand::seq::SliceRandom;
-use crate::meta_data::nodes::node::State::Booting;
 
 pub struct GossipEmitter;
 
@@ -33,8 +33,7 @@ impl GossipEmitter {
             return Ok(None);
         }
         let mut rng = rand::thread_rng();
-        let cluster = node_meta_data
-            .get_cluster(NODES_METADATA)?;
+        let cluster = node_meta_data.get_cluster(NODES_METADATA)?;
         let nodes = cluster.get_other_nodes();
         if let Some(random_node) = nodes.choose(&mut rng) {
             if random_node.state != Booting {

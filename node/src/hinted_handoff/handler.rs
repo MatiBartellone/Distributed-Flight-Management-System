@@ -1,5 +1,5 @@
 use crate::hinted_handoff::stored_query::StoredQuery;
-use crate::utils::constants::HINTED_HANDOF_DATA;
+use crate::utils::constants::HINTED_HANDOFF_DATA;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::node_ip::NodeIp;
@@ -12,8 +12,8 @@ pub struct Handler;
 
 impl Handler {
     pub fn store_query(query: StoredQuery, ip: NodeIp) -> Result<(), Errors> {
-        fs::create_dir_all(HINTED_HANDOF_DATA).map_err(|e| ServerError(e.to_string()))?;
-        let path = format!("{}/{}.txt", HINTED_HANDOF_DATA, ip.get_string_ip());
+        fs::create_dir_all(HINTED_HANDOFF_DATA).map_err(|e| ServerError(e.to_string()))?;
+        let path = format!("{}/{}.txt", HINTED_HANDOFF_DATA, ip.get_string_ip());
         let mut file = OpenOptions::new()
             .create(true)
             .append(true)
@@ -31,7 +31,7 @@ impl Handler {
     }
 
     pub fn check_for_perished(&self) -> Result<(), Errors> {
-        for entry in fs::read_dir(HINTED_HANDOF_DATA)
+        for entry in fs::read_dir(HINTED_HANDOFF_DATA)
             .map_err(|_| ServerError(String::from("cannot read directory")))?
         {
             let entry = entry.map_err(|_| ServerError(String::from("cannot read directory")))?;
@@ -66,7 +66,6 @@ impl Handler {
             File::create(&temp_path).map_err(|_| ServerError(String::from("cannot open file")))?;
 
         for line in reader.lines().map_while(Result::ok) {
-
             let stored_query: StoredQuery = serde_json::from_slice(line.trim().as_bytes())
                 .map_err(|_| ServerError(String::from("invalid query")))?;
             if !stored_query.has_perished() {
@@ -74,7 +73,6 @@ impl Handler {
                     .write_all(line.as_bytes())
                     .map_err(|_| ServerError(String::from("invalid query")))?;
             }
-
         }
         rename(temp_path, path).map_err(|_| ServerError(String::from("cannot rename file")))?;
         Ok(())

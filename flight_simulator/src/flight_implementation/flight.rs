@@ -19,6 +19,7 @@ pub struct Flight {
 }
 
 impl Flight {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         code: String,
         status: FlightStatus,

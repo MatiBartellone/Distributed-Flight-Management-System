@@ -49,11 +49,15 @@ impl HintsReceiver {
                 Ok(hint) => hints.push(hint),
                 _ => break,
             }
-            stream.flush().map_err(|_| ServerError(String::from("Failed to flush stream")))?;
+            stream
+                .flush()
+                .map_err(|_| ServerError(String::from("Failed to flush stream")))?;
             stream
                 .write_all(b"ACK")
                 .map_err(|_| ServerError(String::from("Failed to write to stream")))?;
-            stream.flush().map_err(|_| ServerError(String::from("Failed to flush stream")))?;
+            stream
+                .flush()
+                .map_err(|_| ServerError(String::from("Failed to flush stream")))?;
         }
         Ok(())
     }

@@ -10,17 +10,6 @@ use std::{collections::HashMap, io::Read};
 pub struct KeyspaceMetaDataAccess;
 
 impl KeyspaceMetaDataAccess {
-    /*pub fn new() -> Result<Self, Errors> {
-        let file = OpenOptions::new()
-        .read(true)  // Permitir lectura
-        .write(true) // Permitir escritura
-        .create(true) // Crear el archivo si no existe
-        .open(PATH)
-        .map_err(|_| Errors::ServerError("Unable to open or create file".to_string()))?;
-        let mutex = Arc::new(Mutex::new(file));
-        Ok(Self { file: mutex })
-    } */
-
     fn open_file(path: String) -> Result<File, Errors> {
         let file = OpenOptions::new()
             .read(true)
