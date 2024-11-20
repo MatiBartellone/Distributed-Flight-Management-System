@@ -1,6 +1,8 @@
 use super::query::Query;
 use crate::utils::constants::KEYSPACE_METADATA_PATH;
-use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table, use_keyspace_meta_data};
+use crate::utils::functions::{
+    check_table_name, get_long_string_from_str, split_keyspace_table, use_keyspace_meta_data,
+};
 use crate::{parsers::tokens::data_type::DataType, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -41,34 +43,40 @@ impl AlterTableQuery {
 
     fn add(&self) -> Result<(), Errors> {
         let (keyspace_name, table) = split_keyspace_table(&self.table_name)?;
-        use_keyspace_meta_data(|handler| handler.new_column(
-            KEYSPACE_METADATA_PATH.to_owned(),
-            keyspace_name,
-            table,
-            &self.first_column,
-            self.data.to_owned(),
-        ))
+        use_keyspace_meta_data(|handler| {
+            handler.new_column(
+                KEYSPACE_METADATA_PATH.to_owned(),
+                keyspace_name,
+                table,
+                &self.first_column,
+                self.data.to_owned(),
+            )
+        })
     }
 
     fn drop(&self) -> Result<(), Errors> {
         let (keyspace_name, table) = split_keyspace_table(&self.table_name)?;
-        use_keyspace_meta_data(|handler| handler.drop_column(
-            KEYSPACE_METADATA_PATH.to_owned(),
-            keyspace_name,
-            table,
-            &self.first_column,
-        ))
+        use_keyspace_meta_data(|handler| {
+            handler.drop_column(
+                KEYSPACE_METADATA_PATH.to_owned(),
+                keyspace_name,
+                table,
+                &self.first_column,
+            )
+        })
     }
 
     fn rename(&self) -> Result<(), Errors> {
         let (keyspace_name, table) = split_keyspace_table(&self.table_name)?;
-        use_keyspace_meta_data(|handler| handler.rename_column(
-            KEYSPACE_METADATA_PATH.to_owned(),
-            keyspace_name,
-            table,
-            &self.first_column,
-            &self.second_column,
-        ))
+        use_keyspace_meta_data(|handler| {
+            handler.rename_column(
+                KEYSPACE_METADATA_PATH.to_owned(),
+                keyspace_name,
+                table,
+                &self.first_column,
+                &self.second_column,
+            )
+        })
     }
 }
 

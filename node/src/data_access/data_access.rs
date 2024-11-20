@@ -9,12 +9,14 @@ use crate::queries::where_logic::where_clause::WhereClause;
 use crate::utils::constants::{ASC, DATA_ACCESS_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
-use crate::utils::functions::{get_int_from_string, get_timestamp};
+use crate::utils::functions::{
+    get_int_from_string, get_timestamp, serialize_to_string, write_all_to_file,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::fs::{metadata, remove_file, rename, File, OpenOptions};
-use std::io::{BufReader, Seek, SeekFrom, Write};
+use std::io::{BufReader, Seek, SeekFrom};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DataAccess;
@@ -33,8 +35,7 @@ impl DataAccess {
         fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
         let mut file =
             File::create(path).map_err(|_| ServerError(String::from("Could not create file")))?;
-        file.write_all(b"[]")
-            .map_err(|_| ServerError(String::from("Could not initialize table file")))?;
+        write_all_to_file(&mut file, b"[]")?;
         Ok(())
     }
 
@@ -285,21 +286,14 @@ impl DataAccess {
         if file_size > 2 {
             file.seek(SeekFrom::End(-1))
                 .map_err(|_| ServerError("Failed to seek in file".to_string()))?;
-            file.write_all(b",")
-                .map_err(|_| ServerError("Failed to append row to table file".to_string()))?;
+            write_all_to_file(&mut file, b",")?;
         } else {
             file.seek(SeekFrom::End(-1))
                 .map_err(|_| ServerError("Failed to seek in file".to_string()))?;
         }
-        let json_row = serde_json::to_string(&row)
-            .map_err(|_| ServerError("Failed to serialize row".to_string()))?;
-        file.write_all(json_row.as_bytes())
-            .map_err(|_| ServerError("Failed to write row to file".to_string()))?;
-
-        file.write_all(b"]")
-            .map_err(|_| ServerError("Failed to close JSON array".to_string()))?;
-
-        Ok(())
+        let json_row = serialize_to_string(&row)?;
+        write_all_to_file(&mut file, json_row.as_bytes())?;
+        write_all_to_file(&mut file, b"]")
     }
 
     fn pk_already_exists(&self, path: &String, primary_keys: &Vec<String>) -> Result<bool, Errors> {

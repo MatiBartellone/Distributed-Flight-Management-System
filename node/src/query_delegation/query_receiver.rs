@@ -34,7 +34,7 @@ impl QueryReceiver {
 fn handle_query(stream: &mut TcpStream) -> Result<Vec<u8>, Errors> {
     let res = read_exact_from_stream(stream)?;
     stream.flush().expect("sds");
-    let query = QuerySerializer::deserialize(&res.as_slice())?;
+    let query = QuerySerializer::deserialize(res.as_slice())?;
     match query.run() {
         Ok(result) => Ok(result),
         Err(e) => Ok(e.to_string().as_bytes().to_vec()),
@@ -43,6 +43,6 @@ fn handle_query(stream: &mut TcpStream) -> Result<Vec<u8>, Errors> {
 
 fn respond_to_request(stream: &mut TcpStream, response: Vec<u8>) -> Result<(), Errors> {
     flush_stream(stream)?;
-    write_to_stream(stream, &response.as_slice())?;
+    write_to_stream(stream, response.as_slice())?;
     flush_stream(stream)
 }

@@ -1,6 +1,5 @@
-use crate::utils::functions::{get_long_string_from_str, use_keyspace_meta_data};
+use crate::utils::functions::{get_long_string_from_str, use_data_access, use_keyspace_meta_data};
 use crate::{
-    data_access::data_access_handler::DataAccessHandler,
     queries::query::Query,
     utils::{constants::KEYSPACE_METADATA_PATH, errors::Errors},
 };
@@ -34,12 +33,13 @@ impl DropKeySpaceQuery {
 impl Query for DropKeySpaceQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
         let tables = self.push_on_meta_data()?;
-        let mut stream = DataAccessHandler::establish_connection()?;
-        let data_access = DataAccessHandler::get_instance(&mut stream)?;
-        for table in tables {
-            let table_id = format!("{}.{}", self.keyspace, table);
-            data_access.drop_table(table_id)?;
-        }
+        use_data_access(|data_access| {
+            for table in tables {
+                let table_id = format!("{}.{}", self.keyspace, table);
+                data_access.drop_table(table_id)?;
+            }
+            Ok(())
+        })?;
         Ok(get_long_string_from_str("Drop keyspace was successful"))
     }
 

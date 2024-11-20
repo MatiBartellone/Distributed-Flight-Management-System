@@ -31,7 +31,7 @@ impl SeedListener {
 
     fn get_new_node(stream: &mut TcpStream) -> Result<Node, Errors> {
         let buf = read_from_stream_no_zero(stream)?;
-        deserialize_from_slice(&buf.as_slice())
+        deserialize_from_slice(buf.as_slice())
     }
 
     fn set_new_node(new_node: Node) -> Result<(), Errors> {

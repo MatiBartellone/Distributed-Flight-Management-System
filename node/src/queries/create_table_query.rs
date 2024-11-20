@@ -1,9 +1,11 @@
-use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::parsers::tokens::data_type::DataType;
 use crate::queries::query::Query;
 use crate::utils::constants::KEYSPACE_METADATA_PATH;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table, use_keyspace_meta_data};
+use crate::utils::functions::{
+    check_table_name, get_long_string_from_str, split_keyspace_table, use_data_access,
+    use_keyspace_meta_data,
+};
 use crate::utils::primary_key::PrimaryKey;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -27,20 +29,19 @@ impl CreateTableQuery {
 
     fn push_on_meta_data(&self) -> Result<(), Errors> {
         let (kesypace_name, table) = split_keyspace_table(&self.table_name)?;
-        use_keyspace_meta_data(|handler| handler.add_table(
-            KEYSPACE_METADATA_PATH.to_owned(),
-            kesypace_name,
-            table,
-            self.primary_key.to_owned(),
-            self.columns.to_owned(),
-        ))
+        use_keyspace_meta_data(|handler| {
+            handler.add_table(
+                KEYSPACE_METADATA_PATH.to_owned(),
+                kesypace_name,
+                table,
+                self.primary_key.to_owned(),
+                self.columns.to_owned(),
+            )
+        })
     }
 
     fn push_on_data_acces(&self) -> Result<(), Errors> {
-        let mut stream = DataAccessHandler::establish_connection()?;
-        let data_access = DataAccessHandler::get_instance(&mut stream)?;
-        data_access.create_table(&self.table_name)?;
-        Ok(())
+        use_data_access(|data_access| data_access.create_table(&self.table_name))
     }
 }
 

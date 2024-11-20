@@ -2,6 +2,7 @@ use super::client::Client;
 use crate::utils::constants::CLIENT_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
+use crate::utils::functions::deserialize_from_slice;
 use std::fs::remove_file;
 use std::io::Write;
 use std::{
@@ -15,15 +16,14 @@ impl ClientMetaDataAcces {
     fn open_file(path: &str) -> Result<File, Errors> {
         fs::create_dir_all(CLIENT_METADATA_PATH).map_err(|e| ServerError(e.to_string()))?;
         let file =
-            File::create(&path).map_err(|_| ServerError("Unable to create file".to_string()))?;
+            File::create(path).map_err(|_| ServerError("Unable to create file".to_string()))?;
         Ok(file)
     }
 
     fn get_client(path: &str) -> Result<Client, Errors> {
         let content = fs::read_to_string(path)
             .map_err(|_| ServerError(String::from("Error reading file")))?;
-        let client: Client = serde_json::from_slice::<Client>(content.as_bytes())
-            .map_err(|e| ServerError(e.to_string()))?;
+        let client: Client = deserialize_from_slice(content.as_bytes())?;
         Ok(client)
     }
 

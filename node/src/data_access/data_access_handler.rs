@@ -18,7 +18,7 @@ impl DataAccessHandler {
         let data_access = DataAccess {};
         let serialized = serialize_to_string(&data_access)?;
         flush_stream(stream)?;
-        write_to_stream(stream, &serialized.as_bytes())?;
+        write_to_stream(stream, serialized.as_bytes())?;
         flush_stream(stream)?;
         read_exact_from_stream(stream)?;
         Ok(())

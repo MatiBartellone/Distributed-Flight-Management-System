@@ -2,10 +2,11 @@ use crate::hinted_handoff::stored_query::StoredQuery;
 use crate::utils::constants::HINTED_HANDOFF_DATA;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
+use crate::utils::functions::{deserialize_from_slice, serialize_to_string, write_all_to_file};
 use crate::utils::node_ip::NodeIp;
 use std::fs;
 use std::fs::{rename, File, OpenOptions};
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
 
 pub struct Handler;
@@ -20,14 +21,8 @@ impl Handler {
             .open(&path)
             .map_err(|_| ServerError(String::from("failed to open file")))?;
 
-        let line = format!(
-            "{}\n",
-            serde_json::to_string(&query)
-                .map_err(|_| ServerError(String::from("Failed to serialize query")))?
-        );
-        file.write_all(line.as_bytes())
-            .map_err(|_| ServerError(String::from("Failed to write to file")))?;
-        Ok(())
+        let line = format!("{}\n", serialize_to_string(&query)?);
+        write_all_to_file(&mut file, line.as_bytes())
     }
 
     pub fn check_for_perished(&self) -> Result<(), Errors> {
@@ -46,8 +41,7 @@ impl Handler {
                 > 0
             {
                 let stored_query: StoredQuery =
-                    serde_json::from_slice(first_line.trim().as_bytes())
-                        .map_err(|_| ServerError(String::from("invalid query")))?;
+                    deserialize_from_slice(first_line.trim().as_bytes())?;
                 if stored_query.has_perished() {
                     Self::eliminate_perished(path)?
                 }
@@ -66,12 +60,9 @@ impl Handler {
             File::create(&temp_path).map_err(|_| ServerError(String::from("cannot open file")))?;
 
         for line in reader.lines().map_while(Result::ok) {
-            let stored_query: StoredQuery = serde_json::from_slice(line.trim().as_bytes())
-                .map_err(|_| ServerError(String::from("invalid query")))?;
+            let stored_query: StoredQuery = deserialize_from_slice(line.trim().as_bytes())?;
             if !stored_query.has_perished() {
-                temp_file
-                    .write_all(line.as_bytes())
-                    .map_err(|_| ServerError(String::from("invalid query")))?;
+                write_all_to_file(&mut temp_file, line.as_bytes())?;
             }
         }
         rename(temp_path, path).map_err(|_| ServerError(String::from("cannot rename file")))?;

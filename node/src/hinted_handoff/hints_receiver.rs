@@ -42,11 +42,9 @@ impl HintsReceiver {
         stream: &mut TcpStream,
         hints: &mut Vec<StoredQuery>,
     ) -> Result<(), Errors> {
-        loop {
-            match serde_json::from_slice::<StoredQuery>(&read_exact_from_stream(stream)?) {
-                Ok(hint) => hints.push(hint),
-                _ => break,
-            }
+        while let Ok(hint) = serde_json::from_slice::<StoredQuery>(&read_exact_from_stream(stream)?)
+        {
+            hints.push(hint);
             flush_stream(stream)?;
             write_to_stream(stream, b"ACK")?;
             flush_stream(stream)?;

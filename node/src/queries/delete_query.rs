@@ -1,8 +1,8 @@
 use super::{query::Query, where_logic::where_clause::WhereClause};
-use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
     check_table_name, get_long_string_from_str, get_partition_key_from_where, split_keyspace_table,
+    use_data_access,
 };
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -30,14 +30,14 @@ impl Default for DeleteQuery {
 
 impl Query for DeleteQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
-        let mut stream = DataAccessHandler::establish_connection()?;
-        let data_access = DataAccessHandler::get_instance(&mut stream)?;
         let Some(where_clause) = &self.where_clause else {
             return Err(Errors::SyntaxError(String::from(
                 "Where clause must be defined",
             )));
         };
-        data_access.set_deleted_rows(&self.table_name, where_clause)?;
+        use_data_access(|data_access| {
+            data_access.set_deleted_rows(&self.table_name, where_clause)
+        })?;
         Ok(get_long_string_from_str("Delete was successful"))
     }
 

@@ -24,7 +24,7 @@ impl HintsSender {
             for line in reader.lines() {
                 let line =
                     line.map_err(|_| ServerError(String::from("Error reading from handoff.")))?;
-                write_to_stream(&mut stream, &line.trim().as_bytes())?;
+                write_to_stream(&mut stream, line.trim().as_bytes())?;
                 flush_stream(&mut stream)?;
                 Self::expect_acknowledge(&mut stream)?;
                 flush_stream(&mut stream)?;

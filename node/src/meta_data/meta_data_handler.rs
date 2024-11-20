@@ -33,7 +33,7 @@ impl MetaDataHandler {
         let meta_data_handler = MetaDataHandler {};
         let serialized = serialize_to_string(&meta_data_handler)?;
         flush_stream(stream)?;
-        write_to_stream(stream, &serialized.as_bytes())?;
+        write_to_stream(stream, serialized.as_bytes())?;
         flush_stream(stream)?;
         read_exact_from_stream(stream)?;
         Ok(())

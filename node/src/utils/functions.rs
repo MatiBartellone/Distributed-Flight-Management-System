@@ -1,3 +1,7 @@
+use crate::data_access::data_access::DataAccess;
+use crate::data_access::data_access_handler::DataAccessHandler;
+use crate::meta_data::clients::meta_data_client::ClientMetaDataAcces;
+use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::parsers::tokens::data_type::DataType;
@@ -10,10 +14,10 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::fs::File;
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess;
 
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -30,38 +34,38 @@ pub fn get_timestamp() -> Result<u64, Errors> {
 }
 
 pub fn check_table_name(table_name: &String) -> Result<String, Errors> {
-    let mut stream = MetaDataHandler::establish_connection()?;
-    let client_meta_data =
-        MetaDataHandler::get_instance(&mut stream)?.get_client_meta_data_access();
-    if table_name.is_empty() {
-        return Err(Errors::SyntaxError(String::from("Table is empty")));
-    }
-    if !table_name.contains('.')
-        && client_meta_data
-            .get_keyspace(CLIENT_METADATA_PATH.to_string())?
-            .is_none()
-    {
-        return Err(Errors::SyntaxError(String::from(
-            "Keyspace not defined and non keyspace in usage",
-        )));
-    } else if table_name.contains('.') {
-        return Ok(table_name.to_string());
-    };
-    let Some(kp) = client_meta_data.get_keyspace(CLIENT_METADATA_PATH.to_string())? else {
-        return Err(Errors::SyntaxError(String::from("Keyspace not in usage")));
-    };
-    Ok(format!("{}.{}", kp, table_name))
+    use_client_meta_data(|client_meta_data| {
+        if table_name.is_empty() {
+            return Err(Errors::SyntaxError(String::from("Table is empty")));
+        }
+        if !table_name.contains('.')
+            && client_meta_data
+                .get_keyspace(CLIENT_METADATA_PATH.to_string())?
+                .is_none()
+        {
+            return Err(Errors::SyntaxError(String::from(
+                "Keyspace not defined and non keyspace in usage",
+            )));
+        } else if table_name.contains('.') {
+            return Ok(table_name.to_string());
+        };
+        let Some(kp) = client_meta_data.get_keyspace(CLIENT_METADATA_PATH.to_string())? else {
+            return Err(Errors::SyntaxError(String::from("Keyspace not in usage")));
+        };
+        Ok(format!("{}.{}", kp, table_name))
+    })
 }
 
 pub fn get_columns_from_table(table_name: &str) -> Result<HashMap<String, DataType>, Errors> {
     let binding = table_name.split('.').collect::<Vec<&str>>();
     let identifiers = &binding.as_slice();
-    use_keyspace_meta_data(|handler| handler.get_columns_type(
+    use_keyspace_meta_data(|handler| {
+        handler.get_columns_type(
             KEYSPACE_METADATA_PATH.to_string(),
             identifiers[0],
             identifiers[1],
         )
-    )
+    })
 }
 
 pub fn get_table_pk(table_name: &str) -> Result<HashSet<String>, Errors> {
@@ -81,21 +85,25 @@ pub fn get_table_pk(table_name: &str) -> Result<HashSet<String>, Errors> {
 pub fn get_table_partition(table_name: &str) -> Result<HashSet<String>, Errors> {
     let binding = table_name.split('.').collect::<Vec<&str>>();
     let identifiers = &binding.as_slice();
-    let pk = use_keyspace_meta_data(|handler| handler.get_primary_key(
-        KEYSPACE_METADATA_PATH.to_string(),
-        identifiers[0],
-        identifiers[1],
-    ))?;
+    let pk = use_keyspace_meta_data(|handler| {
+        handler.get_primary_key(
+            KEYSPACE_METADATA_PATH.to_string(),
+            identifiers[0],
+            identifiers[1],
+        )
+    })?;
     Ok(pk.partition_keys.into_iter().collect())
 }
 pub fn get_table_clustering_columns(table_name: &str) -> Result<HashSet<String>, Errors> {
     let binding = table_name.split('.').collect::<Vec<&str>>();
     let identifiers = &binding.as_slice();
-    let pk = use_keyspace_meta_data(|handler| handler.get_primary_key(
-        KEYSPACE_METADATA_PATH.to_string(),
-        identifiers[0],
-        identifiers[1],
-    ))?;
+    let pk = use_keyspace_meta_data(|handler| {
+        handler.get_primary_key(
+            KEYSPACE_METADATA_PATH.to_string(),
+            identifiers[0],
+            identifiers[1],
+        )
+    })?;
     Ok(pk.clustering_columns.into_iter().collect())
 }
 
@@ -202,7 +210,7 @@ pub fn deserialize_from_slice<T: DeserializeOwned>(data: &[u8]) -> Result<T, Err
     serde_json::from_slice(data).map_err(|_| ServerError("Failed to deserialize data".to_string()))
 }
 
-pub fn deserialize_from_string<T: DeserializeOwned>(data: &str) -> Result<T, Errors> {
+pub fn deserialize_from_str<T: DeserializeOwned>(data: &str) -> Result<T, Errors> {
     serde_json::from_str(data).map_err(|_| ServerError("Failed to deserialize data".to_string()))
 }
 
@@ -233,4 +241,28 @@ where
     let keyspace_metadata =
         MetaDataHandler::get_instance(&mut meta_data_stream)?.get_keyspace_meta_data_access();
     action(&keyspace_metadata)
+}
+
+pub fn use_client_meta_data<F, T>(action: F) -> Result<T, Errors>
+where
+    F: FnOnce(&ClientMetaDataAcces) -> Result<T, Errors>,
+{
+    let mut meta_data_stream = MetaDataHandler::establish_connection()?;
+    let client_metadata =
+        MetaDataHandler::get_instance(&mut meta_data_stream)?.get_client_meta_data_access();
+    action(&client_metadata)
+}
+
+pub fn use_data_access<F, T>(action: F) -> Result<T, Errors>
+where
+    F: FnOnce(&DataAccess) -> Result<T, Errors>,
+{
+    let mut meta_data_stream = DataAccessHandler::establish_connection()?;
+    let data_access = DataAccessHandler::get_instance(&mut meta_data_stream)?;
+    action(&data_access)
+}
+
+pub fn write_all_to_file(file: &mut File, content: &[u8]) -> Result<(), Errors> {
+    file.write_all(content)
+        .map_err(|_| ServerError(String::from("Failed to write to file")))
 }

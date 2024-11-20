@@ -18,7 +18,7 @@ impl GossipListener {
 
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
         let buf = read_exact_from_stream(stream)?;
-        let received_nodes: Vec<Node> = deserialize_from_slice(&buf.as_slice())?;
+        let received_nodes: Vec<Node> = deserialize_from_slice(buf.as_slice())?;
         let cluster = Self::get_cluster()?;
         let own_node = cluster.get_own_node();
         let (mut new_nodes, mut required_changes) = (Vec::new(), Vec::new());
@@ -45,7 +45,7 @@ impl GossipListener {
         required_changes: Vec<Node>,
     ) -> Result<(), Errors> {
         let serialized = serialize_to_string(&required_changes)?;
-        write_to_stream(stream, &serialized.as_bytes())?;
+        write_to_stream(stream, serialized.as_bytes())?;
         Ok(())
     }
 

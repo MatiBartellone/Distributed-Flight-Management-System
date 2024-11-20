@@ -45,12 +45,14 @@ impl CreateKeyspaceQuery {
 
 impl Query for CreateKeyspaceQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
-        use_keyspace_meta_data(|handler| handler.add_keyspace(
-            KEYSPACE_METADATA_PATH.to_owned(),
-            &self.keyspace,
-            self.get_strategy(),
-            self.get_replication(),
-        ))?;
+        use_keyspace_meta_data(|handler| {
+            handler.add_keyspace(
+                KEYSPACE_METADATA_PATH.to_owned(),
+                &self.keyspace,
+                self.get_strategy(),
+                self.get_replication(),
+            )
+        })?;
         Ok(get_long_string_from_str("Create keyspace was successful"))
     }
 

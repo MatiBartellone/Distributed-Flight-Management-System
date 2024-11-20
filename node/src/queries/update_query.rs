@@ -2,13 +2,12 @@ use super::{
     if_clause::IfClause, query::Query, set_logic::assigmente_value::AssignmentValue,
     where_logic::where_clause::WhereClause,
 };
-use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
     check_table_name, get_columns_from_table, get_long_string_from_str,
-    get_partition_key_from_where, get_table_pk, split_keyspace_table,
+    get_partition_key_from_where, get_table_pk, split_keyspace_table, use_data_access,
 };
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -116,15 +115,15 @@ impl Default for UpdateQuery {
 
 impl Query for UpdateQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
-        let mut stream = DataAccessHandler::establish_connection()?;
-        let data_access = DataAccessHandler::get_instance(&mut stream)?;
         self.check_values()?;
         let Some(where_clause) = &self.where_clause else {
             return Err(Errors::SyntaxError(String::from(
                 "Where clause must be defined",
             )));
         };
-        data_access.update_row(&self.table_name, &self.changes, where_clause)?;
+        use_data_access(|data_access| {
+            data_access.update_row(&self.table_name, &self.changes, where_clause)
+        })?;
         Ok(get_long_string_from_str("Update was successful"))
     }
 

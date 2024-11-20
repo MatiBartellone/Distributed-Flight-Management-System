@@ -1,13 +1,13 @@
 use super::{cluster::Cluster, node::Node};
 use crate::meta_data::nodes::node::State;
 use crate::utils::errors::Errors::ServerError;
+use crate::utils::functions::{deserialize_from_slice, write_all_to_file};
 use crate::utils::node_ip::NodeIp;
 use crate::{
     meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess,
     utils::{constants::KEYSPACE_METADATA_PATH, errors::Errors},
 };
 use murmur3::murmur3_32;
-use std::io::Write;
 use std::{fs::File, io::Cursor};
 
 #[derive(Debug)]
@@ -16,9 +16,8 @@ pub struct NodesMetaDataAccess;
 impl NodesMetaDataAccess {
     fn read_cluster(path: &str) -> Result<Cluster, Errors> {
         let content = std::fs::read_to_string(path)
-            .map_err(|_| Errors::ServerError(String::from("Error leyendo el archivo")))?;
-        let cluster: Cluster = serde_json::from_slice::<Cluster>(content.as_bytes())
-            .map_err(|e| Errors::ServerError(e.to_string()))?;
+            .map_err(|_| ServerError(String::from("Error leyendo el archivo")))?;
+        let cluster: Cluster = deserialize_from_slice(content.as_bytes())?;
         Ok(cluster)
     }
 
@@ -37,14 +36,10 @@ impl NodesMetaDataAccess {
     }
 
     pub fn write_cluster(path: &str, cluster: &Cluster) -> Result<(), Errors> {
-        //let file = Self::open(path)?;
         let mut file = File::create(path)
             .map_err(|_| Errors::ServerError("Failed to open file for writing".to_string()))?;
         let serialized = serde_json::to_vec(cluster).map_err(|e| ServerError(e.to_string()))?;
-        file.write_all(serialized.as_slice())
-            .map_err(|e| ServerError(e.to_string()))?;
-        // serde_json::to_writer(&file, &cluster)
-        //     .map_err(|_| Errors::ServerError("Failed to write Cluster to file".to_string()))?;
+        write_all_to_file(&mut file, serialized.as_slice())?;
         Ok(())
     }
 
