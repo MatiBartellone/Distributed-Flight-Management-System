@@ -2,7 +2,7 @@ use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
 use crate::meta_data::nodes::node::State::Booting;
-use crate::utils::constants::NODES_METADATA;
+use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::node_ip::NodeIp;
@@ -29,11 +29,11 @@ impl GossipEmitter {
         let mut stream = MetaDataHandler::establish_connection()?;
         let node_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-        if node_meta_data.get_nodes_quantity(NODES_METADATA)? == 1 {
+        if node_meta_data.get_nodes_quantity(NODES_METADATA_PATH)? == 1 {
             return Ok(None);
         }
         let mut rng = rand::thread_rng();
-        let cluster = node_meta_data.get_cluster(NODES_METADATA)?;
+        let cluster = node_meta_data.get_cluster(NODES_METADATA_PATH)?;
         let nodes = cluster.get_other_nodes();
         if let Some(random_node) = nodes.choose(&mut rng) {
             if random_node.state != Booting {
@@ -47,7 +47,7 @@ impl GossipEmitter {
         let mut stream = MetaDataHandler::establish_connection()?;
         let node_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-        node_meta_data.set_inactive(NODES_METADATA, &ip)
+        node_meta_data.set_inactive(NODES_METADATA_PATH, &ip)
     }
 
     fn send_nodes_list(stream: &mut TcpStream) -> Result<(), Errors> {
@@ -55,7 +55,7 @@ impl GossipEmitter {
         let node_meta_data =
             MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
         let serialized =
-            serde_json::to_string(&node_meta_data.get_full_nodes_list(NODES_METADATA)?)
+            serde_json::to_string(&node_meta_data.get_full_nodes_list(NODES_METADATA_PATH)?)
                 .map_err(|_| ServerError(String::from("Error serializing nodes list")))?;
         stream
             .write_all(serialized.as_bytes())
@@ -75,7 +75,7 @@ impl GossipEmitter {
         let mut stream = MetaDataHandler::establish_connection()?;
         let node_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-        node_meta_data.set_new_cluster(NODES_METADATA, &new_cluster)?;
+        node_meta_data.set_new_cluster(NODES_METADATA_PATH, &new_cluster)?;
         Ok(())
     }
 
@@ -83,7 +83,7 @@ impl GossipEmitter {
         let mut stream = MetaDataHandler::establish_connection()?;
         let node_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-        let cluster = node_meta_data.get_cluster(NODES_METADATA)?;
+        let cluster = node_meta_data.get_cluster(NODES_METADATA_PATH)?;
         let mut new_list = Vec::new();
         for node in received_nodes {
             if node.get_pos() != cluster.get_own_node().get_pos() {

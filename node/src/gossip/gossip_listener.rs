@@ -1,7 +1,7 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
-use crate::utils::constants::NODES_METADATA;
+use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::functions::start_listener;
 use crate::utils::node_ip::NodeIp;
@@ -39,7 +39,7 @@ impl GossipListener {
             let node_meta_data =
                 MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
             node_meta_data.set_new_cluster(
-                NODES_METADATA,
+                NODES_METADATA_PATH,
                 &Cluster::new(Node::new_from_node(own_node), new_nodes),
             )?;
         }
@@ -107,7 +107,7 @@ impl GossipListener {
         let mut stream = MetaDataHandler::establish_connection()?;
         let node_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-        node_meta_data.get_cluster(NODES_METADATA)
+        node_meta_data.get_cluster(NODES_METADATA_PATH)
     }
 
     // 1 yes (node 1 newer)

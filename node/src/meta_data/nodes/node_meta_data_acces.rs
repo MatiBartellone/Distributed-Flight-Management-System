@@ -4,7 +4,7 @@ use crate::utils::errors::Errors::ServerError;
 use crate::utils::node_ip::NodeIp;
 use crate::{
     meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess,
-    utils::{constants::KEYSPACE_METADATA, errors::Errors},
+    utils::{constants::KEYSPACE_METADATA_PATH, errors::Errors},
 };
 use murmur3::murmur3_32;
 use std::io::Write;
@@ -113,7 +113,7 @@ impl NodesMetaDataAccess {
             let pos = hashing_key % cluster.len_nodes() + 1;
             let keyspace_metadata = KeyspaceMetaDataAccess {};
             let replication =
-                keyspace_metadata.get_replication(KEYSPACE_METADATA.to_owned(), &keyspace)?;
+                keyspace_metadata.get_replication(KEYSPACE_METADATA_PATH.to_owned(), &keyspace)?;
             cluster.get_nodes(pos, replication)
         } else {
             cluster.get_all_ips()

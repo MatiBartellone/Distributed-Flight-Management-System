@@ -1,13 +1,13 @@
-pub const NODES_METADATA: &str = "src/meta_data/nodes/metadata.json";
+pub const NODES_METADATA_PATH: &str = "src/meta_data/nodes/metadata.json";
 pub const CLIENT_METADATA_PATH: &str = "src/meta_data/clients/";
-pub const KEYSPACE_METADATA: &str = "src/meta_data/keyspaces/metadata.json";
+pub const KEYSPACE_METADATA_PATH: &str = "src/meta_data/keyspaces/metadata.json";
 pub const HINTED_HANDOFF_DATA: &str = "src/hinted_handoff/data";
 pub const IP_FILE: &str = "src/utils/ip.txt";
 pub const HINTED_HANDOFF_HOURS: i64 = 3;
 pub const REPLICATION: &str = "replication_factor";
 pub const STRATEGY: &str = "class";
 pub fn nodes_meta_data_path() -> String {
-    NODES_METADATA.to_string()
+    NODES_METADATA_PATH.to_string()
 }
 pub const QUERY_DELEGATION_PORT_MOD: i32 = 1;
 pub const DATA_ACCESS_PORT_MOD: i32 = 2;

@@ -1,11 +1,12 @@
 use crate::hinted_handoff::stored_query::StoredQuery;
-use crate::utils::constants::HINTED_HANDOFF_TIMEOUT_SECS;
+use crate::utils::constants::{HINTED_HANDOFF_TIMEOUT_SECS, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::node_ip::NodeIp;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::time::{Duration, Instant};
+use crate::meta_data::meta_data_handler::MetaDataHandler;
 
 pub struct HintsReceiver;
 
@@ -33,6 +34,7 @@ impl HintsReceiver {
             }
         }
         Self::execute_queries(&mut hints)?;
+        Self::finish_booting()?;
         Ok(())
     }
 
@@ -67,6 +69,15 @@ impl HintsReceiver {
         for stored in hints.iter() {
             if stored.get_query().run().is_ok() {};
         }
+        Ok(())
+    }
+
+    fn finish_booting() -> Result<(), Errors> {
+        let mut meta_data_stream = MetaDataHandler::establish_connection()?;
+        let node_metadata =
+            MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
+        node_metadata.set_own_node_active(NODES_METADATA_PATH)?;
+        println!("Finished booting");
         Ok(())
     }
 }

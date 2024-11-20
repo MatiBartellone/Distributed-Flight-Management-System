@@ -1,7 +1,7 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::parsers::tokens::data_type::DataType;
 use crate::queries::where_logic::where_clause::WhereClause;
-use crate::utils::constants::{CLIENT_METADATA_PATH, IP_FILE, KEYSPACE_METADATA};
+use crate::utils::constants::{CLIENT_METADATA_PATH, IP_FILE, KEYSPACE_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::node_ip::NodeIp;
@@ -60,7 +60,7 @@ pub fn get_columns_from_table(table_name: &str) -> Result<HashMap<String, DataTy
     let binding = table_name.split('.').collect::<Vec<&str>>();
     let identifiers = &binding.as_slice();
     keyspace_meta_data.get_columns_type(
-        KEYSPACE_METADATA.to_string(),
+        KEYSPACE_METADATA_PATH.to_string(),
         identifiers[0],
         identifiers[1],
     )
@@ -74,7 +74,7 @@ pub fn get_table_pk(table_name: &str) -> Result<HashSet<String>, Errors> {
         MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
     Ok(keyspace_meta_data
         .get_primary_key(
-            KEYSPACE_METADATA.to_string(),
+            KEYSPACE_METADATA_PATH.to_string(),
             identifiers[0],
             identifiers[1],
         )?
@@ -88,7 +88,7 @@ pub fn get_table_partition(table_name: &str) -> Result<HashSet<String>, Errors> 
     let keyspace_meta_data =
         MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
     let pk = keyspace_meta_data.get_primary_key(
-        KEYSPACE_METADATA.to_string(),
+        KEYSPACE_METADATA_PATH.to_string(),
         identifiers[0],
         identifiers[1],
     )?;
@@ -101,7 +101,7 @@ pub fn get_table_clustering_columns(table_name: &str) -> Result<HashSet<String>,
     let keyspace_meta_data =
         MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
     let pk = keyspace_meta_data.get_primary_key(
-        KEYSPACE_METADATA.to_string(),
+        KEYSPACE_METADATA_PATH.to_string(),
         identifiers[0],
         identifiers[1],
     )?;

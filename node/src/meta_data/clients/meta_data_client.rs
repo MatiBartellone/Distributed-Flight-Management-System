@@ -141,7 +141,7 @@ impl ClientMetaDataAcces {
         Self::process_client_view(path, |client| Ok(client.is_authorized()))
     }
 
-    pub fn had_started(&self, path: String) -> Result<bool, Errors> {
+    pub fn has_started(&self, path: String) -> Result<bool, Errors> {
         Self::process_client_view(path, |client| Ok(client.has_started()))
     }
 }
@@ -222,7 +222,7 @@ mod tests {
         create_test_file(name).expect("Failed to create test file");
         let meta_data = ClientMetaDataAcces {};
         let key = meta_data
-            .had_started(name.to_owned())
+            .has_started(name.to_owned())
             .expect("Failed to get startup");
         assert!(!key);
         cleanup_temp_file(name);
@@ -252,7 +252,7 @@ mod tests {
             .startup_client(name.to_string())
             .expect("Failed to startup client");
         let key = meta_data
-            .had_started(name.to_owned())
+            .has_started(name.to_owned())
             .expect("Failed to get startup");
         assert!(key);
         cleanup_temp_file(name);

@@ -3,7 +3,7 @@ use crate::{
     data_access::data_access_handler::DataAccessHandler,
     meta_data::meta_data_handler::MetaDataHandler,
     queries::query::Query,
-    utils::{constants::KEYSPACE_METADATA, errors::Errors},
+    utils::{constants::KEYSPACE_METADATA_PATH, errors::Errors},
 };
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -27,8 +27,8 @@ impl DropKeySpaceQuery {
         let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
         let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
         let tables = keyspace_meta_data
-            .get_tables_from_keyspace(KEYSPACE_METADATA.to_owned(), &self.keyspace)?;
-        keyspace_meta_data.drop_keyspace(KEYSPACE_METADATA.to_owned(), &self.keyspace)?;
+            .get_tables_from_keyspace(KEYSPACE_METADATA_PATH.to_owned(), &self.keyspace)?;
+        keyspace_meta_data.drop_keyspace(KEYSPACE_METADATA_PATH.to_owned(), &self.keyspace)?;
         Ok(tables)
     }
 }

@@ -2,7 +2,7 @@ use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::parsers::tokens::data_type::DataType;
 use crate::queries::query::Query;
-use crate::utils::constants::KEYSPACE_METADATA;
+use crate::utils::constants::KEYSPACE_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table};
 use crate::utils::primary_key::PrimaryKey;
@@ -32,7 +32,7 @@ impl CreateTableQuery {
         let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
         let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
         keyspace_meta_data.add_table(
-            KEYSPACE_METADATA.to_owned(),
+            KEYSPACE_METADATA_PATH.to_owned(),
             kesypace_name,
             table,
             self.primary_key.to_owned(),

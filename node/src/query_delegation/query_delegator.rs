@@ -5,7 +5,7 @@ use crate::queries::query::{Query, QueryEnum};
 use crate::query_delegation::query_serializer::QuerySerializer;
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::constants::{
-    nodes_meta_data_path, KEYSPACE_METADATA, NODES_METADATA, TIMEOUT_SECS,
+    nodes_meta_data_path, KEYSPACE_METADATA_PATH, NODES_METADATA_PATH, TIMEOUT_SECS,
 };
 use crate::utils::errors::Errors;
 use crate::utils::node_ip::NodeIp;
@@ -84,10 +84,10 @@ impl QueryDelegator {
         let keyspace_metadata = instance.get_keyspace_meta_data_access();
         let nodes_meta_data = instance.get_nodes_metadata_access();
         if self.primary_key.is_none() {
-            return nodes_meta_data.get_nodes_quantity(NODES_METADATA);
+            return nodes_meta_data.get_nodes_quantity(NODES_METADATA_PATH);
         }
         keyspace_metadata
-            .get_replication(KEYSPACE_METADATA.to_string(), &self.query.get_keyspace()?)
+            .get_replication(KEYSPACE_METADATA_PATH.to_string(), &self.query.get_keyspace()?)
     }
 
     fn get_nodes_ip(&self) -> Result<Vec<NodeIp>, Errors> {
@@ -126,7 +126,7 @@ impl QueryDelegator {
                 let mut stream = MetaDataHandler::establish_connection()?;
                 let nodes_meta_data =
                     MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-                nodes_meta_data.set_inactive(NODES_METADATA, &ip)?;
+                nodes_meta_data.set_inactive(NODES_METADATA_PATH, &ip)?;
                 Handler::store_query(StoredQuery::new(&query)?, ip)?;
                 Err(Errors::UnavailableException(e.to_string()))
             }

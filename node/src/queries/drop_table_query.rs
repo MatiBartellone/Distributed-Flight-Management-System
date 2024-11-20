@@ -1,6 +1,6 @@
 use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
-use crate::utils::constants::KEYSPACE_METADATA;
+use crate::utils::constants::KEYSPACE_METADATA_PATH;
 use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table};
 use crate::{queries::query::Query, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,7 @@ impl DropTableQuery {
         let mut stream = MetaDataHandler::establish_connection()?;
         let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
         let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
-        keyspace_meta_data.delete_table(KEYSPACE_METADATA.to_owned(), keyspace_name, table)?;
+        keyspace_meta_data.delete_table(KEYSPACE_METADATA_PATH.to_owned(), keyspace_name, table)?;
         Ok(())
     }
 

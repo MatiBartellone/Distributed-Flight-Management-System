@@ -1,6 +1,6 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::queries::query::Query;
-use crate::utils::constants::{KEYSPACE_METADATA, REPLICATION, STRATEGY};
+use crate::utils::constants::{KEYSPACE_METADATA_PATH, REPLICATION, STRATEGY};
 use crate::utils::errors::Errors;
 use crate::utils::functions::get_long_string_from_str;
 use serde::{Deserialize, Serialize};
@@ -50,7 +50,7 @@ impl Query for CreateKeyspaceQuery {
         let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
         let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
         keyspace_meta_data.add_keyspace(
-            KEYSPACE_METADATA.to_owned(),
+            KEYSPACE_METADATA_PATH.to_owned(),
             &self.keyspace,
             self.get_strategy(),
             self.get_replication(),
