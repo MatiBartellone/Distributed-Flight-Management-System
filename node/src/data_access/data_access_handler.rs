@@ -1,15 +1,15 @@
 use crate::data_access::data_access::DataAccess;
-use crate::utils::constants::DATA_ACCESS_PORT_MOD;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{get_data_access_ip, start_listener};
+use crate::utils::functions::{get_own_ip, start_listener};
+use crate::utils::node_ip::NodeIp;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
 pub struct DataAccessHandler {}
 
 impl DataAccessHandler {
-    pub fn start_listening(ip: String, port: String) -> Result<(), Errors> {
-        start_listener(ip, port, DATA_ACCESS_PORT_MOD, Self::handle_connection)
+    pub fn start_listening(ip: NodeIp) -> Result<(), Errors> {
+        start_listener(ip.get_data_access_socket(), Self::handle_connection)
     }
 
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
@@ -36,7 +36,7 @@ impl DataAccessHandler {
     }
 
     pub fn establish_connection() -> Result<TcpStream, Errors> {
-        match TcpStream::connect(get_data_access_ip()?) {
+        match TcpStream::connect(get_own_ip()?.get_data_access_socket()) {
             Ok(stream) => Ok(stream),
             Err(e) => Err(Errors::ServerError(e.to_string())),
         }

@@ -75,4 +75,23 @@ impl QueryEnum {
         }
         None
     }
+
+    pub fn new_from(&self) -> Self {
+        match self {
+            QueryEnum::Insert(insert) => QueryEnum::Insert(insert.to_owned()),
+            QueryEnum::Delete(delete) => QueryEnum::Delete(delete.to_owned()),
+            QueryEnum::Update(update) => QueryEnum::Update(update.to_owned()),
+            QueryEnum::Select(select) => QueryEnum::Select(select.to_owned()),
+            QueryEnum::Use(use_) => QueryEnum::Use(use_.to_owned()),
+            QueryEnum::CreateKeyspace(create_keyspace) => {
+                QueryEnum::CreateKeyspace(create_keyspace.to_owned())
+            }
+            QueryEnum::CreateTable(create_table) => QueryEnum::CreateTable(create_table.to_owned()),
+            QueryEnum::AlterTable(alter_table) => QueryEnum::AlterTable(alter_table.to_owned()),
+            QueryEnum::DropTable(drop_table) => QueryEnum::DropTable(drop_table.to_owned()),
+            QueryEnum::DropKeyspace(drop_keyspace) => {
+                QueryEnum::DropKeyspace(drop_keyspace.to_owned())
+            }
+        }
+    }
 }

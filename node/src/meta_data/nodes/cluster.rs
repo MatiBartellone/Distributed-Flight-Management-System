@@ -1,6 +1,6 @@
 use super::node::Node;
-use crate::utils::constants::QUERY_DELEGATION_PORT_MOD;
 use crate::utils::errors::Errors;
+use crate::utils::node_ip::NodeIp;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -25,11 +25,8 @@ impl Cluster {
         &self.other_nodes
     }
 
-    pub fn get_own_ip(&self) -> &str {
+    pub fn get_own_ip(&self) -> &NodeIp {
         self.own_node.get_ip()
-    }
-    pub fn get_own_port(&self) -> &str {
-        self.own_node.get_port()
     }
 
     pub fn len_nodes(&self) -> usize {
@@ -37,24 +34,24 @@ impl Cluster {
     }
 
     pub fn append_new_node(&mut self, node: Node) {
-        if self.other_nodes.contains(&node) {
+        if !self.other_nodes.contains(&node) {
             self.other_nodes.push(node)
         }
     }
 
-    pub fn get_nodes(&self, position: usize, replication: usize) -> Result<Vec<String>, Errors> {
+    pub fn get_nodes(&self, position: usize, replication: usize) -> Result<Vec<NodeIp>, Errors> {
         let end_position = position + replication;
-        let mut ips = Vec::new();
+        let mut ips: Vec<NodeIp> = Vec::new();
         let total_nodes = self.len_nodes();
         for node in self.other_nodes.iter() {
             let node_pos = node.get_pos();
             if Self::is_in_range(position, end_position, node_pos, total_nodes) {
-                ips.push(node.get_full_ip(QUERY_DELEGATION_PORT_MOD)?);
+                ips.push(NodeIp::new_from_ip(node.get_ip()));
             }
         }
         let own_pos = self.own_node.get_pos();
         if Self::is_in_range(position, end_position, own_pos, total_nodes) {
-            ips.push(self.own_node.get_full_ip(QUERY_DELEGATION_PORT_MOD)?);
+            ips.push(NodeIp::new_from_ip(self.own_node.get_ip()));
         }
         Ok(ips)
     }
@@ -68,11 +65,11 @@ impl Cluster {
         }
     }
 
-    pub fn get_all_ips(&self) -> Result<Vec<String>, Errors> {
+    pub fn get_all_ips(&self) -> Result<Vec<NodeIp>, Errors> {
         let mut ips = Vec::new();
-        ips.push(self.own_node.get_full_ip(QUERY_DELEGATION_PORT_MOD)?);
+        ips.push(NodeIp::new_from_ip(self.own_node.get_ip()));
         for node in self.other_nodes.iter() {
-            ips.push(node.get_full_ip(QUERY_DELEGATION_PORT_MOD)?);
+            ips.push(NodeIp::new_from_ip(node.get_ip()));
         }
         Ok(ips)
     }

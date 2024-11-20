@@ -1,17 +1,18 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
-use crate::utils::constants::{GOSSIP_MOD, NODES_METADATA};
+use crate::utils::constants::NODES_METADATA;
 use crate::utils::errors::Errors;
 use crate::utils::functions::start_listener;
+use crate::utils::node_ip::NodeIp;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
 pub struct GossipListener;
 
 impl GossipListener {
-    pub fn start_listening(ip: String, port: String) -> Result<(), Errors> {
-        start_listener(ip, port, GOSSIP_MOD, Self::handle_connection)
+    pub fn start_listening(ip: NodeIp) -> Result<(), Errors> {
+        start_listener(ip.get_gossip_socket(), Self::handle_connection)
     }
 
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
@@ -115,7 +116,7 @@ impl GossipListener {
     fn needs_to_update(node1: &Node, node2: &Node) -> i8 {
         if node1.get_pos() != node2.get_pos()
             || node1.get_ip() != node2.get_ip()
-            || node1.is_active != node2.is_active
+            || node1.state != node2.state
             || node1.is_seed != node2.is_seed
         {
             if node1.get_timestamp() > node2.get_timestamp() {

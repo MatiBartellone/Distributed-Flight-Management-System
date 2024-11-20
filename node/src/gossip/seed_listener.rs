@@ -1,16 +1,17 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::node::Node;
-use crate::utils::constants::{NODES_METADATA, SEED_LISTENER_MOD};
+use crate::utils::constants::NODES_METADATA;
 use crate::utils::errors::Errors;
 use crate::utils::functions::start_listener;
+use crate::utils::node_ip::NodeIp;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
 pub struct SeedListener;
 
 impl SeedListener {
-    pub fn start_listening(ip: String, port: String) -> Result<(), Errors> {
-        start_listener(ip, port, SEED_LISTENER_MOD, Self::handle_connection)
+    pub fn start_listening(ip: NodeIp) -> Result<(), Errors> {
+        start_listener(ip.get_seed_listener_socket(), Self::handle_connection)
     }
 
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
@@ -51,9 +52,9 @@ impl SeedListener {
             MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
         let cluster = node_metadata.get_cluster(NODES_METADATA)?;
         for node in cluster.get_other_nodes().iter() {
-            if node.get_pos() == new_node.get_pos() {
-                node_metadata.set_active(NODES_METADATA, new_node.get_pos())?;
-                return Ok(()); //todo HINTED HANDOFF?????
+            if node.get_ip() == new_node.get_ip() {
+                node_metadata.set_booting(NODES_METADATA, new_node.get_ip())?;
+                return Ok(());
             }
         }
         node_metadata.append_new_node(NODES_METADATA, new_node)?;

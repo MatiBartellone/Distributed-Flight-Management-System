@@ -1,9 +1,12 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
-use crate::utils::constants::{GOSSIP_MOD, NODES_METADATA};
+use crate::meta_data::nodes::node::State::Booting;
+use crate::utils::constants::NODES_METADATA;
 use crate::utils::errors::Errors;
-use crate::utils::functions::generate_random_number;
+use crate::utils::errors::Errors::ServerError;
+use crate::utils::node_ip::NodeIp;
+use rand::seq::SliceRandom;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
@@ -11,45 +14,40 @@ pub struct GossipEmitter;
 
 impl GossipEmitter {
     pub fn start_gossip() -> Result<(), Errors> {
-        let (node, ip) = Self::get_random_ip()?;
-        if let Ok(mut stream) = TcpStream::connect(ip) {
+        let Some(ip) = Self::get_random_ip()? else {
+            return Ok(());
+        };
+        if let Ok(mut stream) = TcpStream::connect(ip.get_gossip_socket()) {
             Self::send_nodes_list(&mut stream)?;
             Self::get_nodes_list(&mut stream)
         } else {
-            Self::set_inactive(node)
+            Self::set_inactive(ip)
         }
     }
 
-    fn get_random_ip() -> Result<(usize, String), Errors> {
+    fn get_random_ip() -> Result<Option<NodeIp>, Errors> {
         let mut stream = MetaDataHandler::establish_connection()?;
         let node_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-        let node_number =
-            generate_random_number(node_meta_data.get_nodes_quantity(NODES_METADATA)? as u64, 1)?
-                as usize;
-        let mut ip = String::new();
-        for node in node_meta_data
-            .get_cluster(NODES_METADATA)?
-            .get_other_nodes()
-        {
-            if node.get_pos() == node_number {
-                let node_port = (node
-                    .get_port()
-                    .parse::<i32>()
-                    .map_err(|e| Errors::ServerError(e.to_string()))?)
-                    + GOSSIP_MOD;
-                ip = format!("{}:{}", node.get_ip(), node_port);
-                break;
+        if node_meta_data.get_nodes_quantity(NODES_METADATA)? == 1 {
+            return Ok(None);
+        }
+        let mut rng = rand::thread_rng();
+        let cluster = node_meta_data.get_cluster(NODES_METADATA)?;
+        let nodes = cluster.get_other_nodes();
+        if let Some(random_node) = nodes.choose(&mut rng) {
+            if random_node.state != Booting {
+                return Ok(Some(NodeIp::new_from_ip(random_node.get_ip())));
             }
         }
-        Ok((node_number, ip))
+        Ok(None)
     }
 
-    fn set_inactive(node: usize) -> Result<(), Errors> {
+    fn set_inactive(ip: NodeIp) -> Result<(), Errors> {
         let mut stream = MetaDataHandler::establish_connection()?;
         let node_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-        node_meta_data.set_inactive(NODES_METADATA, node)
+        node_meta_data.set_inactive(NODES_METADATA, &ip)
     }
 
     fn send_nodes_list(stream: &mut TcpStream) -> Result<(), Errors> {
@@ -58,10 +56,10 @@ impl GossipEmitter {
             MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
         let serialized =
             serde_json::to_string(&node_meta_data.get_full_nodes_list(NODES_METADATA)?)
-                .map_err(|_| Errors::ServerError(String::from("Error serializing nodes list")))?;
+                .map_err(|_| ServerError(String::from("Error serializing nodes list")))?;
         stream
             .write_all(serialized.as_bytes())
-            .map_err(|_| Errors::ServerError(String::from("Error sending nodes list")))?;
+            .map_err(|_| ServerError(String::from("Error sending nodes list")))?;
         Ok(())
     }
 
