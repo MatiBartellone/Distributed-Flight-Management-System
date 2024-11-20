@@ -1,5 +1,3 @@
-use std::io::{Read, Write};
-use std::net::TcpStream;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::parsers::parser_factory::ParserFactory;
 use crate::response_builders::error_builder::ErrorBuilder;
@@ -7,6 +5,8 @@ use crate::utils::constants::CLIENT_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::frame::Frame;
 use crate::utils::parser_constants::{AUTH_RESPONSE, AUTH_SUCCESS, STARTUP};
+use std::io::{Read, Write};
+use std::net::TcpStream;
 
 pub struct ClientHandler {}
 
@@ -19,6 +19,7 @@ impl ClientHandler {
             match stream.read(&mut buffer) {
                 Ok(0) => {
                     println!("Client disconnected");
+                    delete_client()?;
                     break;
                 }
                 Ok(n) => match execute_request(buffer[0..n].to_vec()) {
@@ -33,7 +34,7 @@ impl ClientHandler {
                             Frame::parse_frame(buffer.as_slice()).expect("Failed to parse frame"),
                             e,
                         )
-                            .expect("Failed to build error frame");
+                        .expect("Failed to build error frame");
                         stream.flush().expect("Failed to flush client");
                         stream
                             .write_all(frame.to_bytes().as_slice())
@@ -42,6 +43,7 @@ impl ClientHandler {
                 },
                 Err(e) => {
                     println!("Error leyendo del socket: {}", e);
+                    delete_client()?;
                     break;
                 }
             }
@@ -85,10 +87,13 @@ fn is_authorized() -> Result<bool, Errors> {
 fn check_startup(opcode: u8) -> Result<(), Errors> {
     let has_started = has_started()?;
     if opcode == STARTUP && has_started {
-        return Err(Errors::Invalid(String::from("Client has already done startup")))
-    }
-    else if opcode != STARTUP && !has_started {
-        return Err(Errors::Unprepared(String::from("Client must startup first")))
+        return Err(Errors::Invalid(String::from(
+            "Client has already done startup",
+        )));
+    } else if opcode != STARTUP && !has_started {
+        return Err(Errors::Unprepared(String::from(
+            "Client must startup first",
+        )));
     }
     Ok(())
 }
@@ -96,10 +101,13 @@ fn check_startup(opcode: u8) -> Result<(), Errors> {
 fn check_auth(opcode: u8) -> Result<(), Errors> {
     let is_authorized = is_authorized()?;
     if opcode == AUTH_RESPONSE && is_authorized {
-        return Err(Errors::Invalid(String::from("Client is already authorized")))
-    }
-    else if opcode != AUTH_RESPONSE && !is_authorized {
-        return Err(Errors::Unprepared(String::from("Client must authorize first")))
+        return Err(Errors::Invalid(String::from(
+            "Client is already authorized",
+        )));
+    } else if opcode != STARTUP && opcode != AUTH_RESPONSE && !is_authorized {
+        return Err(Errors::Unprepared(String::from(
+            "Client must authorize first",
+        )));
     }
     Ok(())
 }
@@ -107,7 +115,8 @@ fn check_auth(opcode: u8) -> Result<(), Errors> {
 fn set_startup(initial_opcode: u8) -> Result<(), Errors> {
     if initial_opcode == STARTUP {
         let mut stream = MetaDataHandler::establish_connection()?;
-        let client_metadata = MetaDataHandler::get_instance(&mut stream)?.get_client_meta_data_access();
+        let client_metadata =
+            MetaDataHandler::get_instance(&mut stream)?.get_client_meta_data_access();
         client_metadata.startup_client(CLIENT_METADATA_PATH.to_string())?
     }
     Ok(())
@@ -116,9 +125,15 @@ fn set_startup(initial_opcode: u8) -> Result<(), Errors> {
 fn set_auth(initial_opcode: u8, response_opcode: u8) -> Result<(), Errors> {
     if initial_opcode == AUTH_RESPONSE && response_opcode == AUTH_SUCCESS {
         let mut stream = MetaDataHandler::establish_connection()?;
-        let client_metadata = MetaDataHandler::get_instance(&mut stream)?.get_client_meta_data_access();
+        let client_metadata =
+            MetaDataHandler::get_instance(&mut stream)?.get_client_meta_data_access();
         client_metadata.authorize_client(CLIENT_METADATA_PATH.to_string())?
     }
     Ok(())
 }
 
+fn delete_client() -> Result<(), Errors> {
+    let mut stream = MetaDataHandler::establish_connection()?;
+    let client_metadata = MetaDataHandler::get_instance(&mut stream)?.get_client_meta_data_access();
+    client_metadata.delete_client(CLIENT_METADATA_PATH.to_string())
+}

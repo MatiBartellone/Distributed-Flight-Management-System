@@ -86,8 +86,10 @@ impl QueryDelegator {
         if self.primary_key.is_none() {
             return nodes_meta_data.get_nodes_quantity(NODES_METADATA_PATH);
         }
-        keyspace_metadata
-            .get_replication(KEYSPACE_METADATA_PATH.to_string(), &self.query.get_keyspace()?)
+        keyspace_metadata.get_replication(
+            KEYSPACE_METADATA_PATH.to_string(),
+            &self.query.get_keyspace()?,
+        )
     }
 
     fn get_nodes_ip(&self) -> Result<Vec<NodeIp>, Errors> {

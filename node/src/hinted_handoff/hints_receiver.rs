@@ -1,4 +1,5 @@
 use crate::hinted_handoff::stored_query::StoredQuery;
+use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::utils::constants::{HINTED_HANDOFF_TIMEOUT_SECS, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
@@ -6,7 +7,6 @@ use crate::utils::node_ip::NodeIp;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::time::{Duration, Instant};
-use crate::meta_data::meta_data_handler::MetaDataHandler;
 
 pub struct HintsReceiver;
 

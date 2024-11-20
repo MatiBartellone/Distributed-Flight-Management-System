@@ -6,11 +6,13 @@ use crate::queries::evaluate::Evaluate;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::queries::set_logic::assigmente_value::AssignmentValue;
 use crate::queries::where_logic::where_clause::WhereClause;
-use crate::utils::constants::ASC;
+use crate::utils::constants::{ASC, DATA_ACCESS_PATH};
 use crate::utils::errors::Errors;
+use crate::utils::errors::Errors::ServerError;
 use crate::utils::functions::{get_int_from_string, get_timestamp};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs;
 use std::fs::{metadata, remove_file, rename, File, OpenOptions};
 use std::io::{BufReader, Seek, SeekFrom, Write};
 
@@ -28,6 +30,7 @@ impl DataAccess {
     }
 
     fn create_file(&self, path: &String) -> Result<(), Errors> {
+        fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
         let mut file = File::create(path)
             .map_err(|_| Errors::ServerError(String::from("Could not create file")))?;
         file.write_all(b"[]")
@@ -36,6 +39,7 @@ impl DataAccess {
     }
 
     pub fn truncate_table(&self, table_name: &String) -> Result<(), Errors> {
+        fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
         let _file = OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -45,6 +49,7 @@ impl DataAccess {
     }
 
     pub fn drop_table(&self, table_name: String) -> Result<(), Errors> {
+        fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
         remove_file(self.get_file_path(&table_name))
             .map_err(|_| Errors::ServerError(String::from("Could not remove file")))?;
         Ok(())
@@ -261,10 +266,11 @@ impl DataAccess {
     }
 
     fn get_file_path(&self, table_name: &String) -> String {
-        format!("src/data_access/{}.json", table_name)
+        format!("{}{}.json", DATA_ACCESS_PATH, table_name)
     }
 
     fn open_file(&self, path: &String) -> Result<File, Errors> {
+        fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
         let file = OpenOptions::new()
             .read(true)
             .write(true)

@@ -1,7 +1,3 @@
-use std::fs::File;
-use std::{io, thread};
-use std::io::{Read, Write};
-use std::net::TcpStream;
 use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::gossip::gossip_listener::GossipListener;
 use crate::gossip::seed_listener::SeedListener;
@@ -13,6 +9,10 @@ use crate::query_delegation::query_receiver::QueryReceiver;
 use crate::utils::constants::{nodes_meta_data_path, IP_FILE};
 use crate::utils::errors::Errors;
 use crate::utils::node_ip::NodeIp;
+use std::fs::File;
+use std::io::{Read, Write};
+use std::net::TcpStream;
+use std::{io, thread};
 
 pub struct NodeInitializer {
     pub ip: NodeIp,
@@ -96,17 +96,19 @@ impl NodeInitializer {
         let query_receiver_ip = self.get_network_ip();
         let gossip_ip = self.get_network_ip();
         thread::spawn(move || {
-            MetaDataHandler::start_listening(metadata_ip).expect("Failed to start metadata listener");
+            MetaDataHandler::start_listening(metadata_ip)
+                .expect("Failed to start metadata listener");
         });
         thread::spawn(move || {
-            DataAccessHandler::start_listening(data_access_ip).expect("Failed to start data access");
+            DataAccessHandler::start_listening(data_access_ip)
+                .expect("Failed to start data access");
         });
         thread::spawn(move || {
-            QueryReceiver::start_listening(query_receiver_ip).expect("Failed to start query receiver");
+            QueryReceiver::start_listening(query_receiver_ip)
+                .expect("Failed to start query receiver");
         });
         thread::spawn(move || {
-            GossipListener::start_listening(gossip_ip)
-                .expect("Failed to start gossip listener");
+            GossipListener::start_listening(gossip_ip).expect("Failed to start gossip listener");
         });
         if self.is_seed {
             let seed_ip = NodeIp::new_from_ip(&self.get_network_ip());
@@ -135,7 +137,9 @@ impl NodeInitializer {
                 .expect("Error writing to seed");
         }
         let cluster = Cluster::new(Node::new_from_node(&node), nodes);
-        if let Err(e) = NodesMetaDataAccess::write_cluster(nodes_meta_data_path().as_ref(), &cluster) {
+        if let Err(e) =
+            NodesMetaDataAccess::write_cluster(nodes_meta_data_path().as_ref(), &cluster)
+        {
             println!("{}", e);
         }
         needs_booting

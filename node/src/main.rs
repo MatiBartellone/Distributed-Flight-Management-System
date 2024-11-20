@@ -1,7 +1,9 @@
+use node::client_handler::ClientHandler;
 use node::gossip::gossip_emitter::GossipEmitter;
 use node::hinted_handoff::hints_receiver::HintsReceiver;
 use node::hinted_handoff::hints_sender::HintsSender;
 use node::meta_data::meta_data_handler::MetaDataHandler;
+use node::node_initializer::NodeInitializer;
 use node::utils::constants::NODES_METADATA_PATH;
 use node::utils::errors::Errors;
 use node::utils::node_ip::NodeIp;
@@ -9,8 +11,6 @@ use std::net::TcpListener;
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
-use node::client_handler::ClientHandler;
-use node::node_initializer::NodeInitializer;
 
 fn main() {
     let node_data = NodeInitializer::new().unwrap();
@@ -20,7 +20,8 @@ fn main() {
     node_data.start_listeners();
 
     if needs_booting {
-        HintsReceiver::start_listening(node_data.get_network_ip()).expect("Error starting Hints listener");
+        HintsReceiver::start_listening(node_data.get_network_ip())
+            .expect("Error starting Hints listener");
     };
 
     start_gossip().expect("Error starting gossip");
@@ -54,7 +55,7 @@ fn set_node_listener(ip: NodeIp) {
             Ok(stream) => {
                 println!("Client connected: {:?}", stream.peer_addr());
                 thread::spawn(move || {
-                    ClientHandler::handle_client(stream);
+                    ClientHandler::handle_client(stream).unwrap();
                 });
             }
             Err(e) => {
@@ -63,6 +64,3 @@ fn set_node_listener(ip: NodeIp) {
         }
     }
 }
-
-
-

@@ -1,5 +1,6 @@
 pub const NODES_METADATA_PATH: &str = "src/meta_data/nodes/metadata.json";
-pub const CLIENT_METADATA_PATH: &str = "src/meta_data/clients/";
+pub const CLIENT_METADATA_PATH: &str = "src/meta_data/clients/data/";
+pub const DATA_ACCESS_PATH: &str = "src/data_access/data/";
 pub const KEYSPACE_METADATA_PATH: &str = "src/meta_data/keyspaces/metadata.json";
 pub const HINTED_HANDOFF_DATA: &str = "src/hinted_handoff/data";
 pub const IP_FILE: &str = "src/utils/ip.txt";
