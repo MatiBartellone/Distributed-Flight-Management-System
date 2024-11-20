@@ -2,19 +2,20 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{self, Sender, Receiver};
 use std::thread;
 
-type Job = Box<dyn FnOnce(usize) + Send + 'static>;
+use super::cassandra_client::CassandraClient;
 
-pub struct ThreadPool {
+type Job = Box<dyn FnOnce(usize, &CassandraClient) + Send + 'static>;
+
+pub struct ThreadPoolClient {
     _workers: Vec<Worker>,
     sender: Sender<Job>,
     task_cont: Arc<Mutex<usize>>,
     notification_receiver: Arc<Mutex<Receiver<()>>>,
-    is_waiting: Arc<Mutex<bool>>,
+    waiting_flag: Arc<Mutex<bool>>,
 }
 
-impl ThreadPool {
-    pub fn new(size: usize) -> ThreadPool {
-        assert!(size > 0);
+impl ThreadPoolClient {
+    pub fn new(clients: Vec<CassandraClient>) -> ThreadPoolClient {
         // Create a channel to send jobs to the workers
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
@@ -29,56 +30,57 @@ impl ThreadPool {
         let is_waiting = Arc::new(Mutex::new(false)); 
 
         // Create the workers
-        let mut _workers = Vec::with_capacity(size);
-        for id in 0..size {
+        let mut _workers = Vec::with_capacity(clients.len());
+        for (index, client) in clients.into_iter().enumerate() {
             _workers.push(Worker::new(
-                id, 
+                index, 
                 Arc::clone(&receiver), 
                 Arc::clone(&task_cont),
                 Arc::clone(&notification_sender),
                 Arc::clone(&is_waiting),
+                client
             ));
         }
 
-        ThreadPool {
+        ThreadPoolClient {
             _workers,
             sender,
             task_cont,
             notification_receiver: Arc::clone(&notification_receiver),
-            is_waiting: Arc::clone(&is_waiting),
+            waiting_flag: Arc::clone(&is_waiting),
         }
     }
 
     // Send a job to the worker
     pub fn execute<F>(&self, f: F)
     where
-        F: FnOnce(usize) + Send + 'static,
+        F: FnOnce(usize, &CassandraClient) + Send + 'static,
     {
+        // Increase the task counter
+        {
+            let mut counter = self.task_cont.lock().unwrap();
+            *counter += 1;
+        }
+
         // Send the job to the worker
         let job = Box::new(f);
         self.sender.send(job).unwrap();
     }
     
     // Wait until all the jobs are done
-    pub fn wait(&self) {
+    pub fn join(&self) {
         // If there are no jobs, return
-        {
-            let mut is_waiting = self.is_waiting.lock().unwrap();
-            *is_waiting = true;
-            let counter = self.task_cont.lock().unwrap();
-            if *counter == 0 {
-                *is_waiting = false;
-                return;
-            }
+        if *self.task_cont.lock().unwrap() == 0 {
+            return;
         }
+        self.set_waiting(true);
+        self.notification_receiver.lock().unwrap().recv().unwrap();
+        self.set_waiting(false);
+    }
 
-        // Wait for a notification
-        let receiver = self.notification_receiver.lock().unwrap();
-        receiver.recv().unwrap();
-
-        {
-            let mut is_waiting = self.is_waiting.lock().unwrap();
-            *is_waiting = false;
+    pub fn set_waiting(&self, waiting: bool) {
+        if let Ok(mut is_waiting) = self.waiting_flag.lock() {
+            *is_waiting = waiting;
         }
     }
 }
@@ -89,34 +91,36 @@ struct Worker {
 }
 
 impl Worker {
-    fn new(id: usize, receiver: Arc<Mutex<Receiver<Job>>>, task_cont: Arc<Mutex<usize>>, sender: Arc<Mutex<Sender<()>>>, is_waiting: Arc<Mutex<bool>>) -> Worker {
+    fn new(id: usize, receiver: Arc<Mutex<Receiver<Job>>>, task_cont: Arc<Mutex<usize>>, sender: Arc<Mutex<Sender<()>>>, waiting_flag: Arc<Mutex<bool>>, client: CassandraClient) -> Worker {
         let thread = thread::spawn(move || {
             loop {
-                // Get the job from the channel
+                // Get and execute the job from the channel
                 let job = receiver.lock().unwrap().recv().unwrap();
-                {
-                    // Increase the task counter
-                    let mut counter = task_cont.lock().unwrap();
-                    *counter += 1;
-                }
-                // Execute the job
-                job(id);
+                job(id, &client);
 
-                // Decrease the task counter
-                let mut counter = task_cont.lock().unwrap();
-                *counter -= 1;
+                // Decrease the task counter and check if there are no more jobs
+                let no_more_jobes = {
+                    let mut counter = task_cont.lock().unwrap();
+                    *counter -= 1;
+                    *counter == 0
+                };
 
                 // If there are no more jobs and the main thread is waiting, send a notification
-                if *counter == 0 {
-                    let is_waiting = is_waiting.lock().unwrap();
-                    if *is_waiting {
-                        let notification_sender = sender.lock().unwrap();
-                        notification_sender.send(()).unwrap();
-                    }
+                if no_more_jobes && should_wait_for_completion(&waiting_flag) {
+                    let notification_sender = sender.lock().unwrap();
+                    notification_sender.send(()).unwrap();
                 }
             }
         });
 
         Worker { _id: id, _thread: Some(thread) }
+    }
+}
+
+fn should_wait_for_completion(waiting_flag: &Arc<Mutex<bool>>) -> bool {
+    if let Ok(is_waiting) = waiting_flag.lock() {
+        *is_waiting
+    } else {
+        false
     }
 }

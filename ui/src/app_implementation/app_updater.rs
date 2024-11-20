@@ -4,16 +4,14 @@ use std::{
     time::Duration,
 };
 
-use crate::{cassandra_comunication::ui_client::UIClient, flight_implementation::{flight::Flight, flight_selected::FlightSelected}};
-
-use super::thread_pool::ThreadPool;
+use crate::{cassandra_comunication::{thread_pool_client::ThreadPoolClient, ui_client::UIClient}, flight_implementation::{flight::Flight, flight_selected::FlightSelected}};
 
 pub struct AppUpdater {
     selected_flight: Arc<Mutex<Option<FlightSelected>>>,
     selected_airport_code: Arc<Mutex<Option<String>>>,
     flights: Arc<Mutex<Vec<Flight>>>,
     client: UIClient,
-    thread_pool: ThreadPool,
+    thread_pool: ThreadPoolClient,
 }
 
 impl AppUpdater {
@@ -22,7 +20,7 @@ impl AppUpdater {
         selected_airport_code: Arc<Mutex<Option<String>>>,
         flights: Arc<Mutex<Vec<Flight>>>,
         client: UIClient,
-        thread_pool: ThreadPool,
+        thread_pool: ThreadPoolClient,
     ) -> Self {
         Self {
             selected_flight,

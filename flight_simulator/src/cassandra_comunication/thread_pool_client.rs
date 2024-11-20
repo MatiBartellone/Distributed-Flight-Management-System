@@ -2,9 +2,11 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{self, Sender, Receiver};
 use std::thread;
 
-type Job = Box<dyn FnOnce(usize) + Send + 'static>;
+use crate::cassandra_comunication::cassandra_client::CassandraClient;
 
-pub struct ThreadPool {
+type Job = Box<dyn FnOnce(usize, &CassandraClient) + Send + 'static>;
+
+pub struct ThreadPoolClient {
     _workers: Vec<Worker>,
     sender: Sender<Job>,
     task_cont: Arc<Mutex<usize>>,
@@ -12,9 +14,8 @@ pub struct ThreadPool {
     waiting_flag: Arc<Mutex<bool>>,
 }
 
-impl ThreadPool {
-    pub fn new(size: usize) -> ThreadPool {
-        assert!(size > 0);
+impl ThreadPoolClient {
+    pub fn new(clients: Vec<CassandraClient>) -> ThreadPoolClient {
         // Create a channel to send jobs to the workers
         let (sender, receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
@@ -29,18 +30,19 @@ impl ThreadPool {
         let is_waiting = Arc::new(Mutex::new(false)); 
 
         // Create the workers
-        let mut _workers = Vec::with_capacity(size);
-        for id in 0..size {
+        let mut _workers = Vec::with_capacity(clients.len());
+        for (index, client) in clients.into_iter().enumerate() {
             _workers.push(Worker::new(
-                id, 
+                index, 
                 Arc::clone(&receiver), 
                 Arc::clone(&task_cont),
                 Arc::clone(&notification_sender),
                 Arc::clone(&is_waiting),
+                client
             ));
         }
 
-        ThreadPool {
+        ThreadPoolClient {
             _workers,
             sender,
             task_cont,
@@ -52,7 +54,7 @@ impl ThreadPool {
     // Send a job to the worker
     pub fn execute<F>(&self, f: F)
     where
-        F: FnOnce(usize) + Send + 'static,
+        F: FnOnce(usize, &CassandraClient) + Send + 'static,
     {
         // Increase the task counter
         {
@@ -89,18 +91,17 @@ struct Worker {
 }
 
 impl Worker {
-    fn new(id: usize, receiver: Arc<Mutex<Receiver<Job>>>, task_cont: Arc<Mutex<usize>>, sender: Arc<Mutex<Sender<()>>>, waiting_flag: Arc<Mutex<bool>>) -> Worker {
+    fn new(id: usize, receiver: Arc<Mutex<Receiver<Job>>>, task_cont: Arc<Mutex<usize>>, sender: Arc<Mutex<Sender<()>>>, waiting_flag: Arc<Mutex<bool>>, client: CassandraClient) -> Worker {
         let thread = thread::spawn(move || {
             loop {
                 // Get and execute the job from the channel
                 let job = receiver.lock().unwrap().recv().unwrap();
-                job(id);
+                job(id, &client);
 
                 // Decrease the task counter and check if there are no more jobs
                 let no_more_jobes = {
                     let mut counter = task_cont.lock().unwrap();
                     *counter -= 1;
-                    println!("Counter: {}", *counter);
                     *counter == 0
                 };
 

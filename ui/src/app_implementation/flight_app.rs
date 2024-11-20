@@ -5,10 +5,10 @@ use egui::Context;
 use walkers::{sources::OpenStreetMap, HttpTiles, MapMemory};
 
 use crate::{
-    airport_implementation::airports::Airports, cassandra_comunication::ui_client::UIClient, flight_implementation::{flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}
+    airport_implementation::airports::Airports, cassandra_comunication::{cassandra_client::CassandraClient, thread_pool_client::ThreadPoolClient, ui_client::UIClient}, flight_implementation::{flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}
 };
 
-use super::{app_updater::AppUpdater, thread_pool::ThreadPool};
+use super::app_updater::AppUpdater;
 
 // List of the airports codes to use in the app
 pub fn get_airports_codes() -> Vec<String> {
@@ -54,11 +54,13 @@ pub struct FlightApp {
 }
 
 impl FlightApp {
-    pub fn new(egui_ctx: Context, mut client: UIClient) -> Self {
+    pub fn new(egui_ctx: Context, clients: Vec<CassandraClient>) -> Self {
         Self::set_scroll_style(&egui_ctx);
-        let thread_pool = ThreadPool::new(8);
+        let client = UIClient;
+        let thread_pool = ThreadPoolClient::new(clients);
+
         let (selected_flight, flights) = Self::inicializate_flights_information();
-        let (selected_airport_code, airports) = Self::inicializate_airport_information(&mut client, &thread_pool, &selected_flight);
+        let (selected_airport_code, airports) = Self::inicializate_airport_information(&client, &thread_pool, &selected_flight);
         let map_memory = Self::initialize_map_memory();
 
         let mut app = Self {
@@ -79,7 +81,7 @@ impl FlightApp {
         egui_ctx.set_style(style);
     }
 
-    fn inicializate_airport_information(client: &mut UIClient, thread_pool: &ThreadPool, selected_flight: &Arc<Mutex<Option<FlightSelected>>>) -> (Arc<Mutex<Option<String>>>, Airports) {
+    fn inicializate_airport_information(client: &UIClient, thread_pool: &ThreadPoolClient, selected_flight: &Arc<Mutex<Option<FlightSelected>>>) -> (Arc<Mutex<Option<String>>>, Airports) {
         let selected_airport_code = Arc::new(Mutex::new(None));
         let airports = Airports::new(
             client.get_airports(get_airports_codes(), &thread_pool),
@@ -102,7 +104,7 @@ impl FlightApp {
     }
 
     // Start the app updater thread to update the app information
-    fn start_app_updater(&mut self, ctx: egui::Context, information: UIClient, thread_pool: ThreadPool) {
+    fn start_app_updater(&mut self, ctx: egui::Context, information: UIClient, thread_pool: ThreadPoolClient) {
         let selected_flight = Arc::clone(&self.selected_flight);
         let selected_airport_code = Arc::clone(&self.selected_airport_code);
         let flights = Arc::clone(&self.flights.flights);

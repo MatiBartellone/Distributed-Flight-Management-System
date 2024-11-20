@@ -1,6 +1,5 @@
 pub mod cassandra_comunication;
 pub mod flight_implementation;
-pub mod thread_pool;
 pub mod utils;
 
 use rand::Rng;

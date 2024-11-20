@@ -10,13 +10,13 @@ use super::cassandra_connector::CassandraConnection;
 
 pub const VERSION: u8 = 3;
 pub const FLAGS: u8 = 0;
-pub const STREAM: i16 = 4;
+pub const STREAM: i16 = 10;
 pub const OP_CODE_QUERY: u8 = 7;
 pub const OP_CODE_START: u8 = 1;
 
 #[derive(Clone)]
 pub struct CassandraClient {
-    connection: CassandraConnection,
+    connection: CassandraConnection
 }
 
 impl CassandraClient {
@@ -26,8 +26,7 @@ impl CassandraClient {
     }
 
     // Wraps functions of CassandraConnection
-    pub fn send_frame(&self, frame: &mut Frame, frame_id: &usize) -> Result<Receiver<Frame>, String> {
-        frame.stream = *frame_id as i16;
+    pub fn send_frame(&self, frame: &mut Frame) -> Result<Receiver<Frame>, String> {
         self.connection.send_frame(frame)
     }
 
@@ -35,8 +34,12 @@ impl CassandraClient {
         self.connection.read_frame_response()
     }
 
+    pub fn send_and_receive(&self, frame: &mut Frame) -> Result<Frame, String> {
+        self.connection.send_and_receive(frame)
+    }
+
     // Get ready the client for use in keyspace airport
-    pub fn inicializate(&self, ) -> Result<(), String> {
+    pub fn inicializate(&self) -> Result<(), String> {
         self.start_up()
     }
 
@@ -51,9 +54,8 @@ impl CassandraClient {
             body.len() as u32,
             body,
         );
-        let frame_id = STREAM as usize;
-        let rx = self.send_frame(&mut frame, &frame_id)?;
-        self.handle_frame_response(rx)
+        let frame_response = self.send_and_receive(&mut frame)?;
+        self.handle_frame_response(frame_response)
     }
 
     fn get_start_up_body(&self) -> Result<Vec<u8>, String> {
@@ -75,9 +77,8 @@ impl CassandraClient {
             body.len() as u32,
             body,
         );
-        let frame_id = STREAM as usize;
-        let rx = self.send_frame(&mut frame, &frame_id)?;
-        self.handle_frame_response(rx)
+        let frame_response = self.send_and_receive(&mut frame)?;
+        self.handle_frame_response(frame_response)
     }
 
     fn get_authenticate_body(&self) -> Result<Vec<u8>, String> {
@@ -108,9 +109,8 @@ impl CassandraClient {
     }
 
     // Handles the read frame
-    fn handle_frame_response(&self, rx: Receiver<Frame>) -> Result<(), String> {
-        let _ = self.connection.read_frame_response()?;
-        match rx.recv().unwrap().opcode {
+    fn handle_frame_response(&self, frame: Frame) -> Result<(), String> {
+        match frame.opcode {
             OP_AUTHENTICATE | OP_AUTH_CHALLENGE => self.authenticate_response(),
             OP_AUTH_SUCCESS => Ok(()),
             _ => Err("Invalid OP response".to_string()),
