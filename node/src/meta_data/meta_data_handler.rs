@@ -2,10 +2,12 @@ use crate::meta_data::clients::meta_data_client::ClientMetaDataAcces;
 use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess;
 use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{deserialize_from_slice, flush_stream, get_own_ip, serialize_to_string, start_listener, write_to_stream};
+use crate::utils::functions::{
+    connect_to_socket, deserialize_from_slice, flush_stream, get_own_ip, read_exact_from_stream,
+    read_from_stream_no_zero, serialize_to_string, start_listener, write_to_stream,
+};
 use crate::utils::node_ip::NodeIp;
 use serde::{Deserialize, Serialize};
-use std::io::Read;
 use std::net::TcpStream;
 
 #[derive(Serialize, Deserialize)]
@@ -33,28 +35,17 @@ impl MetaDataHandler {
         flush_stream(stream)?;
         write_to_stream(stream, &serialized.as_bytes())?;
         flush_stream(stream)?;
-        match stream.read(&mut [0; 1024]) {
-            Ok(0) => Ok(()),
-            _ => Err(Errors::ServerError(String::from(""))),
-        }
+        read_exact_from_stream(stream)?;
+        Ok(())
     }
 
     pub fn establish_connection() -> Result<TcpStream, Errors> {
-        match TcpStream::connect(get_own_ip()?.get_meta_data_access_socket()) {
-            Ok(stream) => Ok(stream),
-            Err(e) => Err(Errors::ServerError(e.to_string())),
-        }
+        connect_to_socket(get_own_ip()?.get_meta_data_access_socket())
     }
 
     pub fn get_instance(stream: &mut TcpStream) -> Result<MetaDataHandler, Errors> {
-        let mut buf = [0; 1024];
         flush_stream(stream)?;
-        match stream.read(&mut buf) {
-            Ok(n) => Ok(deserialize_from_slice(&buf[..n])?),
-            Err(_) => Err(Errors::ServerError(String::from(
-                "Unable to read from node",
-            ))),
-        }
+        deserialize_from_slice(read_from_stream_no_zero(stream)?.as_slice())
     }
 
     pub fn get_client_meta_data_access(&self) -> ClientMetaDataAcces {

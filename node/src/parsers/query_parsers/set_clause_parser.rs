@@ -131,8 +131,8 @@ mod tests {
         },
         queries::set_logic::assigmente_value::AssignmentValue,
         utils::token_conversor::{
-            create_arith_math_token, create_comparison_operation_token,
-            create_identifier_token, create_symbol_token, create_token_literal,
+            create_arith_math_token, create_comparison_operation_token, create_identifier_token,
+            create_symbol_token, create_token_literal,
         },
     };
 

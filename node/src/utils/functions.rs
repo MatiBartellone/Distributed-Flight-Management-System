@@ -1,17 +1,19 @@
 use crate::meta_data::meta_data_handler::MetaDataHandler;
+use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::parsers::tokens::data_type::DataType;
 use crate::queries::where_logic::where_clause::WhereClause;
 use crate::utils::constants::{CLIENT_METADATA_PATH, IP_FILE, KEYSPACE_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::node_ip::NodeIp;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::time::{SystemTime, UNIX_EPOCH};
-use serde::{Deserialize, Serialize};
-use serde::de::DeserializeOwned;
+use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess;
 
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -52,57 +54,48 @@ pub fn check_table_name(table_name: &String) -> Result<String, Errors> {
 }
 
 pub fn get_columns_from_table(table_name: &str) -> Result<HashMap<String, DataType>, Errors> {
-    let mut stream = MetaDataHandler::establish_connection()?;
-    let keyspace_meta_data =
-        MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
     let binding = table_name.split('.').collect::<Vec<&str>>();
     let identifiers = &binding.as_slice();
-    keyspace_meta_data.get_columns_type(
-        KEYSPACE_METADATA_PATH.to_string(),
-        identifiers[0],
-        identifiers[1],
+    use_keyspace_meta_data(|handler| handler.get_columns_type(
+            KEYSPACE_METADATA_PATH.to_string(),
+            identifiers[0],
+            identifiers[1],
+        )
     )
 }
 
 pub fn get_table_pk(table_name: &str) -> Result<HashSet<String>, Errors> {
     let binding = table_name.split('.').collect::<Vec<&str>>();
     let identifiers = &binding.as_slice();
-    let mut stream = MetaDataHandler::establish_connection()?;
-    let keyspace_meta_data =
-        MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
-    Ok(keyspace_meta_data
-        .get_primary_key(
-            KEYSPACE_METADATA_PATH.to_string(),
-            identifiers[0],
-            identifiers[1],
-        )?
-        .get_full_pk_in_hash())
+    use_keyspace_meta_data(|handler| {
+        Ok(handler
+            .get_primary_key(
+                KEYSPACE_METADATA_PATH.to_string(),
+                identifiers[0],
+                identifiers[1],
+            )?
+            .get_full_pk_in_hash())
+    })
 }
 
 pub fn get_table_partition(table_name: &str) -> Result<HashSet<String>, Errors> {
     let binding = table_name.split('.').collect::<Vec<&str>>();
     let identifiers = &binding.as_slice();
-    let mut stream = MetaDataHandler::establish_connection()?;
-    let keyspace_meta_data =
-        MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
-    let pk = keyspace_meta_data.get_primary_key(
+    let pk = use_keyspace_meta_data(|handler| handler.get_primary_key(
         KEYSPACE_METADATA_PATH.to_string(),
         identifiers[0],
         identifiers[1],
-    )?;
+    ))?;
     Ok(pk.partition_keys.into_iter().collect())
 }
 pub fn get_table_clustering_columns(table_name: &str) -> Result<HashSet<String>, Errors> {
     let binding = table_name.split('.').collect::<Vec<&str>>();
     let identifiers = &binding.as_slice();
-    let mut stream = MetaDataHandler::establish_connection()?;
-    let keyspace_meta_data =
-        MetaDataHandler::get_instance(&mut stream)?.get_keyspace_meta_data_access();
-    let pk = keyspace_meta_data.get_primary_key(
+    let pk = use_keyspace_meta_data(|handler| handler.get_primary_key(
         KEYSPACE_METADATA_PATH.to_string(),
         identifiers[0],
         identifiers[1],
-    )?;
+    ))?;
     Ok(pk.clustering_columns.into_iter().collect())
 }
 
@@ -182,18 +175,62 @@ pub fn write_to_stream(stream: &mut TcpStream, content: &[u8]) -> Result<(), Err
         .map_err(|_| ServerError(String::from("Failed to write to stream")))
 }
 
+pub fn read_exact_from_stream(stream: &mut TcpStream) -> Result<Vec<u8>, Errors> {
+    let mut buffer = [0; 1024];
+    let size = stream
+        .read(&mut buffer)
+        .map_err(|_| ServerError(String::from("Failed to read stream")))?;
+    if size == 0 {
+        return Ok(Vec::new());
+    }
+    Ok(buffer[0..size].to_vec())
+}
+
+pub fn read_from_stream_no_zero(stream: &mut TcpStream) -> Result<Vec<u8>, Errors> {
+    let buf = read_exact_from_stream(stream)?;
+    if buf.is_empty() {
+        return Err(ServerError(String::from("Empty stream")));
+    }
+    Ok(buf)
+}
+
 pub fn serialize_to_string<T: Serialize>(object: &T) -> Result<String, Errors> {
-    serde_json::to_string(&object)
-        .map_err(|_| ServerError("Failed to serialize data".to_string()))
+    serde_json::to_string(&object).map_err(|_| ServerError("Failed to serialize data".to_string()))
 }
 
 pub fn deserialize_from_slice<T: DeserializeOwned>(data: &[u8]) -> Result<T, Errors> {
-    serde_json::from_slice(data)
-        .map_err(|_| ServerError("Failed to deserialize data".to_string()))
+    serde_json::from_slice(data).map_err(|_| ServerError("Failed to deserialize data".to_string()))
 }
 
-
 pub fn deserialize_from_string<T: DeserializeOwned>(data: &str) -> Result<T, Errors> {
-    serde_json::from_str(data)
-        .map_err(|_| ServerError("Failed to deserialize data".to_string()))
+    serde_json::from_str(data).map_err(|_| ServerError("Failed to deserialize data".to_string()))
+}
+
+pub fn bind_listener(socket_addr: SocketAddr) -> Result<TcpListener, Errors> {
+    TcpListener::bind(socket_addr).map_err(|_| ServerError(String::from("Failed to set listener")))
+}
+
+pub fn connect_to_socket(socket_addr: SocketAddr) -> Result<TcpStream, Errors> {
+    TcpStream::connect(socket_addr)
+        .map_err(|_| ServerError(String::from("Error connecting to socket.")))
+}
+
+pub fn use_node_meta_data<F, T>(action: F) -> Result<T, Errors>
+where
+    F: FnOnce(&NodesMetaDataAccess) -> Result<T, Errors>,
+{
+    let mut meta_data_stream = MetaDataHandler::establish_connection()?;
+    let node_metadata =
+        MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
+    action(&node_metadata)
+}
+
+pub fn use_keyspace_meta_data<F, T>(action: F) -> Result<T, Errors>
+where
+    F: FnOnce(&KeyspaceMetaDataAccess) -> Result<T, Errors>,
+{
+    let mut meta_data_stream = MetaDataHandler::establish_connection()?;
+    let keyspace_metadata =
+        MetaDataHandler::get_instance(&mut meta_data_stream)?.get_keyspace_meta_data_access();
+    action(&keyspace_metadata)
 }

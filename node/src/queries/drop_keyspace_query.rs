@@ -1,7 +1,6 @@
-use crate::utils::functions::get_long_string_from_str;
+use crate::utils::functions::{get_long_string_from_str, use_keyspace_meta_data};
 use crate::{
     data_access::data_access_handler::DataAccessHandler,
-    meta_data::meta_data_handler::MetaDataHandler,
     queries::query::Query,
     utils::{constants::KEYSPACE_METADATA_PATH, errors::Errors},
 };
@@ -23,13 +22,12 @@ impl DropKeySpaceQuery {
     }
 
     fn push_on_meta_data(&self) -> Result<Vec<String>, Errors> {
-        let mut stream = MetaDataHandler::establish_connection()?;
-        let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
-        let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
-        let tables = keyspace_meta_data
-            .get_tables_from_keyspace(KEYSPACE_METADATA_PATH.to_owned(), &self.keyspace)?;
-        keyspace_meta_data.drop_keyspace(KEYSPACE_METADATA_PATH.to_owned(), &self.keyspace)?;
-        Ok(tables)
+        use_keyspace_meta_data(|keyspace_meta_data| {
+            let tables = keyspace_meta_data
+                .get_tables_from_keyspace(KEYSPACE_METADATA_PATH.to_owned(), &self.keyspace)?;
+            keyspace_meta_data.drop_keyspace(KEYSPACE_METADATA_PATH.to_owned(), &self.keyspace)?;
+            Ok(tables)
+        })
     }
 }
 

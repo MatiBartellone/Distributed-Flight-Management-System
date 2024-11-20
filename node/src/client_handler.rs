@@ -4,44 +4,37 @@ use crate::response_builders::error_builder::ErrorBuilder;
 use crate::utils::constants::CLIENT_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::frame::Frame;
+use crate::utils::functions::{flush_stream, read_exact_from_stream, write_to_stream};
 use crate::utils::parser_constants::{AUTH_RESPONSE, AUTH_SUCCESS, STARTUP};
-use std::io::Read;
 use std::net::TcpStream;
-use crate::utils::functions::{flush_stream, write_to_stream};
 
 pub struct ClientHandler {}
 
 impl ClientHandler {
     pub fn handle_client(mut stream: TcpStream) -> Result<(), Errors> {
         add_new_client()?;
-        let mut buffer = [0; 1024];
         loop {
             flush_stream(&mut stream)?;
-            match stream.read(&mut buffer) {
-                Ok(0) => {
+            match read_exact_from_stream(&mut stream)? {
+                vec if vec.is_empty() => {
                     println!("Client disconnected");
                     delete_client()?;
                     break;
                 }
-                Ok(n) => match execute_request(buffer[0..n].to_vec()) {
+                vec => match execute_request(vec.clone()) {
                     Ok(response) => {
                         flush_stream(&mut stream)?;
                         write_to_stream(&mut stream, response.as_slice())?
                     }
                     Err(e) => {
                         let frame = ErrorBuilder::build_error_frame(
-                            Frame::parse_frame(buffer.as_slice())?,
+                            Frame::parse_frame(vec.as_slice())?,
                             e,
                         )?;
                         flush_stream(&mut stream)?;
                         write_to_stream(&mut stream, frame.to_bytes().as_slice())?
                     }
                 },
-                Err(e) => {
-                    println!("Error reading from socket: {}", e);
-                    delete_client()?;
-                    break;
-                }
             }
         }
         Ok(())

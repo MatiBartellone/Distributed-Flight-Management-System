@@ -1,7 +1,6 @@
 use super::query::Query;
-use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::utils::constants::KEYSPACE_METADATA_PATH;
-use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table};
+use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table, use_keyspace_meta_data};
 use crate::{parsers::tokens::data_type::DataType, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -42,46 +41,34 @@ impl AlterTableQuery {
 
     fn add(&self) -> Result<(), Errors> {
         let (keyspace_name, table) = split_keyspace_table(&self.table_name)?;
-        let mut stream = MetaDataHandler::establish_connection()?;
-        let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
-        let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
-        keyspace_meta_data.new_column(
+        use_keyspace_meta_data(|handler| handler.new_column(
             KEYSPACE_METADATA_PATH.to_owned(),
             keyspace_name,
             table,
             &self.first_column,
             self.data.to_owned(),
-        )?;
-        Ok(())
+        ))
     }
 
     fn drop(&self) -> Result<(), Errors> {
         let (keyspace_name, table) = split_keyspace_table(&self.table_name)?;
-        let mut stream = MetaDataHandler::establish_connection()?;
-        let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
-        let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
-        keyspace_meta_data.drop_column(
+        use_keyspace_meta_data(|handler| handler.drop_column(
             KEYSPACE_METADATA_PATH.to_owned(),
             keyspace_name,
             table,
             &self.first_column,
-        )?;
-        Ok(())
+        ))
     }
 
     fn rename(&self) -> Result<(), Errors> {
         let (keyspace_name, table) = split_keyspace_table(&self.table_name)?;
-        let mut stream = MetaDataHandler::establish_connection()?;
-        let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
-        let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
-        keyspace_meta_data.rename_column(
+        use_keyspace_meta_data(|handler| handler.rename_column(
             KEYSPACE_METADATA_PATH.to_owned(),
             keyspace_name,
             table,
             &self.first_column,
             &self.second_column,
-        )?;
-        Ok(())
+        ))
     }
 }
 

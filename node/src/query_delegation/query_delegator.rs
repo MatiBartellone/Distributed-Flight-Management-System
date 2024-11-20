@@ -6,8 +6,9 @@ use crate::query_delegation::query_serializer::QuerySerializer;
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::constants::{KEYSPACE_METADATA_PATH, NODES_METADATA_PATH, TIMEOUT_SECS};
 use crate::utils::errors::Errors;
+use crate::utils::functions::{flush_stream, read_from_stream_no_zero, use_node_meta_data};
 use crate::utils::node_ip::NodeIp;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
@@ -91,15 +92,13 @@ impl QueryDelegator {
     }
 
     fn get_nodes_ip(&self) -> Result<Vec<NodeIp>, Errors> {
-        let mut stream = MetaDataHandler::establish_connection()?;
-        let nodes_meta_data =
-            MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-        let ips = nodes_meta_data.get_partition_full_ips(
-            NODES_METADATA_PATH,
-            &self.primary_key,
-            self.query.get_keyspace()?,
-        )?;
-        Ok(ips)
+        use_node_meta_data(|handler| {
+            handler.get_partition_full_ips(
+                NODES_METADATA_PATH,
+                &self.primary_key,
+                self.query.get_keyspace()?,
+            )
+        })
     }
 
     fn send_to_node(ip: NodeIp, query: Box<dyn Query>) -> Result<Vec<u8>, Errors> {
@@ -113,20 +112,11 @@ impl QueryDelegator {
                         "Unable to send query to node",
                     )));
                 };
-                stream.flush().expect("");
-                let mut buf = [0; 1024];
-                match stream.read(&mut buf) {
-                    Ok(n) => Ok(buf[0..n].to_vec()),
-                    Err(_) => Err(Errors::ServerError(String::from(
-                        "Unable to read from node",
-                    ))),
-                }
+                flush_stream(&mut stream)?;
+                read_from_stream_no_zero(&mut stream)
             }
             Err(e) => {
-                let mut stream = MetaDataHandler::establish_connection()?;
-                let nodes_meta_data =
-                    MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-                nodes_meta_data.set_inactive(NODES_METADATA_PATH, &ip)?;
+                use_node_meta_data(|handler| handler.set_inactive(NODES_METADATA_PATH, &ip))?;
                 Handler::store_query(StoredQuery::new(&query)?, ip)?;
                 Err(Errors::UnavailableException(e.to_string()))
             }

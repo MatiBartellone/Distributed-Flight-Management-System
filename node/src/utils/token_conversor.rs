@@ -161,15 +161,11 @@ pub fn create_token_literal(value: &str, data_type: DataType) -> Token {
 }
 
 pub fn create_logical_operation_token(operation: LogicalOperators) -> Token {
-    Token::Term(Term::BooleanOperations(Logical(
-        operation,
-    )))
+    Token::Term(Term::BooleanOperations(Logical(operation)))
 }
 
 pub fn create_comparison_operation_token(operation: ComparisonOperators) -> Token {
-    Token::Term(Term::BooleanOperations(Comparison(
-        operation,
-    )))
+    Token::Term(Term::BooleanOperations(Comparison(operation)))
 }
 
 // Reserved

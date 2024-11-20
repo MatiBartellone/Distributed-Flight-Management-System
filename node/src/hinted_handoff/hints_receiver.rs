@@ -1,20 +1,19 @@
 use crate::hinted_handoff::stored_query::StoredQuery;
-use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::utils::constants::{HINTED_HANDOFF_TIMEOUT_SECS, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
+use crate::utils::functions::{
+    bind_listener, flush_stream, read_exact_from_stream, use_node_meta_data, write_to_stream,
+};
 use crate::utils::node_ip::NodeIp;
-use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::TcpStream;
 use std::time::{Duration, Instant};
-use crate::utils::functions::{flush_stream, write_to_stream};
 
 pub struct HintsReceiver;
 
 impl HintsReceiver {
     pub fn start_listening(ip: NodeIp) -> Result<(), Errors> {
-        let listener = TcpListener::bind(ip.get_hints_receiver_socket())
-            .map_err(|_| ServerError(String::from("Failed to set listener")))?;
+        let listener = bind_listener(ip.get_hints_receiver_socket())?;
         listener
             .set_nonblocking(true)
             .map_err(|_| ServerError(String::from("Could not set nonblocking")))?;
@@ -44,11 +43,7 @@ impl HintsReceiver {
         hints: &mut Vec<StoredQuery>,
     ) -> Result<(), Errors> {
         loop {
-            let mut buffer = [0; 1024];
-            let size = stream
-                .read(&mut buffer)
-                .map_err(|_| ServerError(String::from("Failed to read from stream")))?;
-            match serde_json::from_slice::<StoredQuery>(&buffer[..size]) {
+            match serde_json::from_slice::<StoredQuery>(&read_exact_from_stream(stream)?) {
                 Ok(hint) => hints.push(hint),
                 _ => break,
             }
@@ -68,10 +63,7 @@ impl HintsReceiver {
     }
 
     fn finish_booting() -> Result<(), Errors> {
-        let mut meta_data_stream = MetaDataHandler::establish_connection()?;
-        let node_metadata =
-            MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
-        node_metadata.set_own_node_active(NODES_METADATA_PATH)?;
+        use_node_meta_data(|handler| handler.set_own_node_active(NODES_METADATA_PATH))?;
         println!("Finished booting");
         Ok(())
     }

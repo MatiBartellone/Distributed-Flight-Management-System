@@ -8,10 +8,13 @@ use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::query_delegation::query_receiver::QueryReceiver;
 use crate::utils::constants::{IP_FILE, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
+use crate::utils::functions::{
+    connect_to_socket, deserialize_from_slice, read_exact_from_stream, serialize_to_string,
+    write_to_stream,
+};
 use crate::utils::node_ip::NodeIp;
 use std::fs::File;
-use std::io::{Read, Write};
-use std::net::TcpStream;
+use std::io::Write;
 use std::{io, thread};
 
 pub struct NodeInitializer {
@@ -116,31 +119,24 @@ impl NodeInitializer {
         }
     }
 
-    pub fn set_cluster(&self) -> bool {
+    pub fn set_cluster(&self) -> Result<bool, Errors> {
         let mut nodes = Vec::<Node>::new();
         let mut node = self.get_node();
         let mut needs_booting = false;
         if !self.is_first {
-            let mut stream = TcpStream::connect(self.get_seed_ip().get_seed_listener_socket())
-                .expect("Error connecting to seed");
-            let mut buffer = [0; 1024];
-            let size = stream
-                .read(&mut buffer)
-                .expect("Failed to read from server stream");
-            nodes = serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
+            let mut stream = connect_to_socket(self.get_seed_ip().get_seed_listener_socket())?;
+            nodes = deserialize_from_slice(read_exact_from_stream(&mut stream)?.as_slice())?;
             needs_booting = set_node_pos(&mut node, &nodes);
             if needs_booting {
                 nodes = eliminate_node_by_ip(&nodes, node.get_ip())
             }
-            stream
-                .write_all(serde_json::to_string(&node).expect("").as_bytes())
-                .expect("Error writing to seed");
+            write_to_stream(&mut stream, serialize_to_string(&node)?.as_bytes())?
         }
         let cluster = Cluster::new(Node::new_from_node(&node), nodes);
         if let Err(e) = NodesMetaDataAccess::write_cluster(NODES_METADATA_PATH, &cluster) {
             println!("{}", e);
         }
-        needs_booting
+        Ok(needs_booting)
     }
 }
 
