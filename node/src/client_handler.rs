@@ -5,8 +5,9 @@ use crate::utils::constants::CLIENT_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::frame::Frame;
 use crate::utils::parser_constants::{AUTH_RESPONSE, AUTH_SUCCESS, STARTUP};
-use std::io::{Read, Write};
+use std::io::Read;
 use std::net::TcpStream;
+use crate::utils::functions::{flush_stream, write_to_stream};
 
 pub struct ClientHandler {}
 
@@ -15,7 +16,7 @@ impl ClientHandler {
         add_new_client()?;
         let mut buffer = [0; 1024];
         loop {
-            stream.flush().expect("Failed to flush client");
+            flush_stream(&mut stream)?;
             match stream.read(&mut buffer) {
                 Ok(0) => {
                     println!("Client disconnected");
@@ -24,25 +25,20 @@ impl ClientHandler {
                 }
                 Ok(n) => match execute_request(buffer[0..n].to_vec()) {
                     Ok(response) => {
-                        stream.flush().expect("Failed to flush client");
-                        stream
-                            .write_all(response.as_slice())
-                            .expect("Error writing response");
+                        flush_stream(&mut stream)?;
+                        write_to_stream(&mut stream, response.as_slice())?
                     }
                     Err(e) => {
                         let frame = ErrorBuilder::build_error_frame(
-                            Frame::parse_frame(buffer.as_slice()).expect("Failed to parse frame"),
+                            Frame::parse_frame(buffer.as_slice())?,
                             e,
-                        )
-                        .expect("Failed to build error frame");
-                        stream.flush().expect("Failed to flush client");
-                        stream
-                            .write_all(frame.to_bytes().as_slice())
-                            .expect("Error writing response");
+                        )?;
+                        flush_stream(&mut stream)?;
+                        write_to_stream(&mut stream, frame.to_bytes().as_slice())?
                     }
                 },
                 Err(e) => {
-                    println!("Error leyendo del socket: {}", e);
+                    println!("Error reading from socket: {}", e);
                     delete_client()?;
                     break;
                 }

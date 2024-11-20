@@ -63,12 +63,12 @@ impl UpdateQuery {
     fn check_assignments(&self, columns: HashMap<String, DataType>) -> Result<(), Errors> {
         for (set_col, assignment) in self.changes.iter() {
             match assignment {
-                AssignmentValue::Column(column) => self.check_column_existance(column, &columns)?,
+                AssignmentValue::Column(column) => self.check_column_existence(column, &columns)?,
                 AssignmentValue::Simple(literal) => {
                     self.check_data_type_matching(set_col, &columns, literal)?
                 }
                 AssignmentValue::Arithmetic(column, _, literal) => {
-                    self.check_column_existance(column, &columns)?;
+                    self.check_column_existence(column, &columns)?;
                     self.check_data_type_matching(set_col, &columns, literal)?;
                     self.check_data_type_matching(column, &columns, literal)?;
                 }
@@ -76,7 +76,7 @@ impl UpdateQuery {
         }
         Ok(())
     }
-    fn check_column_existance(
+    fn check_column_existence(
         &self,
         column: &String,
         columns: &HashMap<String, DataType>,

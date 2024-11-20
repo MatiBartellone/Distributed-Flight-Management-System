@@ -9,7 +9,7 @@ use crate::{
     utils::{
         errors::Errors,
         token_conversor::{
-            get_comparision_operator, get_list, get_literal, get_next_value, precedence,
+            get_comparison_operator, get_list, get_literal, get_next_value, precedence,
         },
     },
 };
@@ -55,7 +55,7 @@ fn where_comparision(
     tokens: &mut Peekable<IntoIter<Token>>,
     column_name: String,
 ) -> Result<WhereClause, Errors> {
-    let operator = get_comparision_operator(tokens)?;
+    let operator = get_comparison_operator(tokens)?;
     let literal = get_literal(tokens)?;
     Ok(comparison_where(&column_name, operator, literal))
 }
@@ -64,7 +64,7 @@ fn where_tuple(
     tokens: &mut Peekable<IntoIter<Token>>,
     column_names: Vec<Token>,
 ) -> Result<WhereClause, Errors> {
-    let operator = get_comparision_operator(tokens)?;
+    let operator = get_comparison_operator(tokens)?;
     let literals = get_list(tokens)?;
     if column_names.len() != literals.len() {
         return Err(Errors::SyntaxError("Invalid tuples len".to_string()));

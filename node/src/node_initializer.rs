@@ -6,7 +6,7 @@ use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
 use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::query_delegation::query_receiver::QueryReceiver;
-use crate::utils::constants::{nodes_meta_data_path, IP_FILE};
+use crate::utils::constants::{IP_FILE, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::node_ip::NodeIp;
 use std::fs::File;
@@ -26,8 +26,8 @@ pub struct NodeInitializer {
 impl NodeInitializer {
     pub fn new() -> Result<Self, Errors> {
         let (ip, uses_network) =
-            match get_user_data("Will this be used across netowrk? [Y][N]: ").as_str() {
-                "Y" => (get_user_data("Device's ip (e.g. tailscale): "), true),
+            match get_user_data("Will this be used across network? [Y][N]: ").as_str() {
+                "Y" => (get_user_data("Device's ip (e.g. tail scale): "), true),
                 _ => (get_user_data("Node's ip: "), false),
             };
         let (ip, network_ip) = match uses_network {
@@ -38,7 +38,7 @@ impl NodeInitializer {
         let port = port.parse::<u16>().expect("Could not parse port");
 
         let (seed_ip, seed_port, is_first) =
-            match get_user_data("Is this the fisrst node? [Y][N]: ").as_str() {
+            match get_user_data("Is this the first node? [Y][N]: ").as_str() {
                 "Y" => (ip.to_string(), port.to_string(), true),
                 _ => (
                     get_user_data("Seed node ip: "),
@@ -137,9 +137,7 @@ impl NodeInitializer {
                 .expect("Error writing to seed");
         }
         let cluster = Cluster::new(Node::new_from_node(&node), nodes);
-        if let Err(e) =
-            NodesMetaDataAccess::write_cluster(nodes_meta_data_path().as_ref(), &cluster)
-        {
+        if let Err(e) = NodesMetaDataAccess::write_cluster(NODES_METADATA_PATH, &cluster) {
             println!("{}", e);
         }
         needs_booting

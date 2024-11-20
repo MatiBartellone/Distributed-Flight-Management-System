@@ -7,6 +7,7 @@ use crate::utils::node_ip::NodeIp;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::time::{Duration, Instant};
+use crate::utils::functions::{flush_stream, write_to_stream};
 
 pub struct HintsReceiver;
 
@@ -51,15 +52,9 @@ impl HintsReceiver {
                 Ok(hint) => hints.push(hint),
                 _ => break,
             }
-            stream
-                .flush()
-                .map_err(|_| ServerError(String::from("Failed to flush stream")))?;
-            stream
-                .write_all(b"ACK")
-                .map_err(|_| ServerError(String::from("Failed to write to stream")))?;
-            stream
-                .flush()
-                .map_err(|_| ServerError(String::from("Failed to flush stream")))?;
+            flush_stream(stream)?;
+            write_to_stream(stream, b"ACK")?;
+            flush_stream(stream)?;
         }
         Ok(())
     }

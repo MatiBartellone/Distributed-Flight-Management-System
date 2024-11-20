@@ -1,8 +1,8 @@
 use crate::data_access::data_access::DataAccess;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{get_own_ip, start_listener};
+use crate::utils::functions::{deserialize_from_slice, flush_stream, get_own_ip, serialize_to_string, start_listener, write_to_stream};
 use crate::utils::node_ip::NodeIp;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::net::TcpStream;
 
 pub struct DataAccessHandler {}
@@ -14,23 +14,12 @@ impl DataAccessHandler {
 
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
         let data_access = DataAccess {};
-        let serialized = serde_json::to_string(&data_access)
-            .map_err(|_| Errors::ServerError("Failed to serialize data access".to_string()))?;
-        stream
-            .flush()
-            .map_err(|_| Errors::ServerError("Error flushing stream".to_string()))?;
-        stream
-            .write_all(serialized.as_bytes())
-            .map_err(|_| Errors::ServerError("Error writing to stream".to_string()))?;
-        stream
-            .flush()
-            .map_err(|_| Errors::ServerError("Error flushing stream".to_string()))?;
+        let serialized = serialize_to_string(&data_access)?;
+        flush_stream(stream)?;
+        write_to_stream(stream, &serialized.as_bytes())?;
+        flush_stream(stream)?;
         match stream.read(&mut [0; 1024]) {
             Ok(0) => Ok(()),
-            Err(e) => Err(Errors::ServerError(format!(
-                "Error reading from stream: {}",
-                e
-            ))),
             _ => Err(Errors::ServerError(String::from(""))),
         }
     }
@@ -44,13 +33,9 @@ impl DataAccessHandler {
 
     pub fn get_instance(stream: &mut TcpStream) -> Result<DataAccess, Errors> {
         let mut buf = [0; 1024];
-        stream
-            .flush()
-            .map_err(|_| Errors::ServerError("Error flushing stream".to_string()))?;
+        flush_stream(stream)?;
         match stream.read(&mut buf) {
-            Ok(n) => Ok(serde_json::from_slice(&buf[..n]).map_err(|_| {
-                Errors::ServerError(String::from("Failed to deserialize data access"))
-            })?),
+            Ok(n) => Ok(deserialize_from_slice(&buf[..n])?),
             Err(_) => Err(Errors::ServerError(String::from(
                 "Unable to read from node",
             ))),

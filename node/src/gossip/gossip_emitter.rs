@@ -67,7 +67,7 @@ impl GossipEmitter {
         let mut buffer = [0; 1024];
         let size = stream
             .read(&mut buffer)
-            .map_err(|_| Errors::ServerError(String::from("Failed to read data")))?;
+            .map_err(|_| ServerError(String::from("Failed to read data")))?;
         let received_nodes: Vec<Node> =
             serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
         let new_cluster = Self::get_new_cluster(received_nodes)?;

@@ -3,7 +3,7 @@ use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
 use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
-use crate::utils::functions::start_listener;
+use crate::utils::functions::{deserialize_from_slice, serialize_to_string, start_listener, write_to_stream};
 use crate::utils::node_ip::NodeIp;
 use std::io::{Read, Write};
 use std::net::TcpStream;
@@ -20,8 +20,7 @@ impl GossipListener {
         let size = stream
             .read(&mut buffer)
             .map_err(|_| Errors::ServerError(String::from("Failed to read data")))?;
-        let received_nodes: Vec<Node> =
-            serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
+        let received_nodes: Vec<Node> = deserialize_from_slice(&buffer[..size])?;
         let cluster = Self::get_cluster()?;
         let own_node = cluster.get_own_node();
         let (mut new_nodes, mut required_changes) = (Vec::new(), Vec::new());
@@ -50,12 +49,8 @@ impl GossipListener {
         stream: &mut TcpStream,
         required_changes: Vec<Node>,
     ) -> Result<(), Errors> {
-        let serialized = serde_json::to_string(&required_changes).map_err(|_| {
-            Errors::ServerError(String::from("Failed to serialize required changes"))
-        })?;
-        stream
-            .write_all(serialized.as_bytes())
-            .map_err(|_| Errors::ServerError(String::from("Failed to send required changes")))?;
+        let serialized = serialize_to_string(&required_changes)?;
+        write_to_stream(stream, &serialized.as_bytes())?;
         Ok(())
     }
 

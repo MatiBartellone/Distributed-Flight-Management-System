@@ -14,24 +14,24 @@ pub struct ClientMetaDataAcces {}
 impl ClientMetaDataAcces {
     fn open_file(path: &str) -> Result<File, Errors> {
         fs::create_dir_all(CLIENT_METADATA_PATH).map_err(|e| ServerError(e.to_string()))?;
-        let file = File::create(&path)
-            .map_err(|_| Errors::ServerError("Unable to create file".to_string()))?;
+        let file =
+            File::create(&path).map_err(|_| ServerError("Unable to create file".to_string()))?;
         Ok(file)
     }
 
     fn get_client(path: &str) -> Result<Client, Errors> {
         let content = fs::read_to_string(path)
-            .map_err(|_| Errors::ServerError(String::from("Error reading file")))?;
+            .map_err(|_| ServerError(String::from("Error reading file")))?;
         let client: Client = serde_json::from_slice::<Client>(content.as_bytes())
-            .map_err(|e| Errors::ServerError(e.to_string()))?;
+            .map_err(|e| ServerError(e.to_string()))?;
         Ok(client)
     }
 
     fn save_to_json(file: &mut File, client: &Client) -> Result<(), Errors> {
         let serialized_client = serde_json::to_vec(client)
-            .map_err(|_| Errors::ServerError("Unable to serialize client".to_string()))?;
+            .map_err(|_| ServerError("Unable to serialize client".to_string()))?;
         file.write_all(serialized_client.as_slice())
-            .map_err(|_| Errors::ServerError("Unable to write file".to_string()))?;
+            .map_err(|_| ServerError("Unable to write file".to_string()))?;
 
         Ok(())
     }
@@ -88,7 +88,7 @@ impl ClientMetaDataAcces {
 
     pub fn delete_client(&self, path: String) -> Result<(), Errors> {
         remove_file(Self::get_file_path(path.as_str()))
-            .map_err(|_| Errors::ServerError("Unable to delete file".to_string()))
+            .map_err(|_| ServerError("Unable to delete file".to_string()))
     }
 
     fn process_client_view<F, T>(path: String, process_fn: F) -> Result<T, Errors>

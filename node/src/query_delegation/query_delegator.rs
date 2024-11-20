@@ -4,9 +4,7 @@ use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::queries::query::{Query, QueryEnum};
 use crate::query_delegation::query_serializer::QuerySerializer;
 use crate::utils::consistency_level::ConsistencyLevel;
-use crate::utils::constants::{
-    nodes_meta_data_path, KEYSPACE_METADATA_PATH, NODES_METADATA_PATH, TIMEOUT_SECS,
-};
+use crate::utils::constants::{KEYSPACE_METADATA_PATH, NODES_METADATA_PATH, TIMEOUT_SECS};
 use crate::utils::errors::Errors;
 use crate::utils::node_ip::NodeIp;
 use std::io::{Read, Write};
@@ -58,7 +56,7 @@ impl QueryDelegator {
                 }
             });
         }
-        // Recibir respuestas hasta alcanzar la consistencia
+        // get responses until n = consistency
         let timeout = Duration::from_secs(TIMEOUT_SECS);
         for _ in 0..self.consistency.get_consistency(self.get_replication()?) {
             match rx.recv_timeout(timeout) {
@@ -97,7 +95,7 @@ impl QueryDelegator {
         let nodes_meta_data =
             MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
         let ips = nodes_meta_data.get_partition_full_ips(
-            nodes_meta_data_path().as_ref(),
+            NODES_METADATA_PATH,
             &self.primary_key,
             self.query.get_keyspace()?,
         )?;

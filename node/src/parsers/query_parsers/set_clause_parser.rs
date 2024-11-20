@@ -7,7 +7,7 @@ use crate::{
     queries::set_logic::assigmente_value::AssignmentValue,
     utils::{
         errors::Errors,
-        token_conversor::{get_arithmetic_math, get_comparision_operator, get_next_value},
+        token_conversor::{get_arithmetic_math, get_comparison_operator, get_next_value},
     },
 };
 use std::collections::HashMap;
@@ -44,7 +44,7 @@ fn assignment(
     changes: &mut HashMap<String, AssignmentValue>,
     column_name: String,
 ) -> Result<(), Errors> {
-    let Ok(Equal) = get_comparision_operator(tokens) else {
+    let Ok(Equal) = get_comparison_operator(tokens) else {
         return Err(Errors::SyntaxError(
             "= should follow a SET assignment".to_string(),
         ));
@@ -131,7 +131,7 @@ mod tests {
         },
         queries::set_logic::assigmente_value::AssignmentValue,
         utils::token_conversor::{
-            create_aritmeticas_math_token, create_comparison_operation_token,
+            create_arith_math_token, create_comparison_operation_token,
             create_identifier_token, create_symbol_token, create_token_literal,
         },
     };
@@ -196,7 +196,7 @@ mod tests {
             create_identifier_token("age"),
             create_comparison_operation_token(Equal),
             create_identifier_token("height"),
-            create_aritmeticas_math_token(Suma),
+            create_arith_math_token(Suma),
             create_token_literal("10", Int),
         ];
 
@@ -220,7 +220,7 @@ mod tests {
             create_identifier_token("height"),
             create_comparison_operation_token(Equal),
             create_identifier_token("weight"),
-            create_aritmeticas_math_token(Suma),
+            create_arith_math_token(Suma),
             create_token_literal("10", Int),
             create_symbol_token(COMMA),
             create_identifier_token("name"),
@@ -264,7 +264,7 @@ mod tests {
             create_identifier_token("age"),
             create_comparison_operation_token(Equal),
             create_identifier_token("height"),
-            create_aritmeticas_math_token(Suma),
+            create_arith_math_token(Suma),
         ];
 
         let expected_error = "Query lacks parameters";

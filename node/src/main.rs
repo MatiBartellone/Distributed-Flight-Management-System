@@ -55,7 +55,9 @@ fn set_node_listener(ip: NodeIp) {
             Ok(stream) => {
                 println!("Client connected: {:?}", stream.peer_addr());
                 thread::spawn(move || {
-                    ClientHandler::handle_client(stream).unwrap();
+                    if let Err(e) = ClientHandler::handle_client(stream) {
+                        println!("{}", e);
+                    }
                 });
             }
             Err(e) => {

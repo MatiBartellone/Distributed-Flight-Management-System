@@ -7,8 +7,11 @@ use crate::utils::errors::Errors::ServerError;
 use crate::utils::node_ip::NodeIp;
 use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::io::Write;
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::time::{SystemTime, UNIX_EPOCH};
+use serde::{Deserialize, Serialize};
+use serde::de::DeserializeOwned;
 
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -21,11 +24,7 @@ pub fn get_timestamp() -> Result<u64, Errors> {
     if let Ok(timestamp) = SystemTime::now().duration_since(UNIX_EPOCH) {
         return Ok(timestamp.as_secs());
     }
-    Err(Errors::ServerError(String::from("Time went backwards")))
-}
-
-pub fn generate_random_number(limit: u64, offset: u64) -> Result<u64, Errors> {
-    Ok((get_timestamp()? % limit) + offset)
+    Err(ServerError(String::from("Time went backwards")))
 }
 
 pub fn check_table_name(table_name: &String) -> Result<String, Errors> {
@@ -49,7 +48,6 @@ pub fn check_table_name(table_name: &String) -> Result<String, Errors> {
     let Some(kp) = client_meta_data.get_keyspace(CLIENT_METADATA_PATH.to_string())? else {
         return Err(Errors::SyntaxError(String::from("Keyspace not in usage")));
     };
-    println!("setting tablwe!!");
     Ok(format!("{}.{}", kp, table_name))
 }
 
@@ -151,11 +149,10 @@ pub fn get_partition_key_from_where(
 }
 
 pub fn get_own_ip() -> Result<NodeIp, Errors> {
-    let content = fs::read_to_string(IP_FILE).map_err(|e| ServerError(e.to_string()))?; // Lee el contenido completo como un String
+    let content = fs::read_to_string(IP_FILE).map_err(|e| ServerError(e.to_string()))?;
     let split = content.split(":").collect::<Vec<&str>>();
     let port = split[1].parse::<u16>().unwrap();
     NodeIp::new_from_string(split[0], port)
-    //NodesMetaDataAccess::get_own_ip_(nodes_meta_data_path().as_ref())
 }
 
 pub fn start_listener<F>(socket: SocketAddr, handle_connection: F) -> Result<(), Errors>
@@ -163,16 +160,40 @@ where
     F: Fn(&mut TcpStream) -> Result<(), Errors>,
 {
     let listener = TcpListener::bind(socket)
-        .map_err(|_| Errors::ServerError(String::from("Failed to set listener")))?;
+        .map_err(|_| ServerError(String::from("Failed to set listener")))?;
     for stream in listener.incoming() {
         match stream {
             Ok(mut stream) => handle_connection(&mut stream)?,
-            Err(_) => {
-                return Err(Errors::ServerError(String::from(
-                    "Failed to connect to listener",
-                )))
-            }
+            Err(_) => return Err(ServerError(String::from("Failed to connect to listener"))),
         }
     }
     Ok(())
+}
+
+pub fn flush_stream(stream: &mut TcpStream) -> Result<(), Errors> {
+    stream
+        .flush()
+        .map_err(|_| ServerError(String::from("Failed to flush stream")))
+}
+
+pub fn write_to_stream(stream: &mut TcpStream, content: &[u8]) -> Result<(), Errors> {
+    stream
+        .write_all(content)
+        .map_err(|_| ServerError(String::from("Failed to write to stream")))
+}
+
+pub fn serialize_to_string<T: Serialize>(object: &T) -> Result<String, Errors> {
+    serde_json::to_string(&object)
+        .map_err(|_| ServerError("Failed to serialize data".to_string()))
+}
+
+pub fn deserialize_from_slice<T: DeserializeOwned>(data: &[u8]) -> Result<T, Errors> {
+    serde_json::from_slice(data)
+        .map_err(|_| ServerError("Failed to deserialize data".to_string()))
+}
+
+
+pub fn deserialize_from_string<T: DeserializeOwned>(data: &str) -> Result<T, Errors> {
+    serde_json::from_str(data)
+        .map_err(|_| ServerError("Failed to deserialize data".to_string()))
 }
