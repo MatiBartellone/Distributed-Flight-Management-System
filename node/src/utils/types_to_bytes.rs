@@ -83,4 +83,8 @@ impl TypesToBytes {
     pub fn into_bytes(self) -> Vec<u8> {
         self.bytes
     }
+
+    pub fn length(&self) -> usize {
+        self.bytes.len()
+    }
 }

@@ -10,4 +10,5 @@ pub mod parsers;
 pub mod queries;
 pub mod query_delegation;
 pub mod response_builders;
+pub mod read_repair;
 pub mod utils;
