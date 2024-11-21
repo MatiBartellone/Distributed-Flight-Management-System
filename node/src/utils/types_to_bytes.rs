@@ -26,6 +26,13 @@ impl TypesToBytes {
         Ok(())
     }
 
+    pub fn write_u64(&mut self, value: u64) -> Result<(), String> {
+        self.bytes
+            .write_all(&value.to_be_bytes())
+            .map_err(|_| ERROR_WRITE)?;
+        Ok(())
+    }
+
     pub fn write_short(&mut self, value: u16) -> Result<(), String> {
         self.write_i16(value as i16)
     }

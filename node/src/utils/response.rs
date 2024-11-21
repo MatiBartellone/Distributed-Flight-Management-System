@@ -1,9 +1,9 @@
 use crate::{
     data_access::row::Row, parsers::tokens::data_type::DataType,
-    utils::types_to_bytes::TypesToBytes,
+    utils::types_to_bytes::TypesToBytes, meta_data::meta_data_handler::MetaDataHandler,
 };
 
-use super::errors::Errors;
+use super::{errors::Errors, constants::KEYSPACE_METADATA};
 pub struct Response;
 
 impl Response {
@@ -53,7 +53,7 @@ impl Response {
         Response::write_protocol_response(&rows, keyspace, table, &mut encoder)?;
         let division_offset = encoder.length();
         //Division
-        Response::write_meta_data_response(&rows, &mut encoder)?;
+        Response::write_meta_data_response(&rows, keyspace, table, &mut encoder)?;
         encoder.write_int(division_offset as i32).map_err(Errors::TruncateError)?;
         Ok(encoder.into_bytes())
     }
@@ -64,37 +64,39 @@ impl Response {
         if let Some(first_row) = rows.first() {
             encoder.write_int(first_row.columns.len() as i32).map_err(Errors::TruncateError)?;
         }
-        let keyspace_bytes = keyspace.as_bytes();
-        encoder.write_short(keyspace_bytes.len() as u16).map_err(Errors::TruncateError)?;
-        encoder.write_bytes(keyspace_bytes);
-        let table_bytes = table.as_bytes();
-        encoder.write_short(table_bytes.len() as u16).map_err(Errors::TruncateError)?;
-        encoder.write_bytes(table_bytes);
+        encoder.write_string(keyspace).map_err(Errors::TruncateError)?;
+        encoder.write_string(table).map_err(Errors::TruncateError)?;
         for column in &rows[0].columns {
-            let column_name_bytes = column.column_name.as_bytes();
-            encoder.write_short(column_name_bytes.len() as u16).map_err(Errors::TruncateError)?;
-            encoder.write_bytes(column_name_bytes);
+            encoder.write_string(&column.column_name);
             let data_type_id = Response::data_type_to_byte(column.value.data_type.clone());
             encoder.write_i16(data_type_id).map_err(Errors::TruncateError)?;
         }
         encoder.write_int(rows.len() as i32).map_err(Errors::TruncateError)?;
         for row in rows {
             for column in &row.columns {
-                let value_bytes = column.value.value.as_bytes();
-                encoder.write_short(value_bytes.len() as u16).map_err(Errors::TruncateError)?;
-                encoder.write_bytes(value_bytes);
+                encoder.write_string(&column.value.value).map_err(Errors::TruncateError)?;
             }
         }
         Ok(())
     }
 
-    fn write_meta_data_response(rows: &Vec<Row>, encoder: &mut TypesToBytes) -> Result<(), Errors> {
+    fn write_meta_data_response(rows: &Vec<Row>, keyspace: &str, table: &str,encoder: &mut TypesToBytes) -> Result<(), Errors> {
         for row in rows {
             for column in &row.columns {
-                let time_stamp_bytes = column.time_stamp.to_be_bytes();
-                encoder.write_int(time_stamp_bytes.len() as i32).map_err(Errors::TruncateError)?;
-                encoder.write_bytes(&time_stamp_bytes);
+                let time_stamp_bytes = column.time_stamp;
+                encoder.write_u64(time_stamp_bytes);
             }
+        }
+        for row in rows {
+            encoder.write_short(row.primary_key.len() as u16).map_err(Errors::TruncateError)?;
+            for pk in &row.primary_key{
+                encoder.write_string(pk);
+            }
+        }
+        let pks = get_pks(keyspace, table)?;
+        encoder.write_short(pks.len() as u16).map_err(Errors::TruncateError)?;
+        for pk in pks {
+            encoder.write_string(&pk)
         }
         Ok(())
     }
@@ -110,4 +112,12 @@ impl Response {
             DataType::Time => 0x000C,     // Código de tipo para `TIME`
         }
     }
+}
+
+fn get_pks(keyspace: &str, table: &str) -> Result<Vec<String>, Errors> {
+    let mut stream = MetaDataHandler::establish_connection()?;
+    let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
+    let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
+    let pks = keyspace_meta_data.get_primary_key(KEYSPACE_METADATA.to_owned(), keyspace, table)?;
+    pks.get_full_primary_key()?;
 }
