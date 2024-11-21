@@ -9,6 +9,7 @@ use crate::utils::constants::{
 };
 use crate::utils::errors::Errors;
 use crate::utils::node_ip::NodeIp;
+use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
@@ -36,7 +37,7 @@ impl QueryDelegator {
     }
 
     pub fn send(&self) -> Result<Vec<u8>, Errors> {
-        let responses = Arc::new(Mutex::new(Vec::new()));
+        let responses = Arc::new(Mutex::new(HashMap::new()));
         let (tx, rx) = mpsc::channel();
         let error = Arc::new(Mutex::new(None));
 
@@ -50,7 +51,7 @@ impl QueryDelegator {
             let error = Arc::clone(&error);
             let _ = thread::spawn(move || {
                 match QueryDelegator::send_to_node(ip, query_enum.into_query()) {
-                    Ok(response) => if tx.send(response).is_ok() {},
+                    Ok((ip, response)) => if tx.send((ip,response)).is_ok() {},
                     Err(e) => {
                         let mut error_lock = error.lock().unwrap();
                         *error_lock = Some(e);
@@ -62,9 +63,9 @@ impl QueryDelegator {
         let timeout = Duration::from_secs(TIMEOUT_SECS);
         for _ in 0..self.consistency.get_consistency(self.get_replication()?) {
             match rx.recv_timeout(timeout) {
-                Ok(response) => {
+                Ok((ip, response)) => {
                     let mut res = responses.lock().unwrap();
-                    res.push(response);
+                    res.insert(ip, response);
                 }
                 _ => {
                     return match error.lock().unwrap().take() {
@@ -102,7 +103,7 @@ impl QueryDelegator {
         Ok(ips)
     }
 
-    fn send_to_node(ip: NodeIp, query: Box<dyn Query>) -> Result<Vec<u8>, Errors> {
+    fn send_to_node(ip: NodeIp, query: Box<dyn Query>) -> Result<(String, Vec<u8>), Errors> {
         match TcpStream::connect(ip.get_query_delegation_socket()) {
             Ok(mut stream) => {
                 if stream
@@ -116,7 +117,7 @@ impl QueryDelegator {
                 stream.flush().expect("");
                 let mut buf = [0; 1024];
                 match stream.read(&mut buf) {
-                    Ok(n) => Ok(buf[0..n].to_vec()),
+                    Ok(n) => Ok((ip.get_string_ip(), buf[0..n].to_vec())),
                     Err(_) => Err(Errors::ServerError(String::from(
                         "Unable to read from node",
                     ))),
@@ -133,15 +134,58 @@ impl QueryDelegator {
         }
     }
 
-    fn get_response(&self, responses: Vec<Vec<u8>>) -> Result<Vec<u8>, Errors> {
-        let Some(response) = responses.first() else {
-            return Err(Errors::ServerError(String::from("No response found")));
-        };
-        for r in &responses {
-            if r != response {
-                // READ REPAIR
+    fn get_response(&self, responses: HashMap<String, Vec<u8>>) -> Result<Vec<u8>, Errors> {
+        Self::read_repair(responses)
+    }
+
+    fn read_repair(responses: HashMap<String, Vec<u8>>) -> Result<Vec<u8>, Errors> {
+        if repair_innecesary(&responses) {
+            return get_first_response(&responses);
+        }
+        let mut discrepancies = HashMap::new();
+        let mut timestamps = HashMap::new();
+         // Extraer y parsear los datos y timestamps de cada respuesta
+        for (ip, response) in &responses {
+            if let Some(parsed_data) = parse_response(response) {
+                for (key, (value, timestamp)) in parsed_data {
+                    // Almacenar el valor más reciente por clave
+                    timestamps
+                        .entry(key.clone())
+                        .and_modify(|(latest_value, latest_timestamp)| {
+                            if timestamp > *latest_timestamp {
+                                *latest_value = value.clone();
+                                *latest_timestamp = timestamp;
+                            }
+                        })
+                        .or_insert((value.clone(), timestamp));
+                    
+                    // Almacenar nodos que tienen discrepancias
+                    discrepancies
+                        .entry(key)
+                        .or_insert_with(Vec::new)
+                        .push(ip.clone());
+                }
             }
         }
-        Ok(response.clone())
+    
+        // Verificar qué nodos necesitan reparaciones
+        for (key, nodes) in discrepancies {
+            if nodes.len() > 1 {
+                let (correct_value, _) = timestamps.get(&key).unwrap();
+                let lines_to_repair = vec![(key.clone(), correct_value.clone())];
+                for node_ip in nodes {
+                    repair(node_ip, &lines_to_repair)?;
+                }
+            }
+        }
+    
+        // Devolver la respuesta "correcta" (puede ser la más reciente)
+        get_first_response(&responses)
     }
+
+    
 }
+
+
+
+
