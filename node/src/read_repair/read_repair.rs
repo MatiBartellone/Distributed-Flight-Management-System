@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::{Cursor, Bytes}, usize};
+use std::{collections::HashMap, io::{Cursor, Bytes}, usize, string};
 
 use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor}, data_access::row::Row, parsers::tokens::data_type::DataType};
 
@@ -7,7 +7,11 @@ use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor}, data_access::row
 pub struct ReadRepair {
     responses_bytes: HashMap<String, Vec<u8>>,
     meta_data_bytes: HashMap<String, Vec<u8>>,
+    column_protocol: HashMap<String, DataType>,
+    values_protocol: Vec<Vec<String>>,
     keyspace_table: String,
+    time_stamps: Vec<Vec<u64>>,
+    pk_name: Vec<String>,
     rows: Vec<Row> 
 }
 
@@ -34,13 +38,29 @@ impl ReadRepair {
             .get(&ip)
             .ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
         let mut cursor = BytesCursor::new(&bytes[8..]);
-        let columns_count = cursor.read_int()?;
+        let columns_count = cursor.read_int()? as usize;
         let keyspace = cursor.read_string()?;
         let table = cursor.read_string()?;
         self.keyspace_table = format!("{}.{}", keyspace, table);
-        let 
+        for _ in 0..columns_count {
+            let column = cursor.read_string()?;
+            let data_type_bytes = cursor.read_i16()?;
+            let data_type = byte_to_data_type(data_type_bytes)?;
+            self.column_protocol.insert(column, data_type);
+        }
+        let count_rows = cursor.read_int()? as usize;
+        for _ in 0..count_rows {
+            let mut row: Vec<String> = Vec::new();
+            for _ in 0..columns_count {
+                let value = cursor.read_string()?;
+                row.push(value);
+            }
+            self.values_protocol.push(row)
+        }
         Ok(())
     }
+
+    
 
 
     fn get_first_response(&self) -> Result<Vec<u8>, Errors> {
@@ -82,15 +102,3 @@ impl ReadRepair {
     }
 }
 
-fn byte_to_data_type(byte: i16) -> Result<DataType, Errors> {
-    match byte {
-        0x0004 => Ok(DataType::Boolean),
-        0x000B => Ok(DataType::Date),
-        0x0006 => Ok(DataType::Decimal),
-        0x000F => Ok(DataType::Duration),
-        0x0009 => Ok(DataType::Int),
-        0x000A => Ok(DataType::Text),
-        0x000C => Ok(DataType::Time),
-        _ => Err(Errors::ProtocolError(format!("Unknown data type byte: {}", byte))),
-    }
-}
