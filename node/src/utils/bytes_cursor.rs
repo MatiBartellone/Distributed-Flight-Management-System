@@ -39,6 +39,15 @@ impl BytesCursor {
         Ok(u32::from_be_bytes(buf))
     }
 
+    pub fn read_u64(&mut self) -> Result<u64, Errors> {
+        let mut buf = [0u8; 8];
+        self.cursor
+            .read_exact(&mut buf)
+            .map_err(|_| Errors::ProtocolError(String::from("Could not read bytes")))?;
+        Ok(u64::from_be_bytes(buf))
+    }
+
+
     pub fn read_remaining_bytes(&mut self) -> Result<Vec<u8>, Errors> {
         let mut body = Vec::new();
         self.cursor

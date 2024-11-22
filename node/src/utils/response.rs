@@ -49,7 +49,6 @@ impl Response {
 
     pub fn rows(rows: Vec<Row>, keyspace: &str, table: &str) -> Result<Vec<u8>, Errors> {
         let mut encoder = TypesToBytes::default();
-        //Escribir cuantos bytes hay hasta la division
         Response::write_protocol_response(&rows, keyspace, table, &mut encoder)?;
         let division_offset = encoder.length();
         //Division
@@ -96,7 +95,7 @@ impl Response {
         let pks = get_pks(keyspace, table)?;
         encoder.write_short(pks.len() as u16).map_err(Errors::TruncateError)?;
         for pk in pks {
-            encoder.write_string(&pk)
+            encoder.write_string(&pk).map_err(Errors::TruncateError)?;
         }
         Ok(())
     }
@@ -119,5 +118,5 @@ fn get_pks(keyspace: &str, table: &str) -> Result<Vec<String>, Errors> {
     let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
     let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
     let pks = keyspace_meta_data.get_primary_key(KEYSPACE_METADATA.to_owned(), keyspace, table)?;
-    pks.get_full_primary_key()?;
+    Ok(pks.get_full_primary_key())
 }
