@@ -1,18 +1,14 @@
-use std::{collections::HashMap, io::{Cursor, Bytes}, usize, string};
+use std::{collections::HashMap, usize};
 
-use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor}, data_access::row::Row, parsers::tokens::data_type::DataType};
+use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor, response::Response, constants::BEST}, data_access::row::Row};
+
+use super::row_response::RowResponse;
 
 
 
 pub struct ReadRepair {
     responses_bytes: HashMap<String, Vec<u8>>,
     meta_data_bytes: HashMap<String, Vec<u8>>,
-    column_protocol: HashMap<String, DataType>,
-    values_protocol: Vec<Vec<String>>,
-    keyspace_table: String,
-    time_stamps: Vec<Vec<u64>>,
-    pk_name: Vec<String>,
-    rows: Vec<Row> 
 }
 
 impl ReadRepair {
@@ -26,42 +22,63 @@ impl ReadRepair {
         Ok(())
     }   
 
-    pub fn get_response(self) -> Result<Vec<u8>, Errors> {
+    pub fn get_response(&mut self) -> Result<Vec<u8>, Errors> {
         if self.repair_innecesary() {
             return self.get_first_response();
         }
-        Ok(vec![])
+        let better_response = self.get_better_response()?;
+        self.responses_bytes.insert(BEST.to_string(), better_response);
+        self.repair()?;
+        self.responses_bytes
+        .get(BEST)
+        .cloned() 
+        .ok_or_else(|| Errors::TruncateError("No keys found".to_string())) 
     }
 
-    pub fn read_protocol_response(&mut self, ip: String) -> Result<(), Errors> {
-        let bytes = self.responses_bytes
-            .get(&ip)
-            .ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
-        let mut cursor = BytesCursor::new(&bytes[8..]);
-        let columns_count = cursor.read_int()? as usize;
-        let keyspace = cursor.read_string()?;
-        let table = cursor.read_string()?;
-        self.keyspace_table = format!("{}.{}", keyspace, table);
-        for _ in 0..columns_count {
-            let column = cursor.read_string()?;
-            let data_type_bytes = cursor.read_i16()?;
-            let data_type = byte_to_data_type(data_type_bytes)?;
-            self.column_protocol.insert(column, data_type);
-        }
-        let count_rows = cursor.read_int()? as usize;
-        for _ in 0..count_rows {
-            let mut row: Vec<String> = Vec::new();
-            for _ in 0..columns_count {
-                let value = cursor.read_string()?;
-                row.push(value);
+    fn repair(&self) -> Result<(), Errors> {
+        let better_response = self.responses_bytes.get(BEST).ok_or_else(|| Errors::TruncateError("No keys found".to_string()))?;
+        for (ip, response) in &self.responses_bytes {
+            if response != better_response {
+                self.repair_node(ip)?;
             }
-            self.values_protocol.push(row)
         }
+        Ok(())
+    }
+
+    fn repair_node(&self, ip: &str) -> Result<(), Errors> {
+        let node_rows = self.read_response(ip.to_string())?;
+        let best = self.read_response(BEST.to_string())?;
+        
         Ok(())
     }
 
     
 
+    fn get_better_response(&mut self) -> Result<Vec<u8>, Errors> {
+        let mut ips = self.responses_bytes.keys();
+        let first_ip = ips.next().ok_or_else(|| Errors::TruncateError("No keys found".to_string()))?;
+        let mut rows = self.read_response(first_ip.to_string())?;
+        for ip in ips {
+            let next_response = self.read_response(ip.to_string())?;
+            compare_response(&mut rows, next_response);
+        }
+        let (keyspace, table) = self.get_keyspace_table(first_ip.to_string())?;
+        Response::protocol_row(rows, &keyspace, &table)
+    }    
+
+    fn read_response(&self, ip: String) -> Result<Vec<Row>, Errors> {
+        let mut translate = RowResponse::new();
+        let protocol = self.responses_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
+        let meta_data = self.meta_data_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
+        translate.read_row_response(protocol.to_vec(), meta_data.to_vec())
+    }
+
+    fn get_keyspace_table(&self, ip: String) -> Result<(String, String), Errors> {
+        let mut translate = RowResponse::new();
+        let protocol = self.responses_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
+        let meta_data = self.meta_data_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
+        translate.read_keyspace_table(protocol.to_vec(), meta_data.to_vec())
+    }
 
     fn get_first_response(&self) -> Result<Vec<u8>, Errors> {
         self.responses_bytes
@@ -99,6 +116,20 @@ impl ReadRepair {
         let data_section = data[..division].to_vec();
         let timestamps_section = data[division..data.len() - 4].to_vec();
         Ok((data_section, timestamps_section))
+    }
+}
+
+fn compare_response(original: &mut Vec<Row>, new: Vec<Row>) {
+    for (ori_row, new_row) in original.iter_mut().zip(new) {
+        compare_row(ori_row, new_row);
+    }
+}
+
+fn compare_row(original: &mut Row, new: Row) {
+    for (col_ori, col_new) in original.columns.iter_mut().zip(new.columns) {
+        if col_ori.time_stamp < col_new.time_stamp {
+            *col_ori = col_new;
+        }
     }
 }
 
