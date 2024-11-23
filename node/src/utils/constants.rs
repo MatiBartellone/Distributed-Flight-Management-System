@@ -7,6 +7,8 @@ pub const IP_FILE: &str = "src/utils/ip.txt";
 pub const HINTED_HANDOFF_HOURS: i64 = 3;
 pub const REPLICATION: &str = "replication_factor";
 pub const STRATEGY: &str = "class";
+pub const BEST: &str = "BETTER_RESPONSE";
+
 pub fn nodes_meta_data_path() -> String {
     NODES_METADATA.to_string()
 }

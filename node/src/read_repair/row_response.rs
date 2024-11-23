@@ -1,24 +1,50 @@
 use std::collections::HashMap;
 
-use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor}, parsers::tokens::data_type::DataType};
+use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor}, parsers::tokens::{data_type::{DataType, self}, literal::Literal}, data_access::row::{Row, Column}};
 
 
 
 pub struct RowResponse {
     column_protocol: HashMap<String, DataType>,
     values_protocol: Vec<Vec<String>>,
-    keyspace_table: String,
+    keyspace: String,
+    table: String,
     time_stamps: Vec<Vec<u64>>,
+    pk_values: Vec<Vec<String>>,
     pk_name: Vec<String>,
 }
 
 impl RowResponse {
-    pub fn read_protocol_response(&mut self,bytes: Vec<u8>) -> Result<(), Errors> {
+
+    pub fn new() -> Self {
+        Self {
+            column_protocol: HashMap::new(),     
+            values_protocol: Vec::new(),     
+            keyspace: String::new(),
+            table: String::new(),      
+            time_stamps: Vec::new(),           
+            pk_values: Vec::new(),            
+            pk_name: Vec::new(),               
+        }
+    }
+
+    pub fn read_row_response(&mut self, protocol: Vec<u8>, meta_data: Vec<u8>) -> Result<Vec<Row>, Errors> {
+        let (count_rows, columns_count) = self.read_protocol_response(protocol)?;
+        self.read_meta_data_response(meta_data, count_rows, columns_count)?;
+        self.create_rows()
+    }
+
+    pub fn read_keyspace_table(&mut self, protocol: Vec<u8>, meta_data: Vec<u8>) -> Result<(String, String), Errors> {
+        let (count_rows, columns_count) = self.read_protocol_response(protocol)?;
+        self.read_meta_data_response(meta_data, count_rows, columns_count)?;
+        Ok((self.keyspace.to_owned(), self.table.to_owned()))
+    }
+
+    fn read_protocol_response(&mut self, bytes: Vec<u8>) -> Result<(usize, usize), Errors> {
         let mut cursor = BytesCursor::new(&bytes[8..]);
         let columns_count = cursor.read_int()? as usize;
-        let keyspace = cursor.read_string()?;
-        let table = cursor.read_string()?;
-        self.keyspace_table = format!("{}.{}", keyspace, table);
+        self.keyspace = cursor.read_string()?;
+        self.table = cursor.read_string()?;
         for _ in 0..columns_count {
             let column = cursor.read_string()?;
             let data_type_bytes = cursor.read_i16()?;
@@ -34,10 +60,10 @@ impl RowResponse {
             }
             self.values_protocol.push(row)
         }
-        Ok(())
+        Ok((count_rows, columns_count))
     }
 
-    pub fn read_meta_data_response(&mut self, bytes: Vec<u8>, rows_count: usize, column_count: usize) -> Result<(), Errors> {
+    fn read_meta_data_response(&mut self, bytes: Vec<u8>, rows_count: usize, column_count: usize) -> Result<(), Errors> {
         let mut cursor = BytesCursor::new(&bytes);
         for _ in 0..rows_count {
             let mut row: Vec<u64> = Vec::new();
@@ -53,7 +79,32 @@ impl RowResponse {
             self.pk_name.push(pk);
 
         }
+        for _ in 0..rows_count {
+            let mut pk_values_row: Vec<String> = Vec::new();
+            for _ in 0..count_pks {
+                pk_values_row.push(cursor.read_string()?)
+            }
+            self.pk_values.push(pk_values_row);
+        }
         Ok(())
+    }
+
+    fn create_rows(&self) -> Result<Vec<Row>, Errors> {
+        let mut rows: Vec<Row> = Vec::new();
+        for ((values_row, timestamps_row), pk_values) in self.values_protocol.iter().zip(&self.time_stamps).zip(&self.pk_values) {
+            let mut columns: Vec<Column> = Vec::new();
+            for ((column, _data_type), (value, timestamp)) in self
+                .column_protocol
+                .iter()
+                .zip(values_row.iter().zip(timestamps_row)) {
+                    let literal = Literal::new(value.to_string(), _data_type.clone());
+                    let column_struct = Column::new(column, &literal, *timestamp);
+                    columns.push(column_struct);
+            }
+            let row = Row::new(columns, pk_values.to_vec());
+            rows.push(row);
+        }
+        Ok(rows)
     }
 }
 

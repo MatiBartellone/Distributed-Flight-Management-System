@@ -37,6 +37,7 @@ impl Row {
             )),
         })
     }
+
     pub fn get_row_hash(&self) -> HashMap<String, Literal> {
         let mut hash: HashMap<String, Literal> = HashMap::new();
         for column in &self.columns {
@@ -77,6 +78,7 @@ impl Row {
         }
         None
     }
+    
     pub fn get_some_column(&self, column_name: &String) -> Result<Column, Errors> {
         let mut column: Option<&Column> = None;
         for col in &self.columns {

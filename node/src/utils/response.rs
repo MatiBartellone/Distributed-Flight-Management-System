@@ -57,6 +57,12 @@ impl Response {
         Ok(encoder.into_bytes())
     }
 
+    pub fn protocol_row(rows: Vec<Row>, keyspace: &str, table: &str) -> Result<Vec<u8>, Errors> {
+        let mut encoder = TypesToBytes::default();
+        Response::write_protocol_response(&rows, keyspace, table, &mut encoder)?;
+        Ok(encoder.into_bytes())
+    }
+
     pub fn write_protocol_response(rows: &Vec<Row>, keyspace: &str, table: &str, encoder: &mut TypesToBytes) -> Result<(), Errors>{
         encoder.write_int(0x0002).map_err(Errors::TruncateError)?;
         encoder.write_int(0x0001).map_err(Errors::TruncateError)?;
@@ -89,13 +95,18 @@ impl Response {
         for row in rows {
             encoder.write_short(row.primary_key.len() as u16).map_err(Errors::TruncateError)?;
             for pk in &row.primary_key{
-                encoder.write_string(pk);
+                encoder.write_string(pk).map_err(Errors::TruncateError)?;
             }
         }
         let pks = get_pks(keyspace, table)?;
         encoder.write_short(pks.len() as u16).map_err(Errors::TruncateError)?;
         for pk in pks {
             encoder.write_string(&pk).map_err(Errors::TruncateError)?;
+        }
+        for row in rows {
+            for pk_value in &row.primary_key {
+                encoder.write_string(&pk_value).map_err(Errors::TruncateError)?;
+            }
         }
         Ok(())
     }
