@@ -14,8 +14,8 @@ use std::thread::sleep;
 use std::time::Duration;
 
 fn main() {
-
-    let node_data = NodeInitializer::new(get_args()).unwrap();
+    let (uses_congig, config_file) = get_args();
+    let node_data = NodeInitializer::new(uses_congig, config_file).unwrap();
 
     let needs_booting = node_data.set_cluster().unwrap();
 

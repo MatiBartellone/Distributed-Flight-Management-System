@@ -14,8 +14,8 @@ use crate::utils::functions::{
 };
 use crate::utils::node_ip::NodeIp;
 use std::fs::File;
-use std::io::{read_to_string, Write};
-use std::{io, thread};
+use std::io::Write;
+use std::{fs, io, thread};
 use serde::Deserialize;
 use crate::utils::errors::Errors::ServerError;
 
@@ -44,9 +44,9 @@ impl NodeInitializer {
         match uses_congig {
             false => Self::get_data_by_user(),
             true => {
-                match config_file {
-                    file if file.is_empty() => Self::read_config_file(CONFIG_FILE),
-                    file => Self::read_config_file(file.as_str()),
+                match config_file.as_str() {
+                    "default" => Self::read_config_file(CONFIG_FILE),
+                    file => Self::read_config_file(file),
                 }
             }
         }
@@ -95,7 +95,7 @@ impl NodeInitializer {
     }
 
     fn read_config_file(path: &str) -> Result<Self, Errors> {
-        let contents = read_to_string(path).map_err(|_| ServerError(String::from("Could not read config file")))?;
+        let contents = fs::read_to_string(path).map_err(|_| ServerError(String::from("Could not read config file")))?;
         let mut config: Config = serde_yaml::from_str(&contents).map_err(|_| ServerError(String::from("Could not deserialize config info")))?;
         if config.uses_network {
             config.ip = NodeIp::new_from_string("0.0.0.0", config.ip.get_port())?;
