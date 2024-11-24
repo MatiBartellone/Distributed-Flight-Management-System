@@ -3,6 +3,7 @@ use crate::hinted_handoff::stored_query::StoredQuery;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::queries::query::{Query, QueryEnum};
 use crate::query_delegation::query_serializer::QuerySerializer;
+use crate::read_reparation::read_repair::ReadRepair;
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::constants::{
     nodes_meta_data_path, KEYSPACE_METADATA, NODES_METADATA, TIMEOUT_SECS,
@@ -135,55 +136,9 @@ impl QueryDelegator {
     }
 
     fn get_response(&self, responses: HashMap<String, Vec<u8>>) -> Result<Vec<u8>, Errors> {
-        Self::read_repair(responses)
+        let mut read_repair = ReadRepair::new(&responses)?;
+        read_repair.get_response()
     }
-
-    fn read_repair(responses: HashMap<String, Vec<u8>>) -> Result<Vec<u8>, Errors> {
-        if repair_innecesary(&responses) {
-            return get_first_response(&responses);
-        }
-        let mut discrepancies = HashMap::new();
-        let mut timestamps = HashMap::new();
-         // Extraer y parsear los datos y timestamps de cada respuesta
-        for (ip, response) in &responses {
-            if let Some(parsed_data) = parse_response(response) {
-                for (key, (value, timestamp)) in parsed_data {
-                    // Almacenar el valor más reciente por clave
-                    timestamps
-                        .entry(key.clone())
-                        .and_modify(|(latest_value, latest_timestamp)| {
-                            if timestamp > *latest_timestamp {
-                                *latest_value = value.clone();
-                                *latest_timestamp = timestamp;
-                            }
-                        })
-                        .or_insert((value.clone(), timestamp));
-                    
-                    // Almacenar nodos que tienen discrepancias
-                    discrepancies
-                        .entry(key)
-                        .or_insert_with(Vec::new)
-                        .push(ip.clone());
-                }
-            }
-        }
-    
-        // Verificar qué nodos necesitan reparaciones
-        for (key, nodes) in discrepancies {
-            if nodes.len() > 1 {
-                let (correct_value, _) = timestamps.get(&key).unwrap();
-                let lines_to_repair = vec![(key.clone(), correct_value.clone())];
-                for node_ip in nodes {
-                    repair(node_ip, &lines_to_repair)?;
-                }
-            }
-        }
-    
-        // Devolver la respuesta "correcta" (puede ser la más reciente)
-        get_first_response(&responses)
-    }
-
-    
 }
 
 

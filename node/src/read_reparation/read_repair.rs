@@ -1,4 +1,4 @@
-use std::{collections::HashMap, usize};
+use std::collections::HashMap;
 
 use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor, response::Response, constants::BEST}, data_access::row::Row};
 
@@ -13,26 +13,43 @@ pub struct ReadRepair {
 
 impl ReadRepair {
 
-    pub fn set_responses(&mut self, responses: &HashMap<String, Vec<u8>>) -> Result<(), Errors>{
+    pub fn new(responses: &HashMap<String, Vec<u8>>) -> Result<Self, Errors> {
+        let mut responses_bytes = HashMap::new();
+        let mut meta_data_bytes = HashMap::new();
+
         for (ip, response) in responses {
             let (response_node, meta_data_response) = ReadRepair::split_bytes(response)?;
-            self.responses_bytes.insert(ip.to_string(), response_node);
-            self.responses_bytes.insert(ip.to_string(), meta_data_response);
+            responses_bytes.insert(ip.to_string(), response_node);
+            meta_data_bytes.insert(ip.to_string(), meta_data_response);
         }
-        Ok(())
-    }   
+
+        Ok(Self {
+            responses_bytes,
+            meta_data_bytes,
+        })
+    } 
 
     pub fn get_response(&mut self) -> Result<Vec<u8>, Errors> {
         if self.repair_innecesary() {
             return self.get_first_response();
         }
         let better_response = self.get_better_response()?;
-        self.responses_bytes.insert(BEST.to_string(), better_response);
+        self.save_best(better_response)?;
         self.repair()?;
         self.responses_bytes
         .get(BEST)
         .cloned() 
         .ok_or_else(|| Errors::TruncateError("No keys found".to_string())) 
+    }
+
+    fn save_best(&mut self, best: Vec<u8>) -> Result<(), Errors>{
+        let copy = self.meta_data_bytes
+            .get(BEST)
+            .cloned() 
+            .ok_or_else(|| Errors::TruncateError("No keys found".to_string()))?;
+        self.responses_bytes.insert(BEST.to_string(), best);
+        self.meta_data_bytes.insert(BEST.to_string(), copy);
+        Ok(())
     }
 
     fn repair(&self) -> Result<(), Errors> {
@@ -48,7 +65,13 @@ impl ReadRepair {
     fn repair_node(&self, ip: &str) -> Result<(), Errors> {
         let node_rows = self.read_response(ip.to_string())?;
         let best = self.read_response(BEST.to_string())?;
-        
+        for (row, better_row) in node_rows.iter().zip(best){
+            for (column, column_better) in row.columns.iter().zip(better_row.columns) {
+                if column.value != column_better.value {
+                    
+                }
+            } 
+        }
         Ok(())
     }
 
@@ -119,7 +142,7 @@ impl ReadRepair {
     }
 }
 
-fn compare_response(original: &mut Vec<Row>, new: Vec<Row>) {
+fn compare_response(original: &mut [Row], new: Vec<Row>) {
     for (ori_row, new_row) in original.iter_mut().zip(new) {
         compare_row(ori_row, new_row);
     }

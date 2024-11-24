@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor}, parsers::tokens::{data_type::{DataType, self}, literal::Literal}, data_access::row::{Row, Column}};
+use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor}, parsers::tokens::{data_type::DataType, literal::Literal}, data_access::row::{Row, Column}};
 
 
 
@@ -118,5 +118,11 @@ fn byte_to_data_type(byte: i16) -> Result<DataType, Errors> {
         0x000A => Ok(DataType::Text),
         0x000C => Ok(DataType::Time),
         _ => Err(Errors::ProtocolError(format!("Unknown data type byte: {}", byte))),
+    }
+}
+
+impl Default for RowResponse {
+    fn default() -> Self {
+         Self::new()
     }
 }
