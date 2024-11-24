@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, sync::{mpsc::{self}, Arc, Mutex}, thread, time::Duration};
 
-use crate::{flight_implementation::{flight::{Flight, FlightStatus, FlightTracking}, flight_state::FlightState}, utils::{constants::OP_RESULT, frame::Frame}};
+use crate::{flight_implementation::{airport::Airport, flight::{Flight, FlightStatus, FlightTracking}, flight_state::FlightState}, utils::{constants::OP_RESULT, frame::Frame}};
 
 use super::{cassandra_client::{CassandraClient, FLAGS, OP_CODE_QUERY, STREAM, VERSION}, thread_pool_client::ThreadPoolClient};
 
@@ -15,6 +15,63 @@ impl FlightSimulatorClient {
         client.read_frame_response()?;
         rx.recv().unwrap();
         Ok(())
+    }
+
+    // Get the information of the airports
+    pub fn get_airports(&self, airports_codes: Vec<String>, thread_pool: &ThreadPoolClient) -> HashMap<String, Airport> {
+        let (tx, rx) = mpsc::channel();
+        let tx = Arc::new(Mutex::new(tx));
+        for code in airports_codes {
+            let simulator = self.clone(); 
+            let tx = Arc::clone(&tx);
+            thread_pool.execute(move |frame_id, client| {
+                if let Some(flight) = simulator.get_airport(client, &code, &frame_id) {
+                    if let Err(e) = tx.lock().unwrap().send(flight) {
+                        eprintln!("Error sending airport: {}", e);
+                    }
+                }
+            });
+        }
+        thread_pool.join();
+        drop(tx);
+        rx.into_iter()
+            .map(|airport| (airport.code.to_string(), airport))
+            .collect()
+    }
+
+    pub fn get_airport(&self, client: &CassandraClient, airport_code: &str, frame_id: &usize) -> Option<Airport> {
+        let query = format!(
+            "SELECT name, positionLat, positionLon, code FROM aviation.airports WHERE code = '{}';",
+            airport_code
+        );
+        let mut frame = self.get_strong_query_frame(client, &query, frame_id).ok()?;
+        let response = self.get_body_frame_response(client, &mut frame).ok()?;
+        self.row_to_airport(&response, vec![
+            "name".to_string(),
+            "positionLat".to_string(),
+            "positionLon".to_string(),
+            "code".to_string(),
+        ])
+    }
+
+    // Transforms the row to airport
+    fn row_to_airport(&self, body: &[u8], header: Vec<String>) -> Option<Airport> {
+        let rows = self.get_rows(body, header)?;
+        if rows.is_empty() {
+            return None;
+        }
+
+        let row = &rows[0];
+        let name = row.get("name")?.to_string();
+        let code = row.get("code")?.to_string();
+        let position_lat = row.get("positionLat")?.parse::<f64>().ok()?;
+        let position_lon = row.get("positionLon")?.parse::<f64>().ok()?;
+
+        Some(Airport {
+            name,
+            code,
+            position: (position_lat, position_lon),
+        })
     }
 
     pub fn get_codes(
@@ -264,6 +321,39 @@ impl FlightSimulatorClient {
         thread_pool.join();
     }
 
+    // List of the airports codes to use in the app
+    fn get_airports_codes() -> Vec<String> {
+        vec![
+            "EZE".to_string(), // Aeropuerto Internacional Ministro Pistarini (Argentina)
+            "JFK".to_string(), // John F. Kennedy International Airport (EE. UU.)
+            "SCL".to_string(), // Aeropuerto Internacional Comodoro Arturo Merino Benítez (Chile)
+            "MIA".to_string(), // Aeropuerto Internacional de Miami (EE. UU.)
+            "DFW".to_string(), // Dallas/Fort Worth International Airport (EE. UU.)
+            "GRU".to_string(), // Aeroporto Internacional de São Paulo/Guarulhos (Brasil)
+            "MAD".to_string(), // Aeropuerto Adolfo Suárez Madrid-Barajas (España)
+            "CDG".to_string(), // Aeropuerto Charles de Gaulle (Francia)
+            "LAX".to_string(), // Los Angeles International Airport (EE. UU.)
+            "AMS".to_string(), // Luchthaven Schiphol (Países Bajos)
+            "NRT".to_string(), // Narita International Airport (Japón)
+            "LHR".to_string(), // Aeropuerto de Heathrow (Reino Unido)
+            "FRA".to_string(), // Aeropuerto de Frankfurt (Alemania)
+            "SYD".to_string(), // Sydney Kingsford Smith Airport (Australia)
+            "SFO".to_string(), // San Francisco International Airport (EE. UU.)
+            "BOG".to_string(), // Aeropuerto Internacional El Dorado (Colombia)
+            "MEX".to_string(), // Aeropuerto Internacional de la Ciudad de México (México)
+            "YYC".to_string(), // Aeropuerto Internacional de Calgary (Canadá)
+            "OSL".to_string(), // Aeropuerto de Oslo-Gardermoen (Noruega)
+            "DEL".to_string(), // Aeropuerto Internacional Indira Gandhi (India)
+            "PEK".to_string(), // Aeropuerto Internacional de Pekín-Capital (China)
+            "SVO".to_string(), // Aeropuerto Internacional Sheremétievo (Rusia)
+            "RUH".to_string(), // Aeropuerto Internacional Rey Khalid (Arabia Saudita)
+            "CGK".to_string(), // Aeropuerto Internacional Soekarno-Hatta (Indonesia)
+            "JNB".to_string(), // Aeropuerto Internacional O. R. Tambo (Sudáfrica)
+            "BKO".to_string(), // Aeropuerto Internacional Modibo Keïta (Mali)
+            "CAI".to_string(), // Aeropuerto Internacional de El Cairo (Egipto)
+        ]
+    }
+
     // Updates the flights in the simulator
     pub fn flight_updates_loop(
         &self,
@@ -272,11 +362,18 @@ impl FlightSimulatorClient {
         interval: u64,
         thread_pool: &ThreadPoolClient
     ) {
+        let codes = FlightSimulatorClient::get_airports_codes();
+        let airports = self.get_airports(codes, &thread_pool);
         loop {
             for mut flight in self.get_flights(airport_code, &thread_pool) {
+                let arrival_position = match  airports.get(flight.get_arrival_airport()) {
+                    Some(airport) => airport.position,
+                    None => continue,
+                };
+
                 let simulator = self.clone();
                 thread_pool.execute(move |frame_id, client| {
-                    flight.update_progress(step);
+                    flight.update_progress(arrival_position, step);
                     _ = simulator.update_flight(client, &flight, &frame_id);
                 });
             }
@@ -321,7 +418,6 @@ impl FlightSimulatorClient {
         // let frame_response = rx.recv().unwrap();
 
         let body_response = self.get_body_result(frame_response)?;
-        println!("Body response: {:?}", String::from_utf8(body_response.to_vec()));
         Ok(body_response)
     }
 }

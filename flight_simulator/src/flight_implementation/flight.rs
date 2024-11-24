@@ -25,7 +25,7 @@ pub struct FlightTracking  {
     pub position: (f64, f64),
     pub altitude: f64,
     pub speed: f32,
-    pub fuel_level: f32,
+    pub fuel_level: f32
 }
 
 impl Flight {
@@ -43,8 +43,94 @@ impl Flight {
     }
 
     // Update the flight progress
-    pub fn update_progress(&mut self, _step: f32) {
-        todo!();
+    pub fn update_progress(&mut self, arrival_position: (f64, f64), step: f32) {
+        self.update_position(arrival_position, step);
+        self.update_altitude(arrival_position, step);
+        self.update_speed(arrival_position, step);
+        self.update_fuel(step);
+        self.update_status_if_target_reached(arrival_position);
+    }
+
+    fn update_position(&mut self, arrival_position: (f64, f64), step: f32) {
+        let (current_x, current_y) = self.info.position;
+        let (target_x, target_y) = arrival_position;
+
+        // Calculate the direction to the target
+        let direction_x = target_x - current_x;
+        let direction_y = target_y - current_y;
+
+        // Calculate the distance to the target --> sqrt(x^2 + y^2)
+        let distance = (direction_x.powi(2) + direction_y.powi(2)).sqrt();
+        if distance == 0.0 {
+            return;
+        }
+
+        // Normalize the direction to get the unit vector --> unit_x + unit_y = 1
+        let unit_x = direction_x / distance;
+        let unit_y = direction_y / distance;
+
+        // Calculate the movement with the step and the speed --> movement_x + movement_y = speed * step
+        let movement_x = unit_x * self.info.speed as f64 * step as f64;
+        let movement_y = unit_y * self.info.speed as f64 * step as f64;
+
+        // Update the position, if we are close enough to the target, we set the position to the target
+        if movement_x.abs() >= direction_x.abs() && movement_y.abs() >= direction_y.abs() {
+            self.info.position = arrival_position;
+        } else {
+            self.info.position.0 += movement_x;
+            self.info.position.1 += movement_y;
+        }
+    }
+
+    fn update_altitude(&mut self, arrival_position: (f64, f64), step: f32) {
+        let distance_to_target = self.get_distance_to_target(arrival_position);
+
+        if distance_to_target < 200.0 {
+            self.info.altitude -= 500.0 * step as f64;
+        } else if self.info.altitude < 10000.0 {
+            self.info.altitude += 300.0 * step as f64;
+        } else if distance_to_target < 500.0 {
+            self.info.altitude -= 200.0 * step as f64;
+        }
+    
+        self.info.altitude = self.info.altitude.clamp(0.0, 12000.0);
+    }
+
+    fn update_speed(&mut self, arrival_position: (f64, f64), step: f32) {
+        let target_speed = if self.info.altitude < 5000.0 {
+            300.0
+        } else if self.get_distance_to_target(arrival_position) < 50.0 {
+            200.0
+        } else {
+            600.0
+        };
+    
+        let acceleration = 50.0 * step;
+    
+        if self.info.speed < target_speed {
+            self.info.speed = (self.info.speed + acceleration).min(target_speed);
+        } else if self.info.speed > target_speed {
+            self.info.speed = (self.info.speed - acceleration).max(target_speed);
+        }
+    }
+
+    fn update_fuel(&mut self, step: f32) {
+        let fuel_consumption = (self.info.speed * step) / 100.0;
+        self.info.fuel_level -= fuel_consumption;
+        self.info.fuel_level = self.info.fuel_level.max(0.0);
+    }
+
+    fn update_status_if_target_reached(&mut self, target_position: (f64, f64)) {
+        if self.info.position == target_position {
+            self.set_status(FlightState::Arrived);
+        }
+    }
+
+    // Calculate the distance to the target --> sqrt(x^2 + y^2)
+    fn get_distance_to_target(&self, arrival_position: (f64, f64)) -> f64 {
+        let (current_x, current_y) = self.get_position();
+        let (target_x, target_y) = arrival_position;
+        ((target_x - current_x).powi(2) + (target_y - current_y).powi(2)).sqrt()
     }
 
     pub fn get_code(&self) -> &String {
