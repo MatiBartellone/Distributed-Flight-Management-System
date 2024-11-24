@@ -1,6 +1,7 @@
 use crate::hinted_handoff::handler::Handler;
 use crate::hinted_handoff::stored_query::StoredQuery;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
+use crate::meta_data::nodes::node::Node;
 use crate::queries::query::{Query, QueryEnum};
 use crate::query_delegation::query_serializer::QuerySerializer;
 use crate::read_reparation::read_repair::ReadRepair;
@@ -104,7 +105,7 @@ impl QueryDelegator {
         Ok(ips)
     }
 
-    pub fn send_to_node(ip: NodeIp, query: Box<dyn Query>) -> Result<(String, Vec<u8>), Errors> {
+    pub fn send_to_node(ip: NodeIp, query: Box<dyn Query>) -> Result<(NodeIp, Vec<u8>), Errors> {
         match TcpStream::connect(ip.get_query_delegation_socket()) {
             Ok(mut stream) => {
                 if stream
@@ -118,7 +119,7 @@ impl QueryDelegator {
                 stream.flush().expect("");
                 let mut buf = [0; 1024];
                 match stream.read(&mut buf) {
-                    Ok(n) => Ok((ip.get_string_ip(), buf[0..n].to_vec())),
+                    Ok(n) => Ok((ip, buf[0..n].to_vec())),
                     Err(_) => Err(Errors::ServerError(String::from(
                         "Unable to read from node",
                     ))),
@@ -135,7 +136,7 @@ impl QueryDelegator {
         }
     }
 
-    fn get_response(&self, responses: HashMap<String, Vec<u8>>) -> Result<Vec<u8>, Errors> {
+    fn get_response(&self, responses: HashMap<NodeIp, Vec<u8>>) -> Result<Vec<u8>, Errors> {
         let mut read_repair = ReadRepair::new(&responses)?;
         read_repair.get_response()
     }

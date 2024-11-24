@@ -131,3 +131,96 @@ impl Default for RowResponse {
          Self::new()
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_read_protocol_response() {
+        let mut row_response = RowResponse::new();
+
+        // Bytes simulando una respuesta válida de protocolo
+        let protocol_bytes: Vec<u8> = vec![
+            0, 0, 0, 2, // Número de columnas (2)
+            0, 3, b'f', b'o', b'o', // Keyspace: "foo"
+            0, 3, b'b', b'a', b'r', // Tabla: "bar"
+            0, 4, b'n', b'a', b'm', b'e', // Columna 1: "name"
+            0, 0x000A, // Tipo de dato: Text
+            0, 2, b'i', b'd', // Columna 2: "id"
+            0, 0x0009, // Tipo de dato: Int
+            0, 0, 0, 2, // Número de filas (2)
+            0, 5, b'A', b'l', b'i', b'c', b'e', // Valor fila 1, columna 1: "Alice"
+            0, 1, b'1', // Valor fila 1, columna 2: "1"
+            0, 3, b'B', b'o', b'b', // Valor fila 2, columna 1: "Bob"
+            0, 1, b'2', // Valor fila 2, columna 2: "2"
+        ];
+
+        let result = row_response.read_protocol_response(protocol_bytes);
+        assert!(result.is_ok());
+        let (rows_count, columns_count) = result.unwrap();
+        assert_eq!(rows_count, 2);
+        assert_eq!(columns_count, 2);
+        assert_eq!(row_response.keyspace, "foo");
+        assert_eq!(row_response.table, "bar");
+        assert!(row_response.column_protocol.contains_key("name"));
+        assert!(row_response.column_protocol.contains_key("id"));
+    }
+
+    #[test]
+    fn test_read_meta_data_response() {
+        let mut row_response = RowResponse::new();
+
+        // Bytes simulando una respuesta válida de meta-data
+        let meta_data_bytes: Vec<u8> = vec![
+            0, 0, 0, 0, 0, 0, 0, 1, // Timestamp fila 1, columna 1
+            0, 0, 0, 0, 0, 0, 0, 2, // Timestamp fila 1, columna 2
+            0, 1, // Número de claves primarias (1)
+            0, 2, b'i', b'd', // Clave primaria: "id"
+            0, 1, // Valor de la clave primaria fila 1: "1"
+            0, 1, b'1',
+        ];
+
+        let result = row_response.read_meta_data_response(meta_data_bytes, 1, 2);
+        assert!(result.is_ok());
+        assert_eq!(row_response.pk_name, vec!["id"]);
+        assert_eq!(row_response.time_stamps[0], vec![1, 2]);
+        assert_eq!(row_response.pk_values[0], vec!["1"]);
+    }
+
+    #[test]
+    fn test_create_rows() {
+        let mut row_response = RowResponse::new();
+
+        // Configurar manualmente valores para simular datos previos
+        row_response.column_protocol.insert("name".to_string(), DataType::Text);
+        row_response.column_protocol.insert("id".to_string(), DataType::Int);
+        row_response.values_protocol = vec![
+            vec!["Alice".to_string(), "1".to_string()],
+            vec!["Bob".to_string(), "2".to_string()],
+        ];
+        row_response.time_stamps = vec![
+            vec![1234567890, 1234567891],
+            vec![1234567892, 1234567893],
+        ];
+        row_response.pk_values = vec![
+            vec!["1".to_string()],
+            vec!["2".to_string()],
+        ];
+
+        let result = row_response.create_rows();
+        assert!(result.is_ok());
+        let rows = result.unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].primary_key, vec!["1".to_string()]);
+        assert_eq!(rows[1].primary_key, vec!["2".to_string()]);
+    }
+
+    #[test]
+    fn test_byte_to_data_type() {
+        assert_eq!(byte_to_data_type(0x000A), Ok(DataType::Text));
+        assert_eq!(byte_to_data_type(0x0009), Ok(DataType::Int));
+        assert!(byte_to_data_type(0xFFFF).is_err());
+    }
+}

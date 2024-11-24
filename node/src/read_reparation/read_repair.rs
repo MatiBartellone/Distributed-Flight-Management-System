@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::format};
 
-use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor, response::Response, constants::BEST, parser_constants::QUERY}, data_access::row::Row, queries::{set_logic::assigmente_value::AssignmentValue, update_query::UpdateQuery, where_logic::where_clause::{self, WhereClause, comparison_where}}, parsers::{tokens::{literal::Literal, terms::ComparisonOperators, data_type::DataType}, query_parser::{QueryParser, self}, parser_factory::ParserFactory}, query_delegation::query_delegator::QueryDelegator};
+use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor, response::Response, constants::BEST, parser_constants::QUERY, node_ip::NodeIp}, data_access::row::Row, queries::{set_logic::assigmente_value::AssignmentValue, update_query::UpdateQuery, where_logic::where_clause::{self, WhereClause, comparison_where}}, parsers::{tokens::{literal::Literal, terms::ComparisonOperators, data_type::DataType}, query_parser::{QueryParser, self}, parser_factory::ParserFactory}, query_delegation::query_delegator::QueryDelegator};
 
 use super::row_response::RowResponse;
 
@@ -13,14 +13,14 @@ pub struct ReadRepair {
 
 impl ReadRepair {
 
-    pub fn new(responses: &HashMap<String, Vec<u8>>) -> Result<Self, Errors> {
+    pub fn new(responses: &HashMap<NodeIp, Vec<u8>>) -> Result<Self, Errors> {
         let mut responses_bytes = HashMap::new();
         let mut meta_data_bytes = HashMap::new();
 
         for (ip, response) in responses {
             let (response_node, meta_data_response) = ReadRepair::split_bytes(response)?;
-            responses_bytes.insert(ip.to_string(), response_node);
-            meta_data_bytes.insert(ip.to_string(), meta_data_response);
+            responses_bytes.insert(ip.get_string_ip(), response_node);
+            meta_data_bytes.insert(ip.get_string_ip(), meta_data_response);
         }
 
         Ok(Self {
@@ -88,10 +88,10 @@ impl ReadRepair {
                     }
                 }
                 query.push_str(&where_clause);
-                let query_parser = ParserFactory::get_parser(QUERY)?;
-                let query = query_parser.parse(query.as_bytes())?;
-                QueryDelegator::send_to_node(ip, query);
-                change_row = false
+                
+                //convertir el string query en un Box<dyn Query>
+                QueryDelegator::send_to_node(NodeIp::new_from_single_string(ip)?,//query update )?;
+                change_row = false;
             }
             
         }

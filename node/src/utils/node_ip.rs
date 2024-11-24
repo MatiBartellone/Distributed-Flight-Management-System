@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Clone)]
 pub struct NodeIp {
     ip: IpAddr,
     port: u16,
@@ -25,6 +25,20 @@ impl NodeIp {
                 .map_err(|_| ServerError(String::from("Could not parse ip")))?,
             port,
         })
+    }
+
+    pub fn new_from_single_string(ip_string: &str) -> Result<NodeIp, Errors> {
+        // Intentamos separar la cadena por el carácter ':' (usamos `split_once` para eso)
+        if let Some((ip_str, port_str)) = ip_string.split_once(":") {
+            let ip = IpAddr::from_str(ip_str)
+                .map_err(|_| Errors::ServerError("Could not parse IP".to_string()))?;
+            let port = port_str
+                .parse::<u16>()
+                .map_err(|_| Errors::ServerError("Could not parse port".to_string()))?;
+            Ok(NodeIp { ip, port })
+        } else {
+            Err(Errors::ServerError("Invalid IP format".to_string()))
+        }
     }
 
     pub fn new_from_ip(node_ip: &NodeIp) -> NodeIp {
