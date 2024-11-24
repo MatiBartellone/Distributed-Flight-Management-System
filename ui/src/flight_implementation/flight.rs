@@ -24,6 +24,8 @@ pub struct Flight {
 }
 
 impl Flight {
+    /// Draw the flight in the screen with its icon and information when hovering
+    /// If the flight is clicked, it will change the selected flight
     pub fn draw(
         &self,
         response: &Response,
@@ -71,8 +73,7 @@ impl Flight {
         );
     }
 
-    // Dibuja el icono del avion en su posicion
-    pub fn draw_icon_flight(&self, painter: Painter, projector: &Projector) {
+    fn draw_icon_flight(&self, painter: Painter, projector: &Projector) {
         let screen_flight_position = get_flight_pos2(&self.position, projector);
         painter.text(
             screen_flight_position,
@@ -83,8 +84,8 @@ impl Flight {
         );
     }
 
-    // Dibuja la imagen del avion en su posicion
-    pub fn draw_image_flight(&self, response: &Response, painter: Painter, projector: &Projector) {
+    // Draw the airplane image (or icon if the image is not found) in the screen
+    fn draw_image_flight(&self, response: &Response, painter: Painter, projector: &Projector) {
         let airplane_texture = match self.image_texture(&painter) {
             Ok(airplane_texture) => airplane_texture,
             Err(_) => {

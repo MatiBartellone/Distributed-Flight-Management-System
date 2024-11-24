@@ -36,6 +36,7 @@ impl FlightSelected {
         Self { info, status }
     }
 
+    /// List the full information of the selected flight
     pub fn list_information(&self, ui: &mut egui::Ui) {
         ui.label(self.get_code());
         ui.label(format!(
@@ -52,6 +53,7 @@ impl FlightSelected {
         ui.label(format!("Hora estimada de llegada: {}", self.get_arrival_time()));
     }
 
+    /// Draw the flight path of the selected flight on the map
     pub fn draw_flight_path(&self, painter: Painter, projector: &Projector, airport_coordinates: (f64, f64)) {
         let screen_airport_position = get_airport_screen_position(airport_coordinates, projector);
         let screen_flight_position = get_flight_pos2(self.get_position(), projector);

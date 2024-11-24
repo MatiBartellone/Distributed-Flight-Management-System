@@ -31,11 +31,11 @@ impl AppUpdater {
         }
     }
 
+    /// Start the app updater thread
     pub fn start(self, ctx: egui::Context) {
         thread::spawn(move || loop {
             self.update_flights();
             ctx.request_repaint();
-            println!("Waiting");
             thread::sleep(Duration::from_millis(1000));
         });
     }

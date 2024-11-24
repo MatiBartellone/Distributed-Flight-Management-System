@@ -8,26 +8,26 @@ use super::{cassandra_client::{CassandraClient, FLAGS, OP_CODE_QUERY, STREAM, VE
 pub struct FlightSimulatorClient;
 
 impl FlightSimulatorClient {
+    /// Use the aviation keyspace in the cassandra database
     pub fn use_aviation_keyspace(&self, client: &CassandraClient) -> Result<(), String> {
         let frame_id = STREAM as usize;
         let mut frame = self.get_strong_query_frame(client, "USE aviation;", &frame_id)?;
         let rx = client.send_frame(&mut frame)?;
         client.read_frame_response()?;
-        rx.recv().unwrap();
+        let _ = rx.recv().map_err(|_| "Error receiving the response".to_string())?;
         Ok(())
     }
 
-    // Get the information of the airports
-    pub fn get_airports(&self, airports_codes: Vec<String>, thread_pool: &ThreadPoolClient) -> HashMap<String, Airport> {
+    fn get_airports(&self, airports_codes: Vec<String>, thread_pool: &ThreadPoolClient) -> HashMap<String, Airport> {
         let (tx, rx) = mpsc::channel();
         let tx = Arc::new(Mutex::new(tx));
         for code in airports_codes {
             let simulator = self.clone(); 
             let tx = Arc::clone(&tx);
             thread_pool.execute(move |frame_id, client| {
-                if let Some(flight) = simulator.get_airport(client, &code, &frame_id) {
-                    if let Err(e) = tx.lock().unwrap().send(flight) {
-                        eprintln!("Error sending airport: {}", e);
+                if let Some(airport) = simulator.get_airport(client, &code, &frame_id) {
+                    if let Ok(tx) = tx.lock(){
+                        let _ = tx.send(airport);
                     }
                 }
             });
@@ -39,6 +39,7 @@ impl FlightSimulatorClient {
             .collect()
     }
 
+    /// Get the information of the airport
     pub fn get_airport(&self, client: &CassandraClient, airport_code: &str, frame_id: &usize) -> Option<Airport> {
         let query = format!(
             "SELECT name, positionLat, positionLon, code FROM aviation.airports WHERE code = '{}';",
@@ -74,7 +75,7 @@ impl FlightSimulatorClient {
         })
     }
 
-    pub fn get_codes(
+    fn get_codes(
         &self,
         airport_code: &str,
         thread_pool: &ThreadPoolClient
@@ -91,11 +92,14 @@ impl FlightSimulatorClient {
         });
     
         thread_pool.join();
-        rx.recv().unwrap()
+        match rx.recv() {
+            Ok(flight_codes) => flight_codes,
+            Err(_) => HashSet::new()
+        }
     }
 
     // Gets all de flights codes going or leaving the aiport
-    pub fn get_flight_codes_by_airport(&self, client: &CassandraClient, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
+    fn get_flight_codes_by_airport(&self, client: &CassandraClient, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
         let query = format!(
             "SELECT flightCode FROM aviation.flightsByAirport WHERE airportCode = '{}'",
             airport_code
@@ -121,7 +125,7 @@ impl FlightSimulatorClient {
         Some(codes)
     }
 
-    // Get the information of the flights
+    /// Get the information of the flights
     pub fn get_flights(
         &self,
         airport_code: &str,
@@ -136,8 +140,8 @@ impl FlightSimulatorClient {
             let tx = Arc::clone(&tx);
             thread_pool.execute(move |frame_id, client| {
                 if let Some(flight) = simulator.get_flight(client, &code, &frame_id) {
-                    if let Err(e) = tx.lock().unwrap().send(flight) {
-                        eprintln!("Error sending flight: {}", e);
+                    if let Ok(tx) = tx.lock(){
+                        let _ = tx.send(flight);
                     }
                 }
             });
@@ -279,6 +283,7 @@ impl FlightSimulatorClient {
         Ok(rows)*/
     }
 
+    /// Update the flight information in the database with the new information
     pub fn update_flight(&self, client: &CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         self.update_flight_status(client, flight, frame_id)?;
         self.update_flight_tracking(client, flight, frame_id)
@@ -306,7 +311,7 @@ impl FlightSimulatorClient {
         Ok(())
     }
 
-    // Restarts all the flights in the airport
+    /// Restarts all the flights in the airport to the initial state
     pub fn restart_flights(&self, airport_code: &str, thread_pool: &ThreadPoolClient) {
         let flights = self.get_flights(airport_code, &thread_pool);
 
@@ -354,7 +359,7 @@ impl FlightSimulatorClient {
         ]
     }
 
-    // Updates the flights in the simulator
+    /// Loop that updates the flights in the airport every interval of time
     pub fn flight_updates_loop(
         &self,
         airport_code: &str,

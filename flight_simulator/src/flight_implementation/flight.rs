@@ -33,7 +33,7 @@ impl Flight {
         Self { info, status }
     }
 
-    // Restart with initial values
+    /// Restart with initial values and set the position
     pub fn restart(&mut self, position: (f64, f64)) {
         self.set_position(position);
         self.set_altitude(0.0);
@@ -42,7 +42,7 @@ impl Flight {
         self.set_status(FlightState::OnTime);
     }
 
-    // Update the flight progress
+    /// Update the flight progress based on the arrival position and the step time
     pub fn update_progress(&mut self, arrival_position: (f64, f64), step: f32) {
         self.update_position(arrival_position, step);
         self.update_altitude(arrival_position, step);

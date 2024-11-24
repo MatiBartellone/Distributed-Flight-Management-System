@@ -8,6 +8,7 @@ use super::windows::{go_to_my_position, zoom};
 pub struct MapPanel;
 
 impl MapPanel {
+    /// Draw the map panel with the airports or the selected airport flights
     pub fn ui(&self, ui: &mut egui::Ui, app: &mut FlightApp) {
         self.draw_map(ui, app);
     }

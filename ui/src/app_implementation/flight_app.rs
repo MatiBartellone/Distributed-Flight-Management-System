@@ -10,7 +10,7 @@ use crate::{
 
 use super::app_updater::AppUpdater;
 
-// List of the airports codes to use in the app
+/// List of the airports codes to use in the app
 pub fn get_airports_codes() -> Vec<String> {
     vec![
         "EZE".to_string(), // Aeropuerto Internacional Ministro Pistarini (Argentina)
@@ -54,6 +54,7 @@ pub struct FlightApp {
 }
 
 impl FlightApp {
+    /// Create a new FlightApp with the given Cassandra clients and the egui context
     pub fn new(egui_ctx: Context, clients: Vec<CassandraClient>) -> Self {
         Self::set_scroll_style(&egui_ctx);
         let client = UIClient;
@@ -129,6 +130,7 @@ impl FlightApp {
         }
     }
 
+    /// Get the name of the selected airport code
     pub fn get_airport_selected_name(&self) -> Option<String> {
         if let Some(airport_code) = self.get_airport_code() {
             Some(self.airports.get_aiport_name(&airport_code))
@@ -137,6 +139,7 @@ impl FlightApp {
         }
     }
 
+    /// Clear the selected airport and flight information
     pub fn clear_selection(&self) {
         if let Ok(mut selected_airport) = self.selected_airport_code.lock() {
             *selected_airport = None;
@@ -149,6 +152,7 @@ impl FlightApp {
         }
     }
 
+    /// Check if an airport is selected
     pub fn is_airport_selected(selected_airport: &Arc<Mutex<Option<String>>>) -> bool {
         match selected_airport.lock() {
             Ok(lock) => (*lock).is_some(),

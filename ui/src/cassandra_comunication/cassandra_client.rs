@@ -1,10 +1,7 @@
-use std::{collections::HashMap, io::{self, Write}, sync::mpsc::Receiver};
+use std::{collections::HashMap, sync::mpsc::Receiver};
 
 use crate::utils::{
-        consistency_level::ConsistencyLevel,
-        constants::{OP_AUTHENTICATE, OP_AUTH_CHALLENGE, OP_AUTH_RESPONSE, OP_AUTH_SUCCESS},
-        frame::Frame,
-        types_to_bytes::TypesToBytes,
+        consistency_level::ConsistencyLevel, constants::{OP_AUTHENTICATE, OP_AUTH_CHALLENGE, OP_AUTH_RESPONSE, OP_AUTH_SUCCESS}, frame::Frame, system_functions::get_user_data, types_to_bytes::TypesToBytes
     };
 use super::cassandra_connector::CassandraConnection;
 
@@ -20,30 +17,33 @@ pub struct CassandraClient {
 }
 
 impl CassandraClient {
+    /// Creates a new CassandraClient with the given node
     pub fn new(node: &str) -> Result<Self, String> {
         let connection = CassandraConnection::new(node)?;
         Ok(Self { connection })
     }
 
-    // Wraps functions of CassandraConnection
+    /// Send a frame to the server and returns a receiver to get the response
     pub fn send_frame(&self, frame: &mut Frame) -> Result<Receiver<Frame>, String> {
         self.connection.send_frame(frame)
     }
 
+    /// Read the frame response from the server
     pub fn read_frame_response(&self) -> Result<(), String> {
         self.connection.read_frame_response()
     }
 
+    /// Send a frame to the server and returns the response
     pub fn send_and_receive(&self, frame: &mut Frame) -> Result<Frame, String> {
         self.connection.send_and_receive(frame)
     }
 
-    // Get ready the client for use in keyspace airport
+    /// Get ready the client for use in keyspace airport
     pub fn inicializate(&self) -> Result<(), String> {
         self.start_up()
     }
 
-    // Send a startup
+    /// Send a startup
     fn start_up(&self) -> Result<(), String> {
         let body = self.get_start_up_body()?;
         let mut frame = Frame::new(
@@ -88,8 +88,7 @@ impl CassandraClient {
         Ok(types_to_bytes.into_bytes())
     }
 
-    // Get a query body with consistency
-    pub fn get_body_query(
+    fn get_body_query(
         &self,
         query: &str,
         consistency_level: ConsistencyLevel,
@@ -100,10 +99,12 @@ impl CassandraClient {
         Ok(types_to_bytes.into_bytes())
     }
 
+    /// Get the body for a query with strong consistency
     pub fn get_body_query_strong(&self, query: &str) -> Result<Vec<u8>, String> {
         self.get_body_query(query, ConsistencyLevel::Quorum)
     }
 
+    /// Get the body for a query with weak consistency
     pub fn get_body_query_weak(&self, query: &str) -> Result<Vec<u8>, String> {
         self.get_body_query(query, ConsistencyLevel::One)
     }
@@ -116,14 +117,4 @@ impl CassandraClient {
             _ => Err("Invalid OP response".to_string()),
         }
     }
-}
-
-fn get_user_data(msg: &str) -> String {
-    print!("{}", msg);
-    io::stdout().flush().expect("Failed to flush stdout");
-    let mut data = String::new();
-    io::stdin()
-        .read_line(&mut data)
-        .expect("Error reading data");
-    data.trim().to_string()
 }

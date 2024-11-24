@@ -4,7 +4,6 @@ pub struct Airport {
     pub position: (f64, f64),
 }
 
-// Comunicacion con Cassandra o informacion de aeropuerto
 impl Airport {
     pub fn new(name: String, code: String, position: (f64, f64)) -> Self {
         Airport {

@@ -5,6 +5,7 @@ use crate::app_implementation::flight_app::FlightApp;
 pub struct InformationPanel;
 
 impl InformationPanel {
+    /// Shows the information of the airports or the flights of an airport if one is selected
     pub fn ui(&self, ui: &mut egui::Ui, app: &mut FlightApp) {
         if let Some(airport_name) = app.get_airport_selected_name() {
             // Information of flights of an airport

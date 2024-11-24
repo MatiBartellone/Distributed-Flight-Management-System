@@ -30,6 +30,7 @@ impl Airports {
         }
     }
 
+    /// List all airports in the UI with their information
     pub fn list_airports(&self, ui: &mut egui::Ui) {
         ScrollArea::vertical()
             .scroll_bar_visibility(VisibleWhenNeeded)
@@ -42,6 +43,7 @@ impl Airports {
             });
     }
 
+    /// Get the coordinates of an airport given its code
     pub fn get_airport_coordinates(&self, airport_code: &str) -> (f64, f64) {
         self.airports
             .get(airport_code)
@@ -49,10 +51,11 @@ impl Airports {
             .unwrap_or((0.0, 0.0))
     }
 
+    /// Get the name of an airport given its code
     pub fn get_aiport_name(&self, airport_code: &str) -> String {
         self.airports
             .get(airport_code)
-            .map(|airport| airport.name.clone())
+            .map(|airport| airport.name.to_string())
             .unwrap_or("".to_string())
     }
 
@@ -93,16 +96,17 @@ impl Airports {
 }
 
 impl Plugin for &mut Airports {
+    /// Could be three cases:
+    /// 1. Draw the selected airport
+    /// 2. Draw the selected flight airport
+    /// 3. Draw all airports if there is no selected airport or flight
     fn run(&mut self, response: &Response, painter: Painter, projector: &Projector) {
         if self.draw_selected_flight_airports(response, &painter, projector) {
-            println!("Dos aeropuertos");
             return;
         }
         if self.draw_selected_airport(response, &painter, projector){
-            println!("Un aeropuerto");
             return;
         }
-        println!("Todos aeropuertos");
         for airport in self.airports.values() {
             airport.draw(
                 response,
@@ -114,23 +118,27 @@ impl Plugin for &mut Airports {
     }
 }
 
+/// Get the position of an airport given its code
 pub fn get_airport_position(airport: &str, projector: &Projector) -> Pos2 {
     let airport_coordinates = get_airport_coordinates(airport);
     let airport_position = Position::from_lon_lat(airport_coordinates.0, airport_coordinates.1);
     projector.project(airport_position).to_pos2()
 }
 
+/// Get the position of an airport given its coordinates
 pub fn get_airport_screen_position(airport_coordinates: (f64, f64), projector: &Projector) -> Pos2 {
     let airport_position = Position::from_lon_lat(airport_coordinates.0, airport_coordinates.1);
     projector.project(airport_position).to_pos2()
 }
 
+/// Calculate the angle between the flight and the airport
 pub fn calculate_angle_to_airport(flight_position: Pos2, airport_position: Pos2) -> f32 {
     let delta_x = airport_position.x - flight_position.x;
     let delta_y = airport_position.y - flight_position.y;
     delta_y.atan2(delta_x)
 }
 
+/// Get the coordinates of an airport given its code
 pub fn get_airport_coordinates(airport: &str) -> (f64, f64) {
     match airport {
         "JFK" => (-73.7781, 40.6413),  // JFK, Nueva York

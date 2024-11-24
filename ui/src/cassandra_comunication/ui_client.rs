@@ -8,16 +8,17 @@ use super::{cassandra_client::{CassandraClient, FLAGS, OP_CODE_QUERY, STREAM, VE
 pub struct UIClient;
 
 impl UIClient {
+    /// Use the aviation keyspace in the cassandra database
     pub fn use_aviation_keyspace(&self, client: &CassandraClient) -> Result<(), String> {
         let frame_id = STREAM as usize;
         let mut frame = self.get_strong_query_frame(client, "USE aviation;", &frame_id)?;
         let rx = client.send_frame(&mut frame)?;
         client.read_frame_response()?;
-        rx.recv().unwrap();
+        let _ = rx.recv().map_err(|_| "Error receiving the response".to_string())?;
         Ok(())
     }
 
-    // Get the information of the airports
+    /// Get the information of the airports
     pub fn get_airports(&self, airports_codes: Vec<String>, thread_pool: &ThreadPoolClient) -> Vec<Airport> {
         let (tx, rx) = mpsc::channel();
         let tx = Arc::new(Mutex::new(tx));
@@ -25,9 +26,9 @@ impl UIClient {
             let simulator = self.clone(); 
             let tx = Arc::clone(&tx);
             thread_pool.execute(move |frame_id, client| {
-                if let Some(flight) = simulator.get_airport(client, &code, &frame_id) {
-                    if let Err(e) = tx.lock().unwrap().send(flight) {
-                        eprintln!("Error sending airport: {}", e);
+                if let Some(airport) = simulator.get_airport(client, &code, &frame_id) {
+                    if let Ok(tx) = tx.lock(){
+                        let _ = tx.send(airport);
                     }
                 }
             });
@@ -37,7 +38,7 @@ impl UIClient {
         rx.into_iter().collect()
     }
 
-    pub fn get_airport(&self, client: &CassandraClient, airport_code: &str, frame_id: &usize) -> Option<Airport> {
+    fn get_airport(&self, client: &CassandraClient, airport_code: &str, frame_id: &usize) -> Option<Airport> {
         let query = format!(
             "SELECT name, positionLat, positionLon, code FROM aviation.airports WHERE code = '{}';",
             airport_code
@@ -72,7 +73,7 @@ impl UIClient {
         })
     }
 
-    pub fn get_codes(
+    fn get_codes(
         &self,
         airport_code: &str,
         thread_pool: &ThreadPoolClient
@@ -89,11 +90,14 @@ impl UIClient {
         });
     
         thread_pool.join();
-        rx.recv().unwrap()
+        match rx.recv() {
+            Ok(flight_codes) => flight_codes,
+            Err(_) => HashSet::new()
+        }
     }
 
     // Gets all de flights codes going or leaving the aiport
-    pub fn get_flight_codes_by_airport(&self, client: &CassandraClient, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
+    fn get_flight_codes_by_airport(&self, client: &CassandraClient, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
         let query = format!(
             "SELECT flightCode FROM aviation.flightsByAirport WHERE airportCode = '{}'",
             airport_code
@@ -119,7 +123,7 @@ impl UIClient {
         Some(codes)
     }
 
-    // Get the information of the flights
+    /// Get the basic information of the flights
     pub fn get_flights(
         &self,
         airport_code: &str,
@@ -134,8 +138,8 @@ impl UIClient {
             let tx = Arc::clone(&tx);
             thread_pool.execute(move |frame_id, client| {
                 if let Some(flight) = simulator.get_flight(client, &code, &frame_id) {
-                    if let Err(e) = tx.lock().unwrap().send(flight) {
-                        eprintln!("Error sending flight: {}", e);
+                    if let Ok(tx) = tx.lock(){
+                        let _ = tx.send(flight);
                     }
                 }
             });
@@ -146,8 +150,7 @@ impl UIClient {
         rx.into_iter().collect()
     }
 
-    // Get the basic information of the flight
-    pub fn get_flight(&self, client: &CassandraClient, flight_code: &str, frame_id: &usize) -> Option<Flight> {
+    fn get_flight(&self, client: &CassandraClient, flight_code: &str, frame_id: &usize) -> Option<Flight> {
         let mut flight = Flight::default();
         flight.code = flight_code.to_string();
         self.get_flight_status(client, &mut flight, frame_id)?;
@@ -414,7 +417,6 @@ impl UIClient {
         // let frame_response = rx.recv().unwrap();
 
         let body_response = self.get_body_result(frame_response)?;
-        println!("Body response: {:?}", String::from_utf8(body_response.to_vec()));
         Ok(body_response)
     }
 }

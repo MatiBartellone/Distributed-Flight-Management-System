@@ -24,6 +24,7 @@ impl Flights {
         }
     }
 
+    /// List all the information of the flights
     pub fn list_flights(&self, ui: &mut egui::Ui) {
         ui.label("Lista de vuelos:");
         ui.add_space(10.0);
@@ -71,15 +72,18 @@ impl Flights {
 }
 
 impl Plugin for &mut Flights {
+    /// Draw the flights in the screen
     fn run(&mut self, response: &Response, painter: Painter, projector: &Projector) {
         self.draw_flights(response, &painter, projector);
     }
 }
 
+/// Get the position of the flight in the screen
 pub fn get_flight_pos2(position: &(f64, f64), projector: &Projector) -> Pos2 {
     get_flight_vec2(position, projector).to_pos2()
 }
 
+/// Get the vec of the flight
 pub fn get_flight_vec2(position: &(f64, f64), projector: &Projector) -> Vec2 {
     let flight_coordinates = position;
     let flight_position = Position::from_lon_lat(flight_coordinates.0, flight_coordinates.1);
