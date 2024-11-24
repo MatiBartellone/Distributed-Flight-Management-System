@@ -6,7 +6,7 @@ use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
 use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::query_delegation::query_receiver::QueryReceiver;
-use crate::utils::constants::{IP_FILE, NODES_METADATA_PATH};
+use crate::utils::constants::{CONFIG_FILE, IP_FILE, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
     connect_to_socket, deserialize_from_slice, read_exact_from_stream, serialize_to_string,
@@ -14,8 +14,10 @@ use crate::utils::functions::{
 };
 use crate::utils::node_ip::NodeIp;
 use std::fs::File;
-use std::io::Write;
+use std::io::{read_to_string, Write};
 use std::{io, thread};
+use serde::Deserialize;
+use crate::utils::errors::Errors::ServerError;
 
 pub struct NodeInitializer {
     pub ip: NodeIp,
@@ -26,8 +28,31 @@ pub struct NodeInitializer {
     pub is_seed: bool,
 }
 
+#[derive(Deserialize)]
+struct Config {
+    ip: NodeIp,
+    network_ip: NodeIp,
+    seed_ip: NodeIp,
+    uses_network: bool,
+    is_seed: bool,
+    is_first: bool,
+
+}
+
 impl NodeInitializer {
-    pub fn new() -> Result<Self, Errors> {
+    pub fn new(uses_congig: bool, config_file: String) -> Result<Self, Errors> {
+        match uses_congig {
+            false => Self::get_data_by_user(),
+            true => {
+                match config_file {
+                    file if file.is_empty() => Self::read_config_file(CONFIG_FILE),
+                    file => Self::read_config_file(file.as_str()),
+                }
+            }
+        }
+    }
+
+    fn get_data_by_user() -> Result<Self, Errors> {
         let (ip, uses_network) =
             match get_user_data("Will this be used across network? [Y][N]: ").as_str() {
                 "Y" => (get_user_data("Device's ip (e.g. tail scale): "), true),
@@ -66,6 +91,31 @@ impl NodeInitializer {
             node: Node::new(&node_ip, 1, is_seed).expect("Error creating node"),
             is_first,
             is_seed,
+        })
+    }
+
+    fn read_config_file(path: &str) -> Result<Self, Errors> {
+        let contents = read_to_string(path).map_err(|_| ServerError(String::from("Could not read config file")))?;
+        let mut config: Config = serde_yaml::from_str(&contents).map_err(|_| ServerError(String::from("Could not deserialize config info")))?;
+        if config.uses_network {
+            config.ip = NodeIp::new_from_string("0.0.0.0", config.ip.get_port())?;
+        } else {
+            config.network_ip = NodeIp::new_from_ip(&config.ip);
+        }
+        if config.is_first {
+            config.is_seed = true;
+        }
+        if config.is_seed {
+            config.seed_ip = NodeIp::new_from_ip(&config.ip);
+        }
+        store_ip(&NodeIp::new_from_ip(&config.ip))?;
+        Ok(Self{
+            node: Node::new(&config.network_ip, 1, config.is_seed).expect("Error creating node"),
+            ip: config.ip,
+            network_ip: config.network_ip,
+            seed_ip: config.seed_ip,
+            is_first: config.is_first,
+            is_seed: config.is_seed,
         })
     }
 

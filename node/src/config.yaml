@@ -1,0 +1,12 @@
+ip:
+  ip: "127.0.0.1"
+  port: 9090
+network_ip:
+  ip: ""
+  port: 0
+seed_ip:
+  ip: ""
+  port: 0
+uses_network: false
+is_first: true
+is_seed: true
