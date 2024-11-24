@@ -1,11 +1,12 @@
-use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
-use crate::utils::constants::NODES_METADATA;
+use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
-use crate::utils::functions::start_listener;
+use crate::utils::functions::{
+    deserialize_from_slice, read_exact_from_stream, serialize_to_string, start_listener,
+    use_node_meta_data, write_to_stream,
+};
 use crate::utils::node_ip::NodeIp;
-use std::io::{Read, Write};
 use std::net::TcpStream;
 
 pub struct GossipListener;
@@ -16,12 +17,8 @@ impl GossipListener {
     }
 
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
-        let mut buffer = [0; 1024];
-        let size = stream
-            .read(&mut buffer)
-            .map_err(|_| Errors::ServerError(String::from("Failed to read data")))?;
-        let received_nodes: Vec<Node> =
-            serde_json::from_slice(&buffer[..size]).expect("Failed to deserialize json");
+        let buf = read_exact_from_stream(stream)?;
+        let received_nodes: Vec<Node> = deserialize_from_slice(buf.as_slice())?;
         let cluster = Self::get_cluster()?;
         let own_node = cluster.get_own_node();
         let (mut new_nodes, mut required_changes) = (Vec::new(), Vec::new());
@@ -34,15 +31,12 @@ impl GossipListener {
             &mut required_changes,
             &mut new_nodes,
         );
-        {
-            let mut meta_data_stream = MetaDataHandler::establish_connection()?;
-            let node_meta_data =
-                MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
-            node_meta_data.set_new_cluster(
-                NODES_METADATA,
+        use_node_meta_data(|handler| {
+            handler.set_new_cluster(
+                NODES_METADATA_PATH,
                 &Cluster::new(Node::new_from_node(own_node), new_nodes),
-            )?;
-        }
+            )
+        })?;
         Self::send_required_changes(stream, required_changes)
     }
 
@@ -50,12 +44,8 @@ impl GossipListener {
         stream: &mut TcpStream,
         required_changes: Vec<Node>,
     ) -> Result<(), Errors> {
-        let serialized = serde_json::to_string(&required_changes).map_err(|_| {
-            Errors::ServerError(String::from("Failed to serialize required changes"))
-        })?;
-        stream
-            .write_all(serialized.as_bytes())
-            .map_err(|_| Errors::ServerError(String::from("Failed to send required changes")))?;
+        let serialized = serialize_to_string(&required_changes)?;
+        write_to_stream(stream, serialized.as_bytes())?;
         Ok(())
     }
 
@@ -104,10 +94,7 @@ impl GossipListener {
     }
 
     fn get_cluster() -> Result<Cluster, Errors> {
-        let mut stream = MetaDataHandler::establish_connection()?;
-        let node_meta_data =
-            MetaDataHandler::get_instance(&mut stream)?.get_nodes_metadata_access();
-        node_meta_data.get_cluster(NODES_METADATA)
+        use_node_meta_data(|handler| handler.get_cluster(NODES_METADATA_PATH))
     }
 
     // 1 yes (node 1 newer)

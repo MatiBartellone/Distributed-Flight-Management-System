@@ -1,12 +1,11 @@
 use super::query::Query;
 use super::where_logic::where_clause::WhereClause;
-use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::data_access::row::Row;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
     check_table_name, get_columns_from_table, get_long_string_from_str,
-    get_partition_key_from_where, split_keyspace_table,
+    get_partition_key_from_where, split_keyspace_table, use_data_access,
 };
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -87,15 +86,15 @@ impl Default for SelectQuery {
 
 impl Query for SelectQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
-        let mut stream = DataAccessHandler::establish_connection()?;
-        let data_access = DataAccessHandler::get_instance(&mut stream)?;
         self.check_columns()?;
         let Some(where_clause) = &self.where_clause else {
             return Err(Errors::SyntaxError(String::from(
                 "Where clause must be defined",
             )));
         };
-        let rows = data_access.select_rows(&self.table_name, where_clause, &self.order_clauses)?;
+        let rows = use_data_access(|data_access| {
+            data_access.select_rows(&self.table_name, where_clause, &self.order_clauses)
+        })?;
         Ok(get_long_string_from_str(&self.get_rows_string(rows)?))
     }
 

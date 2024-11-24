@@ -1,8 +1,10 @@
 use crate::data_access::data_access::DataAccess;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{get_own_ip, start_listener};
+use crate::utils::functions::{
+    connect_to_socket, deserialize_from_slice, flush_stream, get_own_ip, read_exact_from_stream,
+    read_from_stream_no_zero, serialize_to_string, start_listener, write_to_stream,
+};
 use crate::utils::node_ip::NodeIp;
-use std::io::{Read, Write};
 use std::net::TcpStream;
 
 pub struct DataAccessHandler {}
@@ -14,46 +16,20 @@ impl DataAccessHandler {
 
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
         let data_access = DataAccess {};
-        let serialized = serde_json::to_string(&data_access)
-            .map_err(|_| Errors::ServerError("Failed to serialize data access".to_string()))?;
-        stream
-            .flush()
-            .map_err(|_| Errors::ServerError("Error flushing stream".to_string()))?;
-        stream
-            .write_all(serialized.as_bytes())
-            .map_err(|_| Errors::ServerError("Error writing to stream".to_string()))?;
-        stream
-            .flush()
-            .map_err(|_| Errors::ServerError("Error flushing stream".to_string()))?;
-        match stream.read(&mut [0; 1024]) {
-            Ok(0) => Ok(()),
-            Err(e) => Err(Errors::ServerError(format!(
-                "Error reading from stream: {}",
-                e
-            ))),
-            _ => Err(Errors::ServerError(String::from(""))),
-        }
+        let serialized = serialize_to_string(&data_access)?;
+        flush_stream(stream)?;
+        write_to_stream(stream, serialized.as_bytes())?;
+        flush_stream(stream)?;
+        read_exact_from_stream(stream)?;
+        Ok(())
     }
 
     pub fn establish_connection() -> Result<TcpStream, Errors> {
-        match TcpStream::connect(get_own_ip()?.get_data_access_socket()) {
-            Ok(stream) => Ok(stream),
-            Err(e) => Err(Errors::ServerError(e.to_string())),
-        }
+        connect_to_socket(get_own_ip()?.get_data_access_socket())
     }
 
     pub fn get_instance(stream: &mut TcpStream) -> Result<DataAccess, Errors> {
-        let mut buf = [0; 1024];
-        stream
-            .flush()
-            .map_err(|_| Errors::ServerError("Error flushing stream".to_string()))?;
-        match stream.read(&mut buf) {
-            Ok(n) => Ok(serde_json::from_slice(&buf[..n]).map_err(|_| {
-                Errors::ServerError(String::from("Failed to deserialize data access"))
-            })?),
-            Err(_) => Err(Errors::ServerError(String::from(
-                "Unable to read from node",
-            ))),
-        }
+        flush_stream(stream)?;
+        deserialize_from_slice(read_from_stream_no_zero(stream)?.as_slice())
     }
 }
