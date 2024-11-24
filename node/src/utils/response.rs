@@ -140,7 +140,7 @@ mod tests {
     fn test_void_response() {
         let result = Response::void();
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), vec![0x00, 0x00, 0x00, 0x01]); // Ajustado para 4 bytes
+        assert_eq!(result.unwrap(), vec![0x00, 0x00, 0x00, 0x01]); 
     }
 
     #[test]
@@ -149,8 +149,8 @@ mod tests {
         let result = Response::set_keyspace(keyspace);
         assert!(result.is_ok());
         let bytes = result.unwrap();
-        assert_eq!(bytes[..4], [0x00, 0x00, 0x00, 0x03]); // Corregido a 4 bytes
-        assert!(String::from_utf8_lossy(&bytes[4..]).contains(keyspace)); // Comprobamos que incluye el keyspace
+        assert_eq!(bytes[..4], [0x00, 0x00, 0x00, 0x03]);
+        assert!(String::from_utf8_lossy(&bytes[4..]).contains(keyspace));
     }
 
     #[test]
@@ -167,7 +167,7 @@ mod tests {
 
     #[test]
     fn test_protocol_row() {
-        let rows = mock_rows(); // Función auxiliar para generar filas simuladas.
+        let rows = mock_rows(); 
         let keyspace = "test_keyspace";
         let table = "test_table";
         let result = Response::protocol_row(rows, keyspace, table);
@@ -182,7 +182,6 @@ mod tests {
     }
 
 
-    // Tests para funciones privadas deben usar el atributo `#[cfg(test)]` dentro del módulo.
     #[test]
     fn test_write_protocol_response() {
         let rows = mock_rows();

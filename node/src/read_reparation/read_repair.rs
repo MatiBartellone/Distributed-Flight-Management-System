@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::format};
 
-use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor, response::Response, constants::BEST}, data_access::row::Row};
+use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor, response::Response, constants::BEST, parser_constants::QUERY}, data_access::row::Row, queries::{set_logic::assigmente_value::AssignmentValue, update_query::UpdateQuery, where_logic::where_clause::{self, WhereClause, comparison_where}}, parsers::{tokens::{literal::Literal, terms::ComparisonOperators, data_type::DataType}, query_parser::{QueryParser, self}, parser_factory::ParserFactory}, query_delegation::query_delegator::QueryDelegator};
 
 use super::row_response::RowResponse;
 
@@ -65,16 +65,38 @@ impl ReadRepair {
     fn repair_node(&self, ip: &str) -> Result<(), Errors> {
         let node_rows = self.read_response(ip.to_string())?;
         let best = self.read_response(BEST.to_string())?;
+        let (keyspace, table) = self.get_keyspace_table(BEST.to_string())?;
+        let mut change_row = false;
         for (row, better_row) in node_rows.iter().zip(best){
+            let mut query = format!("UPDATE {}.{} SET ", keyspace, table);
             for (column, column_better) in row.columns.iter().zip(better_row.columns) {
                 if column.value != column_better.value {
-                    
+                    let change = format!(" {} = {} ", column.column_name, column_better.value.value);
+                    query.push_str(&change);
+                    change_row = true
                 }
             } 
+            if change_row {
+                let pks = self.get_pks_headers(BEST.to_string())?;
+                let mut where_clause = "WHERE ".to_string();
+                for (i, (pks_header, pk_value)) in pks.iter().zip(row.primary_key.clone()).enumerate() {
+                    let sub_clause = format!(" {} = {} ", pks_header, pk_value);
+                    where_clause.push_str(&sub_clause);
+                    // Agregar " AND " solo si no es el último elemento
+                    if i < pks.len() - 1 {
+                        where_clause.push_str(" AND ");
+                    }
+                }
+                query.push_str(&where_clause);
+                let query_parser = ParserFactory::get_parser(QUERY)?;
+                let query = query_parser.parse(query.as_bytes())?;
+                QueryDelegator::send_to_node(ip, query);
+                change_row = false
+            }
+            
         }
         Ok(())
     }
-
     
 
     fn get_better_response(&mut self) -> Result<Vec<u8>, Errors> {
@@ -101,6 +123,13 @@ impl ReadRepair {
         let protocol = self.responses_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
         let meta_data = self.meta_data_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
         translate.read_keyspace_table(protocol.to_vec(), meta_data.to_vec())
+    }
+
+    fn get_pks_headers(&self, ip: String) -> Result<Vec<String>, Errors> {
+        let mut translate = RowResponse::new();
+        let protocol = self.responses_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
+        let meta_data = self.meta_data_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
+        translate.read_pk_headers(protocol.to_vec(), meta_data.to_vec())
     }
 
     fn get_first_response(&self) -> Result<Vec<u8>, Errors> {
@@ -139,6 +168,19 @@ impl ReadRepair {
         let data_section = data[..division].to_vec();
         let timestamps_section = data[division..data.len() - 4].to_vec();
         Ok((data_section, timestamps_section))
+    }
+}
+
+fn create_update_query(
+    changes: HashMap<String, AssignmentValue>,
+    table_name: String,
+    where_clause: WhereClause,
+) -> UpdateQuery {
+    UpdateQuery {
+        table_name,
+        changes,
+        where_clause: Some(where_clause),
+        if_clause: None, 
     }
 }
 

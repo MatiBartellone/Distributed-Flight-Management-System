@@ -40,6 +40,12 @@ impl RowResponse {
         Ok((self.keyspace.to_owned(), self.table.to_owned()))
     }
 
+    pub fn read_pk_headers(&mut self, protocol: Vec<u8>, meta_data: Vec<u8>) -> Result<Vec<String>, Errors> {
+        let (count_rows, columns_count) = self.read_protocol_response(protocol)?;
+        self.read_meta_data_response(meta_data, count_rows, columns_count)?;
+        Ok(self.pk_name.clone())
+    }
+
     fn read_protocol_response(&mut self, bytes: Vec<u8>) -> Result<(usize, usize), Errors> {
         let mut cursor = BytesCursor::new(&bytes[8..]);
         let columns_count = cursor.read_int()? as usize;
@@ -77,7 +83,6 @@ impl RowResponse {
         for _ in 0..count_pks{
             let pk = cursor.read_string()?;
             self.pk_name.push(pk);
-
         }
         for _ in 0..rows_count {
             let mut pk_values_row: Vec<String> = Vec::new();

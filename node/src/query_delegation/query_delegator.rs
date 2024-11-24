@@ -104,7 +104,7 @@ impl QueryDelegator {
         Ok(ips)
     }
 
-    fn send_to_node(ip: NodeIp, query: Box<dyn Query>) -> Result<(String, Vec<u8>), Errors> {
+    pub fn send_to_node(ip: NodeIp, query: Box<dyn Query>) -> Result<(String, Vec<u8>), Errors> {
         match TcpStream::connect(ip.get_query_delegation_socket()) {
             Ok(mut stream) => {
                 if stream
