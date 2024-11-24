@@ -3,11 +3,12 @@ use node::gossip::gossip_emitter::GossipEmitter;
 use node::hinted_handoff::hints_receiver::HintsReceiver;
 use node::hinted_handoff::hints_sender::HintsSender;
 use node::node_initializer::NodeInitializer;
-use node::utils::constants::NODES_METADATA_PATH;
+use node::utils::constants::{MAX_CLIENTS, NODES_METADATA_PATH};
 use node::utils::errors::Errors;
 use node::utils::functions::use_node_meta_data;
 use node::utils::node_ip::NodeIp;
-use std::net::TcpListener;
+use std::net::{TcpListener, TcpStream};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
@@ -49,20 +50,51 @@ fn start_gossip() -> Result<(), Errors> {
 
 fn set_node_listener(ip: NodeIp) {
     let listener = TcpListener::bind(ip.get_std_socket()).expect("Error binding socket");
-    println!("Server listening in {}", ip.get_string_ip());
+    println!("Server listening on {}", ip.get_string_ip());
+
+    let (tx, rx) = mpsc::channel();
+    let rx = Arc::new(Mutex::new(rx));
+
+    start_thread_pool(Arc::clone(&rx));
+
+    accept_connections(listener, tx);
+}
+
+fn accept_connections(listener: TcpListener, tx: mpsc::Sender<TcpStream>) {
     for incoming in listener.incoming() {
         match incoming {
             Ok(stream) => {
                 println!("Client connected: {:?}", stream.peer_addr());
-                thread::spawn(move || {
-                    if let Err(e) = ClientHandler::handle_client(stream) {
-                        println!("{}", e);
-                    }
-                });
+                if let Err(e) = tx.send(stream) {
+                    println!("Error sending stream to thread pool: {}", e);
+                }
             }
             Err(e) => {
                 println!("Error accepting connection: {}", e);
             }
         }
+    }
+}
+
+fn start_thread_pool(rx: Arc<Mutex<mpsc::Receiver<TcpStream>>>) {
+    for _ in 0..MAX_CLIENTS {
+        let rx = Arc::clone(&rx);
+        thread::spawn(move || {
+            loop {
+                let stream = {
+                    let lock = rx.lock().unwrap();
+                    lock.recv()
+                };
+
+                match stream {
+                    Ok(stream) => {
+                        if let Err(e) = ClientHandler::handle_client(stream) {
+                            println!("Error handling client: {}", e);
+                        }
+                    }
+                    _ => break,
+                }
+            }
+        });
     }
 }

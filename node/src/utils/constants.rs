@@ -4,6 +4,7 @@ pub const DATA_ACCESS_PATH: &str = "src/data_access/data/";
 pub const KEYSPACE_METADATA_PATH: &str = "src/meta_data/keyspaces/metadata.json";
 pub const HINTED_HANDOFF_DATA: &str = "src/hinted_handoff/data";
 pub const IP_FILE: &str = "src/utils/ip.txt";
+pub const MAX_CLIENTS: usize = 5;
 pub const HINTED_HANDOFF_HOURS: i64 = 3;
 pub const TIMEOUT_SECS: u64 = 5;
 pub const HINTED_HANDOFF_TIMEOUT_SECS: u64 = 10;
