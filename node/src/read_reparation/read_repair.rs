@@ -1,6 +1,6 @@
-use std::{collections::HashMap, fmt::format};
+use std::collections::HashMap;
 
-use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor, response::Response, constants::BEST, parser_constants::QUERY, node_ip::NodeIp}, data_access::row::Row, queries::{set_logic::assigmente_value::AssignmentValue, update_query::UpdateQuery, where_logic::where_clause::{self, WhereClause, comparison_where}}, parsers::{tokens::{literal::Literal, terms::ComparisonOperators, data_type::DataType}, query_parser::{QueryParser, self}, parser_factory::ParserFactory}, query_delegation::query_delegator::QueryDelegator};
+use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor, response::Response, constants::BEST, node_ip::NodeIp}, data_access::row::Row, parsers::query_parser::parsed_query, query_delegation::query_delegator::QueryDelegator};
 
 use super::row_response::RowResponse;
 
@@ -88,9 +88,8 @@ impl ReadRepair {
                     }
                 }
                 query.push_str(&where_clause);
-                
-                //convertir el string query en un Box<dyn Query>
-                QueryDelegator::send_to_node(NodeIp::new_from_single_string(ip)?,//query update )?;
+                let query_parsed = parsed_query(query)?;
+                QueryDelegator::send_to_node(NodeIp::new_from_single_string(ip)?, query_parsed)?;
                 change_row = false;
             }
             
@@ -171,18 +170,6 @@ impl ReadRepair {
     }
 }
 
-fn create_update_query(
-    changes: HashMap<String, AssignmentValue>,
-    table_name: String,
-    where_clause: WhereClause,
-) -> UpdateQuery {
-    UpdateQuery {
-        table_name,
-        changes,
-        where_clause: Some(where_clause),
-        if_clause: None, 
-    }
-}
 
 fn compare_response(original: &mut [Row], new: Vec<Row>) {
     for (ori_row, new_row) in original.iter_mut().zip(new) {

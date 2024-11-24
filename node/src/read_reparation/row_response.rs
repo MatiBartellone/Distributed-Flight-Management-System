@@ -221,6 +221,6 @@ mod tests {
     fn test_byte_to_data_type() {
         assert_eq!(byte_to_data_type(0x000A), Ok(DataType::Text));
         assert_eq!(byte_to_data_type(0x0009), Ok(DataType::Int));
-        assert!(byte_to_data_type(0xFFFF).is_err());
+        assert!(byte_to_data_type(0x0007).is_err());
     }
 }

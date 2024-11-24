@@ -24,12 +24,16 @@ impl Parser for QueryParser {
     fn parse(&self, body: &[u8]) -> Result<Box<dyn Executable>, Errors> {
         let mut cursor = BytesCursor::new(body);
         let string = cursor.read_long_string()?;
-        let tokens = query_lexer(string)?;
-        let query = query_parser(tokens)?;
+        let query = parsed_query(string)?;
         let consistency = cursor.read_short()?;
         let executable = QueryExecutable::new(query, consistency);
         Ok(Box::new(executable))
     }
+}
+
+pub fn parsed_query(string: String) -> Result<Box<dyn Query>, Errors> {
+    let tokens = query_lexer(string)?;
+    query_parser(tokens)
 }
 
 fn query_lexer(string: String) -> Result<Vec<Token>, Errors> {

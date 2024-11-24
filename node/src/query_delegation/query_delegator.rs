@@ -1,7 +1,6 @@
 use crate::hinted_handoff::handler::Handler;
 use crate::hinted_handoff::stored_query::StoredQuery;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
-use crate::meta_data::nodes::node::Node;
 use crate::queries::query::{Query, QueryEnum};
 use crate::query_delegation::query_serializer::QuerySerializer;
 use crate::read_reparation::read_repair::ReadRepair;
