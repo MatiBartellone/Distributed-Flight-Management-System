@@ -82,11 +82,6 @@ impl RowResponse {
         }
         let count_pks = cursor.read_short()?;
         for _ in 0..count_pks{
-            let pk = cursor.read_string()?;
-            self.pk_name.push(pk);
-        }
-        let count_pks = cursor.read_short()?;
-        for _ in 0..count_pks{
             self.pk_name.push(cursor.read_string()?);
         }
         for _ in 0..rows_count {
