@@ -57,6 +57,7 @@ impl RowResponse {
             let data_type = byte_to_data_type(data_type_bytes)?;
             self.column_protocol.insert(column, data_type);
         }
+        
         let count_rows = cursor.read_int()? as usize;
         for _ in 0..count_rows {
             let mut row: Vec<String> = Vec::new();
@@ -135,55 +136,45 @@ impl Default for RowResponse {
 
 #[cfg(test)]
 mod tests {
+    use crate::utils::{types_to_bytes::TypesToBytes, response::Response};
+
     use super::*;
 
     #[test]
     fn test_read_protocol_response() {
         let mut row_response = RowResponse::new();
-
-        // Bytes simulando una respuesta válida de protocolo
-        let protocol_bytes: Vec<u8> = vec![
-            0, 0, 0, 2, // Número de columnas (2)
-            0, 3, b'f', b'o', b'o', // Keyspace: "foo"
-            0, 3, b'b', b'a', b'r', // Tabla: "bar"
-            0, 4, b'n', b'a', b'm', b'e', // Columna 1: "name"
-            0, 0x000A, // Tipo de dato: Text
-            0, 2, b'i', b'd', // Columna 2: "id"
-            0, 0x0009, // Tipo de dato: Int
-            0, 0, 0, 2, // Número de filas (2)
-            0, 5, b'A', b'l', b'i', b'c', b'e', // Valor fila 1, columna 1: "Alice"
-            0, 1, b'1', // Valor fila 1, columna 2: "1"
-            0, 3, b'B', b'o', b'b', // Valor fila 2, columna 1: "Bob"
-            0, 1, b'2', // Valor fila 2, columna 2: "2"
-        ];
-
+        let protocol_bytes = get_example_bytes().unwrap();
         let result = row_response.read_protocol_response(protocol_bytes);
+    
         assert!(result.is_ok());
+        
         let (rows_count, columns_count) = result.unwrap();
         assert_eq!(rows_count, 2);
         assert_eq!(columns_count, 2);
-        assert_eq!(row_response.keyspace, "foo");
-        assert_eq!(row_response.table, "bar");
-        assert!(row_response.column_protocol.contains_key("name"));
-        assert!(row_response.column_protocol.contains_key("id"));
+        assert_eq!(row_response.keyspace, "test_keyspace");
+        assert_eq!(row_response.table, "test_table");
+        assert!(row_response.column_protocol.contains_key("col1"));
+        assert!(row_response.column_protocol.contains_key("col2"));
     }
 
     #[test]
     fn test_read_meta_data_response() {
         let mut row_response = RowResponse::new();
 
-        // Bytes simulando una respuesta válida de meta-data
         let meta_data_bytes: Vec<u8> = vec![
             0, 0, 0, 0, 0, 0, 0, 1, // Timestamp fila 1, columna 1
             0, 0, 0, 0, 0, 0, 0, 2, // Timestamp fila 1, columna 2
-            0, 1, // Número de claves primarias (1)
-            0, 2, b'i', b'd', // Clave primaria: "id"
-            0, 1, // Valor de la clave primaria fila 1: "1"
-            0, 1, b'1',
+            0, 1,                   // Número de claves primarias (1)
+            0, 2, b'i', b'd',       // Clave primaria: "id"
+            0, 1,                   // Longitud del valor de la clave primaria fila 1: "1"
+            b'1',
         ];
 
+        // Lectura de los datos
         let result = row_response.read_meta_data_response(meta_data_bytes, 1, 2);
         assert!(result.is_ok());
+
+        // Verificaciones
         assert_eq!(row_response.pk_name, vec!["id"]);
         assert_eq!(row_response.time_stamps[0], vec![1, 2]);
         assert_eq!(row_response.pk_values[0], vec!["1"]);
@@ -222,5 +213,62 @@ mod tests {
         assert_eq!(byte_to_data_type(0x000A), Ok(DataType::Text));
         assert_eq!(byte_to_data_type(0x0009), Ok(DataType::Int));
         assert!(byte_to_data_type(0x0007).is_err());
+    }
+
+
+    fn get_example_bytes() -> Result<Vec<u8>, Errors> {
+        let rows = mock_rows();
+        let keyspace = "test_keyspace";
+        let table = "test_table";
+        let mut encoder = TypesToBytes::default();
+        Response::write_protocol_response(&rows, keyspace, table, &mut encoder)?;
+        Ok(encoder.into_bytes())
+    }
+    
+    fn mock_rows() -> Vec<Row> {
+        vec![
+            Row::new(
+                vec![
+                    Column {
+                        column_name: "col1".to_string(),
+                        value: Literal {
+                            data_type: DataType::Int,
+                            value: "42".to_string(),
+                        },
+                        time_stamp: 123456789,
+                    },
+                    Column {
+                        column_name: "col2".to_string(),
+                        value: Literal {
+                            data_type: DataType::Text,
+                            value: "hello".to_string(),
+                        },
+                        time_stamp: 123456789,
+                    },
+                ],
+                vec!["key1".to_string()],
+            ),
+            Row::new(
+                vec![
+                    Column {
+                        column_name: "col1".to_string(),
+                        value: Literal {
+                            data_type: DataType::Int,
+                            value: "84".to_string(),
+                        },
+                        time_stamp: 987654321,
+                    },
+                    Column {
+                        column_name: "col2".to_string(),
+                        value: Literal {
+                            data_type: DataType::Text,
+                            value: "world".to_string(),
+                        },
+                        time_stamp: 987654321,
+                    },
+                ],
+                vec!["key2".to_string()],
+            ),
+        ]
     }
 }
