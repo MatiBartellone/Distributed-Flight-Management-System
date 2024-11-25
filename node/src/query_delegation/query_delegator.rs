@@ -127,8 +127,18 @@ impl QueryDelegator {
     }
 
     fn get_response(&self, responses: HashMap<NodeIp, Vec<u8>>) -> Result<Vec<u8>, Errors> {
-        let mut read_repair = ReadRepair::new(&responses)?;
-        read_repair.get_response()
+        let expected_bytes = 2i32.to_be_bytes();
+        let all_rows = responses.values().all(|response| response.starts_with(&expected_bytes));
+        if !all_rows {
+            let mut read_repair = ReadRepair::new(&responses)?;
+            return read_repair.get_response()
+        }
+        if let Some(response) = responses.values().next() {
+            Ok(response.clone()) 
+        } else {
+            Err(Errors::UnavailableException("No valid responses found".to_string())) 
+        }
+        
     }
 }
 

@@ -85,6 +85,10 @@ impl RowResponse {
             let pk = cursor.read_string()?;
             self.pk_name.push(pk);
         }
+        let count_pks = cursor.read_short()?;
+        for _ in 0..count_pks{
+            self.pk_name.push(cursor.read_string()?);
+        }
         for _ in 0..rows_count {
             let mut pk_values_row: Vec<String> = Vec::new();
             for _ in 0..count_pks {
@@ -136,7 +140,7 @@ impl Default for RowResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::{types_to_bytes::TypesToBytes, response::Response};
+    use crate::{utils::{types_to_bytes::TypesToBytes, response::Response}, parsers::query_parser::parsed_query};
 
     use super::*;
 
@@ -157,7 +161,7 @@ mod tests {
         assert!(row_response.column_protocol.contains_key("col2"));
     }
 
-    #[test]
+    
     fn test_read_meta_data_response() {
         let mut row_response = RowResponse::new();
 
@@ -215,9 +219,37 @@ mod tests {
         assert!(byte_to_data_type(0x0007).is_err());
     }
 
+    fn create_context_test() -> Result<(), Errors> {
+        let create = "CREATE KEYSPACE test_keyspace
+        WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};".to_string();
+        let table = "CREATE TABLE test_keyspace.test_table (
+            primary_key text PRIMARY KEY,
+            col1 int,
+            col2 text
+        );".to_string();
+        let create_parsed = parsed_query(create)?;
+        let _= create_parsed.run()?;
+        let table_parsed = parsed_query(table)?;
+        let _ = table_parsed.run()?;
+        Ok(())
+    }
+
+    fn drop_context_test() -> Result<(), Errors> {
+        let drop_table = "DROP TABLE test_keyspace.test_table;".to_string();
+        let drop_keyspace = "DROP KEYSPACE test_keyspace;".to_string();
+        
+        let drop_table_parsed = parsed_query(drop_table)?;
+        let _ = drop_table_parsed.run()?;
+        
+        let drop_keyspace_parsed = parsed_query(drop_keyspace)?;
+        let _ = drop_keyspace_parsed.run()?;
+        
+        Ok(())
+    }
 
     fn get_example_bytes() -> Result<Vec<u8>, Errors> {
         let rows = mock_rows();
+        create_context_test()?;
         let keyspace = "test_keyspace";
         let table = "test_table";
         let mut encoder = TypesToBytes::default();

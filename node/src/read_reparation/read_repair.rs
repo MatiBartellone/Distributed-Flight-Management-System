@@ -152,10 +152,7 @@ impl ReadRepair {
         if all_equal {
             return true;
         }
-        let all_rows = self.responses_bytes.values().all(|response| response.starts_with(&[0x00, 0x02]));
-        if !all_rows {
-            return true;
-        }
+        
         false
     }
 
@@ -228,13 +225,17 @@ mod tests {
 
     #[test]
     fn test_split_bytes() {
-        let data = vec![1, 2, 3, 4, 0, 0, 0, 4];
+        let data = vec![
+            1, 2, 3, 4,   
+            5, 6, 7, 8,   
+            0, 0, 0, 4    
+        ];
+
         let result = ReadRepair::split_bytes(&data);
         assert!(result.is_ok());
-
         let (data_section, timestamps_section) = result.unwrap();
-        assert_eq!(data_section, vec![1, 2, 3, 4]);
-        assert_eq!(timestamps_section, Vec::<u8>::new()); // Aquí especificamos el tipo explícitamente
+        assert_eq!(data_section, vec![1, 2, 3, 4]); // Sección inicial
+        assert_eq!(timestamps_section, vec![5, 6, 7, 8]); // Sección intermedia
     }
 
     #[test]
