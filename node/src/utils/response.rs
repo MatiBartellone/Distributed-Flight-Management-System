@@ -92,12 +92,6 @@ impl Response {
                 encoder.write_u64(time_stamp_bytes).map_err(Errors::TruncateError)?;
             }
         }
-        encoder.write_short(rows[0].primary_key.len() as u16).map_err(Errors::TruncateError)?;
-        for row in rows {
-            for pk in &row.primary_key{
-                encoder.write_string(pk).map_err(Errors::TruncateError)?;
-            }
-        }
         let pks = get_pks(keyspace, table)?;
         encoder.write_short(pks.len() as u16).map_err(Errors::TruncateError)?;
         for pk in pks {
