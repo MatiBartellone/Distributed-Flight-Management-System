@@ -82,7 +82,6 @@ impl ReadRepair {
                 for (i, (pks_header, pk_value)) in pks.iter().zip(row.primary_key.clone()).enumerate() {
                     let sub_clause = format!(" {} = {} ", pks_header, pk_value);
                     where_clause.push_str(&sub_clause);
-                    // Agregar " AND " solo si no es el último elemento
                     if i < pks.len() - 1 {
                         where_clause.push_str(" AND ");
                     }
@@ -182,6 +181,91 @@ fn compare_row(original: &mut Row, new: Row) {
         if col_ori.time_stamp < col_new.time_stamp {
             *col_ori = col_new;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::data_access::row::Column;
+    use crate::parsers::tokens::data_type::DataType;
+    use crate::parsers::tokens::literal::Literal;
+
+    use super::*;
+    use std::collections::HashMap;
+    use std::net::IpAddr;
+
+    #[test]
+    fn test_new() {
+        let ip: IpAddr = "127.0.0.1".parse().unwrap();
+        let port = 8080;
+        let node_ip = NodeIp::new(ip, port);
+
+        let mut responses = HashMap::new();
+        responses.insert(node_ip, vec![1, 2, 3, 4, 0, 0, 0, 4]);
+
+        let result = ReadRepair::new(&responses);
+        assert!(result.is_ok());
+
+        let read_repair = result.unwrap();
+        assert_eq!(read_repair.responses_bytes.len(), 1);
+        assert_eq!(read_repair.meta_data_bytes.len(), 1);
+    }
+
+    #[test]
+    fn test_get_first_response() {
+        let mut read_repair = ReadRepair {
+            responses_bytes: HashMap::new(),
+            meta_data_bytes: HashMap::new(),
+        };
+
+        // Agregar una respuesta
+        read_repair.responses_bytes.insert("127.0.0.1".to_string(), vec![0, 1, 2, 3]);
+
+        let response = read_repair.get_first_response();
+        assert!(response.is_ok());
+        assert_eq!(response.unwrap(), vec![0, 1, 2, 3]);
+    }
+
+    #[test]
+    fn test_split_bytes() {
+        let data = vec![1, 2, 3, 4, 0, 0, 0, 4];
+        let result = ReadRepair::split_bytes(&data);
+        assert!(result.is_ok());
+
+        let (data_section, timestamps_section) = result.unwrap();
+        assert_eq!(data_section, vec![1, 2, 3, 4]);
+        assert_eq!(timestamps_section, Vec::<u8>::new()); // Aquí especificamos el tipo explícitamente
+    }
+
+    #[test]
+    fn test_compare_row() {
+        // Crear columnas
+        let original_column = Column::new(
+            &"col1".to_string(),
+            &Literal {
+                value: "old".to_string(),
+                data_type: DataType::Text, // Ajusta este tipo si es necesario
+            },
+            1,
+        );
+
+        let new_column = Column::new(
+            &"col1".to_string(),
+            &Literal {
+                value: "new".to_string(),
+                data_type: DataType::Text, // Ajusta este tipo si es necesario
+            },
+            2,
+        );
+
+        // Crear filas (rows)
+        let mut original = Row::new(vec![original_column], vec!["pk1".to_string()]);
+        let new = Row::new(vec![new_column], vec!["pk1".to_string()]);
+
+        // Comparar y verificar
+        compare_row(&mut original, new);
+        assert_eq!(original.columns[0].value.value, "new");
+        assert_eq!(original.columns[0].time_stamp, 2);
     }
 }
 
