@@ -34,22 +34,14 @@ impl ReadRepair {
             return self.get_first_response();
         }
         let better_response = self.get_better_response()?;
-        self.save_best(better_response)?;
+        self.responses_bytes.insert(BEST.to_string(), better_response);
+        let meta_data_bytes = self.meta_data_bytes.values().into_iter().next().unwrap_or(&Vec::new()).to_vec();
+        self.meta_data_bytes.insert(BEST.to_string(), meta_data_bytes);
         self.repair()?;
         self.responses_bytes
         .get(BEST)
         .cloned() 
         .ok_or_else(|| Errors::TruncateError("No keys found".to_string())) 
-    }
-
-    fn save_best(&mut self, best: Vec<u8>) -> Result<(), Errors>{
-        let copy = self.meta_data_bytes
-            .get(BEST)
-            .cloned() 
-            .ok_or_else(|| Errors::TruncateError("No keys found".to_string()))?;
-        self.responses_bytes.insert(BEST.to_string(), best);
-        self.meta_data_bytes.insert(BEST.to_string(), copy);
-        Ok(())
     }
 
     fn repair(&self) -> Result<(), Errors> {
@@ -91,7 +83,6 @@ impl ReadRepair {
                 QueryDelegator::send_to_node(NodeIp::new_from_single_string(ip)?, query_parsed)?;
                 change_row = false;
             }
-            
         }
         Ok(())
     }
@@ -99,7 +90,7 @@ impl ReadRepair {
 
     fn get_better_response(&mut self) -> Result<Vec<u8>, Errors> {
         let mut ips = self.responses_bytes.keys();
-        let first_ip = ips.next().ok_or_else(|| Errors::TruncateError("No keys found".to_string()))?;
+        let first_ip = ips.next().ok_or_else(|| Errors::ServerError("No response found".to_string()))?;
         let mut rows = self.read_response(first_ip.to_string())?;
         for ip in ips {
             let next_response = self.read_response(ip.to_string())?;
@@ -111,22 +102,22 @@ impl ReadRepair {
 
     fn read_response(&self, ip: String) -> Result<Vec<Row>, Errors> {
         let mut translate = RowResponse::new();
-        let protocol = self.responses_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
-        let meta_data = self.meta_data_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
+        let protocol = self.responses_bytes.get(&ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in responses_bytes", ip)))?;
+        let meta_data = self.meta_data_bytes.get(&ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in meta_data_bytes", ip)))?;
         translate.read_row_response(protocol.to_vec(), meta_data.to_vec())
     }
 
     fn get_keyspace_table(&self, ip: String) -> Result<(String, String), Errors> {
         let mut translate = RowResponse::new();
-        let protocol = self.responses_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
-        let meta_data = self.meta_data_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
+        let protocol = self.responses_bytes.get(&ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in responses_bytes", ip)))?;
+        let meta_data = self.meta_data_bytes.get(&ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in meta_data_bytes", ip)))?;
         translate.read_keyspace_table(protocol.to_vec(), meta_data.to_vec())
     }
 
     fn get_pks_headers(&self, ip: String) -> Result<Vec<String>, Errors> {
         let mut translate = RowResponse::new();
-        let protocol = self.responses_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
-        let meta_data = self.meta_data_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
+        let protocol = self.responses_bytes.get(&ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in responses_bytes", ip)))?;
+        let meta_data = self.meta_data_bytes.get(&ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in meta_data_bytes", ip)))?;
         translate.read_pk_headers(protocol.to_vec(), meta_data.to_vec())
     }
 
