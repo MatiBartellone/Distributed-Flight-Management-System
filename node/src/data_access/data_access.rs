@@ -6,37 +6,34 @@ use crate::queries::evaluate::Evaluate;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::queries::set_logic::assigmente_value::AssignmentValue;
 use crate::queries::where_logic::where_clause::WhereClause;
-use crate::utils::constants::{ASC, DATA_ACCESS_PATH};
+use crate::utils::constants::DATA_ACCESS_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
-use crate::utils::functions::{
-    get_int_from_string, get_timestamp, serialize_to_string, write_all_to_file,
-};
+use crate::utils::functions::{get_int_from_string, serialize_to_string, write_all_to_file};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::fs::{metadata, remove_file, rename, File, OpenOptions};
 use std::io::{BufReader, Seek, SeekFrom};
+use crate::utils::parser_constants::ASC;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DataAccess;
 
 impl DataAccess {
+    fn create_file(&self, path: &String) -> Result<(), Errors> {
+        fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
+        let mut file =
+            File::create(path).map_err(|_| ServerError(String::from("Could not create file")))?;
+        write_all_to_file(&mut file, b"[]")
+    }
+
     pub fn create_table(&self, table_name: &String) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
         if metadata(&path).is_ok() {
             return Err(Errors::AlreadyExists("Table already exists".to_string()));
         }
-        self.create_file(&path)?;
-        Ok(())
-    }
-
-    fn create_file(&self, path: &String) -> Result<(), Errors> {
-        fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
-        let mut file =
-            File::create(path).map_err(|_| ServerError(String::from("Could not create file")))?;
-        write_all_to_file(&mut file, b"[]")?;
-        Ok(())
+        self.create_file(&path)
     }
 
     pub fn truncate_table(&self, table_name: &String) -> Result<(), Errors> {
@@ -134,11 +131,8 @@ impl DataAccess {
             Some(AssignmentValue::Column(column)) => Ok(Column::new(
                 column_name,
                 &row.get_some_column(column)?.value,
-                get_timestamp()?,
             )),
-            Some(AssignmentValue::Simple(literal)) => {
-                Ok(Column::new(column_name, literal, get_timestamp()?))
-            }
+            Some(AssignmentValue::Simple(literal)) => Ok(Column::new(column_name, literal)),
             Some(AssignmentValue::Arithmetic(column, arith, literal)) => {
                 let value1 = get_int_from_string(&row.get_some_column(column)?.value.value)?;
                 let value2 = get_int_from_string(&literal.value)?;
@@ -152,7 +146,6 @@ impl DataAccess {
                 Ok(Column::new(
                     column_name,
                     &Literal::new(new_value.to_string(), DataType::Int),
-                    get_timestamp()?,
                 ))
             }
             _ => Err(ServerError(String::from("Column not found"))),
@@ -280,20 +273,21 @@ impl DataAccess {
 
     fn append_row(&self, path: &String, row: &Row) -> Result<(), Errors> {
         let mut file = self.open_file(path)?;
-        let file_size = file
-            .seek(SeekFrom::End(0))
-            .map_err(|_| ServerError("Failed to seek in file".to_string()))?;
+        let file_size = Self::seek_file(&mut file, 0)?;
         if file_size > 2 {
-            file.seek(SeekFrom::End(-1))
-                .map_err(|_| ServerError("Failed to seek in file".to_string()))?;
+            Self::seek_file(&mut file, -1)?;
             write_all_to_file(&mut file, b",")?;
         } else {
-            file.seek(SeekFrom::End(-1))
-                .map_err(|_| ServerError("Failed to seek in file".to_string()))?;
+            Self::seek_file(&mut file, -1)?;
         }
         let json_row = serialize_to_string(&row)?;
         write_all_to_file(&mut file, json_row.as_bytes())?;
         write_all_to_file(&mut file, b"]")
+    }
+
+    fn seek_file(file: &mut File, position: i64) -> Result<u64, Errors> {
+        file.seek(SeekFrom::End(position))
+            .map_err(|_| ServerError("Failed to seek in file".to_string()))
     }
 
     fn pk_already_exists(&self, path: &String, primary_keys: &Vec<String>) -> Result<bool, Errors> {
@@ -330,6 +324,7 @@ mod tests {
     use std::path::Path;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Mutex;
+    use crate::utils::types::timestamp::Timestamp;
 
     static TABLE_COUNTER: AtomicUsize = AtomicUsize::new(1);
     static TABLE_MUTEX: Mutex<()> = Mutex::new(());
@@ -396,7 +391,7 @@ mod tests {
                     value: "John".to_string(),
                     data_type: DataType::Text,
                 },
-                time_stamp: 1235,
+                timestamp: Timestamp::new_from_i64(1235),
             }],
             vec!["name".to_string()],
         )
@@ -423,7 +418,7 @@ mod tests {
                     value: "Jane".to_string(),
                     data_type: DataType::Text,
                 },
-                time_stamp: 1234,
+                timestamp: Timestamp::new_from_i64(1234),
             }],
             vec!["_".to_string()],
         )

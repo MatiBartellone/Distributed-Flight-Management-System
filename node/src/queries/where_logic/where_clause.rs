@@ -3,7 +3,7 @@ use crate::{
     queries::evaluate::Evaluate,
     utils::{
         errors::Errors,
-        token_conversor::{get_identifier_string, get_literal},
+        types::token_conversor::{get_identifier_string, get_literal},
     },
 };
 use serde::{Deserialize, Serialize};

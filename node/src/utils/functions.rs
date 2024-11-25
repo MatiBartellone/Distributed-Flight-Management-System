@@ -9,7 +9,8 @@ use crate::queries::where_logic::where_clause::WhereClause;
 use crate::utils::constants::{CLIENT_METADATA_PATH, IP_FILE, KEYSPACE_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
-use crate::utils::node_ip::NodeIp;
+use crate::utils::types::node_ip::NodeIp;
+use crate::utils::types::primary_key::PrimaryKey;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
@@ -17,20 +18,12 @@ use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
     bytes.extend_from_slice((str.len() as u32).to_be_bytes().as_ref());
     bytes.extend_from_slice(str.as_bytes());
     bytes
-}
-
-pub fn get_timestamp() -> Result<u64, Errors> {
-    if let Ok(timestamp) = SystemTime::now().duration_since(UNIX_EPOCH) {
-        return Ok(timestamp.as_secs());
-    }
-    Err(ServerError(String::from("Time went backwards")))
 }
 
 pub fn check_table_name(table_name: &String) -> Result<String, Errors> {
@@ -68,43 +61,28 @@ pub fn get_columns_from_table(table_name: &str) -> Result<HashMap<String, DataTy
     })
 }
 
-pub fn get_table_pk(table_name: &str) -> Result<HashSet<String>, Errors> {
-    let binding = table_name.split('.').collect::<Vec<&str>>();
-    let identifiers = &binding.as_slice();
+pub fn get_table_primary_key(table_name: &str) -> Result<PrimaryKey, Errors> {
+    let (keyspace, table) = split_keyspace_table(table_name)?;
     use_keyspace_meta_data(|handler| {
-        Ok(handler
-            .get_primary_key(
-                KEYSPACE_METADATA_PATH.to_string(),
-                identifiers[0],
-                identifiers[1],
-            )?
-            .get_full_pk_in_hash())
+        handler.get_primary_key(KEYSPACE_METADATA_PATH.to_string(), keyspace, table)
     })
 }
 
+pub fn get_table_pk(table_name: &str) -> Result<HashSet<String>, Errors> {
+    Ok(get_table_primary_key(table_name)?.get_full_pk_in_hash())
+}
+
 pub fn get_table_partition(table_name: &str) -> Result<HashSet<String>, Errors> {
-    let binding = table_name.split('.').collect::<Vec<&str>>();
-    let identifiers = &binding.as_slice();
-    let pk = use_keyspace_meta_data(|handler| {
-        handler.get_primary_key(
-            KEYSPACE_METADATA_PATH.to_string(),
-            identifiers[0],
-            identifiers[1],
-        )
-    })?;
-    Ok(pk.partition_keys.into_iter().collect())
+    Ok(get_table_primary_key(table_name)?
+        .partition_keys
+        .into_iter()
+        .collect::<HashSet<String>>())
 }
 pub fn get_table_clustering_columns(table_name: &str) -> Result<HashSet<String>, Errors> {
-    let binding = table_name.split('.').collect::<Vec<&str>>();
-    let identifiers = &binding.as_slice();
-    let pk = use_keyspace_meta_data(|handler| {
-        handler.get_primary_key(
-            KEYSPACE_METADATA_PATH.to_string(),
-            identifiers[0],
-            identifiers[1],
-        )
-    })?;
-    Ok(pk.clustering_columns.into_iter().collect())
+    Ok(get_table_primary_key(table_name)?
+        .clustering_columns
+        .into_iter()
+        .collect::<HashSet<String>>())
 }
 
 pub fn split_keyspace_table(input: &str) -> Result<(&str, &str), Errors> {
@@ -117,7 +95,7 @@ pub fn split_keyspace_table(input: &str) -> Result<(&str, &str), Errors> {
         .ok_or_else(|| Errors::SyntaxError("Missing table".to_string()))?;
     if parts.next().is_some() {
         return Err(Errors::SyntaxError(
-            "Too many parts, expected only keyspace and table".to_string(),
+            "Too many parts, expected only keyspace.table".to_string(),
         ));
     }
     Ok((keyspace, table))
@@ -160,8 +138,7 @@ pub fn start_listener<F>(socket: SocketAddr, handle_connection: F) -> Result<(),
 where
     F: Fn(&mut TcpStream) -> Result<(), Errors>,
 {
-    let listener = TcpListener::bind(socket)
-        .map_err(|_| ServerError(String::from("Failed to set listener")))?;
+    let listener = bind_listener(socket)?;
     for stream in listener.incoming() {
         match stream {
             Ok(mut stream) => handle_connection(&mut stream)?,

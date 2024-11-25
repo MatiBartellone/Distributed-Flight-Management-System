@@ -2,9 +2,10 @@ use crate::parsers::tokens::literal::Literal;
 use crate::parsers::tokens::terms::Term;
 use crate::parsers::tokens::token::Token;
 use crate::queries::insert_query::InsertQuery;
-use crate::utils::constants::*;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
+use crate::utils::parser_constants::{COMMA, INTO, VALUES};
+
 pub struct InsertQueryParser;
 
 impl InsertQueryParser {

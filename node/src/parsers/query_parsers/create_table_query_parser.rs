@@ -230,7 +230,7 @@ fn check_primary_key(query: &mut CreateTableQuery) -> Result<(), Errors> {
 mod tests {
     use super::*;
     use crate::parsers::tokens::token::Token;
-    use crate::utils::primary_key::PrimaryKey;
+    use crate::utils::types::primary_key::PrimaryKey;
     use std::collections::HashMap;
 
     fn assert_error(result: Result<CreateTableQuery, Errors>, expected: &str) {

@@ -1,4 +1,3 @@
-use super::errors::Errors;
 use crate::parsers::tokens::token::Token::{IterateToken, ParenList};
 use crate::parsers::tokens::{
     data_type::DataType,
@@ -10,6 +9,7 @@ use std::{iter::Peekable, vec::IntoIter};
 use BooleanOperations::*;
 use LogicalOperators::*;
 use Term::*;
+use crate::utils::errors::Errors;
 
 pub fn precedence(tokens: Vec<Token>) -> Vec<Token> {
     let mut result = Vec::new();

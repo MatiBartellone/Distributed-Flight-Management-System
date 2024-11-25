@@ -1,4 +1,4 @@
-use crate::utils::bytes_cursor::BytesCursor;
+use crate::utils::types::bytes_cursor::BytesCursor;
 use crate::utils::errors::Errors;
 
 #[derive(Debug, PartialEq, Clone)]
