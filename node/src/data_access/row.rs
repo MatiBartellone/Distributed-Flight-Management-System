@@ -1,5 +1,6 @@
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
+use crate::queries::set_logic::assigmente_value::AssignmentValue;
 use crate::utils::errors::Errors;
 use crate::utils::functions::get_timestamp;
 use serde::{Deserialize, Serialize};
@@ -45,6 +46,18 @@ impl Row {
                 data_type: column.value.data_type.clone(),
             };
             hash.insert(String::from(&column.column_name), literal);
+        }
+        hash
+    }
+
+    pub fn get_row_hash_assigment(&self) -> HashMap<String, AssignmentValue> {
+        let mut hash: HashMap<String, AssignmentValue> = HashMap::new();
+        for column in &self.columns {
+            let literal = Literal {
+                value: String::from(&column.value.value),
+                data_type: column.value.data_type.clone(),
+            };
+            hash.insert(String::from(&column.column_name), AssignmentValue::Simple(literal));
         }
         hash
     }

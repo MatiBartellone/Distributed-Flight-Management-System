@@ -10,21 +10,15 @@ use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::{HashMap, HashSet};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Default, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InsertQuery {
     pub table_name: String,
     pub headers: Vec<String>,
     pub values_list: Vec<Vec<Literal>>,
+    pub if_exists: Option<bool>,
 }
 
 impl InsertQuery {
-    pub fn new() -> Self {
-        Self {
-            table_name: String::new(),
-            headers: Vec::new(),
-            values_list: Vec::new(),
-        }
-    }
 
     fn check_columns(&self) -> Result<(), Errors> {
         let columns = get_columns_from_table(&self.table_name)?;
@@ -128,21 +122,24 @@ impl InsertQuery {
     }
 }
 
-impl Default for InsertQuery {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Query for InsertQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
         self.check_columns()?;
-        use_data_access(|data_access| {
+        let applied = use_data_access(|data_access| {
+            let mut applied = None;
             for values in self.values_list.iter() {
                 let row = self.build_row(values)?;
-                data_access.insert(&self.table_name, &row)?
+                if let Some(if_exists) = self.if_exists {
+                    if if_exists {
+                        applied = Some(data_access.simple_update_row(&self.table_name, &row)?);
+                    } else {
+                        applied = Some(data_access.insert(&self.table_name, &row)?);
+                    }
+                } else {
+                    data_access.insert_or_update(&self.table_name, &row)?;
+                }
             }
-            Ok(())
+            Ok(applied)
         })?;
         Ok(get_long_string_from_str("Insertion was successful"))
     }

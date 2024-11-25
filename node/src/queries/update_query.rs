@@ -121,8 +121,8 @@ impl Query for UpdateQuery {
                 "Where clause must be defined",
             )));
         };
-        use_data_access(|data_access| {
-            data_access.update_row(&self.table_name, &self.changes, where_clause)
+        let apllied = use_data_access(|data_access| {
+            data_access.update_row(&self.table_name, &self.changes, where_clause, &self.if_clause)
         })?;
         Ok(get_long_string_from_str("Update was successful"))
     }

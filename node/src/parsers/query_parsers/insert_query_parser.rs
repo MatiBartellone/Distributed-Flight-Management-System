@@ -4,18 +4,20 @@ use crate::parsers::tokens::token::Token;
 use crate::queries::insert_query::InsertQuery;
 use crate::utils::constants::*;
 use crate::utils::errors::Errors;
+use crate::utils::token_conversor::get_next_value;
+use std::iter::Peekable;
 use std::vec::IntoIter;
 pub struct InsertQueryParser;
 
 impl InsertQueryParser {
     pub fn parse(tokens_list: Vec<Token>) -> Result<InsertQuery, Errors> {
-        let mut insert_query = InsertQuery::new();
-        into(&mut tokens_list.into_iter(), &mut insert_query)?;
+        let mut insert_query = InsertQuery::default();
+        into(&mut tokens_list.into_iter().peekable(), &mut insert_query)?;
         Ok(insert_query)
     }
 }
 
-fn into(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
+fn into(tokens: &mut Peekable<IntoIter<Token>>, query: &mut InsertQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Reserved(res) if res == *INTO => table(tokens, query),
         _ => Err(Errors::SyntaxError(String::from(
@@ -24,7 +26,7 @@ fn into(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Err
     }
 }
 
-fn table(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
+fn table(tokens: &mut Peekable<IntoIter<Token>>, query: &mut InsertQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Identifier(identifier) => {
             query.table_name = identifier;
@@ -35,7 +37,7 @@ fn table(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Er
         ))),
     }
 }
-fn headers(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
+fn headers(tokens: &mut Peekable<IntoIter<Token>>, query: &mut InsertQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::ParenList(list) => {
             query.headers = get_headers(list)?;
@@ -47,7 +49,7 @@ fn headers(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), 
     }
 }
 
-fn values(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
+fn values(tokens: &mut Peekable<IntoIter<Token>>, query: &mut InsertQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Reserved(res) if res == *VALUES => values_list(tokens, query),
         _ => Err(Errors::SyntaxError(String::from(
@@ -56,7 +58,7 @@ fn values(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), E
     }
 }
 
-fn values_list(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<(), Errors> {
+fn values_list(tokens: &mut Peekable<IntoIter<Token>>, query: &mut InsertQuery) -> Result<(), Errors> {
     let Some(token) = tokens.next() else {
         return Ok(());
     };
@@ -68,7 +70,59 @@ fn values_list(tokens: &mut IntoIter<Token>, query: &mut InsertQuery) -> Result<
         _ if query.values_list.iter().len() == 0 => Err(Errors::SyntaxError(String::from(
             "No values where provided",
         ))),
-        _ => Ok(()),
+        _ => if_clause(tokens, query),
+    }
+}
+
+fn if_clause(
+    tokens: &mut Peekable<IntoIter<Token>>,
+    query: &mut InsertQuery,
+) -> Result<(), Errors> {
+    match tokens.next() {
+        Some(Token::Reserved(res)) if res == IF => {}
+        Some(_) => return Err(Errors::SyntaxError("Unexpected token".to_string())),
+        None => return Ok(()),
+    };
+    match get_next_value(tokens)? {
+        Token::IterateToken(sub_list) => {
+            query.if_exists = Some(exists(&mut sub_list.into_iter().peekable())?);
+            if tokens.next().is_some() {
+                return Err(Errors::SyntaxError(String::from(
+                    "Nothing should follow a if-clause",
+                )));
+            }
+            Ok(())
+        }
+        _ => Err(Errors::SyntaxError(
+            "Unexpected token in if-clause".to_string(),
+        )),
+    }
+}
+
+fn exists(tokens: &mut Peekable<IntoIter<Token>>) -> Result<bool, Errors> {
+    match tokens.next() {
+        Some(Token::Reserved(res)) if res == EXISTS => {
+            if tokens.next().is_some() {
+                return Err(Errors::SyntaxError(String::from(
+                    "Nothing should follow a if-clause",
+                )));
+            }
+            Ok(true)
+        }
+        Some(Token::Reserved(res)) if res == NOT => {
+            match tokens.next() {
+                Some(Token::Reserved(res)) if res == EXISTS => { 
+                    if tokens.next().is_some() {
+                        return Err(Errors::SyntaxError(String::from(
+                            "Nothing should follow a if-clause",
+                        )));
+                    }
+                    Ok(false)
+                }
+                _ => Err(Errors::SyntaxError("Unexpected token".to_string())),
+            }
+        }
+        _ => Err(Errors::SyntaxError("Unexpected token in if-clause".to_string())),
     }
 }
 
@@ -123,12 +177,6 @@ fn get_values(list: Vec<Token>) -> Result<Vec<Literal>, Errors> {
     Ok(values)
 }
 
-fn get_next_value(tokens: &mut IntoIter<Token>) -> Result<Token, Errors> {
-    tokens
-        .next()
-        .ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))
-}
-
 #[cfg(test)]
 mod tests {
     use crate::parsers::tokens::{
@@ -180,6 +228,7 @@ mod tests {
                 Literal::new(col1.to_string(), DataType::Int),
                 Literal::new(col2.to_string(), DataType::Text),
             ]],
+            if_exists: None
         }
     }
 

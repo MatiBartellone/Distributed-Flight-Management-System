@@ -20,11 +20,11 @@ use IfClause::*;
 impl Evaluate for IfClause {
     fn evaluate(&self, row: &HashMap<String, Literal>) -> Result<bool, Errors> {
         match self {
+            Exist => Ok(!row.is_empty()), // if row exists because the where clause already checked the primary key
             Comparison(comparison) => comparison.evaluate(row),
             And(expr1, expr2) => Ok(expr1.evaluate(row)? && expr2.evaluate(row)?),
             Or(expr1, expr2) => Ok(expr1.evaluate(row)? || expr2.evaluate(row)?),
             Not(expr) => Ok(!expr.evaluate(row)?),
-            Exist => Ok(!row.is_empty()),
         }
     }
 }
