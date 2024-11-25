@@ -4,8 +4,8 @@ use crate::parsers::tokens::terms::{ArithMath, Term};
 use crate::parsers::tokens::token::Token;
 use crate::queries::select_query::SelectQuery;
 use crate::utils::errors::Errors;
-use std::vec::IntoIter;
 use crate::utils::parser_constants::{BY, COMMA, FROM, ORDER, WHERE};
+use std::vec::IntoIter;
 
 pub struct SelectQueryParser;
 

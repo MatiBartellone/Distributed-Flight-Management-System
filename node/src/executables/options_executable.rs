@@ -4,8 +4,8 @@ use crate::executables::executable::Executable;
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::config_constants::{COMPRESSION, CQL_VERSION};
 use crate::utils::errors::Errors;
-use crate::utils::types::frame::Frame;
 use crate::utils::parser_constants::SUPPORTED;
+use crate::utils::types::frame::Frame;
 
 const ARGUMENTS_QUANTITY: u8 = 0x02;
 pub struct OptionsExecutable {}

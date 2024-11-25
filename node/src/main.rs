@@ -3,6 +3,7 @@ use node::gossip::gossip_emitter::GossipEmitter;
 use node::hinted_handoff::hints_receiver::HintsReceiver;
 use node::hinted_handoff::hints_sender::HintsSender;
 use node::node_initializer::NodeInitializer;
+use node::utils::config_constants::MAX_CLIENTS;
 use node::utils::constants::NODES_METADATA_PATH;
 use node::utils::errors::Errors;
 use node::utils::functions::use_node_meta_data;
@@ -12,7 +13,6 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
 use std::{env, thread};
-use node::utils::config_constants::MAX_CLIENTS;
 
 fn main() {
     let (uses_config, config_file) = get_args();

@@ -5,11 +5,11 @@ use crate::parsers::tokens::{
     terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term},
     token::Token,
 };
+use crate::utils::errors::Errors;
 use std::{iter::Peekable, vec::IntoIter};
 use BooleanOperations::*;
 use LogicalOperators::*;
 use Term::*;
-use crate::utils::errors::Errors;
 
 pub fn precedence(tokens: Vec<Token>) -> Vec<Token> {
     let mut result = Vec::new();

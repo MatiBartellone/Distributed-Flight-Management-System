@@ -1,7 +1,7 @@
+use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
 use std::collections::HashMap;
 use std::io::{Cursor, Read};
-use crate::utils::consistency_level::ConsistencyLevel;
 
 pub struct BytesCursor {
     cursor: Cursor<Vec<u8>>,

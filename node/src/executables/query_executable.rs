@@ -4,8 +4,8 @@ use crate::query_delegation::query_delegator::QueryDelegator;
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
-use crate::utils::types::frame::Frame;
 use crate::utils::parser_constants::RESULT;
+use crate::utils::types::frame::Frame;
 
 pub struct QueryExecutable {
     query: Box<dyn Query>,

@@ -10,12 +10,12 @@ use crate::utils::constants::DATA_ACCESS_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::functions::{get_int_from_string, serialize_to_string, write_all_to_file};
+use crate::utils::parser_constants::ASC;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::fs::{metadata, remove_file, rename, File, OpenOptions};
 use std::io::{BufReader, Seek, SeekFrom};
-use crate::utils::parser_constants::ASC;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DataAccess;
@@ -320,11 +320,11 @@ mod tests {
     use crate::parsers::tokens::literal::Literal;
     use crate::parsers::tokens::terms::ComparisonOperators;
     use crate::queries::where_logic::comparison::ComparisonExpr;
+    use crate::utils::types::timestamp::Timestamp;
     use std::fs::read_to_string;
     use std::path::Path;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Mutex;
-    use crate::utils::types::timestamp::Timestamp;
 
     static TABLE_COUNTER: AtomicUsize = AtomicUsize::new(1);
     static TABLE_MUTEX: Mutex<()> = Mutex::new(());

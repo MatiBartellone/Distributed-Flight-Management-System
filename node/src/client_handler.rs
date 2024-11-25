@@ -2,11 +2,11 @@ use crate::parsers::parser_factory::ParserFactory;
 use crate::response_builders::error_builder::ErrorBuilder;
 use crate::utils::constants::CLIENT_METADATA_PATH;
 use crate::utils::errors::Errors;
-use crate::utils::types::frame::Frame;
 use crate::utils::functions::{
     flush_stream, read_exact_from_stream, use_client_meta_data, write_to_stream,
 };
 use crate::utils::parser_constants::{AUTH_RESPONSE, AUTH_SUCCESS, STARTUP};
+use crate::utils::types::frame::Frame;
 use std::net::TcpStream;
 
 pub struct ClientHandler {}

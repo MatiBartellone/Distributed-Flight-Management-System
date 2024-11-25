@@ -1,5 +1,5 @@
-use crate::utils::types::bytes_cursor::BytesCursor;
 use crate::utils::errors::Errors;
+use crate::utils::types::bytes_cursor::BytesCursor;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Frame {

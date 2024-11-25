@@ -5,11 +5,11 @@ use crate::{
 };
 use std::{iter::Peekable, vec::IntoIter};
 
-use Token::*;
-use crate::utils::parser_constants::{KEYSPACE, TABLE};
 use super::{
     drop_keyspace_parser::DropKeySpaceQueryParser, drop_table_parser::DropTableQueryParser,
 };
+use crate::utils::parser_constants::{KEYSPACE, TABLE};
+use Token::*;
 
 pub struct DropQueryParser;
 

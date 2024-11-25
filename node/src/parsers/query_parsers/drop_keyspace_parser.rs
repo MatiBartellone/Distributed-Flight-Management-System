@@ -1,10 +1,10 @@
+use crate::utils::parser_constants::{EXISTS, IF};
 use crate::{
     parsers::tokens::token::Token,
     queries::drop_keyspace_query::DropKeySpaceQuery,
     utils::{errors::Errors, types::token_conversor::get_next_value},
 };
 use std::{iter::Peekable, vec::IntoIter};
-use crate::utils::parser_constants::{EXISTS, IF};
 
 pub struct DropKeySpaceQueryParser;
 

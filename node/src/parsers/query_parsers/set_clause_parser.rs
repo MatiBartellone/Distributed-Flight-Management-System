@@ -1,3 +1,4 @@
+use crate::utils::parser_constants::COMMA;
 use crate::{
     parsers::tokens::{
         terms::{ComparisonOperators, Term},
@@ -14,7 +15,6 @@ use std::{iter::Peekable, vec::IntoIter};
 use ComparisonOperators::*;
 use Term::*;
 use Token::*;
-use crate::utils::parser_constants::COMMA;
 
 pub struct SetClauseParser;
 
