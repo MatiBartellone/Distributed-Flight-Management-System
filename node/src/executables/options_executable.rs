@@ -2,14 +2,12 @@ use std::collections::HashMap;
 
 use crate::executables::executable::Executable;
 use crate::response_builders::frame_builder::FrameBuilder;
+use crate::utils::config_constants::{COMPRESSION, CQL_VERSION};
 use crate::utils::errors::Errors;
-use crate::utils::frame::Frame;
+use crate::utils::types::frame::Frame;
 use crate::utils::parser_constants::SUPPORTED;
 
 const ARGUMENTS_QUANTITY: u8 = 0x02;
-const CQL_VERSION: &str = "3.0.0";
-const COMPRESSION: &str = "lz4";
-
 pub struct OptionsExecutable {}
 
 impl Default for OptionsExecutable {

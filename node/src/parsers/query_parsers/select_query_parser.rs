@@ -3,9 +3,9 @@ use crate::parsers::query_parsers::order_by_clause_parser::OrderByClauseParser;
 use crate::parsers::tokens::terms::{ArithMath, Term};
 use crate::parsers::tokens::token::Token;
 use crate::queries::select_query::SelectQuery;
-use crate::utils::constants::*;
 use crate::utils::errors::Errors;
 use std::vec::IntoIter;
+use crate::utils::parser_constants::{BY, COMMA, FROM, ORDER, WHERE};
 
 pub struct SelectQueryParser;
 

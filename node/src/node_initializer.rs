@@ -13,7 +13,7 @@ use crate::utils::functions::{
     connect_to_socket, deserialize_from_slice, read_exact_from_stream, serialize_to_string,
     write_to_stream,
 };
-use crate::utils::node_ip::NodeIp;
+use crate::utils::types::node_ip::NodeIp;
 use serde::Deserialize;
 use std::fs::File;
 use std::io::Write;

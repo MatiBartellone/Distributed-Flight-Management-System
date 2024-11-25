@@ -4,7 +4,8 @@ use crate::utils::errors::Errors;
 use std::vec::IntoIter;
 
 use super::where_clause_parser::WhereClauseParser;
-use crate::utils::constants::*;
+use crate::utils::parser_constants::{FROM, WHERE};
+
 pub struct DeleteQueryParser;
 
 impl DeleteQueryParser {

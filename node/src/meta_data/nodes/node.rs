@@ -1,7 +1,7 @@
 use crate::meta_data::nodes::node::State::{Active, Booting, Inactive};
 use crate::utils::errors::Errors;
-use crate::utils::node_ip::NodeIp;
-use crate::utils::timestamp::Timestamp;
+use crate::utils::types::node_ip::NodeIp;
+use crate::utils::types::timestamp::Timestamp;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]

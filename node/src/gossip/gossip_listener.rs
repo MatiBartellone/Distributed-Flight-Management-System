@@ -6,7 +6,7 @@ use crate::utils::functions::{
     deserialize_from_slice, read_exact_from_stream, serialize_to_string, start_listener,
     use_node_meta_data, write_to_stream,
 };
-use crate::utils::node_ip::NodeIp;
+use crate::utils::types::node_ip::NodeIp;
 use std::net::TcpStream;
 
 pub struct GossipListener;

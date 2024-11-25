@@ -2,7 +2,7 @@ use super::{cluster::Cluster, node::Node};
 use crate::meta_data::nodes::node::State;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::functions::{deserialize_from_slice, write_all_to_file};
-use crate::utils::node_ip::NodeIp;
+use crate::utils::types::node_ip::NodeIp;
 use crate::{
     meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess,
     utils::{constants::KEYSPACE_METADATA_PATH, errors::Errors},

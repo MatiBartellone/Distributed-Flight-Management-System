@@ -5,7 +5,7 @@ use crate::utils::functions::{
     deserialize_from_slice, flush_stream, read_from_stream_no_zero, serialize_to_string,
     start_listener, use_node_meta_data, write_to_stream,
 };
-use crate::utils::node_ip::NodeIp;
+use crate::utils::types::node_ip::NodeIp;
 use std::net::TcpStream;
 
 pub struct SeedListener;

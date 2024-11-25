@@ -4,7 +4,7 @@ use crate::utils::functions::{
     connect_to_socket, deserialize_from_slice, flush_stream, get_own_ip, read_exact_from_stream,
     read_from_stream_no_zero, serialize_to_string, start_listener, write_to_stream,
 };
-use crate::utils::node_ip::NodeIp;
+use crate::utils::types::node_ip::NodeIp;
 use std::net::TcpStream;
 
 pub struct DataAccessHandler {}

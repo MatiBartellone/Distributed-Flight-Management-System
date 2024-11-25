@@ -6,7 +6,7 @@ use crate::utils::functions::{
     check_table_name, get_long_string_from_str, split_keyspace_table, use_data_access,
     use_keyspace_meta_data,
 };
-use crate::utils::primary_key::PrimaryKey;
+use crate::utils::types::primary_key::PrimaryKey;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
