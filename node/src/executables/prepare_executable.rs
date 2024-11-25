@@ -8,7 +8,7 @@ use crate::utils::functions::{deserialize_from_str, serialize_to_string};
 use crate::utils::parser_constants::RESULT;
 use crate::utils::types::frame::Frame;
 use serde::{Deserialize, Serialize};
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::Write;
 use std::io::{BufRead, BufReader};
 
@@ -39,7 +39,7 @@ impl PrepareExecutable {
             .read(true)
             .open(&PREPARE_FILE)
             .map_err(|_| ServerError(String::from("Unable to open file")))?;
-        let mut reader = BufReader::new(file);
+        let reader = BufReader::new(file);
         let mut last_line = None;
         for line in reader.lines() {
             if let Ok(line) = line {
