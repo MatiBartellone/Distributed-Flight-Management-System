@@ -1,10 +1,11 @@
-use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::meta_data::nodes::node::Node;
-use crate::utils::constants::NODES_METADATA;
+use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
-use crate::utils::functions::start_listener;
+use crate::utils::functions::{
+    deserialize_from_slice, flush_stream, read_from_stream_no_zero, serialize_to_string,
+    start_listener, use_node_meta_data, write_to_stream,
+};
 use crate::utils::node_ip::NodeIp;
-use std::io::{Read, Write};
 use std::net::TcpStream;
 
 pub struct SeedListener;
@@ -21,43 +22,28 @@ impl SeedListener {
     }
 
     fn send_nodes_list(stream: &mut TcpStream) -> Result<(), Errors> {
-        let mut meta_data_stream = MetaDataHandler::establish_connection()?;
-        let node_metadata =
-            MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
-        let cluster = node_metadata.get_full_nodes_list(NODES_METADATA)?;
-        let serialized = serde_json::to_string(&cluster)
-            .map_err(|_| Errors::ServerError("Failed to serialize data access".to_string()))?;
-        stream
-            .flush()
-            .map_err(|_| Errors::ServerError("Error flushing stream".to_string()))?;
-        stream
-            .write_all(serialized.as_bytes())
-            .map_err(|_| Errors::ServerError("Error writing to stream".to_string()))?;
-        Ok(())
+        let cluster =
+            use_node_meta_data(|handler| handler.get_full_nodes_list(NODES_METADATA_PATH))?;
+        let serialized = serialize_to_string(&cluster)?;
+        flush_stream(stream)?;
+        write_to_stream(stream, serialized.as_bytes())
     }
 
     fn get_new_node(stream: &mut TcpStream) -> Result<Node, Errors> {
-        let mut buffer = [0; 1024];
-        match stream.read(&mut buffer) {
-            Ok(n) => Ok(serde_json::from_slice(&buffer[..n]).expect("Failed to deserialize json")),
-            _ => Err(Errors::ServerError(String::from(
-                "Error reading from stream",
-            ))),
-        }
+        let buf = read_from_stream_no_zero(stream)?;
+        deserialize_from_slice(buf.as_slice())
     }
 
     fn set_new_node(new_node: Node) -> Result<(), Errors> {
-        let mut meta_data_stream = MetaDataHandler::establish_connection()?;
-        let node_metadata =
-            MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
-        let cluster = node_metadata.get_cluster(NODES_METADATA)?;
-        for node in cluster.get_other_nodes().iter() {
-            if node.get_ip() == new_node.get_ip() {
-                node_metadata.set_booting(NODES_METADATA, new_node.get_ip())?;
-                return Ok(());
+        use_node_meta_data(|node_metadata| {
+            let cluster = node_metadata.get_cluster(NODES_METADATA_PATH)?;
+            for node in cluster.get_other_nodes().iter() {
+                if node.get_ip() == new_node.get_ip() {
+                    node_metadata.set_booting(NODES_METADATA_PATH, new_node.get_ip())?;
+                    return Ok(());
+                }
             }
-        }
-        node_metadata.append_new_node(NODES_METADATA, new_node)?;
-        Ok(())
+            node_metadata.append_new_node(NODES_METADATA_PATH, new_node)
+        })
     }
 }

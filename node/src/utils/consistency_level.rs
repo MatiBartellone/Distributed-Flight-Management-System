@@ -16,9 +16,9 @@ pub enum ConsistencyLevel {
 impl ConsistencyLevel {
     pub fn from_i16(value: i16) -> Result<ConsistencyLevel, Errors> {
         let consistency = match value {
-            ONE => ConsistencyLevel::One,
-            QUORUM => ConsistencyLevel::Quorum,
-            ALL => ConsistencyLevel::All,
+            ONE => One,
+            QUORUM => Quorum,
+            ALL => All,
             _ => {
                 return Err(Errors::ProtocolError(format!(
                     "Unknown consistency level: {}",

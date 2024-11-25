@@ -1,8 +1,8 @@
-use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::queries::query::Query;
-use crate::utils::constants::{KEYSPACE_METADATA, REPLICATION, STRATEGY};
+use crate::utils::constants::{KEYSPACE_METADATA_PATH, REPLICATION, STRATEGY};
 use crate::utils::errors::Errors;
 use crate::utils::response::Response;
+use crate::utils::functions::{get_long_string_from_str, use_keyspace_meta_data};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
@@ -46,15 +46,14 @@ impl CreateKeyspaceQuery {
 
 impl Query for CreateKeyspaceQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
-        let mut stream = MetaDataHandler::establish_connection()?;
-        let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
-        let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
-        keyspace_meta_data.add_keyspace(
-            KEYSPACE_METADATA.to_owned(),
-            &self.keyspace,
-            self.get_strategy(),
-            self.get_replication(),
-        )?;
+        use_keyspace_meta_data(|handler| {
+            handler.add_keyspace(
+                KEYSPACE_METADATA_PATH.to_owned(),
+                &self.keyspace,
+                self.get_strategy(),
+                self.get_replication(),
+            )
+        })?;
         Response::schema_change("CREATED", "KEYSPACE", &self.keyspace)
     }
 

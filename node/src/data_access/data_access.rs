@@ -6,13 +6,17 @@ use crate::queries::evaluate::Evaluate;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::queries::set_logic::assigmente_value::AssignmentValue;
 use crate::queries::where_logic::where_clause::WhereClause;
-use crate::utils::constants::ASC;
+use crate::utils::constants::{ASC, DATA_ACCESS_PATH};
 use crate::utils::errors::Errors;
-use crate::utils::functions::{get_int_from_string, get_timestamp};
+use crate::utils::errors::Errors::ServerError;
+use crate::utils::functions::{
+    get_int_from_string, get_timestamp, serialize_to_string, write_all_to_file,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs;
 use std::fs::{metadata, remove_file, rename, File, OpenOptions};
-use std::io::{BufReader, Seek, SeekFrom, Write};
+use std::io::{BufReader, Seek, SeekFrom};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DataAccess;
@@ -28,25 +32,27 @@ impl DataAccess {
     }
 
     fn create_file(&self, path: &String) -> Result<(), Errors> {
-        let mut file = File::create(path)
-            .map_err(|_| Errors::ServerError(String::from("Could not create file")))?;
-        file.write_all(b"[]")
-            .map_err(|_| Errors::ServerError(String::from("Could not initialize table file")))?;
+        fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
+        let mut file =
+            File::create(path).map_err(|_| ServerError(String::from("Could not create file")))?;
+        write_all_to_file(&mut file, b"[]")?;
         Ok(())
     }
 
     pub fn truncate_table(&self, table_name: &String) -> Result<(), Errors> {
+        fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
         let _file = OpenOptions::new()
             .write(true)
             .truncate(true)
             .open(self.get_file_path(table_name))
-            .map_err(|_| Errors::ServerError(String::from("Could not open file")))?;
+            .map_err(|_| ServerError(String::from("Could not open file")))?;
         Ok(())
     }
 
     pub fn drop_table(&self, table_name: String) -> Result<(), Errors> {
+        fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
         remove_file(self.get_file_path(&table_name))
-            .map_err(|_| Errors::ServerError(String::from("Could not remove file")))?;
+            .map_err(|_| ServerError(String::from("Could not remove file")))?;
         Ok(())
     }
 
@@ -75,8 +81,7 @@ impl DataAccess {
                 self.append_row(&temp_path, &row)?;
             }
         }
-        rename(temp_path, path)
-            .map_err(|_| Errors::ServerError(String::from("Error renaming file")))?;
+        rename(temp_path, path).map_err(|_| ServerError(String::from("Error renaming file")))?;
         Ok(())
     }
 
@@ -96,8 +101,7 @@ impl DataAccess {
                 self.append_row(&temp_path, &row)?;
             }
         }
-        rename(temp_path, path)
-            .map_err(|_| Errors::ServerError(String::from("Error renaming file")))?;
+        rename(temp_path, path).map_err(|_| ServerError(String::from("Error renaming file")))?;
         Ok(())
     }
 
@@ -151,7 +155,7 @@ impl DataAccess {
                     get_timestamp()?,
                 ))
             }
-            _ => Err(Errors::ServerError(String::from("Column not found"))),
+            _ => Err(ServerError(String::from("Column not found"))),
         }
     }
 
@@ -170,7 +174,7 @@ impl DataAccess {
         }
         let rows = self.get_rows(&filtered_path)?;
         remove_file(filtered_path)
-            .map_err(|_| Errors::ServerError(String::from("Could not remove file")))?;
+            .map_err(|_| ServerError(String::from("Could not remove file")))?;
         Ok(rows)
     }
 
@@ -228,7 +232,7 @@ impl DataAccess {
                 self.append_row(&temp_path, &row)?;
             }
             rename(temp_path, path)
-                .map_err(|_| Errors::ServerError(String::from("Error renaming file")))?;
+                .map_err(|_| ServerError(String::from("Error renaming file")))?;
         }
         Ok(())
     }
@@ -247,7 +251,7 @@ impl DataAccess {
 
     fn get_next_line(&self, rows: &mut impl Iterator<Item = Row>) -> Result<Row, Errors> {
         let Some(row) = rows.next() else {
-            return Err(Errors::ServerError(String::from("Error deserializing row")));
+            return Err(ServerError(String::from("Error deserializing row")));
         };
         Ok(row)
     }
@@ -261,15 +265,16 @@ impl DataAccess {
     }
 
     fn get_file_path(&self, table_name: &String) -> String {
-        format!("src/data_access/{}.json", table_name)
+        format!("{}{}.json", DATA_ACCESS_PATH, table_name)
     }
 
     fn open_file(&self, path: &String) -> Result<File, Errors> {
+        fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
         let file = OpenOptions::new()
             .read(true)
             .write(true)
             .open(path)
-            .map_err(|_| Errors::ServerError("Failed to open table file".to_string()))?;
+            .map_err(|_| ServerError("Failed to open table file".to_string()))?;
         Ok(file)
     }
 
@@ -277,27 +282,18 @@ impl DataAccess {
         let mut file = self.open_file(path)?;
         let file_size = file
             .seek(SeekFrom::End(0))
-            .map_err(|_| Errors::ServerError("Failed to seek in file".to_string()))?;
+            .map_err(|_| ServerError("Failed to seek in file".to_string()))?;
         if file_size > 2 {
             file.seek(SeekFrom::End(-1))
-                .map_err(|_| Errors::ServerError("Failed to seek in file".to_string()))?;
-            file.write_all(b",").map_err(|_| {
-                Errors::ServerError("Failed to append row to table file".to_string())
-            })?;
+                .map_err(|_| ServerError("Failed to seek in file".to_string()))?;
+            write_all_to_file(&mut file, b",")?;
         } else {
             file.seek(SeekFrom::End(-1))
-                .map_err(|_| Errors::ServerError("Failed to seek in file".to_string()))?;
+                .map_err(|_| ServerError("Failed to seek in file".to_string()))?;
         }
-        let json_row = serde_json::to_string(&row)
-            .map_err(|_| Errors::ServerError("Failed to serialize row".to_string()))?;
-        file.write_all(json_row.as_bytes())
-            .map_err(|_| Errors::ServerError("Failed to write row to file".to_string()))?;
-
-        // Cerramos el array JSON
-        file.write_all(b"]")
-            .map_err(|_| Errors::ServerError("Failed to close JSON array".to_string()))?;
-
-        Ok(())
+        let json_row = serialize_to_string(&row)?;
+        write_all_to_file(&mut file, json_row.as_bytes())?;
+        write_all_to_file(&mut file, b"]")
     }
 
     fn pk_already_exists(&self, path: &String, primary_keys: &Vec<String>) -> Result<bool, Errors> {
@@ -313,7 +309,7 @@ impl DataAccess {
         let file = self.open_file(path)?;
         let reader = BufReader::new(file);
         let rows: Vec<Row> =
-            serde_json::from_reader(reader).map_err(|e| Errors::ServerError(e.to_string()))?;
+            serde_json::from_reader(reader).map_err(|e| ServerError(e.to_string()))?;
         Ok(rows.into_iter())
     }
 
@@ -408,7 +404,7 @@ mod tests {
 
     fn get_row1_in_string() -> Result<String, Errors> {
         serde_json::to_string(&get_row1())
-            .map_err(|_| Errors::ServerError("Failed to serialize row1".to_string()))
+            .map_err(|_| ServerError("Failed to serialize row1".to_string()))
     }
 
     fn get_assignment() -> HashMap<String, AssignmentValue> {

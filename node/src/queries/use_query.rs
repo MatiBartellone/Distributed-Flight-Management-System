@@ -1,9 +1,8 @@
 use super::query::Query;
+use crate::utils::constants::CLIENT_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::response::Response;
-use crate::{
-    meta_data::meta_data_handler::MetaDataHandler, utils::constants::CLIENT_METADATA_PATH,
-};
+use crate::utils::functions::{get_long_string_from_str, use_client_meta_data};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 
@@ -28,10 +27,9 @@ impl Default for UseQuery {
 
 impl Query for UseQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
-        let mut stream = MetaDataHandler::establish_connection()?;
-        let client_meta_data =
-            MetaDataHandler::get_instance(&mut stream)?.get_client_meta_data_access();
-        client_meta_data.use_keyspace(CLIENT_METADATA_PATH.to_owned(), &self.keyspace_name)?;
+        use_client_meta_data(|handler| {
+            handler.use_keyspace(CLIENT_METADATA_PATH.to_owned(), &self.keyspace_name)
+        })?;
         Response::set_keyspace(&self.keyspace_name)
     }
 

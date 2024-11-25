@@ -1,9 +1,9 @@
-use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::data_access::row::{Column, Row};
 use crate::parsers::tokens::data_type::DataType;
 use crate::utils::functions::{
     check_table_name, get_columns_from_table,
     get_table_clustering_columns, get_table_partition, get_timestamp, split_keyspace_table,
+    use_data_access,
 };
 use crate::utils::response::Response;
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
@@ -137,13 +137,14 @@ impl Default for InsertQuery {
 
 impl Query for InsertQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
-        let mut stream = DataAccessHandler::establish_connection()?;
-        let data_access = DataAccessHandler::get_instance(&mut stream)?;
         self.check_columns()?;
-        for values in self.values_list.iter() {
-            let row = self.build_row(values)?;
-            data_access.insert(&self.table_name, &row)?
-        }
+        use_data_access(|data_access| {
+            for values in self.values_list.iter() {
+                let row = self.build_row(values)?;
+                data_access.insert(&self.table_name, &row)?
+            }
+            Ok(())
+        })?;
         Response::void()
     }
 
