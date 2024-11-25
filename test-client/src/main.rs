@@ -57,21 +57,9 @@ fn main() {
                         .expect("Error writing to socket");
                 }
                 "query" => {
-                    print!("QUERY: ");
-                    io::stdout().flush().unwrap();
-                    let mut query = String::new();
-                    io::stdin()
-                        .read_line(&mut query)
-                        .expect("Error reading node");
-                    let query = query.trim();
+                    let query = get_query();
+                    let consistency = get_consistency();
 
-                    print!("CONSISTENCY: ");
-                    io::stdout().flush().unwrap();
-                    let mut consistency = String::new();
-                    io::stdin()
-                        .read_line(&mut consistency)
-                        .expect("Error reading node");
-                    let consistency = consistency.trim();
                     let mut body = Vec::new();
                     body.extend_from_slice((query.len() as i32).to_be_bytes().as_slice());
                     body.extend_from_slice(query.as_bytes());
@@ -87,6 +75,40 @@ fn main() {
 
                     stream
                         .write_all(query_bytes.as_slice())
+                        .expect("Error writing to socket");
+                }
+                "prepare" => {
+
+                    let mut prepare_bytes = vec![0x03, 0x00, 0x00, 0x01, 0x09];
+                    let query = get_query();
+                    let mut body = Vec::new();
+                    body.extend_from_slice((query.len() as i32).to_be_bytes().as_slice());
+                    body.extend_from_slice(query.as_bytes());
+                    prepare_bytes.extend_from_slice((body.len() as i32).to_be_bytes().as_slice());
+                    prepare_bytes.extend_from_slice(body.as_slice());
+                    stream
+                        .write_all(prepare_bytes.as_slice())
+                        .expect("Error writing to socket");
+                }
+                "execute" => {
+                    let mut execute_bytes = vec![0x03, 0x00, 0x00, 0x01, 0x0A];
+                    let id = get_execute_id();
+                    let consistency = get_consistency();
+                    let mut body = Vec::new();
+                    body.extend_from_slice(
+                        (id.parse::<i32>().unwrap() as i16)
+                            .to_be_bytes()
+                            .as_slice(),
+                    );
+                    body.extend_from_slice(
+                        (consistency.parse::<i32>().unwrap() as i16)
+                            .to_be_bytes()
+                            .as_slice(),
+                    );
+                    execute_bytes.extend_from_slice((body.len() as i32).to_be_bytes().as_slice());
+                    execute_bytes.extend_from_slice(body.as_slice());
+                    stream
+                        .write_all(execute_bytes.as_slice())
                         .expect("Error writing to socket");
                 }
                 _ => {
@@ -157,4 +179,34 @@ fn main() {
             input.clear();
         }
     }
+}
+
+fn get_query() -> String {
+    print!("QUERY: ");
+    io::stdout().flush().unwrap();
+    let mut query = String::new();
+    io::stdin()
+        .read_line(&mut query)
+        .expect("Error reading node");
+    query.trim().to_string()
+}
+
+fn get_consistency() -> String {
+    print!("CONSISTENCY: ");
+    io::stdout().flush().unwrap();
+    let mut consistency = String::new();
+    io::stdin()
+        .read_line(&mut consistency)
+        .expect("Error reading node");
+    consistency.trim().to_string()
+}
+
+fn get_execute_id() -> String {
+    print!("get query id: ");
+    io::stdout().flush().unwrap();
+    let mut id = String::new();
+    io::stdin()
+        .read_line(&mut id)
+        .expect("Error reading node");
+    id.trim().to_string()
 }

@@ -12,6 +12,7 @@ use crate::utils::types::frame::Frame;
 use std::fs::{rename, File, OpenOptions};
 use std::io::Write;
 use std::io::{BufRead, BufReader};
+use std::path::Path;
 
 pub struct ExecuteExecutable {
     id: i16,
@@ -27,16 +28,21 @@ impl ExecuteExecutable {
     }
 
     pub fn get_query(&self) -> Result<PrepareQuery, Errors> {
+        if !Path::new(PREPARE_FILE).exists() {
+            File::create(&PREPARE_FILE).map_err(|_| ServerError(String::from("Unable to create file")))?;
+        }
         let file = OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(PREPARE_FILE)
+            .read(true)
+            .open(&PREPARE_FILE)
             .map_err(|_| ServerError(String::from("Unable to open file")))?;
-        let mut reader = BufReader::new(file).lines();
-        while let Some(Ok(line)) = reader.next() {
-            let deserialzied: PrepareQuery = deserialize_from_str(&line.trim())?;
-            if deserialzied.id == self.id {
-                return Ok(deserialzied);
+
+        let reader = BufReader::new(file);
+        for line in reader.lines() {
+            if let Ok(line) = line {
+                let deserialzied: PrepareQuery = deserialize_from_str(&line.trim())?;
+                if deserialzied.id == self.id {
+                    return Ok(deserialzied);
+                }
             }
         }
         Err(Invalid(String::from("Query id not found")))

@@ -27,18 +27,24 @@ impl PrepareExecutable {
             .append(true)
             .open(PREPARE_FILE)
             .map_err(|_| ServerError(String::from("Unable to open file")))?;
-        let query = self.get_new_query(&mut file)?;
+        let query = self.get_new_query()?;
         let serialized = serialize_to_string(&query)?;
         writeln!(file, "{}", serialized)
             .map_err(|_| ServerError(String::from("could not write prepare query")))?;
         Ok(query.id)
     }
 
-    fn get_new_query(&self, file: &mut File) -> Result<PrepareQuery, Errors> {
-        let mut reader = BufReader::new(file).lines();
+    fn get_new_query(&self) -> Result<PrepareQuery, Errors> {
+        let file = OpenOptions::new()
+            .read(true)
+            .open(&PREPARE_FILE)
+            .map_err(|_| ServerError(String::from("Unable to open file")))?;
+        let mut reader = BufReader::new(file);
         let mut last_line = None;
-        while let Some(Ok(line)) = reader.next() {
-            last_line = Some(line);
+        for line in reader.lines() {
+            if let Ok(line) = line {
+                last_line = Some(line);
+            }
         }
         if let Some(last_line) = last_line {
             let last_query: PrepareQuery = deserialize_from_str(&last_line.trim())?;
