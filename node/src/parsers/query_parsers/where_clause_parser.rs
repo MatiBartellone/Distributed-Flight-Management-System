@@ -55,7 +55,8 @@ fn where_comparision(
     tokens: &mut Peekable<IntoIter<Token>>,
     column_name: String,
 ) -> Result<WhereClause, Errors> {
-    let operator = get_comparison_operator(tokens)?;
+    let operator = get_comparison_operator(tokens)
+        .map_err(|_| Errors::SyntaxError("Expected comparision operator".to_string()))?;
     let literal = get_literal(tokens)?;
     Ok(comparison_where(&column_name, operator, literal))
 }
@@ -64,7 +65,8 @@ fn where_tuple(
     tokens: &mut Peekable<IntoIter<Token>>,
     column_names: Vec<Token>,
 ) -> Result<WhereClause, Errors> {
-    let operator = get_comparison_operator(tokens)?;
+    let operator = get_comparison_operator(tokens)
+        .map_err(|_| Errors::SyntaxError("Expected comparision operator".to_string()))?;
     let literals = get_list(tokens)?;
     if column_names.len() != literals.len() {
         return Err(Errors::SyntaxError("Invalid tuples len".to_string()));
