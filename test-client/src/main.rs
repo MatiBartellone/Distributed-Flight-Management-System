@@ -6,7 +6,6 @@ use test_client::frame::Frame;
 
 pub const ERROR: u8 = 0;
 pub const STARTUP: u8 = 1;
-const READY: u8 = 2;
 const AUTHENTICATE: u8 = 3;
 const OPTIONS: u8 = 5;
 const SUPPORTED: u8 = 6;
@@ -14,9 +13,6 @@ const QUERY: u8 = 7;
 const RESULT: u8 = 8;
 const PREPARE: u8 = 9;
 const EXECUTE: u8 = 10;
-const REGISTER: u8 = 11;
-const EVENT: u8 = 12;
-const BATCH: u8 = 13;
 const AUTH_CHALLENGE: u8 = 14;
 const AUTH_RESPONSE: u8 = 15;
 const AUTH_SUCCESS: u8 = 16;
@@ -31,7 +27,8 @@ fn main() {
         while io::stdin().read_line(&mut input).is_ok() {
             match input.trim() {
                 "startup" => send_startup(&mut stream),
-                "auth_response" => send_auth_admin(&mut stream),
+                "admin" => send_auth_admin(&mut stream),
+                "auth_response" => send_auth_response(&mut stream),
                 "options" => send_options(&mut stream),
                 "query" => send_query(&mut stream),
                 "prepare" => send_prepare(&mut stream),
