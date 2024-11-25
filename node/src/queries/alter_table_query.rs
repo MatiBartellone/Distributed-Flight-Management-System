@@ -1,8 +1,9 @@
 use super::query::Query;
 use crate::utils::constants::KEYSPACE_METADATA_PATH;
 use crate::utils::functions::{
-    check_table_name, get_long_string_from_str, split_keyspace_table, use_keyspace_meta_data,
+    check_table_name, split_keyspace_table, use_keyspace_meta_data,
 };
+use crate::utils::response::Response;
 use crate::{parsers::tokens::data_type::DataType, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
 use std::any::Any;

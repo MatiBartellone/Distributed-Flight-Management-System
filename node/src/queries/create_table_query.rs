@@ -3,7 +3,7 @@ use crate::queries::query::Query;
 use crate::utils::constants::KEYSPACE_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
-    check_table_name, get_long_string_from_str, split_keyspace_table, use_data_access,
+    check_table_name, split_keyspace_table, use_data_access,
     use_keyspace_meta_data,
 };
 use crate::utils::primary_key::PrimaryKey;
@@ -28,7 +28,7 @@ impl CreateTableQuery {
         }
     }
 
-    fn push_on_meta_data(&self) -> Result<(&str, &str), Errors> {
+    fn push_on_meta_data(&self) -> Result<(), Errors> {
         let (kesypace_name, table) = split_keyspace_table(&self.table_name)?;
         use_keyspace_meta_data(|handler| {
             handler.add_table(
@@ -55,9 +55,8 @@ impl Default for CreateTableQuery {
 impl Query for CreateTableQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
         self.push_on_data_acces()?;
-        let (kesypace_name, table) = self.push_on_meta_data()?;
-        let options = format!("{}.{}", kesypace_name, table);
-        Response::schema_change("CREATED", "TABLE", &options)
+        self.push_on_meta_data()?;
+        Response::schema_change("CREATED", "TABLE", &self.table_name)
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {

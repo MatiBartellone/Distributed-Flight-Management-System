@@ -10,7 +10,7 @@ use crate::utils::errors::Errors;
 use crate::utils::functions::{flush_stream, read_from_stream_no_zero, use_node_meta_data};
 use crate::utils::node_ip::NodeIp;
 use std::collections::HashMap;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
@@ -103,7 +103,7 @@ impl QueryDelegator {
         })
     }
 
-    pub fn send_to_node(ip: NodeIp, query: Box<dyn Query>) -> Result<(NodeIp, Vec<u8>), Errors> {
+    pub fn send_to_node(ip: NodeIp, query: Box<dyn Query>) -> Result<(NodeIp,Vec<u8>), Errors> {
         match TcpStream::connect(ip.get_query_delegation_socket()) {
             Ok(mut stream) => {
                 if stream
@@ -114,19 +114,9 @@ impl QueryDelegator {
                         "Unable to send query to node",
                     )));
                 };
-//<<<<<<< read_repair
-                stream.flush().expect("");
-                let mut buf = [0; 1024];
-                match stream.read(&mut buf) {
-                    Ok(n) => Ok((ip, buf[0..n].to_vec())),
-                    Err(_) => Err(Errors::ServerError(String::from(
-                        "Unable to read from node",
-                    ))),
-                }
-//=====
                 flush_stream(&mut stream)?;
-                read_from_stream_no_zero(&mut stream)
-//>>>>>>> main
+                let response = read_from_stream_no_zero(&mut stream)?;
+                Ok((ip, response))
             }
             Err(e) => {
                 use_node_meta_data(|handler| handler.set_inactive(NODES_METADATA_PATH, &ip))?;

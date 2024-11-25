@@ -1,4 +1,3 @@
-<
 pub const ERROR_WRITE: &str = "Could not write byte";
 pub const BEST: &str = "BETTER_RESPONSE";
 pub const NODES_METADATA_PATH: &str = "src/meta_data/nodes/metadata.json";

@@ -3,7 +3,7 @@ use crate::{
     utils::types_to_bytes::TypesToBytes, meta_data::meta_data_handler::MetaDataHandler,
 };
 
-use super::{errors::Errors, constants::KEYSPACE_METADATA};
+use super::{errors::Errors, constants::KEYSPACE_METADATA_PATH};
 pub struct Response;
 
 impl Response {
@@ -128,7 +128,7 @@ fn get_pks(keyspace: &str, table: &str) -> Result<Vec<String>, Errors> {
     let mut stream = MetaDataHandler::establish_connection()?;
     let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
     let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
-    let pks = keyspace_meta_data.get_primary_key(KEYSPACE_METADATA.to_owned(), keyspace, table)?;
+    let pks = keyspace_meta_data.get_primary_key(KEYSPACE_METADATA_PATH.to_owned(), keyspace, table)?;
     Ok(pks.get_full_primary_key())
 }
 
