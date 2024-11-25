@@ -9,13 +9,13 @@ use node::utils::functions::use_node_meta_data;
 use node::utils::node_ip::NodeIp;
 use std::net::{TcpListener, TcpStream};
 use std::sync::{mpsc, Arc, Mutex};
-use std::{env, thread};
 use std::thread::sleep;
 use std::time::Duration;
+use std::{env, thread};
 
 fn main() {
-    let (uses_congig, config_file) = get_args();
-    let node_data = NodeInitializer::new(uses_congig, config_file).unwrap();
+    let (uses_config, config_file) = get_args();
+    let node_data = NodeInitializer::new(uses_config, config_file).unwrap();
 
     let needs_booting = node_data.set_cluster().unwrap();
 
@@ -37,13 +37,11 @@ fn get_args() -> (bool, String) {
         2 => {
             let first_arg = &args[1];
             match first_arg.as_str() {
-                "config" => {
-                    (true, String::new())
-                }
+                "config" => (true, String::new()),
                 x => (true, x.to_string()),
             }
         }
-        _ => (false, String::new())
+        _ => (false, String::new()),
     }
 }
 
@@ -96,21 +94,19 @@ fn accept_connections(listener: TcpListener, tx: mpsc::Sender<TcpStream>) {
 fn start_thread_pool(rx: Arc<Mutex<mpsc::Receiver<TcpStream>>>) {
     for _ in 0..MAX_CLIENTS {
         let rx = Arc::clone(&rx);
-        thread::spawn(move || {
-            loop {
-                let stream = {
-                    let lock = rx.lock().unwrap();
-                    lock.recv()
-                };
+        thread::spawn(move || loop {
+            let stream = {
+                let lock = rx.lock().unwrap();
+                lock.recv()
+            };
 
-                match stream {
-                    Ok(stream) => {
-                        if let Err(e) = ClientHandler::handle_client(stream) {
-                            println!("Error handling client: {}", e);
-                        }
+            match stream {
+                Ok(stream) => {
+                    if let Err(e) = ClientHandler::handle_client(stream) {
+                        println!("Error handling client: {}", e);
                     }
-                    _ => break,
                 }
+                _ => break,
             }
         });
     }

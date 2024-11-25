@@ -9,9 +9,7 @@ use crate::queries::where_logic::where_clause::WhereClause;
 use crate::utils::constants::{ASC, DATA_ACCESS_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
-use crate::utils::functions::{
-    get_int_from_string, get_timestamp, serialize_to_string, write_all_to_file,
-};
+use crate::utils::functions::{get_int_from_string, serialize_to_string, write_all_to_file};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -134,11 +132,8 @@ impl DataAccess {
             Some(AssignmentValue::Column(column)) => Ok(Column::new(
                 column_name,
                 &row.get_some_column(column)?.value,
-                get_timestamp()?,
             )),
-            Some(AssignmentValue::Simple(literal)) => {
-                Ok(Column::new(column_name, literal, get_timestamp()?))
-            }
+            Some(AssignmentValue::Simple(literal)) => Ok(Column::new(column_name, literal)),
             Some(AssignmentValue::Arithmetic(column, arith, literal)) => {
                 let value1 = get_int_from_string(&row.get_some_column(column)?.value.value)?;
                 let value2 = get_int_from_string(&literal.value)?;
@@ -152,7 +147,6 @@ impl DataAccess {
                 Ok(Column::new(
                     column_name,
                     &Literal::new(new_value.to_string(), DataType::Int),
-                    get_timestamp()?,
                 ))
             }
             _ => Err(ServerError(String::from("Column not found"))),
@@ -330,6 +324,7 @@ mod tests {
     use std::path::Path;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Mutex;
+    use crate::utils::timestamp::Timestamp;
 
     static TABLE_COUNTER: AtomicUsize = AtomicUsize::new(1);
     static TABLE_MUTEX: Mutex<()> = Mutex::new(());
@@ -396,7 +391,7 @@ mod tests {
                     value: "John".to_string(),
                     data_type: DataType::Text,
                 },
-                time_stamp: 1235,
+                timestamp: Timestamp::new_from_i64(1235),
             }],
             vec!["name".to_string()],
         )
@@ -423,7 +418,7 @@ mod tests {
                     value: "Jane".to_string(),
                     data_type: DataType::Text,
                 },
-                time_stamp: 1234,
+                timestamp: Timestamp::new_from_i64(1234),
             }],
             vec!["_".to_string()],
         )

@@ -1,7 +1,7 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Timestamp {
     pub timestamp: i64,
 }
@@ -11,6 +11,16 @@ impl Timestamp {
         Self {
             timestamp: Utc::now().timestamp_millis(),
         }
+    }
+
+    pub fn new_from_timestamp(timestamp: &Self) -> Self {
+        Self {
+            timestamp: timestamp.timestamp,
+        }
+    }
+
+    pub fn new_from_i64(timestamp: i64) -> Self {
+        Self { timestamp }
     }
 
     pub fn is_newer_than(&self, timestamp: Timestamp) -> bool {

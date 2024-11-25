@@ -1,7 +1,7 @@
 use crate::meta_data::nodes::node::State::{Active, Booting, Inactive};
 use crate::utils::errors::Errors;
-use crate::utils::functions::get_timestamp;
 use crate::utils::node_ip::NodeIp;
+use crate::utils::timestamp::Timestamp;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
@@ -17,7 +17,7 @@ pub struct Node {
     pub position: usize,
     pub is_seed: bool,
     pub state: State,
-    pub timestamp: u64,
+    pub timestamp: Timestamp,
 }
 
 impl Node {
@@ -27,7 +27,7 @@ impl Node {
             position,
             is_seed,
             state: Active,
-            timestamp: get_timestamp()?,
+            timestamp: Timestamp::new(),
         })
     }
 
@@ -37,7 +37,7 @@ impl Node {
             position: node.position,
             is_seed: node.is_seed,
             state: node.state.clone(),
-            timestamp: node.timestamp,
+            timestamp: Timestamp::new_from_timestamp(&node.timestamp),
         }
     }
 
@@ -53,13 +53,12 @@ impl Node {
         self.is_seed
     }
 
-    pub fn get_timestamp(&self) -> u64 {
-        self.timestamp
+    pub fn get_timestamp(&self) -> Timestamp {
+        Timestamp::new_from_timestamp(&self.timestamp)
     }
 
-    pub fn update_timestamp(&mut self) -> Result<(), Errors> {
-        self.timestamp = get_timestamp()?;
-        Ok(())
+    pub fn update_timestamp(&mut self) {
+        self.timestamp = Timestamp::new()
     }
 
     pub fn set_inactive(&mut self) {

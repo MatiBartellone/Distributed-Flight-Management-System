@@ -37,7 +37,7 @@ impl NodesMetaDataAccess {
 
     pub fn write_cluster(path: &str, cluster: &Cluster) -> Result<(), Errors> {
         let mut file = File::create(path)
-            .map_err(|_| Errors::ServerError("Failed to open file for writing".to_string()))?;
+            .map_err(|_| ServerError("Failed to open file for writing".to_string()))?;
         let serialized = serde_json::to_vec(cluster).map_err(|e| ServerError(e.to_string()))?;
         write_all_to_file(&mut file, serialized.as_slice())?;
         Ok(())
@@ -61,7 +61,7 @@ impl NodesMetaDataAccess {
             } else {
                 let mut inactive = Node::new_from_node(node);
                 inactive.set_state(&state);
-                inactive.update_timestamp()?;
+                inactive.update_timestamp();
                 nodes_list.push(inactive);
             }
         }
@@ -86,7 +86,7 @@ impl NodesMetaDataAccess {
         let cluster = NodesMetaDataAccess::read_cluster(path)?;
         let mut new_node = Node::new_from_node(cluster.get_own_node());
         new_node.set_active();
-        new_node.update_timestamp()?;
+        new_node.update_timestamp();
         let mut nodes_list = Vec::new();
         for node in cluster.get_other_nodes() {
             nodes_list.push(Node::new_from_node(node))

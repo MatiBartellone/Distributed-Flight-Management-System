@@ -106,7 +106,7 @@ impl GossipListener {
             || node1.state != node2.state
             || node1.is_seed != node2.is_seed
         {
-            if node1.get_timestamp() > node2.get_timestamp() {
+            if node1.get_timestamp().is_newer_than(node2.get_timestamp()) {
                 return 1;
             }
             return -1;

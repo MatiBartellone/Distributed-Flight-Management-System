@@ -1,7 +1,7 @@
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
 use crate::utils::errors::Errors;
-use crate::utils::functions::get_timestamp;
+use crate::utils::timestamp::Timestamp;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::option::Option;
@@ -33,7 +33,6 @@ impl Row {
             deleted: Some(Column::new(
                 &"deleted".to_string(),
                 &Literal::new("true".to_string(), DataType::Boolean),
-                get_timestamp()?,
             )),
         })
     }
@@ -106,18 +105,18 @@ impl Row {
 pub struct Column {
     pub(crate) column_name: String,
     pub(crate) value: Literal,
-    pub(crate) time_stamp: u64,
+    pub(crate) timestamp: Timestamp,
 }
 
 impl Column {
-    pub fn new(column_name: &String, value: &Literal, time_stamp: u64) -> Self {
+    pub fn new(column_name: &String, value: &Literal) -> Self {
         Self {
             column_name: String::from(column_name),
             value: Literal {
                 value: String::from(&value.value),
                 data_type: value.data_type.clone(),
             },
-            time_stamp,
+            timestamp: Timestamp::new(),
         }
     }
 
@@ -128,7 +127,7 @@ impl Column {
                 value: column.value.value.to_string(),
                 data_type: column.value.data_type.clone(),
             },
-            time_stamp: column.time_stamp,
+            timestamp: Timestamp::new_from_timestamp(&column.timestamp),
         }
     }
 }
