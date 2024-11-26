@@ -45,12 +45,12 @@ impl ReadRepair {
 
 
     fn save_best(&mut self, best: Vec<u8>) -> Result<(), Errors>{
-        let copy = self.meta_data_bytes.values().into_iter().next().unwrap_or(&Vec::new()).to_vec();
+        let copy = self.meta_data_bytes.values().next().unwrap_or(&Vec::new()).to_vec();
         self.responses_bytes.insert(BEST.to_string(), best);
         self.meta_data_bytes.insert(BEST.to_string(), copy);
         Ok(())
     }
-    
+
     fn repair(&self) -> Result<(), Errors> {
         let better_response = self.responses_bytes.get(BEST).ok_or_else(|| Errors::TruncateError("No keys found".to_string()))?;
         for (ip, response) in &self.responses_bytes {
@@ -86,7 +86,7 @@ impl ReadRepair {
                 query.push(create_identifier_token("WHERE"));
                 let mut sub_where: Vec<Token> = Vec::new();
                 for (i, (pks_header, pk_value)) in pks.iter().zip(row.primary_key.clone()).enumerate() {
-                    sub_where.push(create_identifier_token(&pks_header.0));
+                    sub_where.push(create_identifier_token(pks_header.0));
                     sub_where.push(create_comparison_operation_token(Equal));
                     sub_where.push(create_token_literal(&pk_value, pks_header.1.clone()));
                     if i < pks.len() - 1 {
