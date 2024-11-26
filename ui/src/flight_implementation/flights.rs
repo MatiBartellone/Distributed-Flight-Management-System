@@ -6,6 +6,7 @@ use walkers::{Plugin, Position, Projector};
 
 use super::flight::Flight;
 use super::flight_selected::FlightSelected;
+use super::flight_state::FlightState;
 
 pub struct Flights {
     pub flights: Arc<Mutex<Vec<Flight>>>,
@@ -23,6 +24,7 @@ impl Flights {
         }
     }
 
+    /// List all the information of the flights
     pub fn list_flights(&self, ui: &mut egui::Ui) {
         ui.label("Lista de vuelos:");
         ui.add_space(10.0);
@@ -37,19 +39,26 @@ impl Flights {
                 };
 
                 for flight in flights.iter() {
-                    ui.label(format!("{}: {}", flight.code, flight.status.get_status()));
+                    let status_text = flight.status.to_string();
+                    let status_color = match flight.status {
+                        FlightState::OnTime => egui::Color32::GREEN,
+                        FlightState::Delayed => egui::Color32::RED,
+                        _ => egui::Color32::default(),
+                    };
+                
+                    ui.horizontal(|ui| {
+                        ui.label(flight.code.to_string() + ": ");
+                        ui.label(egui::RichText::new(status_text).color(status_color));
+                    });
                 }
             });
     }
-}
 
-impl Plugin for &mut Flights {
-    fn run(&mut self, response: &Response, painter: Painter, projector: &Projector) {
+    fn draw_flights(&self, response: &Response, painter: &Painter, projector: &Projector) {
         let flights = match self.flights.lock() {
             Ok(lock) => lock,
             Err(_) => return,
         };
-        // Dibuja todos los vuelos
         for flight in flights.iter() {
             flight.draw(
                 response,
@@ -58,24 +67,23 @@ impl Plugin for &mut Flights {
                 &self.on_flight_selected,
             );
         }
+    }
 
-        // Intenta abrir el lock
-        let selected_flight = match self.on_flight_selected.lock() {
-            Ok(lock) => lock,
-            Err(_) => return,
-        };
+}
 
-        // Si hay avion seleccionado dibuja la linea al aeropuerto
-        if let Some(flight) = &*selected_flight {
-            flight.draw_flight_path(painter, projector);
-        }
+impl Plugin for &mut Flights {
+    /// Draw the flights in the screen
+    fn run(&mut self, response: &Response, painter: Painter, projector: &Projector) {
+        self.draw_flights(response, &painter, projector);
     }
 }
 
+/// Get the position of the flight in the screen
 pub fn get_flight_pos2(position: &(f64, f64), projector: &Projector) -> Pos2 {
     get_flight_vec2(position, projector).to_pos2()
 }
 
+/// Get the vec of the flight
 pub fn get_flight_vec2(position: &(f64, f64), projector: &Projector) -> Vec2 {
     let flight_coordinates = position;
     let flight_position = Position::from_lon_lat(flight_coordinates.0, flight_coordinates.1);

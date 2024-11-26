@@ -8,3 +8,6 @@ egui = "0.29.1"
 eframe = "0.29.1"
 num_cpus = "1.16.0"
 walkers = "0.25.0"
+
+[profile.dev]
+debug = true

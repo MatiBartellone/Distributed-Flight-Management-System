@@ -9,31 +9,32 @@ use crate::airport_implementation::airports::{calculate_angle_to_airport, get_ai
 
 use super::{
     flight_selected::FlightSelected,
-    flight_status::FlightStatus,
+    flight_state::FlightState,
     flights::{get_flight_pos2, get_flight_vec2},
 };
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Default)]
 pub struct Flight {
     // weak consistency
     pub position: (f64, f64),
     // strong consistency
     pub code: String,
-    pub status: FlightStatus,
+    pub status: FlightState,
     pub arrival_airport: String,
 }
 
 impl Flight {
+    /// Draw the flight in the screen with its icon and information when hovering
+    /// If the flight is clicked, it will change the selected flight
     pub fn draw(
         &self,
         response: &Response,
         painter: Painter,
         projector: &Projector,
-        on_flight_selected: &Arc<Mutex<Option<FlightSelected>>>,
+        selected_flight: &Arc<Mutex<Option<FlightSelected>>>,
     ) {
-        //self.draw_icon_flight(painter.clone(), projector);
         self.draw_image_flight(response, painter.clone(), projector);
-        self.clickeable_flight(response, projector, on_flight_selected);
+        self.clickeable_flight(response, projector, selected_flight);
         self.holdeable_flight(response, painter, projector);
     }
 
@@ -72,8 +73,7 @@ impl Flight {
         );
     }
 
-    // Dibuja el icono del avion en su posicion
-    pub fn draw_icon_flight(&self, painter: Painter, projector: &Projector) {
+    fn draw_icon_flight(&self, painter: Painter, projector: &Projector) {
         let screen_flight_position = get_flight_pos2(&self.position, projector);
         painter.text(
             screen_flight_position,
@@ -84,8 +84,8 @@ impl Flight {
         );
     }
 
-    // Dibuja la imagen del avion en su posicion
-    pub fn draw_image_flight(&self, response: &Response, painter: Painter, projector: &Projector) {
+    // Draw the airplane image (or icon if the image is not found) in the screen
+    fn draw_image_flight(&self, response: &Response, painter: Painter, projector: &Projector) {
         let airplane_texture = match self.image_texture(&painter) {
             Ok(airplane_texture) => airplane_texture,
             Err(_) => {
@@ -130,11 +130,14 @@ impl Flight {
             };
             *selected_flight = match &*selected_flight {
                 // Si lo vuelve a clickear lo deseleciona
-                Some(flight) if flight.code == self.code => None,
-                // Si no estaba seleccionado el lo selecciona
+                Some(flight) if flight.get_code() == self.code => None,
+                // Si no estaba seleccionado lo selecciona
                 Some(_) | None => {
                     let mut flight_selected = FlightSelected::default();
-                    flight_selected.set_code(&self.code);
+                    flight_selected.set_code(self.code.to_string());
+                    flight_selected.set_position(self.position);
+                    flight_selected.set_arrival_airport(self.arrival_airport.to_string());
+                    flight_selected.set_departure_airport(self.arrival_airport.to_string());
                     Some(flight_selected)
                 }
             }

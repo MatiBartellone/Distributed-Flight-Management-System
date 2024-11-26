@@ -1,63 +1,32 @@
-use std::{
-    io::{self, Write},
-    thread,
-    time::Duration,
-};
-
-use flight_simulator::cassandra_client::CassandraClient;
+use flight_simulator::{cassandra_comunication::{cassandra_client::CassandraClient, flight_simulator_client::FlightSimulatorClient, thread_pool_client::ThreadPoolClient}, utils::system_functions::get_user_data};
 
 fn main() {
-    let node = get_input("FULL IP (ip:port): ");
-    let mut cassandra = match inicializate_cassandra(&node) {
-        Ok(cliente) => cliente,
+    let clients = match inicializate_clients() {
+        Ok(clients) => clients,
         Err(e) => {
             println!("{}", e);
             return;
         }
     };
-    let airport_code = get_input("Enter the airport code:");
-    restart_flights(&mut cassandra, &airport_code);
-    flight_updates_loop(&mut cassandra, &airport_code, 10.0, 1000);
+    let airport_code = get_user_data("Enter the airport code:");
+    let thread_pool = ThreadPoolClient::new(clients);
+    let simulator = FlightSimulatorClient;
+    simulator.restart_flights(&airport_code, &thread_pool);
+    simulator.flight_updates_loop(&airport_code, 10.0, 1000, &thread_pool);
 }
 
-fn inicializate_cassandra(node: &str) -> Result<CassandraClient, String> {
-    let mut cassandra_client = CassandraClient::new(node)?;
-    cassandra_client.inicializate()?;
-    cassandra_client.use_aviation_keyspace()?;
-    Ok(cassandra_client)
-}
-
-// Gets the user input with a message
-fn get_input(message: &str) -> String {
-    println!("{}", message);
-    io::stdout().flush().unwrap();
-    let mut node = String::new();
-    io::stdin().read_line(&mut node).expect("Error reading");
-    node.trim().to_string()
-}
-
-// Restarts all the flights in the airport
-fn restart_flights(cassandra_client: &mut CassandraClient, airport_code: &str) {
-    let flights = cassandra_client.get_flights(airport_code);
-    for mut flight in flights {
-        flight.restart();
-        _ = cassandra_client.update_flight(flight);
+fn inicializate_clients() -> Result<Vec<CassandraClient>, String> {
+    let cant_clients = get_user_data("Enter the number of clients: ").parse::<usize>()
+        .or_else(|_| Err("Error parsing the number of clients".to_string()))?;
+    
+    let simulator = FlightSimulatorClient;
+    let mut clients = Vec::new();
+    for _ in 0..cant_clients {
+        let node = get_user_data("FULL IP (ip:port): ");
+        let client = CassandraClient::new(&node)?;
+        client.inicializate()?;
+        simulator.use_aviation_keyspace(&client)?;
+        clients.push(client);
     }
-}
-
-// Update the progress of the flights
-fn flight_updates_loop(
-    cassandra_client: &mut CassandraClient,
-    airport_code: &str,
-    step: f32,
-    interval: u64,
-) {
-    loop {
-        let flights = cassandra_client.get_flights(airport_code);
-        for mut flight in flights {
-            flight.update_progress(step);
-            _ = cassandra_client.update_flight(flight);
-        }
-        thread::sleep(Duration::from_millis(interval));
-    }
+    Ok(clients)
 }

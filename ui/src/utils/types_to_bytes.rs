@@ -84,3 +84,87 @@ impl TypesToBytes {
         self.bytes
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use crate::utils::{bytes_cursor::BytesCursor, types_to_bytes::TypesToBytes};
+
+    #[test]
+    fn test_write_u8() {
+        let mut cursor = TypesToBytes::default();
+        cursor.write_u8(1).unwrap();
+        assert_eq!(cursor.into_bytes(), vec![0x01]);
+    }
+
+    #[test]
+    fn test_write_i16() {
+        let mut cursor = TypesToBytes::default();
+        cursor.write_i16(2).unwrap();
+        assert_eq!(cursor.into_bytes(), vec![0x00, 0x02]);
+    }
+
+    #[test]
+    fn test_write_u32() {
+        let mut cursor = TypesToBytes::default();
+        cursor.write_u32(3).unwrap();
+        assert_eq!(cursor.into_bytes(), vec![0x00, 0x00, 0x00, 0x03]);
+    }
+
+    #[test]
+    fn test_write_int() {
+        let mut cursor = TypesToBytes::default();
+        cursor.write_int(18).unwrap();
+        assert_eq!(cursor.into_bytes(), vec![0x00, 0x00, 0x00, 0x12]);
+    }
+
+    #[test]
+    fn test_write_long() {
+        let mut cursor = TypesToBytes::default();
+        cursor.write_long(35).unwrap();
+        assert_eq!(cursor.into_bytes(), vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x23]);
+    }
+
+    #[test]
+    fn test_write_short() {
+        let mut cursor = TypesToBytes::default();
+        cursor.write_short(26).unwrap();
+        assert_eq!(cursor.into_bytes(), vec![0x00, 0x1A]);
+    }
+
+    #[test]
+    fn test_write_string() {
+        let bytes = vec![
+            0x00, 0x0A, b'I', b'n', b'm', b'u', b't', b'a', b'b', b'l', b'e', b's'
+        ]; // length, string
+        let mut cursor = TypesToBytes::default();
+        cursor.write_string("Inmutables").unwrap();
+        assert_eq!(cursor.into_bytes(), bytes);
+    }
+
+    #[test]
+    fn test_write_long_string() {
+        let bytes = vec![
+            0x00, 0x00, 0x00, 0x0A, b'I', b'n', b'm', b'u', b't', b'a', b'b', b'l', b'e', b's'
+        ]; // length, string
+        let mut cursor = TypesToBytes::default();
+        cursor.write_long_string("Inmutables").unwrap();
+        assert_eq!(cursor.into_bytes(), bytes);
+    }
+
+    #[test]
+    fn test_write_string_map() {
+        let mut string_map = HashMap::new();
+        string_map.insert("key1".to_string(), "value1".to_string());
+        string_map.insert("key2".to_string(), "value2".to_string());
+
+        let mut cursor = TypesToBytes::default();
+        cursor.write_string_map(&string_map).unwrap();
+        let result_bytes = cursor.into_bytes();
+
+        let mut cursor = BytesCursor::new(&result_bytes);
+        assert_eq!(cursor.read_string_map().unwrap(), string_map);
+    }
+}

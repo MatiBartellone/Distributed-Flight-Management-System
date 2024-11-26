@@ -1,19 +1,28 @@
 use egui::{Color32, Painter, Pos2, Stroke};
 use walkers::Projector;
+use crate::airport_implementation::airports::get_airport_screen_position;
 
-use crate::airport_implementation::airports::get_airport_position;
-
-use super::{flight_status::FlightStatus, flights::get_flight_pos2};
+use super::{flight_state::FlightState, flights::get_flight_pos2};
 
 #[derive(Default)]
 pub struct FlightSelected {
+    pub status: FlightStatus,
+    pub info: FlightTracking
+}
+
+#[derive(Default)]
+pub struct FlightStatus {
     // strong consistency
     pub code: String,
-    pub status: FlightStatus,
+    pub status: FlightState,
     pub departure_airport: String,
     pub arrival_airport: String,
     pub departure_time: String,
     pub arrival_time: String,
+}
+
+#[derive(Default)]
+pub struct FlightTracking {
     // weak consistency
     pub position: (f64, f64),
     pub altitude: f64,
@@ -21,57 +30,90 @@ pub struct FlightSelected {
     pub fuel_level: f32,
 }
 
+
 impl FlightSelected {
-    pub fn new(
-        code: String,
-        status: FlightStatus,
-        departure_airport: String,
-        arrival_airport: String,
-        departure_time: String,
-        arrival_time: String,
-        position: (f64, f64),
-        altitude: f64,
-        speed: f32,
-        fuel_level: f32,
-    ) -> Self {
-        FlightSelected {
-            code,
-            status,
-            departure_airport,
-            arrival_airport,
-            departure_time,
-            arrival_time,
-            position,
-            altitude,
-            speed,
-            fuel_level,
-        }
+    pub fn new(info: FlightTracking, status: FlightStatus) -> Self {
+        Self { info, status }
     }
 
-    pub fn set_code(&mut self, code: &str) {
-        self.code = code.to_string();
-    }
-
+    /// List the full information of the selected flight
     pub fn list_information(&self, ui: &mut egui::Ui) {
-        ui.label(&self.code);
+        ui.label(self.get_code());
         ui.label(format!(
             "Posición: ({:.2}, {:.2})",
-            self.position.0, self.position.1
+            self.get_position().0, self.get_position().1
         ));
-        ui.label(format!("Altitud: {} ft", self.altitude));
-        ui.label(format!("Velocidad: {} km/h", self.speed));
-        ui.label(format!("Nivel de combustible: {}%", self.fuel_level));
-        ui.label(format!("Estado: {}", self.status.get_status()));
-        ui.label(format!("Aeropuerto de salida: {}", self.departure_airport));
-        ui.label(format!("Hora de salida: {}", self.departure_time));
-        ui.label(format!("Aeropuerto de llegada: {}", self.arrival_airport));
-        ui.label(format!("Hora estimada de llegada: {}", self.arrival_time));
+        ui.label(format!("Altitud: {} ft", self.get_altitude()));
+        ui.label(format!("Velocidad: {} km/h", self.get_speed()));
+        ui.label(format!("Nivel de combustible: {}%", self.get_fuel_level()));
+        ui.label(format!("Estado: {}", self.get_status().to_string()));
+        ui.label(format!("Aeropuerto de salida: {}", self.get_departure_airport()));
+        ui.label(format!("Hora de salida: {}", self.get_departure_time()));
+        ui.label(format!("Aeropuerto de llegada: {}", self.get_arrival_airport()));
+        ui.label(format!("Hora estimada de llegada: {}", self.get_arrival_time()));
     }
 
-    pub fn draw_flight_path(&self, painter: Painter, projector: &Projector) {
-        let screen_airport_position = get_airport_position(&self.arrival_airport, projector);
-        let screen_flight_position = get_flight_pos2(&self.position, projector);
+    /// Draw the flight path of the selected flight on the map
+    pub fn draw_flight_path(&self, painter: Painter, projector: &Projector, airport_coordinates: (f64, f64)) {
+        let screen_airport_position = get_airport_screen_position(airport_coordinates, projector);
+        let screen_flight_position = get_flight_pos2(self.get_position(), projector);
         draw_flight_curve(painter, screen_flight_position, screen_airport_position);
+    }
+
+    pub fn get_code(&self) -> String {
+        self.status.code.to_string()
+    }
+
+    pub fn set_code(&mut self, code: String) {
+        self.status.code = code;
+    }
+
+    pub fn get_status(&self) -> &FlightState {
+        &self.status.status
+    }
+
+    pub fn get_position(&self) -> &(f64, f64) {
+        &self.info.position
+    }
+
+    pub fn set_position(&mut self, position: (f64, f64)) {
+        self.info.position = position;
+    }
+
+    pub fn get_altitude(&self) -> f64 {
+        self.info.altitude
+    }
+
+    pub fn get_departure_airport(&self) -> &String {
+        &self.status.departure_airport
+    }
+
+    pub fn set_departure_airport(&mut self, departure_airport: String) {
+        self.status.departure_airport = departure_airport;
+    }
+
+    pub fn get_arrival_airport(&self) -> &String {
+        &self.status.arrival_airport
+    }
+
+    pub fn set_arrival_airport(&mut self, arrival_airport: String) {
+        self.status.arrival_airport = arrival_airport;
+    }
+
+    pub fn get_speed(&self) -> f32 {
+        self.info.speed
+    }
+
+    pub fn get_fuel_level(&self) -> f32 {
+        self.info.fuel_level
+    }
+
+    pub fn get_departure_time(&self) -> &String {
+        &self.status.departure_time
+    }
+
+    pub fn get_arrival_time(&self) -> &String {
+        &self.status.arrival_time
     }
 }
 
