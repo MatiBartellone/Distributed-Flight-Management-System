@@ -19,4 +19,4 @@ INSERT INTO kp1.aviones (id, aeropuerto, activo) VALUES (2, 'Ezeiza', true)
 INSERT INTO kp1.aviones (id, aeropuerto, activo) VALUES (3, 'Ezeiza', true)
 SELECT * FROM kp1.aviones WHERE id = 1
 SELECT * FROM kp1.aviones WHERE aeropuerto = 'Aeroparque'
-SELECT * FROM kp1.aviones WHERE aeropuerto = 'Ezeiza'
+SELECT * FROM kp1.aviones WHERE aeropuerto = 'Ezeiza' AND id = 1
