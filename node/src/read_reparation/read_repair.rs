@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor, response::Response, constants::BEST, node_ip::NodeIp}, data_access::row::Row, parsers::query_parser::parsed_query, query_delegation::query_delegator::QueryDelegator};
-
+use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor, response::Response, constants::BEST, node_ip::NodeIp, token_conversor::{create_identifier_token, create_reserved_token, create_iterate_list_token, create_comparison_operation_token, create_token_from_literal, create_logical_operation_token, create_token_literal}}, data_access::row::Row, parsers::{tokens::{token::Token, data_type::DataType}, query_parser::query_parser}, query_delegation::query_delegator::QueryDelegator};
+use crate::parsers::tokens::terms::ComparisonOperators::Equal;
+use crate::parsers::tokens::terms::LogicalOperators::And;
 use super::row_response::RowResponse;
 
 
@@ -48,7 +49,7 @@ impl ReadRepair {
             .cloned() 
             .ok_or_else(|| Errors::TruncateError("No keys found".to_string()))?;
         self.responses_bytes.insert(BEST.to_string(), best);
-        self.meta_data_bytes.insert(BEST.to_string(), copy);
+        //self.meta_data_bytes.insert(BEST.to_string(), copy);
         Ok(())
     }
 
@@ -68,26 +69,34 @@ impl ReadRepair {
         let (keyspace, table) = self.get_keyspace_table(BEST.to_string())?;
         let mut change_row = false;
         for (row, better_row) in node_rows.iter().zip(best){
-            let mut query = format!("UPDATE {}.{} SET ", keyspace, table);
+            let mut query : Vec<Token> = Vec::new();
+            query.push(create_reserved_token("UPDATE"));
+            query.push(create_identifier_token(&format!("{}.{}", keyspace, table)));
+            query.push(Token::Reserved("SET".to_owned()));
             for (column, column_better) in row.columns.iter().zip(better_row.columns) {
                 if column.value != column_better.value {
-                    let change = format!(" {} = {} ", column.column_name, column_better.value.value);
-                    query.push_str(&change);
+                    query.push(create_iterate_list_token(vec![
+                        create_identifier_token(&column_better.column_name),
+                        create_comparison_operation_token(Equal),
+                        create_token_from_literal(column_better.value),
+                    ]));
                     change_row = true
                 }
             } 
             if change_row {
                 let pks = self.get_pks_headers(BEST.to_string())?;
-                let mut where_clause = "WHERE ".to_string();
+                query.push(create_identifier_token("WHERE"));
+                let mut sub_where: Vec<Token> = Vec::new();
                 for (i, (pks_header, pk_value)) in pks.iter().zip(row.primary_key.clone()).enumerate() {
-                    let sub_clause = format!(" {} = {} ", pks_header, pk_value);
-                    where_clause.push_str(&sub_clause);
+                    sub_where.push(create_identifier_token(&pks_header.0));
+                    sub_where.push(create_comparison_operation_token(Equal));
+                    sub_where.push(create_token_literal(&pk_value, pks_header.1.clone()));
                     if i < pks.len() - 1 {
-                        where_clause.push_str(" AND ");
+                        sub_where.push(create_logical_operation_token(And))
                     }
                 }
-                query.push_str(&where_clause);
-                let query_parsed = parsed_query(query)?;
+                query.append(&mut sub_where);
+                let query_parsed = query_parser(query)?;
                 QueryDelegator::send_to_node(NodeIp::new_from_single_string(ip)?, query_parsed)?;
                 change_row = false;
             }
@@ -123,7 +132,7 @@ impl ReadRepair {
         translate.read_keyspace_table(protocol.to_vec(), meta_data.to_vec())
     }
 
-    fn get_pks_headers(&self, ip: String) -> Result<Vec<String>, Errors> {
+    fn get_pks_headers(&self, ip: String) -> Result<HashMap<String, DataType>, Errors> {
         let mut translate = RowResponse::new();
         let protocol = self.responses_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;
         let meta_data = self.meta_data_bytes.get(&ip).ok_or_else(|| Errors::TruncateError(format!("Key {} not found in responses_bytes", ip)))?;

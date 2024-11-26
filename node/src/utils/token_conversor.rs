@@ -160,6 +160,10 @@ pub fn create_token_literal(value: &str, data_type: DataType) -> Token {
     Token::Term(Term::Literal(Literal::new(value.to_string(), data_type)))
 }
 
+pub fn create_token_from_literal(literal: Literal) -> Token {
+    Token::Term(Term::Literal(literal))
+}
+
 pub fn create_logical_operation_token(operation: LogicalOperators) -> Token {
     Token::Term(Term::BooleanOperations(Logical(operation)))
 }

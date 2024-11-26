@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     data_access::row::Row, parsers::tokens::data_type::DataType,
     utils::types_to_bytes::TypesToBytes, meta_data::meta_data_handler::MetaDataHandler,
@@ -94,8 +96,10 @@ impl Response {
         }
         let pks = get_pks(keyspace, table)?;
         encoder.write_short(pks.len() as u16).map_err(Errors::TruncateError)?;
-        for pk in pks {
+        for (pk, type_) in pks {
             encoder.write_string(&pk).map_err(Errors::TruncateError)?;
+            let data_type_id = Response::data_type_to_byte(type_);
+            encoder.write_i16(data_type_id).map_err(Errors::TruncateError)?;
         }
         for row in rows {
             for pk_value in &row.primary_key {
@@ -118,12 +122,19 @@ impl Response {
     }
 }
 
-fn get_pks(keyspace: &str, table: &str) -> Result<Vec<String>, Errors> {
+fn get_pks(keyspace: &str, table: &str) -> Result<HashMap<String, DataType>, Errors> {
     let mut stream = MetaDataHandler::establish_connection()?;
     let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
     let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
     let pks = keyspace_meta_data.get_primary_key(KEYSPACE_METADATA_PATH.to_owned(), keyspace, table)?;
-    Ok(pks.get_full_primary_key())
+    let types = keyspace_meta_data.get_columns_type(KEYSPACE_METADATA_PATH.to_string(), keyspace, table)?;
+    Ok(filter_keys(pks.get_full_primary_key(), types))
+}
+
+fn filter_keys(vec: Vec<String>, map: HashMap<String, DataType>) -> HashMap<String, DataType> {
+    map.into_iter()
+        .filter(|(key, _)| vec.contains(key))
+        .collect()
 }
 
 #[cfg(test)]

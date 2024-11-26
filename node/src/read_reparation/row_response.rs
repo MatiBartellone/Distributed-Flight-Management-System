@@ -11,7 +11,7 @@ pub struct RowResponse {
     table: String,
     time_stamps: Vec<Vec<u64>>,
     pk_values: Vec<Vec<String>>,
-    pk_name: Vec<String>,
+    pk_name: HashMap<String, DataType>,
 }
 
 impl RowResponse {
@@ -24,7 +24,7 @@ impl RowResponse {
             table: String::new(),      
             time_stamps: Vec::new(),           
             pk_values: Vec::new(),            
-            pk_name: Vec::new(),               
+            pk_name: HashMap::new(),               
         }
     }
 
@@ -40,7 +40,7 @@ impl RowResponse {
         Ok((self.keyspace.to_owned(), self.table.to_owned()))
     }
 
-    pub fn read_pk_headers(&mut self, protocol: Vec<u8>, meta_data: Vec<u8>) -> Result<Vec<String>, Errors> {
+    pub fn read_pk_headers(&mut self, protocol: Vec<u8>, meta_data: Vec<u8>) -> Result<HashMap<String, DataType>, Errors> {
         let (count_rows, columns_count) = self.read_protocol_response(protocol)?;
         self.read_meta_data_response(meta_data, count_rows, columns_count)?;
         Ok(self.pk_name.clone())
@@ -82,7 +82,9 @@ impl RowResponse {
         }
         let count_pks = cursor.read_short()?;
         for _ in 0..count_pks{
-            self.pk_name.push(cursor.read_string()?);
+            let header = cursor.read_string()?;
+            let type_ = byte_to_data_type(cursor.read_i16()?)?;
+            self.pk_name.insert(header, type_);
         }
         for _ in 0..rows_count {
             let mut pk_values_row: Vec<String> = Vec::new();
@@ -135,7 +137,7 @@ impl Default for RowResponse {
 
 #[cfg(test)]
 mod tests {
-    use crate::{utils::{types_to_bytes::TypesToBytes, response::Response}, parsers::query_parser::parsed_query};
+    use crate::utils::{types_to_bytes::TypesToBytes, response::Response};
 
     use super::*;
 
@@ -157,26 +159,38 @@ mod tests {
     }
 
     
+    #[test]
     fn test_read_meta_data_response() {
         let mut row_response = RowResponse::new();
-
+    
         let meta_data_bytes: Vec<u8> = vec![
+            // Timestamps para 1 fila y 2 columnas
             0, 0, 0, 0, 0, 0, 0, 1, // Timestamp fila 1, columna 1
             0, 0, 0, 0, 0, 0, 0, 2, // Timestamp fila 1, columna 2
-            0, 1,                   // Número de claves primarias (1)
-            0, 2, b'i', b'd',       // Clave primaria: "id"
-            0, 1,                   // Longitud del valor de la clave primaria fila 1: "1"
+    
+            // Número de claves primarias (1)
+            0, 1, 
+    
+            // Clave primaria: "id", tipo DataType::Text (0x000A)
+            0, 2, b'i', b'd', 
+            0, 10, // Código para DataType::Text (0x000A en decimal es 10)
+    
+            // Valores de la clave primaria para 1 fila
+            0, 1, // Longitud del valor de la clave primaria fila 1: "1"
             b'1',
         ];
-
-        // Lectura de los datos
+    
+        // Ejecución del método a probar
         let result = row_response.read_meta_data_response(meta_data_bytes, 1, 2);
         assert!(result.is_ok());
-
+    
         // Verificaciones
-        assert_eq!(row_response.pk_name, vec!["id"]);
-        assert_eq!(row_response.time_stamps[0], vec![1, 2]);
-        assert_eq!(row_response.pk_values[0], vec!["1"]);
+        let mut expected_pk_name = HashMap::new();
+        expected_pk_name.insert("id".to_string(), DataType::Text);
+        assert_eq!(row_response.pk_name, expected_pk_name);
+    
+        assert_eq!(row_response.time_stamps, vec![vec![1, 2]]);
+        assert_eq!(row_response.pk_values, vec![vec!["1".to_string()]]);
     }
 
     #[test]
@@ -214,37 +228,10 @@ mod tests {
         assert!(byte_to_data_type(0x0007).is_err());
     }
 
-    fn create_context_test() -> Result<(), Errors> {
-        let create = "CREATE KEYSPACE test_keyspace
-        WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};".to_string();
-        let table = "CREATE TABLE test_keyspace.test_table (
-            primary_key text PRIMARY KEY,
-            col1 int,
-            col2 text
-        );".to_string();
-        let create_parsed = parsed_query(create)?;
-        let _= create_parsed.run()?;
-        let table_parsed = parsed_query(table)?;
-        let _ = table_parsed.run()?;
-        Ok(())
-    }
-
-    fn drop_context_test() -> Result<(), Errors> {
-        let drop_table = "DROP TABLE test_keyspace.test_table;".to_string();
-        let drop_keyspace = "DROP KEYSPACE test_keyspace;".to_string();
-        
-        let drop_table_parsed = parsed_query(drop_table)?;
-        let _ = drop_table_parsed.run()?;
-        
-        let drop_keyspace_parsed = parsed_query(drop_keyspace)?;
-        let _ = drop_keyspace_parsed.run()?;
-        
-        Ok(())
-    }
+    
 
     fn get_example_bytes() -> Result<Vec<u8>, Errors> {
         let rows = mock_rows();
-        create_context_test()?;
         let keyspace = "test_keyspace";
         let table = "test_table";
         let mut encoder = TypesToBytes::default();
