@@ -38,6 +38,7 @@ fn main() {
                     continue;
                 }
             }
+            println!();
             stream.flush().expect("could not flush stream");
             let mut buf = [0; 1024];
             match stream.read(&mut buf) {
@@ -60,8 +61,7 @@ fn main() {
                             AUTHENTICATE => {
                                 let mut cursor = BytesCursor::new(frame.body.as_slice());
                                 println!("AUTHENTICATE");
-
-                                dbg!(cursor.read_string().unwrap());
+                                println!("{}", cursor.read_string().unwrap());
                             }
                             AUTH_SUCCESS => {
                                 println!("AUTH_SUCCESS");
@@ -72,7 +72,9 @@ fn main() {
                             SUPPORTED => {
                                 let mut cursor = BytesCursor::new(frame.body.as_slice());
                                 println!("SUPPORTED");
-                                dbg!(cursor.read_string_map().unwrap());
+                                for (key, value) in cursor.read_string_map().unwrap() {
+                                    println!("{}: {}", key, value);
+                                }
                             }
                             RESULT => {
                                 let mut cursor = BytesCursor::new(frame.body.as_slice());
@@ -96,6 +98,7 @@ fn main() {
             }
             stream.flush().expect("sds");
             input.clear();
+            println!()
         }
     }
 }

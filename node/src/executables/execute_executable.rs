@@ -29,7 +29,8 @@ impl ExecuteExecutable {
 
     pub fn get_query(&self) -> Result<PrepareQuery, Errors> {
         if !Path::new(PREPARE_FILE).exists() {
-            File::create(&PREPARE_FILE).map_err(|_| ServerError(String::from("Unable to create file")))?;
+            File::create(&PREPARE_FILE)
+                .map_err(|_| ServerError(String::from("Unable to create file")))?;
         }
         let file = OpenOptions::new()
             .read(true)

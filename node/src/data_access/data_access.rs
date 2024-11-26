@@ -28,6 +28,10 @@ impl DataAccess {
         write_all_to_file(&mut file, b"[]")
     }
 
+    /// creates the table_name (keyspace.table) given
+    ///
+    /// let table_name = "keyspace.table";
+    /// data_access.create_table(&table_name);
     pub fn create_table(&self, table_name: &String) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
         if metadata(&path).is_ok() {
@@ -36,6 +40,10 @@ impl DataAccess {
         self.create_file(&path)
     }
 
+    /// alters the table_name (keyspace.table) given
+    ///
+    /// let table_name = "keyspace.table";
+    /// data_access.truncate_table(&table_name);
     pub fn truncate_table(&self, table_name: &String) -> Result<(), Errors> {
         fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
         let _file = OpenOptions::new()
@@ -46,6 +54,10 @@ impl DataAccess {
         Ok(())
     }
 
+    /// eliminates the table_name (keyspace.table) given
+    ///
+    /// let table_name = "keyspace.table";
+    /// data_access.drop_table(&table_name);
     pub fn drop_table(&self, table_name: String) -> Result<(), Errors> {
         fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
         remove_file(self.get_file_path(&table_name))
@@ -53,6 +65,9 @@ impl DataAccess {
         Ok(())
     }
 
+    /// inserts the given row appending it to the end of file given by table_name
+    ///
+    /// Before inserting, the previous existance of the primary key is checked
     pub fn insert(&self, table_name: &String, row: &Row) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
         if self.pk_already_exists(&path, &row.primary_key)? {
@@ -63,6 +78,9 @@ impl DataAccess {
         self.append_row(&path, row)
     }
 
+    /// sets de rows that matches the where clause to deleted
+    ///
+    /// it uses temp files and iters over the table_name file. The deleted rows are not deleted but set deleted true
     pub fn set_deleted_rows(
         &self,
         table_name: &String,
@@ -82,6 +100,9 @@ impl DataAccess {
         Ok(())
     }
 
+    /// updates de rows that matches the where clause applying changes given
+    ///
+    /// it uses temp files and iters over the table_name file. builds the updated row from the read one.
     pub fn update_row(
         &self,
         table_name: &String,
@@ -152,6 +173,7 @@ impl DataAccess {
         }
     }
 
+    /// returns the rows filtered by the where clause ordered by the order_clauses
     pub fn select_rows(
         &self,
         table_name: &String,
