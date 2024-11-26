@@ -9,7 +9,7 @@ pub struct FlightSimulatorClient;
 
 impl FlightSimulatorClient {
     /// Use the aviation keyspace in the cassandra database
-    pub fn use_aviation_keyspace(&self, client: &CassandraClient) -> Result<(), String> {
+    pub fn use_aviation_keyspace(&self, client: &mut CassandraClient) -> Result<(), String> {
         let frame_id = STREAM as usize;
         let mut frame = self.get_strong_query_frame(client, "USE aviation;", &frame_id)?;
         let rx = client.send_frame(&mut frame)?;
@@ -40,7 +40,7 @@ impl FlightSimulatorClient {
     }
 
     /// Get the information of the airport
-    pub fn get_airport(&self, client: &CassandraClient, airport_code: &str, frame_id: &usize) -> Option<Airport> {
+    pub fn get_airport(&self, client: &mut CassandraClient, airport_code: &str, frame_id: &usize) -> Option<Airport> {
         let query = format!(
             "SELECT name, positionLat, positionLon, code FROM aviation.airports WHERE code = '{}';",
             airport_code
@@ -99,7 +99,7 @@ impl FlightSimulatorClient {
     }
 
     // Gets all de flights codes going or leaving the aiport
-    fn get_flight_codes_by_airport(&self, client: &CassandraClient, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
+    fn get_flight_codes_by_airport(&self, client: &mut CassandraClient, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
         let query = format!(
             "SELECT flightCode FROM aviation.flightsByAirport WHERE airportCode = '{}'",
             airport_code
@@ -153,7 +153,7 @@ impl FlightSimulatorClient {
     }
 
     // Get the information of the flight
-    fn get_flight(&self, client: &CassandraClient, flight_code: &str, frame_id: &usize) -> Option<Flight> {
+    fn get_flight(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<Flight> {
         let flight_status = self.get_flight_status(client, flight_code, frame_id)?;
         let flight_tracking = self.get_flight_tracking(client, flight_code, frame_id)?;
         Some(Flight {
@@ -162,7 +162,7 @@ impl FlightSimulatorClient {
         })
     }
 
-    fn get_flight_status(&self, client: &CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightStatus> {
+    fn get_flight_status(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightStatus> {
         let query = format!(
             "SELECT flightCode, status, departureAirport, arrivalAirport, departureTime, arrivalTime FROM aviation.flightInfo WHERE flightCode = '{}';",
             flight_code
@@ -207,7 +207,7 @@ impl FlightSimulatorClient {
         })
     }
 
-    fn get_flight_tracking(&self, client: &CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightTracking> {
+    fn get_flight_tracking(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightTracking> {
         let query = format!(
             "SELECT positionLat, positionLon, altitude, speed, fuelLevel FROM aviation.flightInfo WHERE flightCode = '{}'",
             flight_code
@@ -284,12 +284,12 @@ impl FlightSimulatorClient {
     }
 
     /// Update the flight information in the database with the new information
-    pub fn update_flight(&self, client: &CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
+    pub fn update_flight(&self, client: &mut CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         self.update_flight_status(client, flight, frame_id)?;
         self.update_flight_tracking(client, flight, frame_id)
     }
 
-    fn update_flight_status(&self, client: &CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
+    fn update_flight_status(&self, client: &mut CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
             "UPDATE aviation.flightInfo SET status = '{}', departureAirport = '{}', arrivalAirport = '{}', departureTime = '{}', arrivalTime = '{}' WHERE flightCode = '{}';",
             flight.get_status().to_string(), flight.get_departure_airport(), flight.get_arrival_airport(), flight.get_departure_time(), flight.get_arrival_time(),
@@ -300,7 +300,7 @@ impl FlightSimulatorClient {
         Ok(())
     }
 
-    fn update_flight_tracking(&self, client: &CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
+    fn update_flight_tracking(&self, client: &mut CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
             "UPDATE aviation.flightInfo SET positionLat = '{}', positionLon = '{}', altitude = '{}', speed = '{}', fuelLevel = '{}' WHERE flightCode = '{}';",
             flight.get_position().0, flight.get_position().1, flight.get_altitude(), flight.get_speed(), flight.get_fuel_level(),
@@ -395,12 +395,12 @@ impl FlightSimulatorClient {
         Ok(frame.body)
     }
 
-    fn get_strong_query_frame(&self, client: &CassandraClient, query: &str, frame_id: &usize) -> Result<Frame, String> {
+    fn get_strong_query_frame(&self, client: &mut CassandraClient, query: &str, frame_id: &usize) -> Result<Frame, String> {
         let body = client.get_body_query_strong(query)?;
         self.get_query_frame(&body, frame_id)
     }
 
-    fn get_weak_query_frame(&self, client: &CassandraClient, query: &str, frame_id: &usize) -> Result<Frame, String> {
+    fn get_weak_query_frame(&self, client: &mut CassandraClient, query: &str, frame_id: &usize) -> Result<Frame, String> {
         let body = client.get_body_query_weak(query)?;
         self.get_query_frame(&body, frame_id)
     }
@@ -416,7 +416,7 @@ impl FlightSimulatorClient {
         ))
     }
 
-    fn get_body_frame_response(&self, client: &CassandraClient, frame: &mut Frame) -> Result<Vec<u8>, String> {
+    fn get_body_frame_response(&self, client: &mut CassandraClient, frame: &mut Frame) -> Result<Vec<u8>, String> {
         let frame_response = client.send_and_receive(frame)?;
         // let rx = client.send_frame(frame)?;
         // client.read_frame_response()?;

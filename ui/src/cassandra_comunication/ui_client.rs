@@ -9,7 +9,7 @@ pub struct UIClient;
 
 impl UIClient {
     /// Use the aviation keyspace in the cassandra database
-    pub fn use_aviation_keyspace(&self, client: &CassandraClient) -> Result<(), String> {
+    pub fn use_aviation_keyspace(&self, client: &mut CassandraClient) -> Result<(), String> {
         let frame_id = STREAM as usize;
         let mut frame = self.get_strong_query_frame(client, "USE aviation;", &frame_id)?;
         let rx = client.send_frame(&mut frame)?;
@@ -38,7 +38,7 @@ impl UIClient {
         rx.into_iter().collect()
     }
 
-    fn get_airport(&self, client: &CassandraClient, airport_code: &str, frame_id: &usize) -> Option<Airport> {
+    fn get_airport(&self, client: &mut CassandraClient, airport_code: &str, frame_id: &usize) -> Option<Airport> {
         let query = format!(
             "SELECT name, positionLat, positionLon, code FROM aviation.airports WHERE code = '{}';",
             airport_code
@@ -97,7 +97,7 @@ impl UIClient {
     }
 
     // Gets all de flights codes going or leaving the aiport
-    fn get_flight_codes_by_airport(&self, client: &CassandraClient, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
+    fn get_flight_codes_by_airport(&self, client: &mut CassandraClient, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
         let query = format!(
             "SELECT flightCode FROM aviation.flightsByAirport WHERE airportCode = '{}'",
             airport_code
@@ -150,7 +150,7 @@ impl UIClient {
         rx.into_iter().collect()
     }
 
-    fn get_flight(&self, client: &CassandraClient, flight_code: &str, frame_id: &usize) -> Option<Flight> {
+    fn get_flight(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<Flight> {
         let mut flight = Flight::default();
         flight.code = flight_code.to_string();
         self.get_flight_status(client, &mut flight, frame_id)?;
@@ -158,7 +158,7 @@ impl UIClient {
         Some(flight)
     }
 
-    fn get_flight_status(&self, client: &CassandraClient, flight: &mut Flight, frame_id: &usize) -> Option<()> {
+    fn get_flight_status(&self, client: &mut CassandraClient, flight: &mut Flight, frame_id: &usize) -> Option<()> {
         let query = format!(
             "SELECT flightCode, status, arrivalAirport FROM aviation.flightInfo WHERE flightCode = '{}';",
             flight.code
@@ -201,7 +201,7 @@ impl UIClient {
         Some(())
     }
 
-    fn get_flight_tracking(&self, client: &CassandraClient, flight: &mut Flight, frame_id: &usize) -> Option<()> {
+    fn get_flight_tracking(&self, client: &mut CassandraClient, flight: &mut Flight, frame_id: &usize) -> Option<()> {
         let query = format!(
             "SELECT positionLat, positionLon FROM aviation.flightInfo WHERE flightCode = '{}';",
             flight.code
@@ -260,7 +260,7 @@ impl UIClient {
         rx.recv().unwrap()
     }
 
-    fn get_flight_selected_status(&self, client: &CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightStatus> {
+    fn get_flight_selected_status(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightStatus> {
         let query = format!(
             "SELECT flightCode, status, departureAirport, arrivalAirport, departureTime, arrivalTime FROM aviation.flightInfo WHERE flightCode = '{}';",
             flight_code
@@ -305,7 +305,7 @@ impl UIClient {
         })
     }
 
-    fn get_flight_selected_tracking(&self, client: &CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightTracking> {
+    fn get_flight_selected_tracking(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightTracking> {
         let query = format!(
             "SELECT positionLat, positionLon, altitude, speed, fuelLevel FROM aviation.flightInfo WHERE flightCode = '{}'",
             flight_code
@@ -410,7 +410,7 @@ impl UIClient {
         ))
     }
 
-    fn get_body_frame_response(&self, client: &CassandraClient, frame: &mut Frame) -> Result<Vec<u8>, String> {
+    fn get_body_frame_response(&self, client: &mut CassandraClient, frame: &mut Frame) -> Result<Vec<u8>, String> {
         let frame_response = client.send_and_receive(frame)?;
         // let rx = client.send_frame(frame)?;
         // client.read_frame_response()?;

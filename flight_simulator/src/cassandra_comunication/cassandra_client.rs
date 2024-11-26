@@ -14,7 +14,6 @@ pub const STREAM: i16 = 10;
 pub const OP_CODE_QUERY: u8 = 7;
 pub const OP_CODE_START: u8 = 1;
 
-#[derive(Clone)]
 pub struct CassandraClient {
     connection: CassandraConnection
 }
@@ -26,25 +25,25 @@ impl CassandraClient {
     }
 
     // Wraps functions of CassandraConnection
-    pub fn send_frame(&self, frame: &mut Frame) -> Result<Receiver<Frame>, String> {
+    pub fn send_frame(&mut self, frame: &mut Frame) -> Result<Receiver<Frame>, String> {
         self.connection.send_frame(frame)
     }
 
-    pub fn read_frame_response(&self) -> Result<(), String> {
+    pub fn read_frame_response(&mut self) -> Result<(), String> {
         self.connection.read_frame_response()
     }
 
-    pub fn send_and_receive(&self, frame: &mut Frame) -> Result<Frame, String> {
+    pub fn send_and_receive(&mut self, frame: &mut Frame) -> Result<Frame, String> {
         self.connection.send_and_receive(frame)
     }
 
     // Get ready the client for use in keyspace airport
-    pub fn inicializate(&self) -> Result<(), String> {
+    pub fn inicializate(&mut self) -> Result<(), String> {
         self.start_up()
     }
 
     // Send a startup
-    fn start_up(&self) -> Result<(), String> {
+    fn start_up(&mut self) -> Result<(), String> {
         let body = self.get_start_up_body()?;
         let mut frame = Frame::new(
             VERSION,
@@ -67,7 +66,7 @@ impl CassandraClient {
     }
 
     // Send the authentication until it success
-    fn authenticate_response(&self) -> Result<(), String> {
+    fn authenticate_response(&mut self) -> Result<(), String> {
         let body = self.get_authenticate_body()?;
         let mut frame = Frame::new(
             VERSION,
@@ -109,7 +108,7 @@ impl CassandraClient {
     }
 
     // Handles the read frame
-    fn handle_frame_response(&self, frame: Frame) -> Result<(), String> {
+    fn handle_frame_response(&mut self, frame: Frame) -> Result<(), String> {
         match frame.opcode {
             OP_AUTHENTICATE | OP_AUTH_CHALLENGE => self.authenticate_response(),
             OP_AUTH_SUCCESS => Ok(()),

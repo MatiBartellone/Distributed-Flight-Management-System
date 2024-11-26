@@ -23,9 +23,9 @@ fn inicializate_clients() -> Result<Vec<CassandraClient>, String> {
     let mut clients = Vec::new();
     for _ in 0..cant_clients {
         let node = get_user_data("FULL IP (ip:port): ");
-        let client = CassandraClient::new(&node)?;
+        let mut client = CassandraClient::new(&node)?;
         client.inicializate()?;
-        simulator.use_aviation_keyspace(&client)?;
+        simulator.use_aviation_keyspace(&mut client)?;
         clients.push(client);
     }
     Ok(clients)
