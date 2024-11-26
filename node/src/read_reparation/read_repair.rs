@@ -72,7 +72,7 @@ impl ReadRepair {
             query.push(create_identifier_token(&format!("{}.{}", keyspace, table)));
             query.push(Token::Reserved("SET".to_owned()));
             for (column, column_better) in row.columns.iter().zip(better_row.columns) {
-                if column.value != column_better.value {
+                if column.value.value != column_better.value.value {
                     query.push(create_iterate_list_token(vec![
                         create_identifier_token(&column_better.column_name),
                         create_comparison_operation_token(Equal),
@@ -93,7 +93,8 @@ impl ReadRepair {
                         sub_where.push(create_logical_operation_token(And))
                     }
                 }
-                query.append(&mut sub_where);
+                query.push(create_iterate_list_token(sub_where));
+                dbg!(&query);
                 let query_parsed = query_parser(query)?;
                 QueryDelegator::send_to_node(NodeIp::new_from_single_string(ip)?, query_parsed)?;
                 change_row = false;
