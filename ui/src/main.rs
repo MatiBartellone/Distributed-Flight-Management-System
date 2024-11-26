@@ -23,6 +23,7 @@ fn inicializate_clients() -> Result<Vec<CassandraClient>, String> {
     let cant_clients = get_user_data("Enter the number of clients: ").parse::<usize>()
         .or_else(|_| Err("Error parsing the number of clients".to_string()))?;
     
+    //env_logger::init();
     let simulator = UIClient;
     let mut clients = Vec::new();
     for _ in 0..cant_clients {

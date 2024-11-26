@@ -1,8 +1,8 @@
-use std::sync::{Arc, Mutex};
+use std::{iter::Map, sync::{Arc, Mutex}};
 
 use eframe::egui;
 use egui::Context;
-use walkers::{sources::OpenStreetMap, HttpTiles, MapMemory};
+use walkers::{sources::{Mapbox, MapboxStyle, OpenStreetMap, TileSource}, HttpTiles, MapMemory};
 
 use crate::{
     airport_implementation::airports::Airports, cassandra_comunication::{cassandra_client::CassandraClient, thread_pool_client::ThreadPoolClient, ui_client::UIClient}, flight_implementation::{flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}
@@ -63,17 +63,26 @@ impl FlightApp {
         let (selected_flight, flights) = Self::inicializate_flights_information();
         let (selected_airport_code, airports) = Self::inicializate_airport_information(&client, &thread_pool, &selected_flight);
         let map_memory = Self::initialize_map_memory();
+        let tile_source = Self::get_maxbox_tile();
 
         let mut app = Self {
             airports,
             selected_airport_code,
             flights,
             selected_flight,
-            tiles: HttpTiles::new(OpenStreetMap, egui_ctx.clone()),
+            tiles: HttpTiles::new(tile_source, egui_ctx.clone()),
             map_memory,
         };
         app.start_app_updater(egui_ctx, client, thread_pool);
         app
+    }
+
+    fn get_maxbox_tile() -> Mapbox {
+        Mapbox {
+            style: MapboxStyle::NavigationNight,
+            high_resolution: true,
+            access_token: "pk.eyJ1IjoiaXZhbi1tYXhpbW9mZiIsImEiOiJjbTJnZXVpbTMwMGZiMmxvbnBtZmZrYzhxIn0.ML4CVWvfANu4abq_24r6Wg".to_string()
+        }
     }
 
     fn set_scroll_style(egui_ctx: &Context) {
