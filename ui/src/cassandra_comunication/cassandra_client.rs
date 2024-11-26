@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::mpsc::Receiver};
+use std::collections::HashMap;
 
 use crate::utils::{
         consistency_level::ConsistencyLevel, constants::{OP_AUTHENTICATE, OP_AUTH_CHALLENGE, OP_AUTH_RESPONSE, OP_AUTH_SUCCESS}, frame::Frame, system_functions::get_user_data, types_to_bytes::TypesToBytes
@@ -21,17 +21,7 @@ impl CassandraClient {
         let connection = CassandraConnection::new(node)?;
         Ok(Self { connection })
     }
-
-    /// Send a frame to the server and returns a receiver to get the response
-    pub fn send_frame(&mut self, frame: &mut Frame) -> Result<Receiver<Frame>, String> {
-        self.connection.send_frame(frame)
-    }
-
-    /// Read the frame response from the server
-    pub fn read_frame_response(&mut self) -> Result<(), String> {
-        self.connection.read_frame_response()
-    }
-
+    
     /// Send a frame to the server and returns the response
     pub fn send_and_receive(&mut self, frame: &mut Frame) -> Result<Frame, String> {
         self.connection.send_and_receive(frame)

@@ -12,9 +12,7 @@ impl UIClient {
     pub fn use_aviation_keyspace(&self, client: &mut CassandraClient) -> Result<(), String> {
         let frame_id = STREAM as usize;
         let mut frame = self.get_strong_query_frame(client, "USE aviation;", &frame_id)?;
-        let rx = client.send_frame(&mut frame)?;
-        client.read_frame_response()?;
-        let _ = rx.recv().map_err(|_| "Error receiving the response".to_string())?;
+        client.send_and_receive(&mut frame)?;
         Ok(())
     }
 
