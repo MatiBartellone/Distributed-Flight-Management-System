@@ -27,7 +27,7 @@ impl ExecuteExecutable {
         }
     }
 
-    pub fn get_query(&self) -> Result<PrepareQuery, Errors> {
+    fn get_query(&self) -> Result<PrepareQuery, Errors> {
         if !Path::new(PREPARE_FILE).exists() {
             File::create(&PREPARE_FILE)
                 .map_err(|_| ServerError(String::from("Unable to create file")))?;
@@ -49,7 +49,7 @@ impl ExecuteExecutable {
         Err(Invalid(String::from("Query id not found")))
     }
 
-    pub fn delete_id(&self) -> Result<(), Errors> {
+    fn delete_id(&self) -> Result<(), Errors> {
         let file = File::open(PREPARE_FILE)
             .map_err(|_| ServerError(String::from("could not open prepare file")))?;
         let temp_path = format!("{}.tmp", PREPARE_FILE);

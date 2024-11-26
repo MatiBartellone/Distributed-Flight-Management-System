@@ -67,7 +67,7 @@ impl DataAccess {
 
     /// inserts the given row appending it to the end of file given by table_name
     ///
-    /// Before inserting, the previous existance of the primary key is checked
+    /// Before inserting, the previous existence of the primary key is checked
     pub fn insert(&self, table_name: &String, row: &Row) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
         if self.pk_already_exists(&path, &row.primary_key)? {

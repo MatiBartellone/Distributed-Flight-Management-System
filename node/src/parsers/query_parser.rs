@@ -32,11 +32,13 @@ impl Parser for QueryParser {
     }
 }
 
+/// given a raw string representing a query, returns the tokenized query using the lexer.
 pub fn query_lexer(string: String) -> Result<Vec<Token>, Errors> {
     let message = standardize(&string);
     tokenize(message)
 }
 
+/// given a tokenized query, matching the query type, returns the matching Query trait implementation
 pub fn query_parser(tokens: Vec<Token>) -> Result<Box<dyn Query>, Errors> {
     let mut tokens_iter = tokens.into_iter().peekable();
 
