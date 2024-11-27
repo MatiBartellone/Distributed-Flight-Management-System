@@ -51,8 +51,8 @@ fn load_private_key(path: impl AsRef<Path>) -> Result<PrivateKeyDer<'static>, St
 }
 
 pub fn create_server_config() -> Result<ServerConfig, String> {
-    let certs = load_certs(&"cert_path")?;
-    let private_key = load_private_key(&"key_path")?;
+    let certs = load_certs(&"src/certificates/certificate.pem")?;
+    let private_key = load_private_key(&"src/certificates/private_key.pem")?;
 
     let config = ServerConfig::builder()
         .with_no_client_auth()
