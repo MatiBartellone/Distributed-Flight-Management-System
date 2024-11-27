@@ -106,11 +106,11 @@ impl Row {
 pub struct Column {
     pub(crate) column_name: String,
     pub(crate) value: Literal,
-    pub(crate) time_stamp: String,
+    pub(crate) time_stamp: u64,
 }
 
 impl Column {
-    pub fn new(column_name: &String, value: &Literal, time_stamp: String) -> Self {
+    pub fn new(column_name: &String, value: &Literal, time_stamp: u64) -> Self {
         Self {
             column_name: String::from(column_name),
             value: Literal {
@@ -128,7 +128,7 @@ impl Column {
                 value: column.value.value.to_string(),
                 data_type: column.value.data_type.clone(),
             },
-            time_stamp: column.time_stamp.to_string(),
+            time_stamp: column.time_stamp,
         }
     }
 }

@@ -4,23 +4,14 @@ use std::fs::{File, OpenOptions};
 use std::io::{Seek, SeekFrom, Write};
 //use std::sync::{Arc, Mutex, MutexGuard};
 use super::{keyspace::Keyspace, table::Table};
+use crate::utils::functions::{deserialize_from_str, write_all_to_file};
 use crate::utils::primary_key::PrimaryKey;
 use std::{collections::HashMap, io::Read};
+
 #[derive(Debug)]
 pub struct KeyspaceMetaDataAccess;
 
 impl KeyspaceMetaDataAccess {
-    /*pub fn new() -> Result<Self, Errors> {
-        let file = OpenOptions::new()
-        .read(true)  // Permitir lectura
-        .write(true) // Permitir escritura
-        .create(true) // Crear el archivo si no existe
-        .open(PATH)
-        .map_err(|_| Errors::ServerError("Unable to open or create file".to_string()))?;
-        let mutex = Arc::new(Mutex::new(file));
-        Ok(Self { file: mutex })
-    } */
-
     fn open_file(path: String) -> Result<File, Errors> {
         let file = OpenOptions::new()
             .read(true)
@@ -95,7 +86,6 @@ impl KeyspaceMetaDataAccess {
     }
 
     pub fn drop_keyspace(&self, path: String, name: &str) -> Result<(), Errors> {
-        //let (mut file, mut keyspaces) = self.lock_and_extract_keyspaces()?;
         let mut file = Self::open_file(path)?;
         let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
         keyspaces.remove(name);
@@ -109,7 +99,6 @@ impl KeyspaceMetaDataAccess {
         keyspace_name: &str,
         table_name: &str,
     ) -> Result<HashMap<String, DataType>, Errors> {
-        //let (mut file, mut keyspaces) = self.lock_and_extract_keyspaces()?;
         let mut file = Self::open_file(path)?;
         let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
         let table = get_table_mutable(&mut keyspaces, keyspace_name, table_name)?;
@@ -123,7 +112,6 @@ impl KeyspaceMetaDataAccess {
         keyspace_name: &str,
         table_name: &str,
     ) -> Result<PrimaryKey, Errors> {
-        //let (mut file, mut keyspaces) = self.lock_and_extract_keyspaces()?;
         let mut file = Self::open_file(path)?;
         let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
         let table = get_table_mutable(&mut keyspaces, keyspace_name, table_name)?;
@@ -139,7 +127,6 @@ impl KeyspaceMetaDataAccess {
         primary_key: PrimaryKey,
         columns: HashMap<String, DataType>,
     ) -> Result<(), Errors> {
-        //let (mut file, mut keyspaces) = self.lock_and_extract_keyspaces()?;
         let mut file = Self::open_file(path)?;
         let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
         let keyspace = get_keyspace_mutable(&mut keyspaces, keyspace_name)?;
@@ -230,9 +217,7 @@ impl KeyspaceMetaDataAccess {
         let existing_keyspaces: HashMap<String, Keyspace> = if contents.is_empty() {
             HashMap::new()
         } else {
-            serde_json::from_str(&contents).map_err(|_| {
-                Errors::ServerError("Failed to deserialize existing keyspaces".to_string())
-            })?
+            deserialize_from_str(&contents)?
         };
         Ok(existing_keyspaces)
     }
@@ -246,12 +231,10 @@ impl KeyspaceMetaDataAccess {
         file.set_len(0)
             .map_err(|_| Errors::ServerError("Failed to truncate file".to_string()))?;
         Self::reset_pointer(file)?;
-
-        file.write_all(json_data.as_bytes())
-            .map_err(|_| Errors::ServerError("Failed to write data to file".to_string()))?;
+        write_all_to_file(file, json_data.as_bytes())?;
         file.flush()
             .map_err(|_| Errors::ServerError("Failed to flush data to file".to_string()))?;
-        //self.reset_pointer(file)?;
+
         Ok(())
     }
 
@@ -320,10 +303,7 @@ mod tests {
         if contents.is_empty() {
             return Err(Errors::ServerError("The file is empty".to_string()));
         }
-        let existing_keyspaces: HashMap<String, Keyspace> = serde_json::from_str(&contents)
-            .map_err(|_| {
-                Errors::ServerError("Failed to deserialize existing keyspaces".to_string())
-            })?;
+        let existing_keyspaces: HashMap<String, Keyspace> = deserialize_from_str(&contents)?;
         Ok(existing_keyspaces)
     }
 

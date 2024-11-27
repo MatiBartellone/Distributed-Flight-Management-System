@@ -11,7 +11,7 @@ use crate::queries::if_clause::{and_if, comparison_if, not_if, or_if, IfClause};
 use crate::utils::constants::*;
 use crate::utils::errors::Errors;
 use crate::utils::token_conversor::{
-    get_comparision_operator, get_literal, get_next_value, precedence,
+    get_comparison_operator, get_literal, get_next_value, precedence,
 };
 
 pub struct IfClauseParser;
@@ -44,7 +44,7 @@ fn if_comparision(
     tokens: &mut Peekable<IntoIter<Token>>,
     column_name: String,
 ) -> Result<IfClause, Errors> {
-    let operator = get_comparision_operator(tokens)?;
+    let operator = get_comparison_operator(tokens)?;
     let literal = get_literal(tokens)?;
     let expression = comparison_if(&column_name, operator, literal);
     if_and_or(tokens, expression)

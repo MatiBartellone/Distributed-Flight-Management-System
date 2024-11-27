@@ -1,6 +1,6 @@
 use crate::executables::executable::Executable;
-use crate::node_communication::query_delegator::QueryDelegator;
 use crate::queries::query::{Query, QueryEnum};
+use crate::query_delegation::query_delegator::QueryDelegator;
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
