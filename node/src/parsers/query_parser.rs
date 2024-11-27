@@ -2,9 +2,9 @@ use crate::executables::executable::Executable;
 use crate::executables::query_executable::QueryExecutable;
 use crate::parsers::parser::Parser;
 use crate::queries::query::Query;
-use crate::utils::bytes_cursor::BytesCursor;
+use crate::utils::types::bytes_cursor::BytesCursor;
 use crate::utils::errors::Errors;
-use crate::utils::token_conversor::get_next_value;
+use crate::utils::types::token_conversor::get_next_value;
 
 use super::query_parsers::alter_table_parser::AlterTableParser;
 use super::query_parsers::delete_query_parser::DeleteQueryParser;

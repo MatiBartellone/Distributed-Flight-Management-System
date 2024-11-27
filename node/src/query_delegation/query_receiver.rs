@@ -6,7 +6,7 @@ use crate::utils::functions::bind_listener;
 use crate::utils::tls_stream::{
     create_server_config, flush_stream, get_stream_owned, read_exact_from_stream, write_to_stream
 };
-use crate::utils::node_ip::NodeIp;
+use crate::utils::types::node_ip::NodeIp;
 use std::io::Write;
 use std::net::TcpStream;
 use std::sync::Arc;

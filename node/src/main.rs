@@ -5,16 +5,21 @@ use node::hinted_handoff::hints_sender::HintsSender;
 use node::node_initializer::NodeInitializer;
 use node::utils::constants::NODES_METADATA_PATH;
 use node::utils::errors::Errors;
-use node::utils::node_ip::NodeIp;
-use node::utils::tls_stream::{create_server_config, get_stream_owned, use_node_meta_data};
-use std::net::TcpListener;
-use std::sync::Arc;
-use std::thread;
+use node::utils::tls_stream::use_node_meta_data;
+use node::utils::types::node_ip::NodeIp;
+use std::net::{TcpListener, TcpStream};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
+use std::{env, thread};
+use node::utils::config_constants::MAX_CLIENTS;
+use crate::mpsc::{Receiver, Sender};
+use node::utils::tls_stream::{create_server_config, get_stream_owned};
+use rustls::{StreamOwned, ServerConnection};
 
 fn main() -> Result<(), Errors> {
-    let node_data = NodeInitializer::new().unwrap();
+    let (uses_config, config_file) = get_args();
+    let node_data = NodeInitializer::new(uses_config, config_file).unwrap();
 
     let needs_booting = node_data.set_cluster().unwrap();
 
@@ -28,6 +33,20 @@ fn main() -> Result<(), Errors> {
     start_gossip().expect("Error starting gossip");
 
     set_node_listener(node_data.get_ip())
+}
+
+fn get_args() -> (bool, String) {
+    let args: Vec<String> = env::args().collect();
+    match args.len() {
+        2 => {
+            let first_arg = &args[1];
+            match first_arg.as_str() {
+                "config" => (true, String::new()),
+                x => (true, x.to_string()),
+            }
+        }
+        _ => (false, String::new()),
+    }
 }
 
 fn start_gossip() -> Result<(), Errors> {
@@ -50,24 +69,26 @@ fn start_gossip() -> Result<(), Errors> {
 
 fn set_node_listener(ip: NodeIp) -> Result<(), Errors> {
     let listener = TcpListener::bind(ip.get_std_socket()).expect("Error binding socket");
-    println!("Server listening in {}", ip.get_string_ip());
+    println!("Server listening on {}", ip.get_string_ip());
+
+    let (tx, rx) = mpsc::channel();
+    let rx = Arc::new(Mutex::new(rx));
+
+    start_thread_pool(Arc::clone(&rx));
+
+    accept_connections(listener, tx)
+}
+
+fn accept_connections(listener: TcpListener, tx: Sender<StreamOwned<ServerConnection, TcpStream>>) -> Result<(), Errors> {
     let config = create_server_config()?;
     for incoming in listener.incoming() {
         match incoming {
             Ok(stream) => {
                 println!("Client connected: {:?}", stream.peer_addr());
-                let stream = match get_stream_owned(stream, Arc::new(config.clone())){
-                    Ok(stream) => stream,
-                    Err(e) => {
-                        println!("Error creating stream: {}", e);
-                        continue;
-                    }
-                };
-                thread::spawn(move || {
-                    if let Err(e) = ClientHandler::handle_client(stream) {
-                        println!("{}", e);
-                    }
-                });
+                let stream = get_stream_owned(stream, Arc::new(config.clone()))?;
+                if let Err(e) = tx.send(stream) {
+                    println!("Error sending stream to thread pool: {}", e);
+                }
             }
             Err(e) => {
                 println!("Error accepting connection: {}", e);
@@ -75,4 +96,25 @@ fn set_node_listener(ip: NodeIp) -> Result<(), Errors> {
         }
     }
     Ok(())
+}
+
+fn start_thread_pool(rx: Arc<Mutex<Receiver<StreamOwned<ServerConnection, TcpStream>>>>) {
+    for _ in 0..MAX_CLIENTS {
+        let rx = Arc::clone(&rx);
+        thread::spawn(move || loop {
+            let stream = {
+                let lock = rx.lock().unwrap();
+                lock.recv()
+            };
+
+            match stream {
+                Ok(stream) => {
+                    if let Err(e) = ClientHandler::handle_client(stream) {
+                        println!("Error handling client: {}", e);
+                    }
+                }
+                _ => break,
+            }
+        });
+    }
 }

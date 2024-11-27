@@ -4,7 +4,7 @@ use crate::parsers::parser_factory::ParserFactory;
 use crate::response_builders::error_builder::ErrorBuilder;
 use crate::utils::constants::CLIENT_METADATA_PATH;
 use crate::utils::errors::Errors;
-use crate::utils::frame::Frame;
+use crate::utils::types::frame::Frame;
 use crate::utils::parser_constants::{AUTH_RESPONSE, AUTH_SUCCESS, STARTUP};
 use crate::utils::tls_stream::use_client_meta_data;
 use std::net::TcpStream;

@@ -1,17 +1,18 @@
 use rustls::{ServerConnection, StreamOwned};
 
 use crate::hinted_handoff::stored_query::StoredQuery;
-use crate::utils::constants::{HINTED_HANDOFF_TIMEOUT_SECS, NODES_METADATA_PATH};
+use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::functions::bind_listener;
 use crate::utils::tls_stream::{
     create_server_config, flush_stream, get_stream_owned, read_exact_from_stream, use_node_meta_data, write_to_stream
 };
-use crate::utils::node_ip::NodeIp;
+use crate::utils::types::node_ip::NodeIp;
 use std::net::TcpStream;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use crate::utils::config_constants::HINTED_HANDOFF_TIMEOUT_SECS;
 
 pub struct HintsReceiver;
 

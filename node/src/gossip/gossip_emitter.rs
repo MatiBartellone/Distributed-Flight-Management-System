@@ -4,7 +4,7 @@ use crate::meta_data::nodes::node::State::Booting;
 use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{deserialize_from_slice, serialize_to_string};
-use crate::utils::node_ip::NodeIp;
+use crate::utils::types::node_ip::NodeIp;
 use crate::utils::tls_stream::{connect_to_socket, read_exact_from_stream, use_node_meta_data, write_to_stream};
 use rand::seq::SliceRandom;
 use rustls::{ServerConnection, StreamOwned};

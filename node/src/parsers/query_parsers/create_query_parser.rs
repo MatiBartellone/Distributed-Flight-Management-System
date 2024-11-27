@@ -2,13 +2,12 @@ use crate::{
     parsers::tokens::token::Token,
     queries::query::Query,
     utils::{
-        constants::{KEYSPACE, TABLE},
         errors::Errors,
-        token_conversor::get_next_value,
+        types::token_conversor::get_next_value,
     },
 };
 use Token::*;
-
+use crate::utils::parser_constants::{KEYSPACE, TABLE};
 use super::{
     create_keyspace_parser::CreateKeyspaceParser, create_table_query_parser::CreateTableQueryParser,
 };
@@ -43,14 +42,14 @@ mod tests {
             tokens::{data_type::DataType, literal::Literal, terms::Term, token::Token},
         },
         utils::{
-            constants::COMMA,
             errors::Errors,
-            token_conversor::{
+            types::token_conversor::{
                 create_identifier_token, create_paren_list_token, create_reserved_token,
                 create_symbol_token, create_token_literal,
             },
         },
     };
+    use crate::utils::parser_constants::COMMA;
 
     #[test]
     fn test_create_keyspace() {

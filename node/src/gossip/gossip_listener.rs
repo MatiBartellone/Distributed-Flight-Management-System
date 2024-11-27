@@ -7,7 +7,7 @@ use crate::utils::errors::Errors;
 use crate::utils::functions::{
     deserialize_from_slice, serialize_to_string
 };
-use crate::utils::node_ip::NodeIp;
+use crate::utils::types::node_ip::NodeIp;
 use crate::utils::tls_stream::{read_exact_from_stream, start_listener, use_node_meta_data, write_to_stream};
 use std::net::TcpStream;
 
@@ -108,7 +108,7 @@ impl GossipListener {
             || node1.state != node2.state
             || node1.is_seed != node2.is_seed
         {
-            if node1.get_timestamp() > node2.get_timestamp() {
+            if node1.get_timestamp().is_newer_than(node2.get_timestamp()) {
                 return 1;
             }
             return -1;

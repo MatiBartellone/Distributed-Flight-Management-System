@@ -4,7 +4,7 @@ use crate::meta_data::nodes::node::Node;
 use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{deserialize_from_slice, serialize_to_string};
-use crate::utils::node_ip::NodeIp;
+use crate::utils::types::node_ip::NodeIp;
 use crate::utils::tls_stream::{flush_stream, read_from_stream_no_zero, start_listener, use_node_meta_data, write_to_stream};
 use std::net::TcpStream;
 

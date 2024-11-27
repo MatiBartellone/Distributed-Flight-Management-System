@@ -2,7 +2,7 @@ use crate::auth::authenticator::Authenticator;
 use crate::executables::executable::Executable;
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::errors::Errors;
-use crate::utils::frame::Frame;
+use crate::utils::types::frame::Frame;
 use crate::utils::parser_constants::{AUTH_CHALLENGE, AUTH_SUCCESS};
 
 pub struct AuthResponseExecutable {
@@ -33,15 +33,15 @@ impl Executable for AuthResponseExecutable {
     fn execute(&mut self, request: Frame) -> Result<Frame, Errors> {
         let user = self.user.to_string();
         let password = self.password.to_string();
-        let ok = self.authenticator.validate_credentials(user, password)?;
 
-        let mut new_body: Vec<u8> = Vec::new();
-        let mut opcode: u8 = AUTH_CHALLENGE;
-        if ok {
-            new_body = self.get_token();
-            opcode = AUTH_SUCCESS;
+        if self.authenticator.validate_credentials(user, password)? {
+            let body = self.get_token();
+            let ok_response = FrameBuilder::build_response_frame(request, AUTH_SUCCESS, body)?;
+            return Ok(ok_response);
         }
-        FrameBuilder::build_response_frame(request, opcode, new_body)
+
+        let response = FrameBuilder::build_response_frame(request, AUTH_CHALLENGE, Vec::new())?;
+        Ok(response)
     }
 }
 

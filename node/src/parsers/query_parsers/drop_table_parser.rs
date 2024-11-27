@@ -1,10 +1,10 @@
-use crate::utils::constants::*;
 use crate::{
     parsers::tokens::token::Token,
     queries::drop_table_query::DropTableQuery,
-    utils::{errors::Errors, token_conversor::get_next_value},
+    utils::{errors::Errors, types::token_conversor::get_next_value},
 };
 use std::{iter::Peekable, vec::IntoIter};
+use crate::utils::parser_constants::{EXISTS, IF};
 
 pub struct DropTableQueryParser;
 

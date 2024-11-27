@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 use crate::parsers::tokens::data_type::DataType;
-use crate::utils::primary_key::PrimaryKey;
+use crate::utils::types::primary_key::PrimaryKey;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Table {
