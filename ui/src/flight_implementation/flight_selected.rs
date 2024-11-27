@@ -32,7 +32,6 @@ pub struct FlightTracking {
 
 
 impl FlightSelected {
-<<<<<<< HEAD
     pub fn new(info: FlightTracking, status: FlightStatus) -> Self {
         Self { info, status }
     }

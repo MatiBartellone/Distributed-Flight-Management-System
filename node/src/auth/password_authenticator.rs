@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Read;
 
-<<<<<<< HEAD
 use argon2::{
     password_hash::{
         rand_core::OsRng,
@@ -13,8 +12,6 @@ use argon2::{
     },
     Argon2, PasswordHash, PasswordVerifier
 };
-
-use super::authenticator::Authenticator;
 
 const CREDENTIALS: &str = "src/auth/credentials.json";
 
@@ -84,14 +81,9 @@ impl PasswordAuthenticator {
         file.read_to_string(&mut data)
             .map_err(|_| Errors::ServerError(String::from("Failed to read credentials")))?;
 
-<<<<<<< HEAD
-        let credentials: Vec<Credential> = serde_json::from_str(&data)
-            .map_err(|_| Errors::ServerError(String::from("Failed to get credentials")))?;
-=======
         let credentials: Result<Vec<Credential>, Errors> = deserialize_from_str(&data);
->>>>>>> main
 
-        Ok(credentials)
+        Ok(credentials?)
     }
 
     pub fn create_user(&self, user: &str, pass: &str) -> Result<(), Errors> {

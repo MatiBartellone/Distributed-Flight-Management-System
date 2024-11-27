@@ -50,6 +50,7 @@ fn start_gossip() -> Result<(), Errors> {
 fn set_node_listener(ip: NodeIp) {
     let listener = TcpListener::bind(ip.get_std_socket()).expect("Error binding socket");
     println!("Server listening in {}", ip.get_string_ip());
+    let config = 
     for incoming in listener.incoming() {
         match incoming {
             Ok(stream) => {
