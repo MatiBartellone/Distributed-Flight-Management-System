@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    data_access::row::Row, parsers::tokens::data_type::DataType,
+    data_access::row::{Row, Column}, parsers::tokens::data_type::DataType,
     utils::types_to_bytes::TypesToBytes, meta_data::meta_data_handler::MetaDataHandler,
 };
 
@@ -51,10 +51,10 @@ impl Response {
 
     pub fn rows(rows: Vec<Row>, keyspace: &str, table: &str) -> Result<Vec<u8>, Errors> {
         let mut encoder = TypesToBytes::default();
-        Response::write_protocol_response(&rows, keyspace, table, &mut encoder)?;
+        Response::write_rows(&rows, &mut encoder)?;
         let division_offset = encoder.length();
         //Division
-        Response::write_meta_data_response(&rows, keyspace, table, &mut encoder)?;
+        Response::write_meta_data_response(&mut encoder, keyspace, table, )?;
         encoder.write_int(division_offset as i32).map_err(Errors::TruncateError)?;
         Ok(encoder.into_bytes())
     }
@@ -65,7 +65,7 @@ impl Response {
         Ok(encoder.into_bytes())
     }
 
-    pub fn write_protocol_response(rows: &Vec<Row>, keyspace: &str, table: &str, encoder: &mut TypesToBytes) -> Result<(), Errors>{
+    fn write_protocol_response(rows: &Vec<Row>, keyspace: &str, table: &str, encoder: &mut TypesToBytes) -> Result<(), Errors>{
         encoder.write_int(0x0002).map_err(Errors::TruncateError)?;
         encoder.write_int(0x0001).map_err(Errors::TruncateError)?;
         if let Some(first_row) = rows.first() {
@@ -87,13 +87,29 @@ impl Response {
         Ok(())
     }
 
-    fn write_meta_data_response(rows: &Vec<Row>, keyspace: &str, table: &str,encoder: &mut TypesToBytes) -> Result<(), Errors> {
+    fn write_rows(rows: &Vec<Row>, encoder: &mut TypesToBytes) -> Result<(), Errors> {
+        encoder.write_int(0x0002).map_err(Errors::TruncateError)?;
+        encoder.write_short(rows.len() as u16).map_err(Errors::TruncateError)?;
         for row in rows {
+            //Write columns
+            encoder.write_short(row.columns.len() as u16).map_err(Errors::TruncateError)?;
             for column in &row.columns {
-                let time_stamp_bytes = column.time_stamp;
-                encoder.write_u64(time_stamp_bytes).map_err(Errors::TruncateError)?;
+                Response::write_column(column, encoder)?;
             }
+            //Write primarys keys values
+            encoder.write_short(row.primary_key.len() as u16).map_err(Errors::TruncateError)?;
+            for pk_value in &row.primary_key {
+                encoder.write_string(pk_value).map_err(Errors::TruncateError)?;
+            }
+            //Write deleted
+            //hacer con mati
         }
+        Ok(())
+    }
+
+    fn write_meta_data_response(encoder: &mut TypesToBytes, keyspace: &str, table: &str) -> Result<(), Errors> {
+        encoder.write_string(keyspace).map_err(Errors::TruncateError)?;
+        encoder.write_string(table).map_err(Errors::TruncateError)?;
         let pks = get_pks(keyspace, table)?;
         encoder.write_short(pks.len() as u16).map_err(Errors::TruncateError)?;
         for (pk, type_) in pks {
@@ -101,12 +117,18 @@ impl Response {
             let data_type_id = Response::data_type_to_byte(type_);
             encoder.write_i16(data_type_id).map_err(Errors::TruncateError)?;
         }
-        for row in rows {
-            for pk_value in &row.primary_key {
-                encoder.write_string(pk_value).map_err(Errors::TruncateError)?;
-            }
-        }
         Ok(())
+    }
+
+    fn write_column(column: &Column, encoder: &mut TypesToBytes) -> Result<(), Errors> {
+        //Write column name
+        encoder.write_string(&column.column_name).map_err(Errors::TruncateError)?;
+        //Write column value->literal
+        encoder.write_string(&column.value.value).map_err(Errors::TruncateError)?;
+        let data_type_id = Response::data_type_to_byte(column.value.data_type.clone());
+        encoder.write_i16(data_type_id).map_err(Errors::TruncateError)?;
+        //Write time stamp
+        encoder.write_u64(column.time_stamp).map_err(Errors::TruncateError)
     }
 
     fn data_type_to_byte(data: DataType) -> i16 {
@@ -132,9 +154,13 @@ fn get_pks(keyspace: &str, table: &str) -> Result<HashMap<String, DataType>, Err
 }
 
 fn filter_keys(vec: Vec<String>, map: HashMap<String, DataType>) -> HashMap<String, DataType> {
-    map.into_iter()
-        .filter(|(key, _)| vec.contains(key))
-        .collect()
+    let mut result: HashMap<String, DataType> = HashMap::new();
+    for elem in vec {
+        if let Some(value) = map.get(&elem) {
+            result.insert(elem, value.clone());
+        }
+    }
+    result
 }
 
 #[cfg(test)]

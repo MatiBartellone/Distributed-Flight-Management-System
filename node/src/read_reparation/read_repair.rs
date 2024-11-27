@@ -31,11 +31,10 @@ impl ReadRepair {
     } 
 
     pub fn get_response(&mut self) -> Result<Vec<u8>, Errors> {
-        if self.repair_innecesary() {
+        if self.repair_innecesary()? {
             return self.get_first_response();
         }
-        let better_response = self.get_better_response()?;
-        self.save_best(better_response)?;
+        self.get_better_response()?;
         self.repair()?;
         self.responses_bytes
         .get(BEST)
@@ -44,16 +43,10 @@ impl ReadRepair {
     }
 
 
-    fn save_best(&mut self, best: Vec<u8>) -> Result<(), Errors>{
-        let copy = self.meta_data_bytes.values().next().unwrap_or(&Vec::new()).to_vec();
-        self.responses_bytes.insert(BEST.to_string(), best);
-        self.meta_data_bytes.insert(BEST.to_string(), copy);
-        Ok(())
-    }
-
     fn repair(&self) -> Result<(), Errors> {
-        let better_response = self.responses_bytes.get(BEST).ok_or_else(|| Errors::TruncateError("No keys found".to_string()))?;
-        for (ip, response) in &self.responses_bytes {
+        let better_response = self.cast_to_protocol_row(BEST)?;
+        for (ip, _) in &self.responses_bytes {
+            let response = self.cast_to_protocol_row(ip)?;
             if response != better_response {
                 self.repair_node(ip)?;
             }
@@ -62,9 +55,9 @@ impl ReadRepair {
     }
 
     fn repair_node(&self, ip: &str) -> Result<(), Errors> {
-        let node_rows = self.read_response(ip.to_string())?;
-        let best = self.read_response(BEST.to_string())?;
-        let (keyspace, table) = self.get_keyspace_table(BEST.to_string())?;
+        let node_rows = self.read_rows(ip)?;
+        let best = self.read_rows(BEST)?;
+        let (keyspace, table) = self.get_keyspace_table(BEST)?;
         let mut change_row = false;
         for (row, better_row) in node_rows.iter().zip(best){
             let mut query : Vec<Token> = Vec::new();
@@ -82,7 +75,7 @@ impl ReadRepair {
                 }
             } 
             if change_row {
-                let pks = self.get_pks_headers(BEST.to_string())?;
+                let pks = self.get_pks_headers(BEST)?;
                 query.push(create_identifier_token("WHERE"));
                 let mut sub_where: Vec<Token> = Vec::new();
                 for (i, (pks_header, pk_value)) in pks.iter().zip(row.primary_key.clone()).enumerate() {
@@ -104,38 +97,45 @@ impl ReadRepair {
     }
     
 
-    fn get_better_response(&mut self) -> Result<Vec<u8>, Errors> {
+    fn get_better_response(&mut self) -> Result<(), Errors> {
         let mut ips = self.responses_bytes.keys();
         let first_ip = ips.next().ok_or_else(|| Errors::ServerError("No response found".to_string()))?;
-        let mut rows = self.read_response(first_ip.to_string())?;
+        let mut rows = self.read_rows(first_ip)?;
         for ip in ips {
-            let next_response = self.read_response(ip.to_string())?;
+            let next_response = self.read_rows(ip)?;
             compare_response(&mut rows, next_response);
         }
-        let (keyspace, table) = self.get_keyspace_table(first_ip.to_string())?;
-        Response::protocol_row(rows, &keyspace, &table)
+        let (keyspace, table) = self.get_keyspace_table(first_ip)?;
+        let betters = Response::rows(rows, &keyspace, &table)?;
+        let (best_row, best_meta_data) = ReadRepair::split_bytes(&betters)?;
+        self.responses_bytes.insert(BEST.to_owned(), best_row);
+        self.meta_data_bytes.insert(BEST.to_owned(), best_meta_data);
+        Ok(())
     }    
 
-    fn read_response(&self, ip: String) -> Result<Vec<Row>, Errors> {
-        let mut translate = RowResponse::new();
-        let protocol = self.responses_bytes.get(&ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in responses_bytes", ip)))?;
-        let meta_data = self.meta_data_bytes.get(&ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in meta_data_bytes", ip)))?;
-        translate.read_row_response(protocol.to_vec(), meta_data.to_vec())
+    fn read_rows(&self, ip: &str) -> Result<Vec<Row>, Errors> {
+        let protocol = self.responses_bytes.get(ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in responses_bytes", ip)))?;
+        RowResponse::read_rows(protocol.to_vec())
     }
 
-    fn get_keyspace_table(&self, ip: String) -> Result<(String, String), Errors> {
-        let mut translate = RowResponse::new();
-        let protocol = self.responses_bytes.get(&ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in responses_bytes", ip)))?;
-        let meta_data = self.meta_data_bytes.get(&ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in meta_data_bytes", ip)))?;
-        translate.read_keyspace_table(protocol.to_vec(), meta_data.to_vec())
+    fn get_keyspace_table(&self, ip: &str) -> Result<(String, String), Errors> {
+        let bytes = self.meta_data_bytes.get(ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in meta_data_bytes", ip)))?;
+        let data_response = RowResponse::read_meta_data_response(bytes.to_vec())?;
+        Ok((data_response.keyspace().to_string(), data_response.table().to_string()))
     }
 
-    fn get_pks_headers(&self, ip: String) -> Result<HashMap<String, DataType>, Errors> {
-        let mut translate = RowResponse::new();
-        let protocol = self.responses_bytes.get(&ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in responses_bytes", ip)))?;
-        let meta_data = self.meta_data_bytes.get(&ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in meta_data_bytes", ip)))?;
-        translate.read_pk_headers(protocol.to_vec(), meta_data.to_vec())
+    fn get_pks_headers(&self, ip: &str) -> Result<HashMap<String, DataType>, Errors> {
+        let bytes = self.meta_data_bytes.get(ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in meta_data_bytes", ip)))?;
+        let data_response = RowResponse::read_meta_data_response(bytes.to_vec())?;
+        Ok(data_response.headers_pks().clone())
     }
+
+    fn cast_to_protocol_row(&self, ip: &str) -> Result<Vec<u8>, Errors> {
+        let rows = self.read_rows(ip)?;
+        let (keyspace, table) = self.get_keyspace_table(ip)?;
+        Response::protocol_row(rows, &keyspace, &table)
+    }
+
 
     fn get_first_response(&self) -> Result<Vec<u8>, Errors> {
         self.responses_bytes
@@ -145,23 +145,20 @@ impl ReadRepair {
             .ok_or_else(|| Errors::ServerError(String::from("No response found")))
     }
 
-    fn repair_innecesary(&self) -> bool {
-        if self.responses_bytes.is_empty() {
-            return true;
+    fn repair_innecesary(&self) -> Result<bool, Errors> {
+        let mut responses: Vec<Vec<u8>> = Vec::new();
+        for (ip, _) in &self.responses_bytes {
+            responses.push(self.cast_to_protocol_row(&ip)?)
         }
-        let mut iterator = self.responses_bytes.values();
-        let first_response = match iterator.next() {
-            Some(response) => response,
-            None => return true, 
-        };
-    
-        let all_equal = self.responses_bytes.values().all(|response| response == first_response);
-        if all_equal {
-            return true;
+        if responses.is_empty() {
+            return Ok(true); 
         }
-        
-        false
+        let first_response = &responses[0];
+        let all_equal = responses.iter().all(|response| response == first_response);
+        Ok(all_equal)
     }
+
+    
 
     fn split_bytes(data: &[u8]) -> Result<(Vec<u8>, Vec<u8>), Errors> {
         let division_offset = &data[data.len() - 4..];
@@ -172,6 +169,8 @@ impl ReadRepair {
         Ok((data_section, timestamps_section))
     }
 }
+
+
 
 
 fn compare_response(original: &mut [Row], new: Vec<Row>) {
