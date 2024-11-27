@@ -36,10 +36,8 @@ impl ReadRepair {
         }
         self.get_better_response()?;
         self.repair()?;
-        self.responses_bytes
-        .get(BEST)
-        .cloned() 
-        .ok_or_else(|| Errors::TruncateError("No keys found".to_string())) 
+        self.cast_to_protocol_row(BEST)
+        
     }
 
 
@@ -138,11 +136,11 @@ impl ReadRepair {
 
 
     fn get_first_response(&self) -> Result<Vec<u8>, Errors> {
-        self.responses_bytes
-            .values()
-            .next()
-            .cloned()
-            .ok_or_else(|| Errors::ServerError(String::from("No response found")))
+        if let Some((ip, _)) = self.responses_bytes.iter().next() {
+            self.cast_to_protocol_row(ip)
+        } else {
+            Err(Errors::ServerError("There is not responses".to_string())) 
+        }
     }
 
     fn repair_innecesary(&self) -> Result<bool, Errors> {
