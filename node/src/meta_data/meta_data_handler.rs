@@ -2,11 +2,10 @@ use crate::meta_data::clients::meta_data_client::ClientMetaDataAcces;
 use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess;
 use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{
-    connect_to_socket, deserialize_from_slice, flush_stream, get_own_ip, read_exact_from_stream,
-    read_from_stream_no_zero, serialize_to_string, start_listener, write_to_stream,
-};
+use crate::utils::functions::{deserialize_from_slice, get_own_ip, serialize_to_string};
 use crate::utils::node_ip::NodeIp;
+use crate::utils::tls_stream::{connect_to_socket, flush_stream, read_exact_from_stream, read_from_stream_no_zero, start_listener, write_to_stream};
+use rustls::{ServerConnection, StreamOwned};
 use serde::{Deserialize, Serialize};
 use std::net::TcpStream;
 
@@ -29,7 +28,7 @@ impl MetaDataHandler {
         start_listener(ip.get_meta_data_access_socket(), Self::handle_connection)
     }
 
-    fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
+    fn handle_connection(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<(), Errors> {
         let meta_data_handler = MetaDataHandler {};
         let serialized = serialize_to_string(&meta_data_handler)?;
         flush_stream(stream)?;
@@ -39,11 +38,11 @@ impl MetaDataHandler {
         Ok(())
     }
 
-    pub fn establish_connection() -> Result<TcpStream, Errors> {
+    pub fn establish_connection() -> Result<StreamOwned<ServerConnection, TcpStream>, Errors> {
         connect_to_socket(get_own_ip()?.get_meta_data_access_socket())
     }
 
-    pub fn get_instance(stream: &mut TcpStream) -> Result<MetaDataHandler, Errors> {
+    pub fn get_instance(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<MetaDataHandler, Errors> {
         flush_stream(stream)?;
         deserialize_from_slice(read_from_stream_no_zero(stream)?.as_slice())
     }

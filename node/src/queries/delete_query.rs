@@ -1,9 +1,9 @@
 use super::{query::Query, where_logic::where_clause::WhereClause};
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
-    check_table_name, get_long_string_from_str, get_partition_key_from_where, split_keyspace_table,
-    use_data_access,
+    check_table_name, get_long_string_from_str, get_partition_key_from_where, split_keyspace_table
 };
+use crate::utils::tls_stream::use_data_access;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 

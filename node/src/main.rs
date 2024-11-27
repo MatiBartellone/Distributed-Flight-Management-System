@@ -5,14 +5,15 @@ use node::hinted_handoff::hints_sender::HintsSender;
 use node::node_initializer::NodeInitializer;
 use node::utils::constants::NODES_METADATA_PATH;
 use node::utils::errors::Errors;
-use node::utils::functions::use_node_meta_data;
 use node::utils::node_ip::NodeIp;
+use node::utils::tls_stream::{create_server_config, get_stream_owned, use_node_meta_data};
 use std::net::TcpListener;
+use std::sync::Arc;
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 
-fn main() {
+fn main() -> Result<(), Errors> {
     let node_data = NodeInitializer::new().unwrap();
 
     let needs_booting = node_data.set_cluster().unwrap();
@@ -26,7 +27,7 @@ fn main() {
 
     start_gossip().expect("Error starting gossip");
 
-    set_node_listener(node_data.get_ip());
+    set_node_listener(node_data.get_ip())
 }
 
 fn start_gossip() -> Result<(), Errors> {
@@ -47,14 +48,21 @@ fn start_gossip() -> Result<(), Errors> {
     Ok(())
 }
 
-fn set_node_listener(ip: NodeIp) {
+fn set_node_listener(ip: NodeIp) -> Result<(), Errors> {
     let listener = TcpListener::bind(ip.get_std_socket()).expect("Error binding socket");
     println!("Server listening in {}", ip.get_string_ip());
-    let config = 
+    let config = create_server_config()?;
     for incoming in listener.incoming() {
         match incoming {
             Ok(stream) => {
                 println!("Client connected: {:?}", stream.peer_addr());
+                let stream = match get_stream_owned(stream, Arc::new(config.clone())){
+                    Ok(stream) => stream,
+                    Err(e) => {
+                        println!("Error creating stream: {}", e);
+                        continue;
+                    }
+                };
                 thread::spawn(move || {
                     if let Err(e) = ClientHandler::handle_client(stream) {
                         println!("{}", e);
@@ -66,4 +74,5 @@ fn set_node_listener(ip: NodeIp) {
             }
         }
     }
+    Ok(())
 }

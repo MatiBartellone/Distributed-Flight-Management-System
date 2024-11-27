@@ -1,11 +1,11 @@
+use rustls::{ServerConnection, StreamOwned};
+
 use crate::meta_data::nodes::node::Node;
 use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{
-    deserialize_from_slice, flush_stream, read_from_stream_no_zero, serialize_to_string,
-    start_listener, use_node_meta_data, write_to_stream,
-};
+use crate::utils::functions::{deserialize_from_slice, serialize_to_string};
 use crate::utils::node_ip::NodeIp;
+use crate::utils::tls_stream::{flush_stream, read_from_stream_no_zero, start_listener, use_node_meta_data, write_to_stream};
 use std::net::TcpStream;
 
 pub struct SeedListener;
@@ -15,13 +15,13 @@ impl SeedListener {
         start_listener(ip.get_seed_listener_socket(), Self::handle_connection)
     }
 
-    fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
+    fn handle_connection(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<(), Errors> {
         Self::send_nodes_list(stream)?;
         let new_node = Self::get_new_node(stream)?;
         Self::set_new_node(new_node)
     }
 
-    fn send_nodes_list(stream: &mut TcpStream) -> Result<(), Errors> {
+    fn send_nodes_list(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<(), Errors> {
         let cluster =
             use_node_meta_data(|handler| handler.get_full_nodes_list(NODES_METADATA_PATH))?;
         let serialized = serialize_to_string(&cluster)?;
@@ -29,7 +29,7 @@ impl SeedListener {
         write_to_stream(stream, serialized.as_bytes())
     }
 
-    fn get_new_node(stream: &mut TcpStream) -> Result<Node, Errors> {
+    fn get_new_node(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<Node, Errors> {
         let buf = read_from_stream_no_zero(stream)?;
         deserialize_from_slice(buf.as_slice())
     }

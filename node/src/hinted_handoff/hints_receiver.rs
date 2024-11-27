@@ -1,12 +1,16 @@
+use rustls::{ServerConnection, StreamOwned};
+
 use crate::hinted_handoff::stored_query::StoredQuery;
 use crate::utils::constants::{HINTED_HANDOFF_TIMEOUT_SECS, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
-use crate::utils::functions::{
-    bind_listener, flush_stream, read_exact_from_stream, use_node_meta_data, write_to_stream,
+use crate::utils::functions::bind_listener;
+use crate::utils::tls_stream::{
+    create_server_config, flush_stream, get_stream_owned, read_exact_from_stream, use_node_meta_data, write_to_stream
 };
 use crate::utils::node_ip::NodeIp;
 use std::net::TcpStream;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 pub struct HintsReceiver;
@@ -21,12 +25,15 @@ impl HintsReceiver {
         let timeout = Duration::from_secs(HINTED_HANDOFF_TIMEOUT_SECS);
         let mut last_connection_time = Instant::now();
         println!("Booting...");
+        
+        let config = create_server_config()?;
         loop {
             if last_connection_time.elapsed() >= timeout {
                 break;
             }
             match listener.accept() {
-                Ok((mut stream, _)) => {
+                Ok((stream, _)) => {
+                    let mut stream = get_stream_owned(stream, Arc::new(config.clone()))?;
                     Self::handle_connection(&mut stream, &mut hints)?;
                     last_connection_time = Instant::now();
                 }
@@ -39,7 +46,7 @@ impl HintsReceiver {
     }
 
     fn handle_connection(
-        stream: &mut TcpStream,
+        stream: &mut StreamOwned<ServerConnection, TcpStream>,
         hints: &mut Vec<StoredQuery>,
     ) -> Result<(), Errors> {
         while let Ok(hint) = serde_json::from_slice::<StoredQuery>(&read_exact_from_stream(stream)?)

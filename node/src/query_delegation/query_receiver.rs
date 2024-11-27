@@ -1,11 +1,15 @@
+use rustls::{ServerConnection, StreamOwned};
+
 use crate::query_delegation::query_serializer::QuerySerializer;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{
-    bind_listener, flush_stream, read_exact_from_stream, write_to_stream,
+use crate::utils::functions::bind_listener;
+use crate::utils::tls_stream::{
+    create_server_config, flush_stream, get_stream_owned, read_exact_from_stream, write_to_stream
 };
 use crate::utils::node_ip::NodeIp;
 use std::io::Write;
 use std::net::TcpStream;
+use std::sync::Arc;
 use std::thread;
 
 pub struct QueryReceiver {}
@@ -13,9 +17,11 @@ pub struct QueryReceiver {}
 impl QueryReceiver {
     pub fn start_listening(ip: NodeIp) -> Result<(), Errors> {
         let listener = bind_listener(ip.get_query_delegation_socket())?;
+        let config = create_server_config()?;
         for incoming in listener.incoming() {
             match incoming {
-                Ok(mut stream) => {
+                Ok(stream) => {
+                    let mut stream = get_stream_owned(stream, Arc::new(config.clone()))?; 
                     thread::spawn(move || -> Result<(), Errors> {
                         if let Ok(response) = handle_query(&mut stream) {
                             respond_to_request(&mut stream, response)?;
@@ -31,7 +37,7 @@ impl QueryReceiver {
         Ok(())
     }
 }
-fn handle_query(stream: &mut TcpStream) -> Result<Vec<u8>, Errors> {
+fn handle_query(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<Vec<u8>, Errors> {
     let res = read_exact_from_stream(stream)?;
     stream.flush().expect("sds");
     let query = QuerySerializer::deserialize(res.as_slice())?;
@@ -41,7 +47,7 @@ fn handle_query(stream: &mut TcpStream) -> Result<Vec<u8>, Errors> {
     }
 }
 
-fn respond_to_request(stream: &mut TcpStream, response: Vec<u8>) -> Result<(), Errors> {
+fn respond_to_request(stream: &mut StreamOwned<ServerConnection, TcpStream>, response: Vec<u8>) -> Result<(), Errors> {
     flush_stream(stream)?;
     write_to_stream(stream, response.as_slice())?;
     flush_stream(stream)

@@ -6,7 +6,7 @@ use crate::query_delegation::query_serializer::QuerySerializer;
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::constants::{KEYSPACE_METADATA_PATH, NODES_METADATA_PATH, TIMEOUT_SECS};
 use crate::utils::errors::Errors;
-use crate::utils::functions::{flush_stream, read_from_stream_no_zero, use_node_meta_data};
+use crate::utils::tls_stream::{create_server_config, flush_stream, get_stream_owned, read_from_stream_no_zero, use_node_meta_data};
 use crate::utils::node_ip::NodeIp;
 use std::io::Write;
 use std::net::TcpStream;
@@ -103,7 +103,9 @@ impl QueryDelegator {
 
     fn send_to_node(ip: NodeIp, query: Box<dyn Query>) -> Result<Vec<u8>, Errors> {
         match TcpStream::connect(ip.get_query_delegation_socket()) {
-            Ok(mut stream) => {
+            Ok(stream) => {
+                let config = create_server_config()?;
+                let mut stream = get_stream_owned(stream, Arc::new(config))?;
                 if stream
                     .write(QuerySerializer::serialize(&query)?.as_slice())
                     .is_err()

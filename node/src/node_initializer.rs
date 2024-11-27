@@ -8,9 +8,9 @@ use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::query_delegation::query_receiver::QueryReceiver;
 use crate::utils::constants::{IP_FILE, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
-use crate::utils::functions::{
-    connect_to_socket, deserialize_from_slice, read_exact_from_stream, serialize_to_string,
-    write_to_stream,
+use crate::utils::functions::{deserialize_from_slice, serialize_to_string};
+use crate::utils::tls_stream::{
+    connect_to_socket, read_exact_from_stream, write_to_stream
 };
 use crate::utils::node_ip::NodeIp;
 use std::fs::File;

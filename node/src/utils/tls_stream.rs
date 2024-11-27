@@ -5,9 +5,16 @@ use rustls::pki_types::pem::PemObject;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
 use std::io::{Read, Write};
-use std::net::TcpStream;
+use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::path::Path;
 use std::sync::Arc;
+
+use crate::data_access::data_access::DataAccess;
+use crate::data_access::data_access_handler::DataAccessHandler;
+use crate::meta_data::clients::meta_data_client::ClientMetaDataAcces;
+use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess;
+use crate::meta_data::meta_data_handler::MetaDataHandler;
+use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 
 
 pub fn flush_stream(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<(), Errors> {
@@ -54,9 +61,9 @@ fn load_private_key(path: impl AsRef<Path>) -> Result<PrivateKeyDer<'static>, Er
         .map_err(|_| ServerError("Cannot read private key file".to_string()))
 }
 
-pub fn create_server_config(cert_path: String, key_path: String) -> Result<ServerConfig, Errors> {
-    let certs = load_certs(&cert_path)?;
-    let private_key = load_private_key(&key_path)?;
+pub fn create_server_config() -> Result<ServerConfig, Errors> {
+    let certs = load_certs(&"cert_path")?;
+    let private_key = load_private_key(&"key_path")?;
 
     let config = ServerConfig::builder()
         .with_no_client_auth()
@@ -71,4 +78,69 @@ pub fn get_stream_owned(stream: TcpStream, config: Arc<ServerConfig>) -> Result<
         .map_err(|e| ServerError(format!("Error creating TLS connection: {}", e)))?;
     let stream_owned = StreamOwned::new(conn, stream);
     Ok(stream_owned)
+}
+
+pub fn start_listener<F>(socket: SocketAddr, handle_connection: F) -> Result<(), Errors>
+where
+    F: Fn(&mut StreamOwned<ServerConnection, TcpStream>) -> Result<(), Errors>,
+{
+    let listener = TcpListener::bind(socket)
+        .map_err(|_| ServerError(String::from("Failed to set listener")))?;
+    let config = create_server_config()?;
+    for stream in listener.incoming() {
+        match stream {
+            Ok(stream) => {
+                let mut stream = get_stream_owned(stream, Arc::new(config.clone()))?;
+                handle_connection(&mut stream)?
+            }
+            Err(_) => return Err(ServerError(String::from("Failed to connect to listener"))),
+        }
+    }
+    Ok(())
+}
+
+pub fn connect_to_socket(socket_addr: SocketAddr) -> Result<StreamOwned<ServerConnection, TcpStream>, Errors> {
+    let config = create_server_config()?;
+    let stream = TcpStream::connect(socket_addr)
+        .map_err(|_| ServerError(String::from("Error connecting to socket.")))?;
+    get_stream_owned(stream, Arc::new(config))
+}
+
+pub fn use_node_meta_data<F, T>(action: F) -> Result<T, Errors>
+where
+    F: FnOnce(&NodesMetaDataAccess) -> Result<T, Errors>,
+{
+    let mut meta_data_stream = MetaDataHandler::establish_connection()?;
+    let node_metadata =
+        MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
+    action(&node_metadata)
+}
+
+pub fn use_keyspace_meta_data<F, T>(action: F) -> Result<T, Errors>
+where
+    F: FnOnce(&KeyspaceMetaDataAccess) -> Result<T, Errors>,
+{
+    let mut meta_data_stream = MetaDataHandler::establish_connection()?;
+    let keyspace_metadata =
+        MetaDataHandler::get_instance(&mut meta_data_stream)?.get_keyspace_meta_data_access();
+    action(&keyspace_metadata)
+}
+
+pub fn use_client_meta_data<F, T>(action: F) -> Result<T, Errors>
+where
+    F: FnOnce(&ClientMetaDataAcces) -> Result<T, Errors>,
+{
+    let mut meta_data_stream = MetaDataHandler::establish_connection()?;
+    let client_metadata =
+        MetaDataHandler::get_instance(&mut meta_data_stream)?.get_client_meta_data_access();
+    action(&client_metadata)
+}
+
+pub fn use_data_access<F, T>(action: F) -> Result<T, Errors>
+where
+    F: FnOnce(&DataAccess) -> Result<T, Errors>,
+{
+    let mut meta_data_stream = DataAccessHandler::establish_connection()?;
+    let data_access = DataAccessHandler::get_instance(&mut meta_data_stream)?;
+    action(&data_access)
 }

@@ -1,9 +1,11 @@
+use rustls::{ServerConnection, StreamOwned};
+
 use crate::data_access::data_access::DataAccess;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
-    connect_to_socket, deserialize_from_slice, flush_stream, get_own_ip, read_exact_from_stream,
-    read_from_stream_no_zero, serialize_to_string, start_listener, write_to_stream,
+    deserialize_from_slice, get_own_ip, serialize_to_string,
 };
+use crate::utils::tls_stream::{connect_to_socket, flush_stream, read_exact_from_stream, read_from_stream_no_zero, start_listener, write_to_stream};
 use crate::utils::node_ip::NodeIp;
 use std::net::TcpStream;
 
@@ -14,7 +16,7 @@ impl DataAccessHandler {
         start_listener(ip.get_data_access_socket(), Self::handle_connection)
     }
 
-    fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
+    fn handle_connection(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<(), Errors> {
         let data_access = DataAccess {};
         let serialized = serialize_to_string(&data_access)?;
         flush_stream(stream)?;
@@ -24,11 +26,11 @@ impl DataAccessHandler {
         Ok(())
     }
 
-    pub fn establish_connection() -> Result<TcpStream, Errors> {
+    pub fn establish_connection() -> Result<StreamOwned<ServerConnection, TcpStream>, Errors> {
         connect_to_socket(get_own_ip()?.get_data_access_socket())
     }
 
-    pub fn get_instance(stream: &mut TcpStream) -> Result<DataAccess, Errors> {
+    pub fn get_instance(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<DataAccess, Errors> {
         flush_stream(stream)?;
         deserialize_from_slice(read_from_stream_no_zero(stream)?.as_slice())
     }

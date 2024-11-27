@@ -1,7 +1,9 @@
+use rustls::{ServerConnection, StreamOwned};
+
 use crate::utils::constants::HINTED_HANDOFF_DATA;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
-use crate::utils::functions::{
+use crate::utils::tls_stream::{
     connect_to_socket, flush_stream, read_from_stream_no_zero, write_to_stream,
 };
 use crate::utils::node_ip::NodeIp;
@@ -36,7 +38,7 @@ impl HintsSender {
         Ok(())
     }
 
-    fn expect_acknowledge(stream: &mut TcpStream) -> Result<(), Errors> {
+    fn expect_acknowledge(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<(), Errors> {
         read_from_stream_no_zero(stream)?;
         Ok(())
     }

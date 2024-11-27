@@ -1,12 +1,14 @@
+use rustls::{ServerConnection, StreamOwned};
+
 use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
 use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
-    deserialize_from_slice, read_exact_from_stream, serialize_to_string, start_listener,
-    use_node_meta_data, write_to_stream,
+    deserialize_from_slice, serialize_to_string
 };
 use crate::utils::node_ip::NodeIp;
+use crate::utils::tls_stream::{read_exact_from_stream, start_listener, use_node_meta_data, write_to_stream};
 use std::net::TcpStream;
 
 pub struct GossipListener;
@@ -16,7 +18,7 @@ impl GossipListener {
         start_listener(ip.get_gossip_socket(), Self::handle_connection)
     }
 
-    fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
+    fn handle_connection(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<(), Errors> {
         let buf = read_exact_from_stream(stream)?;
         let received_nodes: Vec<Node> = deserialize_from_slice(buf.as_slice())?;
         let cluster = Self::get_cluster()?;
@@ -41,7 +43,7 @@ impl GossipListener {
     }
 
     fn send_required_changes(
-        stream: &mut TcpStream,
+        stream: &mut StreamOwned<ServerConnection, TcpStream>,
         required_changes: Vec<Node>,
     ) -> Result<(), Errors> {
         let serialized = serialize_to_string(&required_changes)?;

@@ -1,18 +1,21 @@
+use rustls::{ServerConnection, StreamOwned};
+
 use crate::parsers::parser_factory::ParserFactory;
 use crate::response_builders::error_builder::ErrorBuilder;
 use crate::utils::constants::CLIENT_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::frame::Frame;
-use crate::utils::functions::{
-    flush_stream, read_exact_from_stream, use_client_meta_data, write_to_stream,
-};
 use crate::utils::parser_constants::{AUTH_RESPONSE, AUTH_SUCCESS, STARTUP};
+use crate::utils::tls_stream::use_client_meta_data;
 use std::net::TcpStream;
+use crate::utils::tls_stream::{
+    flush_stream, read_exact_from_stream, write_to_stream,
+};
 
 pub struct ClientHandler {}
 
 impl ClientHandler {
-    pub fn handle_client(mut stream: TcpStream) -> Result<(), Errors> {
+    pub fn handle_client(mut stream: StreamOwned<ServerConnection, TcpStream>) -> Result<(), Errors> {
         add_new_client()?;
         loop {
             flush_stream(&mut stream)?;

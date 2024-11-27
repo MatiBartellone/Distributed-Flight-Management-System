@@ -3,12 +3,11 @@ use crate::meta_data::nodes::node::Node;
 use crate::meta_data::nodes::node::State::Booting;
 use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{
-    deserialize_from_slice, read_exact_from_stream, serialize_to_string, use_node_meta_data,
-    write_to_stream,
-};
+use crate::utils::functions::{deserialize_from_slice, serialize_to_string};
 use crate::utils::node_ip::NodeIp;
+use crate::utils::tls_stream::{connect_to_socket, read_exact_from_stream, use_node_meta_data, write_to_stream};
 use rand::seq::SliceRandom;
+use rustls::{ServerConnection, StreamOwned};
 use std::net::TcpStream;
 
 pub struct GossipEmitter;
@@ -18,7 +17,7 @@ impl GossipEmitter {
         let Some(ip) = Self::get_random_ip()? else {
             return Ok(());
         };
-        if let Ok(mut stream) = TcpStream::connect(ip.get_gossip_socket()) {
+        if let Ok(mut stream) = connect_to_socket(ip.get_gossip_socket()) {
             Self::send_nodes_list(&mut stream)?;
             Self::get_nodes_list(&mut stream)
         } else {
@@ -47,14 +46,14 @@ impl GossipEmitter {
         use_node_meta_data(|handler| handler.set_inactive(NODES_METADATA_PATH, &ip))
     }
 
-    fn send_nodes_list(stream: &mut TcpStream) -> Result<(), Errors> {
+    fn send_nodes_list(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<(), Errors> {
         let nodes_list =
             use_node_meta_data(|handler| handler.get_full_nodes_list(NODES_METADATA_PATH))?;
         let serialized = serialize_to_string(&nodes_list)?;
         write_to_stream(stream, serialized.as_bytes())
     }
 
-    fn get_nodes_list(stream: &mut TcpStream) -> Result<(), Errors> {
+    fn get_nodes_list(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<(), Errors> {
         let buf = read_exact_from_stream(stream)?;
         let received_nodes: Vec<Node> = deserialize_from_slice(buf.as_slice())?;
         let new_cluster = Self::get_new_cluster(received_nodes)?;

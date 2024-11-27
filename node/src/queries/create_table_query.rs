@@ -2,10 +2,8 @@ use crate::parsers::tokens::data_type::DataType;
 use crate::queries::query::Query;
 use crate::utils::constants::KEYSPACE_METADATA_PATH;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{
-    check_table_name, get_long_string_from_str, split_keyspace_table, use_data_access,
-    use_keyspace_meta_data,
-};
+use crate::utils::functions::{check_table_name, get_long_string_from_str, split_keyspace_table};
+use crate::utils::tls_stream::{use_data_access, use_keyspace_meta_data};
 use crate::utils::primary_key::PrimaryKey;
 use serde::{Deserialize, Serialize};
 use std::any::Any;

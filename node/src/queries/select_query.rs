@@ -5,8 +5,9 @@ use crate::queries::order_by_clause::OrderByClause;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
     check_table_name, get_columns_from_table, get_long_string_from_str,
-    get_partition_key_from_where, split_keyspace_table, use_data_access,
+    get_partition_key_from_where, split_keyspace_table,
 };
+use crate::utils::tls_stream::use_data_access;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 
