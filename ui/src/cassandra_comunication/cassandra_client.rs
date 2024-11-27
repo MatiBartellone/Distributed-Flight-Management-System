@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use tokio::runtime::Runtime;
+
 use crate::utils::{
         consistency_level::ConsistencyLevel, constants::{OP_AUTHENTICATE, OP_AUTH_CHALLENGE, OP_AUTH_RESPONSE, OP_AUTH_SUCCESS}, frame::Frame, system_functions::get_user_data, types_to_bytes::TypesToBytes
     };
@@ -18,13 +20,18 @@ pub struct CassandraClient {
 impl CassandraClient {
     /// Creates a new CassandraClient with the given node
     pub fn new(node: &str) -> Result<Self, String> {
-        let connection = CassandraConnection::new(node)?;
+        let connection = Runtime::new()
+            .map_err(|e| format!("Failed to create runtime: {}", e))?
+            .block_on(CassandraConnection::new(node))?;
         Ok(Self { connection })
     }
     
     /// Send a frame to the server and returns the response
     pub fn send_and_receive(&mut self, frame: &mut Frame) -> Result<Frame, String> {
-        self.connection.send_and_receive(frame)
+        let result = Runtime::new()
+            .map_err(|e| format!("Failed to create runtime: {}", e))?
+            .block_on(self.connection.send_and_receive(frame));
+        result
     }
 
     /// Get ready the client for use in keyspace airport
