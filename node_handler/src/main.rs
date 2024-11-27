@@ -1,3 +1,5 @@
+use node_handler::tls_stream::{create_server_config, get_stream_owned};
+use rustls::{ServerConnection, StreamOwned};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{Read, Write};
@@ -22,7 +24,7 @@ struct Node {
     position: usize,
 }
 
-fn handle_client(mut stream: TcpStream, nodes: Arc<Mutex<HashMap<String, NodeInfo>>>) {
+fn handle_client(mut stream: StreamOwned<ServerConnection, TcpStream>, nodes: Arc<Mutex<HashMap<String, NodeInfo>>>) {
     let mut buffer = [0; 1024];
     let size = stream.read(&mut buffer).unwrap();
     let new_node: Node = serde_json::from_slice(&buffer[..size]).unwrap();
@@ -203,9 +205,11 @@ fn main() {
     let listener = TcpListener::bind(ip).unwrap();
     let nodes = Arc::new(Mutex::new(HashMap::new()));
 
+    let config = create_server_config().unwrap();
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
+                let stream = get_stream_owned(stream, Arc::new(config.clone())).unwrap();
                 let nodes = Arc::clone(&nodes);
                 thread::spawn(move || {
                     handle_client(stream, nodes);
