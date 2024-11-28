@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 
-use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor, response::Response, constants::BEST, node_ip::NodeIp, token_conversor::{create_identifier_token, create_reserved_token, create_iterate_list_token, create_comparison_operation_token, create_token_from_literal, create_logical_operation_token, create_token_literal}}, data_access::row::{Row, Column}, parsers::{tokens::{token::Token, data_type::DataType, literal::Literal}, query_parser::query_parser}, query_delegation::query_delegator::QueryDelegator};
+use crate::{utils::{errors::Errors, response::Response, constants::BEST,  types::token_conversor::{create_identifier_token, create_reserved_token, create_iterate_list_token, create_comparison_operation_token, create_token_from_literal, create_logical_operation_token, create_token_literal}}, data_access::row::{Row, Column}, parsers::{tokens::{token::Token, data_type::DataType, literal::Literal}, query_parser::query_parser}, query_delegation::query_delegator::QueryDelegator};
 use crate::parsers::tokens::terms::ComparisonOperators::Equal;
 use crate::parsers::tokens::terms::LogicalOperators::And;
+use crate::utils::types::bytes_cursor::BytesCursor;
+use crate::utils::types::node_ip::NodeIp;
+use crate::utils::types::timestamp::Timestamp;
 use super::row_response::RowResponse;
 
 
@@ -234,7 +237,7 @@ fn compare_row(original: &Row, new: &Row) -> Row {
     let new_map = to_hash_columns(new.columns.clone());
     for col_ori in &original.columns {
         if let Some(col_new) = new_map.get(&col_ori.column_name) {
-            if col_ori.time_stamp < col_new.time_stamp {
+            if col_ori.timestamp.is_older_than(Timestamp::new_from_timestamp(&col_new.timestamp))  {
                 best_columns.push(col_new.clone());
             } else {
                 best_columns.push(col_ori.clone());

@@ -4,7 +4,7 @@ use crate::{
     data_access::row::{Row, Column}, parsers::tokens::data_type::DataType,
     utils::types_to_bytes::TypesToBytes, meta_data::meta_data_handler::MetaDataHandler,
 };
-
+use crate::utils::functions::serialize_to_string;
 use super::{errors::Errors, constants::KEYSPACE_METADATA_PATH};
 pub struct Response;
 
@@ -124,6 +124,7 @@ impl Response {
     }
 
     fn write_column(column: &Column, encoder: &mut TypesToBytes) -> Result<(), Errors> {
+        encoder.write_string(&serialize_to_string(column)?);
         //Write column name
         encoder.write_string(&column.column_name).map_err(Errors::TruncateError)?;
         //Write column value->literal
@@ -168,7 +169,7 @@ fn filter_keys(vec: Vec<String>, map: HashMap<String, DataType>) -> HashMap<Stri
 
 #[cfg(test)]
 mod tests {
-    use crate::{utils::{response::Response, types_to_bytes::TypesToBytes}, parsers::tokens::{data_type::DataType, literal::Literal}, data_access::row::{Column, Row}};
+    use crate::{utils::{response::Response, types::timestamp::Timestamp ,types_to_bytes::TypesToBytes}, parsers::tokens::{data_type::DataType, literal::Literal}, data_access::row::{Column, Row}};
 
     #[test]
     fn test_void_response() {
@@ -235,7 +236,7 @@ mod tests {
                     data_type: DataType::Int,
                     value: "42".to_string(),
                 },
-                time_stamp: 123456789,
+                timestamp: Timestamp::new_from_i64(123456789),
             },
             Column {
                 column_name: "col2".to_string(),
@@ -243,7 +244,7 @@ mod tests {
                     data_type: DataType::Text,
                     value: "hello".to_string(),
                 },
-                time_stamp: 123456789,
+                timestamp: Timestamp::new_from_i64(123456789),
             },
         ]
     }

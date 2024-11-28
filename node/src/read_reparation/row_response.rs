@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor}, parsers::tokens::{data_type::DataType, literal::create_literal}, data_access::row::{Row, Column}};
-
+use crate::{utils::{errors::Errors}, parsers::tokens::{data_type::DataType, literal::create_literal}, data_access::row::{Row, Column}};
+use crate::utils::types::bytes_cursor::BytesCursor;
 use super::data_response::DataResponse;
 
 
@@ -41,7 +41,7 @@ impl RowResponse {
         let data_type = byte_to_data_type(cursor.read_i16()?)?;
         let time_stamp = cursor.read_u64()?;
         let literal = create_literal(&value, data_type);
-        Ok(Column::new(&name, &literal, time_stamp))
+        Ok(Column::new(&name, &literal))
     }
 
     pub fn read_meta_data_response(bytes: Vec<u8>) -> Result<DataResponse, Errors> {
