@@ -70,15 +70,18 @@ impl ReadRepair {
 
     fn add_where(&self, query: &mut Vec<Token>, row: &Row) -> Result<(), Errors>{
         let pks = self.get_pks_headers(BEST)?;
+        let columns = to_hash_columns(row.columns.clone());
         query.push(create_identifier_token("WHERE"));
         let mut sub_where: Vec<Token> = Vec::new();
 
-        for (i, (pks_header, pk_value)) in pks.iter().zip(row.primary_key.clone()).enumerate() {
-            sub_where.push(create_identifier_token(pks_header.0));
-            sub_where.push(create_comparison_operation_token(Equal));
-            sub_where.push(create_token_literal(&pk_value, pks_header.1.clone()));
-            if i < pks.len() - 1 {
-                sub_where.push(create_logical_operation_token(And))
+        for (i, pk_header) in pks.keys().enumerate() {
+            if let Some(column) =  columns.get(pk_header) {
+                sub_where.push(create_identifier_token(pk_header));
+                sub_where.push(create_comparison_operation_token(Equal));
+                sub_where.push(create_token_literal(&column.value.value, column.value.data_type.clone()));
+                if i < pks.len() - 1 {
+                    sub_where.push(create_logical_operation_token(And))
+                }
             }
         }
         query.push(create_iterate_list_token(sub_where));
