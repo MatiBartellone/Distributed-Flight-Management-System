@@ -71,7 +71,7 @@ impl ReadRepair {
     fn add_where(&self, query: &mut Vec<Token>, row: &Row) -> Result<(), Errors>{
         let pks = self.get_pks_headers(BEST)?;
         let columns = to_hash_columns(row.columns.clone());
-        query.push(create_identifier_token("WHERE"));
+        query.push(create_reserved_token("WHERE"));
         let mut sub_where: Vec<Token> = Vec::new();
 
         for (i, pk_header) in pks.keys().enumerate() {
@@ -114,7 +114,7 @@ impl ReadRepair {
                 for column in &node_row.columns {
                     if let Some(best_column) = best_col_map.get(&column.column_name) {
                         if column.value.value != best_column.value.value {
-                            ReadRepair::add_update_changes(&mut query, &column.column_name, &column.value);
+                            ReadRepair::add_update_changes(&mut query, &column.column_name, &best_column.value);
                             change_row = true
                         }
                     }
@@ -124,7 +124,6 @@ impl ReadRepair {
             }
             if change_row {
                 self.add_where(&mut query, node_row)?;
-                dbg!(&query);
                 let query_parsed = query_parser(query)?;
                 QueryDelegator::send_to_node(NodeIp::new_from_single_string(ip)?, query_parsed)?;
                 change_row = false;
