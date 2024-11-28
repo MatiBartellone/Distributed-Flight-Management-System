@@ -1,4 +1,3 @@
-use super::errors::Errors;
 use crate::parsers::tokens::token::Token::{IterateToken, ParenList};
 use crate::parsers::tokens::{
     data_type::DataType,
@@ -6,6 +5,7 @@ use crate::parsers::tokens::{
     terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term},
     token::Token,
 };
+use crate::utils::errors::Errors;
 use std::{iter::Peekable, vec::IntoIter};
 use BooleanOperations::*;
 use LogicalOperators::*;
@@ -62,20 +62,20 @@ pub fn get_arithmetic_math(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Ari
     match token {
         Token::Term(ArithMath(op)) => Ok(op),
         e => Err(Errors::Invalid(format!(
-            "Expected comparision operator but has {:?}",
+            "Expected comparison operator but has {:?}",
             e
         ))),
     }
 }
 
-pub fn get_comparision_operator(
+pub fn get_comparison_operator(
     tokens: &mut Peekable<IntoIter<Token>>,
 ) -> Result<ComparisonOperators, Errors> {
     let token = get_next_value(tokens)?;
     match token {
-        Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(op))) => Ok(op),
+        Token::Term(Term::BooleanOperations(Comparison(op))) => Ok(op),
         e => Err(Errors::Invalid(format!(
-            "Expected comparision operator but has {:?}",
+            "Expected comparison operator but has {:?}",
             e
         ))),
     }
@@ -86,7 +86,7 @@ pub fn get_logical_operator(
 ) -> Result<LogicalOperators, Errors> {
     let token = get_next_value(tokens)?;
     match token {
-        Token::Term(Term::BooleanOperations(BooleanOperations::Logical(op))) => Ok(op),
+        Token::Term(Term::BooleanOperations(Logical(op))) => Ok(op),
         _ => Err(Errors::Invalid(
             "Expected logical operator (AND, OR, NOT)".to_string(),
         )),
@@ -104,7 +104,7 @@ pub fn get_reserved_string(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Str
 pub fn get_list(tokens: &mut Peekable<IntoIter<Token>>) -> Result<Vec<Token>, Errors> {
     let token = get_next_value(tokens)?;
     match token {
-        Token::ParenList(token_list) => Ok(token_list),
+        ParenList(token_list) => Ok(token_list),
         _ => Err(Errors::Invalid("Expected List".to_string())),
     }
 }
@@ -144,11 +144,11 @@ pub fn create_identifier_token(value: &str) -> Token {
 // Lists
 
 pub fn create_iterate_list_token(list: Vec<Token>) -> Token {
-    Token::IterateToken(list)
+    IterateToken(list)
 }
 
 pub fn create_paren_list_token(list: Vec<Token>) -> Token {
-    Token::ParenList(list)
+    ParenList(list)
 }
 
 pub fn create_brace_list_token(list: Vec<Token>) -> Token {
@@ -161,15 +161,11 @@ pub fn create_token_literal(value: &str, data_type: DataType) -> Token {
 }
 
 pub fn create_logical_operation_token(operation: LogicalOperators) -> Token {
-    Token::Term(Term::BooleanOperations(BooleanOperations::Logical(
-        operation,
-    )))
+    Token::Term(Term::BooleanOperations(Logical(operation)))
 }
 
 pub fn create_comparison_operation_token(operation: ComparisonOperators) -> Token {
-    Token::Term(Term::BooleanOperations(BooleanOperations::Comparison(
-        operation,
-    )))
+    Token::Term(Term::BooleanOperations(Comparison(operation)))
 }
 
 // Reserved
@@ -181,7 +177,7 @@ pub fn create_data_type_token(data_type: DataType) -> Token {
     Token::DataType(data_type)
 }
 
-pub fn create_aritmeticas_math_token(operation: ArithMath) -> Token {
+pub fn create_arith_math_token(operation: ArithMath) -> Token {
     Token::Term(Term::ArithMath(operation))
 }
 

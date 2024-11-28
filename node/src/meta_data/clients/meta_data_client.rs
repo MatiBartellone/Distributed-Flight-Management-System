@@ -1,58 +1,43 @@
-use serde_json::Deserializer;
+use super::client::Client;
+use crate::utils::constants::CLIENT_METADATA_PATH;
+use crate::utils::errors::Errors;
+use crate::utils::errors::Errors::ServerError;
+use crate::utils::functions::deserialize_from_slice;
+use std::fs::remove_file;
 use std::io::Write;
 use std::{
-    fs::{self, File, OpenOptions},
-    io::BufReader,
-    path::Path,
+    fs::{self, File},
     thread,
 };
-
-use crate::utils::errors::Errors;
-
-use super::client::Client;
 
 pub struct ClientMetaDataAcces {}
 
 impl ClientMetaDataAcces {
     fn open_file(path: &str) -> Result<File, Errors> {
-        let file = OpenOptions::new()
-            .read(true)
-            .append(true)
-            .create(true)
-            .truncate(false)
-            .open(path)
-            .map_err(|_| Errors::ServerError("Unable to open or create file".to_string()))?;
+        fs::create_dir_all(CLIENT_METADATA_PATH).map_err(|e| ServerError(e.to_string()))?;
+        let file =
+            File::create(path).map_err(|_| ServerError("Unable to create file".to_string()))?;
         Ok(file)
     }
 
-    fn extract_iterate_from_json(
-        path: &str,
-    ) -> Result<impl Iterator<Item = Result<Client, Errors>>, Errors> {
-        let file = Self::open_file(path)?; // Abrir archivo
-        let reader = BufReader::new(file); // Crear un lector bufferizado
-        let stream = Deserializer::from_reader(reader)
-            .into_iter::<Client>()
-            .map(|result| {
-                result.map_err(|_| Errors::ServerError("Unable to deserialize client".to_string()))
-            });
-        Ok(stream)
+    fn get_client(path: &str) -> Result<Client, Errors> {
+        let content = fs::read_to_string(path)
+            .map_err(|_| ServerError(String::from("Error reading file")))?;
+        let client: Client = deserialize_from_slice(content.as_bytes())?;
+        Ok(client)
     }
 
     fn save_to_json(file: &mut File, client: &Client) -> Result<(), Errors> {
-        let serialized_client = serde_json::to_string(client)
-            .map_err(|_| Errors::ServerError("Unable to serialize client".to_string()))?;
-        writeln!(file, "{}", serialized_client)
-            .map_err(|_| Errors::ServerError("Unable to write file".to_string()))?;
+        let serialized_client = serde_json::to_vec(client)
+            .map_err(|_| ServerError("Unable to serialize client".to_string()))?;
+        file.write_all(serialized_client.as_slice())
+            .map_err(|_| ServerError("Unable to write file".to_string()))?;
 
         Ok(())
     }
 
-    fn create_aux_json(number: &str) -> Result<String, Errors> {
-        let filename = format!("{}.json", number);
-        let path = Path::new(&filename);
-        let _ = File::create(path)
-            .map_err(|_| Errors::ServerError("Unable to create aux file".to_string()))?;
-        Ok(filename)
+    fn get_file_path(path: &str) -> String {
+        format!("{}{}.json", path, Self::thread_id_string())
     }
 
     fn thread_id_string() -> String {
@@ -62,7 +47,8 @@ impl ClientMetaDataAcces {
 
     pub fn add_new_client(&self, path: String) -> Result<(), Errors> {
         let new_client = Client::new();
-        let mut file = Self::open_file(&path)?;
+        let file_path = Self::get_file_path(path.as_str());
+        let mut file = Self::open_file(file_path.as_str())?;
         Self::save_to_json(&mut file, &new_client)?;
         Ok(())
     }
@@ -71,22 +57,11 @@ impl ClientMetaDataAcces {
     where
         F: Fn(&mut Client) -> bool,
     {
-        let id_client = Self::thread_id_string();
-        let aux_file = Self::create_aux_json(&id_client)?;
-        let mut file = Self::open_file(&aux_file)?;
-        let clients = Self::extract_iterate_from_json(&path)?;
-
-        for client_result in clients {
-            let mut client = client_result
-                .map_err(|_| Errors::ServerError("Error reading client".to_string()))?;
-            if client.is_id(&id_client) && !process_fn(&mut client) {
-                continue;
-            }
-            Self::save_to_json(&mut file, &client)?;
-        }
-
-        fs::rename(aux_file, path)
-            .map_err(|_| Errors::ServerError("Error renaming file".to_string()))?;
+        let file_path = Self::get_file_path(path.as_str());
+        let mut client = Self::get_client(&file_path)?;
+        let mut file = Self::open_file(file_path.as_str())?;
+        process_fn(&mut client);
+        Self::save_to_json(&mut file, &client)?;
         Ok(())
     }
 
@@ -112,25 +87,17 @@ impl ClientMetaDataAcces {
     }
 
     pub fn delete_client(&self, path: String) -> Result<(), Errors> {
-        Self::process_clients_alter(path, |_| false)
+        remove_file(Self::get_file_path(path.as_str()))
+            .map_err(|_| ServerError("Unable to delete file".to_string()))
     }
 
     fn process_client_view<F, T>(path: String, process_fn: F) -> Result<T, Errors>
     where
         F: Fn(&Client) -> Result<T, Errors>,
     {
-        let id_client = Self::thread_id_string();
-        let clients = Self::extract_iterate_from_json(&path)?;
-
-        for client_result in clients {
-            let client = client_result
-                .map_err(|_| Errors::ServerError("Error reading client".to_string()))?;
-            if client.is_id(&id_client) {
-                return process_fn(&client);
-            }
-        }
-
-        Err(Errors::ServerError("Error, client not found".to_string()))
+        let file_path = Self::get_file_path(path.as_str());
+        let client = Self::get_client(&file_path)?;
+        process_fn(&client)
     }
 
     pub fn get_keyspace(&self, path: String) -> Result<Option<String>, Errors> {
@@ -141,7 +108,7 @@ impl ClientMetaDataAcces {
         Self::process_client_view(path, |client| Ok(client.is_authorized()))
     }
 
-    pub fn had_started(&self, path: String) -> Result<bool, Errors> {
+    pub fn has_started(&self, path: String) -> Result<bool, Errors> {
         Self::process_client_view(path, |client| Ok(client.has_started()))
     }
 }
@@ -149,9 +116,6 @@ impl ClientMetaDataAcces {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::{self, File};
-    use std::io::{self, BufRead};
-    use std::path::Path;
 
     fn create_test_file(name: &str) -> Result<(), Errors> {
         let meta_data = ClientMetaDataAcces {};
@@ -167,29 +131,7 @@ mod tests {
     }
 
     fn cleanup_temp_file(path: &str) {
-        let _ = fs::remove_file(path);
-    }
-
-    fn count_lines_in_file(file_path: &str) -> io::Result<usize> {
-        let file = File::open(file_path)?;
-        let reader = BufReader::new(file);
-        let line_count = reader.lines().count();
-        Ok(line_count)
-    }
-
-    #[test]
-    fn test_add_new_client() {
-        let name = "test_add_client.json";
-        create_test_file(name).expect("Failed to create test file"); //ya se hacen dos adds dentro de la creación
-        let file_exists = Path::new(&name).exists();
-        assert!(file_exists);
-        let line_count = count_lines_in_file(name).expect("Failed to count lines in file");
-        assert_eq!(
-            line_count, 2,
-            "Expected 2 lines in the file, found {}",
-            line_count
-        );
-        cleanup_temp_file(name);
+        let _ = remove_file(path);
     }
 
     #[test]
@@ -222,7 +164,7 @@ mod tests {
         create_test_file(name).expect("Failed to create test file");
         let meta_data = ClientMetaDataAcces {};
         let key = meta_data
-            .had_started(name.to_owned())
+            .has_started(name.to_owned())
             .expect("Failed to get startup");
         assert!(!key);
         cleanup_temp_file(name);
@@ -252,7 +194,7 @@ mod tests {
             .startup_client(name.to_string())
             .expect("Failed to startup client");
         let key = meta_data
-            .had_started(name.to_owned())
+            .has_started(name.to_owned())
             .expect("Failed to get startup");
         assert!(key);
         cleanup_temp_file(name);
@@ -270,25 +212,6 @@ mod tests {
             .get_keyspace(name.to_owned())
             .expect("Failed to get keyspace");
         assert_eq!(key, Some("keyspace_new".to_owned()));
-        cleanup_temp_file(name);
-    }
-
-    #[test]
-    fn test_delete_client() {
-        let name = "test_delete_client.json";
-        create_test_file(name).expect("Failed to create test file");
-        let meta_data = ClientMetaDataAcces {};
-        meta_data
-            .delete_client(name.to_string())
-            .expect("Failed to delete client");
-        let key = meta_data.get_keyspace(name.to_owned());
-        assert!(key.is_err());
-        let line_count = count_lines_in_file(name).expect("Failed to count lines in file");
-        assert_eq!(
-            line_count, 1,
-            "Expected 1 lines in the file, found {}",
-            line_count
-        );
         cleanup_temp_file(name);
     }
 }

@@ -1,9 +1,9 @@
+use super::authenticator::Authenticator;
 use crate::utils::errors::Errors;
+use crate::utils::functions::deserialize_from_str;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Read;
-
-use super::authenticator::Authenticator;
 
 const CREDENTIALS: &str = "src/auth/credentials.json";
 
@@ -13,6 +13,7 @@ struct Credential {
     pass: String,
 }
 
+/// PasswordAuthenticator uses user and password to validate credentials
 pub struct PasswordAuthenticator;
 
 impl Authenticator for PasswordAuthenticator {
@@ -38,8 +39,7 @@ impl PasswordAuthenticator {
         file.read_to_string(&mut data)
             .map_err(|_| Errors::ServerError(String::from("Failed to validate credentials")))?;
 
-        let credentials: Result<Vec<Credential>, Errors> = serde_json::from_str(&data)
-            .map_err(|_| Errors::ServerError(String::from("Failed to validate credentials")));
+        let credentials: Result<Vec<Credential>, Errors> = deserialize_from_str(&data);
 
         Ok(credentials?
             .into_iter()
