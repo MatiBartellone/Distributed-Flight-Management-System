@@ -1,8 +1,8 @@
-use std::{iter::Map, sync::{Arc, Mutex}};
+use std::sync::{Arc, Mutex};
 
 use eframe::egui;
 use egui::Context;
-use walkers::{sources::{Mapbox, MapboxStyle, OpenStreetMap, TileSource}, HttpTiles, MapMemory};
+use walkers::{sources::{Mapbox, MapboxStyle}, HttpTiles, MapMemory};
 
 use crate::{
     airport_implementation::airports::Airports, cassandra_comunication::{cassandra_client::CassandraClient, thread_pool_client::ThreadPoolClient, ui_client::UIClient}, flight_implementation::{flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}
