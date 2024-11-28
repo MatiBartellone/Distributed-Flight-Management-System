@@ -90,13 +90,15 @@ impl ReadRepair {
 
     fn repair_node(&self, ip: &str) -> Result<(), Errors> {
         let node_rows = self.read_rows(ip)?;
-        let best = to_hash_rows(self.read_rows(BEST)?);
+        let mut best = to_hash_rows(self.read_rows(BEST)?);
         let mut change_row = false;
         for node_row in &node_rows{
             let mut query : Vec<Token> = Vec::new();
             //Si esa linea esta en la mejor response:
             //difiere en valores -> UPDATE
             //esta eliminada en best pero no en actual -> DELETE
+            //hay un row que no esta en best->es imposible este caso
+            //hay una row en best que no esta en el nodo -> INSERT
             if let Some(best_row) = best.get(&node_row.primary_key) {
                 //Esta eliminada en best
                 /*if node_row.deleted != best_row.deleted {
@@ -117,7 +119,8 @@ impl ReadRepair {
                         }
                     }
                     
-                }    
+                }
+                best.remove(&node_row.primary_key);    
             }
             if change_row {
                 self.add_where(&mut query, node_row)?;
