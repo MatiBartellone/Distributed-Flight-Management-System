@@ -6,7 +6,7 @@ use std::net::TcpStream;
 use std::path::Path;
 use std::sync::Arc;
 
-pub fn flush_stream(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<(), String> {
+pub fn flush_stream_tls(stream: &mut StreamOwned<ServerConnection, TcpStream>) -> Result<(), String> {
     stream
         .flush()
         .map_err(|_| String::from("Failed to flush stream"))

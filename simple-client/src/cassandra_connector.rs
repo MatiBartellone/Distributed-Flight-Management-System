@@ -71,7 +71,6 @@ impl CassandraConnection {
                 .iter()
                 .cloned(),
         );
-        let mut root_store = RootCertStore::empty();
         let certs = Self::load_certs("src/certificates/certificate.pem")?;
         for cert in certs {
             root_store.add(cert).map_err(|_| "Failed to add cert to root store".to_string())?;
