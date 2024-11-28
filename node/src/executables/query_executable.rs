@@ -4,8 +4,8 @@ use crate::query_delegation::query_delegator::QueryDelegator;
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
-use crate::utils::types::frame::Frame;
 use crate::utils::parser_constants::RESULT;
+use crate::utils::types::frame::Frame;
 
 pub struct QueryExecutable {
     query: Box<dyn Query>,
@@ -28,12 +28,17 @@ impl Executable for QueryExecutable {
         let Some(query_enum) = QueryEnum::from_query(&self.query) else {
             return Err(Errors::ServerError(String::from("")));
         };
-        let delegator = QueryDelegator::new(
-            pk,
-            query_enum.into_query(),
-            ConsistencyLevel::from_i16(self.consistency_integer)?,
-        );
-        let response_msg = delegator.send()?;
+        let response_msg = match query_enum {
+            QueryEnum::Use(use_query) => use_query.run()?,
+            _ => {
+                let delegator = QueryDelegator::new(
+                    pk,
+                    query_enum.into_query(),
+                    ConsistencyLevel::from_i16(self.consistency_integer)?,
+                );
+                delegator.send()?
+            }
+        };
         let response_frame = FrameBuilder::build_response_frame(request, RESULT, response_msg)?;
         Ok(response_frame)
     }

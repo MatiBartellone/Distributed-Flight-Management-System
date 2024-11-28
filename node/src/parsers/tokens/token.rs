@@ -3,7 +3,10 @@ use super::reserved_words::WordsReserved;
 use super::symbols::Symbols;
 use super::terms::{string_to_term, Term};
 use crate::utils::errors::Errors;
-use crate::utils::parser_constants::{AND, ASC, BY, CLOSE_BRACE, CLOSE_PAREN, DESC, EXISTS, IF, NOT, OPEN_BRACE, OPEN_PAREN, OR, SELECT, SET, WHERE};
+use crate::utils::parser_constants::{
+    AND, ASC, BY, CLOSE_BRACE, CLOSE_PAREN, DESC, EXISTS, IF, NOT, OPEN_BRACE, OPEN_PAREN, OR,
+    SELECT, SET, WHERE,
+};
 
 #[derive(Debug, PartialEq)]
 pub enum Token {

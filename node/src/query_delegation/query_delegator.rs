@@ -3,6 +3,7 @@ use crate::hinted_handoff::stored_query::StoredQuery;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::queries::query::{Query, QueryEnum};
 use crate::query_delegation::query_serializer::QuerySerializer;
+use crate::utils::config_constants::TIMEOUT_SECS;
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::constants::{KEYSPACE_METADATA_PATH, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
@@ -13,7 +14,6 @@ use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use crate::utils::config_constants::TIMEOUT_SECS;
 
 pub struct QueryDelegator {
     #[allow(dead_code)]

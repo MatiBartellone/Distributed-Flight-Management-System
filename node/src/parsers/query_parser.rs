@@ -2,8 +2,8 @@ use crate::executables::executable::Executable;
 use crate::executables::query_executable::QueryExecutable;
 use crate::parsers::parser::Parser;
 use crate::queries::query::Query;
-use crate::utils::types::bytes_cursor::BytesCursor;
 use crate::utils::errors::Errors;
+use crate::utils::types::bytes_cursor::BytesCursor;
 use crate::utils::types::token_conversor::get_next_value;
 
 use super::query_parsers::alter_table_parser::AlterTableParser;
@@ -32,12 +32,14 @@ impl Parser for QueryParser {
     }
 }
 
-fn query_lexer(string: String) -> Result<Vec<Token>, Errors> {
+/// given a raw string representing a query, returns the tokenized query using the lexer.
+pub fn query_lexer(string: String) -> Result<Vec<Token>, Errors> {
     let message = standardize(&string);
     tokenize(message)
 }
 
-fn query_parser(tokens: Vec<Token>) -> Result<Box<dyn Query>, Errors> {
+/// given a tokenized query, matching the query type, returns the matching Query trait implementation
+pub fn query_parser(tokens: Vec<Token>) -> Result<Box<dyn Query>, Errors> {
     let mut tokens_iter = tokens.into_iter().peekable();
 
     match get_next_value(&mut tokens_iter) {
