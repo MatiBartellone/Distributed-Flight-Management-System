@@ -49,15 +49,6 @@ impl Response {
         Ok(encoder.into_bytes())
     }
 
-    pub fn rows(rows: Vec<Row>, keyspace: &str, table: &str) -> Result<Vec<u8>, Errors> {
-        let mut encoder = TypesToBytes::default();
-        Response::write_rows(&rows, &mut encoder)?;
-        let division_offset = encoder.length();
-        //Division
-        Response::write_meta_data_response(&mut encoder, keyspace, table, )?;
-        encoder.write_int(division_offset as i32).map_err(Errors::TruncateError)?;
-        Ok(encoder.into_bytes())
-    }
 
     pub fn protocol_row(rows: Vec<Row>, keyspace: &str, table: &str) -> Result<Vec<u8>, Errors> {
         let mut encoder = TypesToBytes::default();
@@ -87,7 +78,19 @@ impl Response {
         Ok(())
     }
 
-    fn write_rows(rows: &Vec<Row>, encoder: &mut TypesToBytes) -> Result<(), Errors> {
+    pub fn rows(rows: Vec<Row>, keyspace: &str, table: &str) -> Result<Vec<u8>, Errors> {
+        let mut encoder = TypesToBytes::default();
+        Response::write_rows(&rows, &mut encoder)?;
+        let division_offset = encoder.length();
+        //Division
+        Response::write_meta_data_response(&mut encoder, keyspace, table, )?;
+        encoder.write_int(division_offset as i32).map_err(Errors::TruncateError)?;
+        Ok(encoder.into_bytes())
+    }
+
+    
+
+    pub fn write_rows(rows: &Vec<Row>, encoder: &mut TypesToBytes) -> Result<(), Errors> {
         encoder.write_int(0x0002).map_err(Errors::TruncateError)?;
         encoder.write_short(rows.len() as u16).map_err(Errors::TruncateError)?;
         for row in rows {
@@ -107,7 +110,7 @@ impl Response {
         Ok(())
     }
 
-    fn write_meta_data_response(encoder: &mut TypesToBytes, keyspace: &str, table: &str) -> Result<(), Errors> {
+    pub fn write_meta_data_response(encoder: &mut TypesToBytes, keyspace: &str, table: &str) -> Result<(), Errors> {
         encoder.write_string(keyspace).map_err(Errors::TruncateError)?;
         encoder.write_string(table).map_err(Errors::TruncateError)?;
         let pks = get_pks(keyspace, table)?;

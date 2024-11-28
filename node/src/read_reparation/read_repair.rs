@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor, response::Response, constants::BEST, node_ip::NodeIp, token_conversor::{create_identifier_token, create_reserved_token, create_iterate_list_token, create_comparison_operation_token, create_token_from_literal, create_logical_operation_token, create_token_literal}}, data_access::row::Row, parsers::{tokens::{token::Token, data_type::DataType}, query_parser::query_parser}, query_delegation::query_delegator::QueryDelegator};
+use crate::{utils::{errors::Errors, bytes_cursor::BytesCursor, response::Response, constants::BEST, node_ip::NodeIp, token_conversor::{create_identifier_token, create_reserved_token, create_iterate_list_token, create_comparison_operation_token, create_token_from_literal, create_logical_operation_token, create_token_literal}}, data_access::row::{Row, Column}, parsers::{tokens::{token::Token, data_type::DataType, literal::Literal}, query_parser::query_parser}, query_delegation::query_delegator::QueryDelegator};
 use crate::parsers::tokens::terms::ComparisonOperators::Equal;
 use crate::parsers::tokens::terms::LogicalOperators::And;
 use super::row_response::RowResponse;
@@ -43,7 +43,7 @@ impl ReadRepair {
 
     fn repair(&self) -> Result<(), Errors> {
         let better_response = self.cast_to_protocol_row(BEST)?;
-        for (ip, _) in &self.responses_bytes {
+        for ip in self.responses_bytes.keys() {
             let response = self.cast_to_protocol_row(ip)?;
             if response != better_response {
                 self.repair_node(ip)?;
@@ -52,39 +52,72 @@ impl ReadRepair {
         Ok(())
     }
 
+    fn create_base_update(&self, query: &mut Vec<Token>) -> Result<(), Errors> {
+        let (keyspace, table) = self.get_keyspace_table(BEST)?;
+        query.push(create_reserved_token("UPDATE"));
+        query.push(create_identifier_token(&format!("{}.{}", keyspace, table)));
+        query.push(create_reserved_token("SET"));
+        Ok(())
+    }
+
+    fn add_update_changes(query: &mut Vec<Token>, identifier: &str, literal: &Literal) {
+        query.push(create_iterate_list_token(vec![
+            create_identifier_token(identifier),
+            create_comparison_operation_token(Equal),
+            create_token_from_literal(literal.clone()),
+        ]));
+    }
+
+    fn add_where(&self, query: &mut Vec<Token>, row: &Row) -> Result<(), Errors>{
+        let pks = self.get_pks_headers(BEST)?;
+        query.push(create_identifier_token("WHERE"));
+        let mut sub_where: Vec<Token> = Vec::new();
+
+        for (i, (pks_header, pk_value)) in pks.iter().zip(row.primary_key.clone()).enumerate() {
+            sub_where.push(create_identifier_token(pks_header.0));
+            sub_where.push(create_comparison_operation_token(Equal));
+            sub_where.push(create_token_literal(&pk_value, pks_header.1.clone()));
+            if i < pks.len() - 1 {
+                sub_where.push(create_logical_operation_token(And))
+            }
+        }
+        query.push(create_iterate_list_token(sub_where));
+        Ok(())
+    }
+
     fn repair_node(&self, ip: &str) -> Result<(), Errors> {
         let node_rows = self.read_rows(ip)?;
-        let best = self.read_rows(BEST)?;
-        let (keyspace, table) = self.get_keyspace_table(BEST)?;
+        let best = to_hash_rows(self.read_rows(BEST)?);
         let mut change_row = false;
-        for (row, better_row) in node_rows.iter().zip(best){
+        for node_row in &node_rows{
             let mut query : Vec<Token> = Vec::new();
-            query.push(create_reserved_token("UPDATE"));
-            query.push(create_identifier_token(&format!("{}.{}", keyspace, table)));
-            query.push(Token::Reserved("SET".to_owned()));
-            for (column, column_better) in row.columns.iter().zip(better_row.columns) {
-                if column.value.value != column_better.value.value {
-                    query.push(create_iterate_list_token(vec![
-                        create_identifier_token(&column_better.column_name),
-                        create_comparison_operation_token(Equal),
-                        create_token_from_literal(column_better.value),
-                    ]));
-                    change_row = true
-                }
-            } 
-            if change_row {
-                let pks = self.get_pks_headers(BEST)?;
-                query.push(create_identifier_token("WHERE"));
-                let mut sub_where: Vec<Token> = Vec::new();
-                for (i, (pks_header, pk_value)) in pks.iter().zip(row.primary_key.clone()).enumerate() {
-                    sub_where.push(create_identifier_token(pks_header.0));
-                    sub_where.push(create_comparison_operation_token(Equal));
-                    sub_where.push(create_token_literal(&pk_value, pks_header.1.clone()));
-                    if i < pks.len() - 1 {
-                        sub_where.push(create_logical_operation_token(And))
+            //Si esa linea esta en la mejor response:
+            //difiere en valores -> UPDATE
+            //esta eliminada en best pero no en actual -> DELETE
+            if let Some(best_row) = best.get(&node_row.primary_key) {
+                //Esta eliminada en best
+                /*if node_row.deleted != best_row.deleted {
+                    query.push(create_reserved_token("DELETE"));
+                    for column_deleted in &best_row.deleted {
+                        if !node_row.deleted.contains(column_deleted) {
+                            query.push(create_identifier_token(&column_deleted.column_name));
+                        }
                     }
-                }
-                query.push(create_iterate_list_token(sub_where));
+                }*/
+                self.create_base_update(&mut query)?;
+                let best_col_map = to_hash_columns(best_row.columns.clone());
+                for column in &node_row.columns {
+                    if let Some(best_column) = best_col_map.get(&column.column_name) {
+                        if column.value.value != best_column.value.value {
+                            ReadRepair::add_update_changes(&mut query, &column.column_name, &column.value);
+                            change_row = true
+                        }
+                    }
+                    
+                }    
+            }
+            if change_row {
+                self.add_where(&mut query, node_row)?;
                 dbg!(&query);
                 let query_parsed = query_parser(query)?;
                 QueryDelegator::send_to_node(NodeIp::new_from_single_string(ip)?, query_parsed)?;
@@ -101,12 +134,12 @@ impl ReadRepair {
         let mut rows = self.read_rows(first_ip)?;
         for ip in ips {
             let next_response = self.read_rows(ip)?;
-            compare_response(&mut rows, next_response);
+            rows = compare_response(rows, next_response);
         }
         let (keyspace, table) = self.get_keyspace_table(first_ip)?;
         let betters = Response::rows(rows, &keyspace, &table)?;
-        let (best_row, best_meta_data) = ReadRepair::split_bytes(&betters)?;
-        self.responses_bytes.insert(BEST.to_owned(), best_row);
+        let (best_rows, best_meta_data) = ReadRepair::split_bytes(&betters)?;
+        self.responses_bytes.insert(BEST.to_owned(), best_rows);
         self.meta_data_bytes.insert(BEST.to_owned(), best_meta_data);
         Ok(())
     }    
@@ -145,8 +178,8 @@ impl ReadRepair {
 
     fn repair_innecesary(&self) -> Result<bool, Errors> {
         let mut responses: Vec<Vec<u8>> = Vec::new();
-        for (ip, _) in &self.responses_bytes {
-            responses.push(self.cast_to_protocol_row(&ip)?)
+        for ip in self.responses_bytes.keys() {
+            responses.push(self.cast_to_protocol_row(ip)?)
         }
         if responses.is_empty() {
             return Ok(true); 
@@ -169,31 +202,79 @@ impl ReadRepair {
 }
 
 
-
-
-fn compare_response(original: &mut [Row], new: Vec<Row>) {
-    for (ori_row, new_row) in original.iter_mut().zip(new) {
-        compare_row(ori_row, new_row);
-    }
-}
-
-fn compare_row(original: &mut Row, new: Row) {
-    for (col_ori, col_new) in original.columns.iter_mut().zip(new.columns) {
-        if col_ori.time_stamp < col_new.time_stamp {
-            *col_ori = col_new;
+//Entre dos respuestas, crea una que tenga los mejores time stamp para cada columna de cada row
+fn compare_response(original: Vec<Row>, next: Vec<Row>) -> Vec<Row> {
+    let mut original_map = to_hash_rows(original);
+    let mut res: Vec<Row> = Vec::new();
+    for next_row in &next {
+        if let Some(ori_row) = original_map.get(&next_row.primary_key) {
+            let row = compare_row(ori_row, next_row);
+            res.push(row);
+            original_map.remove(&next_row.primary_key);
+        }
+        else {
+            res.push(next_row.clone())
         }
     }
+    for rows_remaining in original_map.values() {
+        res.push(rows_remaining.clone())
+    }
+    res
 }
+
+
+//Crea una row quedanse con las columnas que tengan mejor time stamp
+fn compare_row(original: &Row, new: &Row) -> Row {
+    let mut best_columns: Vec<Column> = Vec::new();
+    let new_map = to_hash_columns(new.columns.clone());
+    for col_ori in &original.columns {
+        if let Some(col_new) = new_map.get(&col_ori.column_name) {
+            if col_ori.time_stamp < col_new.time_stamp {
+                best_columns.push(col_new.clone());
+            } else {
+                best_columns.push(col_ori.clone());
+            }
+        }
+    }
+    Row::new(best_columns, original.primary_key.clone())
+}
+
+fn to_hash_rows(rows: Vec<Row>) -> HashMap<Vec<String>, Row> {
+    let mut hash: HashMap<Vec<String>, Row> = HashMap::new();
+    for row in rows {
+        hash.insert(row.primary_key.clone(), row);
+    }
+    hash
+}
+
+fn to_hash_columns(columns: Vec<Column>) -> HashMap<String, Column> {
+    let mut hash: HashMap<String, Column> = HashMap::new();
+    for column in columns {
+        hash.insert(column.column_name.clone(), column);
+    }
+    hash
+}
+
 
 #[cfg(test)]
 mod tests {
-    use crate::data_access::row::Column;
-    use crate::parsers::tokens::data_type::DataType;
-    use crate::parsers::tokens::literal::Literal;
+    use std::net::IpAddr;
+
+    
 
     use super::*;
-    use std::collections::HashMap;
-    use std::net::IpAddr;
+
+    fn create_test_column(name: &str, value: &str, timestamp: u64) -> Column {
+        Column {
+            column_name: name.to_string(),
+            value: Literal::new(value.to_string(), DataType::Text),
+            time_stamp: timestamp,
+        }
+    }
+
+    fn create_test_row(primary_key: Vec<&str>, columns: Vec<Column>) -> Row {
+        Row::new(columns, primary_key.into_iter().map(String::from).collect())
+    }
 
     #[test]
     fn test_new() {
@@ -213,21 +294,6 @@ mod tests {
     }
 
     #[test]
-    fn test_get_first_response() {
-        let mut read_repair = ReadRepair {
-            responses_bytes: HashMap::new(),
-            meta_data_bytes: HashMap::new(),
-        };
-
-        // Agregar una respuesta
-        read_repair.responses_bytes.insert("127.0.0.1".to_string(), vec![0, 1, 2, 3]);
-
-        let response = read_repair.get_first_response();
-        assert!(response.is_ok());
-        assert_eq!(response.unwrap(), vec![0, 1, 2, 3]);
-    }
-
-    #[test]
     fn test_split_bytes() {
         let data = vec![
             1, 2, 3, 4,   
@@ -241,36 +307,90 @@ mod tests {
         assert_eq!(data_section, vec![1, 2, 3, 4]); // Sección inicial
         assert_eq!(timestamps_section, vec![5, 6, 7, 8]); // Sección intermedia
     }
-
+    
     #[test]
     fn test_compare_row() {
-        // Crear columnas
-        let original_column = Column::new(
-            &"col1".to_string(),
-            &Literal {
-                value: "old".to_string(),
-                data_type: DataType::Text, // Ajusta este tipo si es necesario
-            },
-            1,
+        let original_row = create_test_row(
+            vec!["pk1"],
+            vec![
+                create_test_column("col1", "value1", 100),
+                create_test_column("col2", "value2", 200),
+            ],
         );
 
-        let new_column = Column::new(
-            &"col1".to_string(),
-            &Literal {
-                value: "new".to_string(),
-                data_type: DataType::Text, // Ajusta este tipo si es necesario
-            },
-            2,
+        let new_row = create_test_row(
+            vec!["pk1"],
+            vec![
+                create_test_column("col1", "new_value1", 300),
+                create_test_column("col2", "value2", 150),
+            ],
         );
 
-        // Crear filas (rows)
-        let mut original = Row::new(vec![original_column], vec!["pk1".to_string()]);
-        let new = Row::new(vec![new_column], vec!["pk1".to_string()]);
+        let result = compare_row(&original_row, &new_row);
 
-        // Comparar y verificar
-        compare_row(&mut original, new);
-        assert_eq!(original.columns[0].value.value, "new");
-        assert_eq!(original.columns[0].time_stamp, 2);
+        assert_eq!(result.primary_key, vec!["pk1"]);
+        assert_eq!(result.columns.len(), 2);
+        assert_eq!(result.columns[0].value, Literal::new("new_value1".to_string(), DataType::Text));
+        assert_eq!(result.columns[1].value, Literal::new("value2".to_string(), DataType::Text));
+    }
+
+    #[test]
+    fn test_compare_response() {
+        let original_rows = vec![
+            create_test_row(
+                vec!["pk1"],
+                vec![create_test_column("col1", "value1", 100)],
+            ),
+            create_test_row(
+                vec!["pk2"],
+                vec![create_test_column("col1", "value2", 200)],
+            ),
+        ];
+
+        let new_rows = vec![
+            create_test_row(
+                vec!["pk1"],
+                vec![create_test_column("col1", "new_value1", 300)],
+            ),
+            create_test_row(
+                vec!["pk3"],
+                vec![create_test_column("col1", "value3", 150)],
+            ),
+        ];
+
+        let result = compare_response(original_rows, new_rows);
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0].primary_key, vec!["pk1"]);
+        assert_eq!(result[0].columns[0].value, Literal::new("new_value1".to_string(), DataType::Text));
+        assert_eq!(result[1].primary_key, vec!["pk3"]);
+        assert_eq!(result[2].primary_key, vec!["pk2"]);
+    }
+
+    #[test]
+    fn test_to_hash_rows() {
+        let rows = vec![
+            create_test_row(vec!["pk1"], vec![create_test_column("col1", "value1", 100)]),
+            create_test_row(vec!["pk2"], vec![create_test_column("col1", "value2", 200)]),
+        ];
+
+        let hash = to_hash_rows(rows);
+
+        assert!(hash.contains_key(&vec!["pk1".to_string()]));
+        assert!(hash.contains_key(&vec!["pk2".to_string()]));
+    }
+
+    #[test]
+    fn test_to_hash_columns() {
+        let columns = vec![
+            create_test_column("col1", "value1", 100),
+            create_test_column("col2", "value2", 200),
+        ];
+
+        let hash = to_hash_columns(columns);
+
+        assert!(hash.contains_key("col1"));
+        assert!(hash.contains_key("col2"));
     }
 }
+
 

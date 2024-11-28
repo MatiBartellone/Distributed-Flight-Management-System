@@ -20,8 +20,8 @@ impl DataResponse {
         }
     }
 
-    pub fn headers_pks(&self) -> &HashMap<String, DataType> {
-        &self.headers_pks
+    pub fn headers_pks(&self) -> HashMap<String, DataType> {
+        self.headers_pks.clone()
     }
 
     pub fn table(&self) -> &String {

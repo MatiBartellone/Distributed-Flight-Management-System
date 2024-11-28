@@ -77,57 +77,30 @@ fn byte_to_data_type(byte: i16) -> Result<DataType, Errors> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{utils::{types_to_bytes::TypesToBytes, response::Response}, parsers::tokens::literal::Literal};
+    use crate::utils::{response::Response, types_to_bytes::TypesToBytes};
 
     use super::*;
-    
 
+    #[test]
+    fn test_read_rows() {
+        // Crear datos para las filas
+        let column1 = Column::new(&"col1".to_string(), &create_literal("42", DataType::Int), 12345);
+        let column2 = Column::new(&"col2".to_string(), &create_literal("test", DataType::Text), 67890);
+        let row = Row::new(vec![column1, column2], vec!["pk_value".to_string()]);
+        let rows = vec![row];
+        let mut encoder = TypesToBytes::default();
+        // Codificar los datos en bytes
+        Response::write_rows(&rows, &mut encoder).unwrap();
 
-    
-    fn mock_rows() -> Vec<Row> {
-        vec![
-            Row::new(
-                vec![
-                    Column {
-                        column_name: "col1".to_string(),
-                        value: Literal {
-                            data_type: DataType::Int,
-                            value: "42".to_string(),
-                        },
-                        time_stamp: 123456789,
-                    },
-                    Column {
-                        column_name: "col2".to_string(),
-                        value: Literal {
-                            data_type: DataType::Text,
-                            value: "hello".to_string(),
-                        },
-                        time_stamp: 123456789,
-                    },
-                ],
-                vec!["key1".to_string()],
-            ),
-            Row::new(
-                vec![
-                    Column {
-                        column_name: "col1".to_string(),
-                        value: Literal {
-                            data_type: DataType::Int,
-                            value: "84".to_string(),
-                        },
-                        time_stamp: 987654321,
-                    },
-                    Column {
-                        column_name: "col2".to_string(),
-                        value: Literal {
-                            data_type: DataType::Text,
-                            value: "world".to_string(),
-                        },
-                        time_stamp: 987654321,
-                    },
-                ],
-                vec!["key2".to_string()],
-            ),
-        ]
+        // Leer los datos usando `read_rows`
+        let result = RowResponse::read_rows(encoder.into_bytes()).unwrap();
+
+        // Verificar el resultado
+        assert_eq!(result.len(), 1);
+        let first_row = &result[0];
+        assert_eq!(first_row.columns.len(), 2);
+        assert_eq!(first_row.columns[0].column_name, "col1");
+        assert_eq!(first_row.columns[1].column_name, "col2");
+        assert_eq!(first_row.primary_key, vec!["pk_value"]);
     }
 }
