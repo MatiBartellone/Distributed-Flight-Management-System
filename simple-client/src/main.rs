@@ -87,9 +87,9 @@ fn decrypt_message(encrypted_message: &[u8], iv: &[u8], aes_key: &[u8]) -> Resul
 }
 
 fn generate_iv() -> Result<Vec<u8>, String> {
-    let mut iv = vec![0; 16]; // 128-bit IV for AES CBC mode
+    let mut iv = vec![0; 16];
     rand_bytes(&mut iv)
-        .map_err(|e| format!("Error generando IV: {}", e))?; // Generar un IV aleatorio
+        .map_err(|e| format!("Error generando IV: {}", e))?;
     Ok(iv)
 }
 

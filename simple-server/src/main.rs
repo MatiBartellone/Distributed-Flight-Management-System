@@ -1,7 +1,5 @@
 use std::sync::Arc;
-use std::fs::File;
 use std::net::TcpStream;
-use openssl::sha::Sha256;
 use rustls:: ServerConfig;
 use std::io::{Write, Read};
 use simple_server::tls_stream::{flush_stream_tls, get_stream_owned, read_from_stream_no_zero, write_to_stream};
@@ -9,6 +7,12 @@ use std::net::TcpListener;
 use std::io;
 use openssl::symm::{Cipher, encrypt, decrypt};
 use openssl::rand::rand_bytes;
+
+
+pub const AES_KEY: [u8; 32] = [
+    107, 133, 195, 73, 171, 146, 174, 177, 245, 55, 2, 116, 4, 202, 100, 1,
+    75, 15, 151, 34, 194, 240, 98, 3, 111, 115, 214, 153, 82, 205, 149, 103
+];
 
 /// Get user data from the terminal
 pub fn get_user_data(msg: &str) -> String {
@@ -42,9 +46,9 @@ fn _handle_client_tls(stream: TcpStream, config: Arc<ServerConfig>) -> Result<()
     }
 }
 
-fn write_stream(socket: &mut TcpStream, frame: String, aes_key: &[u8]) -> Result<(), String> {
+fn write_stream(socket: &mut TcpStream, frame: String) -> Result<(), String> {
     // Usar la función auxiliar para encriptar el mensaje
-    let (encrypted_data, iv) = encrypt_message(&frame, aes_key)
+    let (encrypted_data, iv) = encrypt_message(&frame, &AES_KEY)
         .map_err(|e| format!("Error al encriptar el frame: {}", e))?;
 
     // Empaquetar el IV y los datos cifrados juntos
@@ -55,7 +59,7 @@ fn write_stream(socket: &mut TcpStream, frame: String, aes_key: &[u8]) -> Result
     Ok(())
 }
 
-fn read_stream(socket: &mut TcpStream, aes_key: &[u8]) -> Result<String, String> {
+fn read_stream(socket: &mut TcpStream) -> Result<String, String> {
     let mut buf = vec![0; 1024];
     let n = socket.read(&mut buf).map_err(|_| "Error al leer datos cifrados".to_string())?;
 
@@ -68,7 +72,7 @@ fn read_stream(socket: &mut TcpStream, aes_key: &[u8]) -> Result<String, String>
     let encrypted_data = &buf[16..n]; // El resto son los datos cifrados
 
     // Usar la función auxiliar para desencriptar los datos
-    decrypt_message(encrypted_data, iv, aes_key)
+    decrypt_message(encrypted_data, iv, &AES_KEY)
         .map_err(|_| "Error al desencriptar los datos".to_string())
 }
 
@@ -78,32 +82,17 @@ fn flush_stream(socket: &mut TcpStream) -> Result<(), String> {
     Ok(())
 }
 
-fn handle_client_encriptacion(mut stream: TcpStream, aes_key: &[u8]) -> Result<(), String> {
+fn handle_client_encriptacion(mut stream: TcpStream) -> Result<(), String> {
     loop {
         println!("Esperando mensaje cifrado...");
-        let message = read_stream(&mut stream, &aes_key)?;
+        let message = read_stream(&mut stream)?;
         println!("Respuesta desencriptada: {}", message);
         let frame = get_user_data("Frame:");
         println!("Pregunta desencriptada: {}", &frame);
-        write_stream(&mut stream, frame, &aes_key)?;
+        write_stream(&mut stream, frame)?;
         println!("Enviado mensaje cifrado");
         flush_stream(&mut stream)?;
     }
-}
-
-fn derive_aes_key_from_private_key() -> Result<[u8; 32], String> {
-    let pem_path = "src/certificates/private_key.pem";
-    let mut file = File::open(pem_path).map_err(|e| format!("Error abriendo private_key.pem: {}", e))?;
-    let mut buffer = [0u8; 256];
-    let bytes_read = file.read(&mut buffer).map_err(|e| format!("Error leyendo private_key.pem: {}", e))?;
-    
-    let mut hasher = Sha256::new();
-    hasher.update(&buffer[..bytes_read]);
-    let hash = hasher.finish();
-    
-    let mut aes_key = [0u8; 32];
-    aes_key.copy_from_slice(&hash[..32]);
-    Ok(aes_key)
 }
 
 fn encrypt_message(message: &str, aes_key: &[u8]) -> Result<(Vec<u8>, Vec<u8>), String> {
@@ -135,13 +124,12 @@ fn main() -> Result<(), String> {
     let listener = TcpListener::bind(node).expect("Error binding socket");
 
     //let config = create_server_config()?;
-    let aes_key = derive_aes_key_from_private_key()?;
     for incoming in listener.incoming() {
         match incoming {
             Ok(stream) => {
                 println!("Client connected: {:?}", stream.peer_addr());
                 //handle_client_tls(stream, Arc::new(config.clone()));
-                if let Err(e) = handle_client_encriptacion(stream, &aes_key) {
+                if let Err(e) = handle_client_encriptacion(stream) {
                     eprintln!("Error handling client: {}", e);
                 }
             }
