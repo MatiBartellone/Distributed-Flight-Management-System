@@ -5,6 +5,8 @@ members = [
     "ui",
     "flight_simulator", 
     "node_handler", 
-    "test-client"]
+    "test-client",
+    "simple-client",
+    "simple-server",]
 
 
