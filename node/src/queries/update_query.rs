@@ -116,6 +116,9 @@ impl Default for UpdateQuery {
 
 impl Query for UpdateQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
+        dbg!(&self.changes);
+        dbg!(&self.table_name);
+        dbg!(&self.where_clause);
         self.check_values()?;
         let Some(where_clause) = &self.where_clause else {
             return Err(Errors::SyntaxError(String::from(

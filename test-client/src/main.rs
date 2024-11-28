@@ -133,14 +133,13 @@ fn main() {
                             0x08 => {
                                 let mut cursor = BytesCursor::new(frame.body.as_slice());
                                 println!("RESULT");
-                                if let Ok(string) = cursor.read_long_string() {
-                                    println!("{}", string);
-                                } else {
-                                    println!(
-                                        "{:?}",
-                                        &String::from_utf8_lossy(frame.body.as_slice())
-                                    );
-                                }
+
+
+                                println!(
+                                    "{:?}",
+                                    &String::from_utf8_lossy(frame.body.as_slice())
+                                );
+
                             }
                             _ => {}
                         }

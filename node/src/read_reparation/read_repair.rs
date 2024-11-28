@@ -112,7 +112,7 @@ impl ReadRepair {
                 for column in &node_row.columns {
                     if let Some(best_column) = best_col_map.get(&column.column_name) {
                         if column.value.value != best_column.value.value {
-                            ReadRepair::add_update_changes(&mut query, &column.column_name, &column.value);
+                            ReadRepair::add_update_changes(&mut query, &column.column_name, &best_column.value);
                             change_row = true
                         }
                     }
