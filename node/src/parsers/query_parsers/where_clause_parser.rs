@@ -25,7 +25,6 @@ pub struct WhereClauseParser;
 
 impl WhereClauseParser {
     pub fn parse(tokens: Vec<Token>) -> Result<WhereClause, Errors> {
-        dbg!(&tokens);
         let tokens = precedence(tokens);
         where_clause_rec(&mut tokens.into_iter().peekable())
     }
