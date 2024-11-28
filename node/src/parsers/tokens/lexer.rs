@@ -1,4 +1,5 @@
-use crate::utils::constants::*;
+use crate::utils::parser_constants::*;
+use crate::utils::parser_constants::{DF, DIV, EMPTY, GE, GT, LE, LT, MINUS, MOD, PLUS, SPACE};
 
 fn characters(word: &str, start: usize, end: usize) -> String {
     word.chars().skip(start).take(end - start).collect()

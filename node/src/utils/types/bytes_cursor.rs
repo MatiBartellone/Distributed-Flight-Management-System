@@ -1,9 +1,7 @@
+use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
 use std::collections::HashMap;
 use std::io::{Cursor, Read};
-
-use super::consistency_level::ConsistencyLevel;
-
 pub struct BytesCursor {
     cursor: Cursor<Vec<u8>>,
 }
@@ -46,7 +44,6 @@ impl BytesCursor {
             .map_err(|_| Errors::ProtocolError(String::from("Could not read bytes")))?;
         Ok(u64::from_be_bytes(buf))
     }
-
 
     pub fn read_remaining_bytes(&mut self) -> Result<Vec<u8>, Errors> {
         let mut body = Vec::new();

@@ -1,6 +1,6 @@
 use super::node::Node;
 use crate::utils::errors::Errors;
-use crate::utils::node_ip::NodeIp;
+use crate::utils::types::node_ip::NodeIp;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]

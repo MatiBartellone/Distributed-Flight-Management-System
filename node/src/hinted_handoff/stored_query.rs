@@ -1,7 +1,7 @@
 use crate::queries::query::{Query, QueryEnum};
-use crate::utils::constants::HINTED_HANDOFF_HOURS;
+use crate::utils::config_constants::HINTED_HANDOFF_HOURS;
 use crate::utils::errors::Errors;
-use crate::utils::timestamp::Timestamp;
+use crate::utils::types::timestamp::Timestamp;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]

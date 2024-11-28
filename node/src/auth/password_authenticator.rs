@@ -13,6 +13,7 @@ struct Credential {
     pass: String,
 }
 
+/// PasswordAuthenticator uses user and password to validate credentials
 pub struct PasswordAuthenticator;
 
 impl Authenticator for PasswordAuthenticator {

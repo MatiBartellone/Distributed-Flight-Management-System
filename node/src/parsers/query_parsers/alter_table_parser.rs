@@ -6,7 +6,7 @@ use crate::{
     utils::errors::Errors,
 };
 
-use crate::utils::token_conversor::get_next_value;
+use crate::utils::types::token_conversor::get_next_value;
 
 const MISSING_KEYWORD: &str = "Missing keyword following table name";
 const UNEXPECTED_TOKEN: &str = "Unexpected token";

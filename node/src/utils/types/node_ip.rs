@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::net::{IpAddr, SocketAddr};
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct NodeIp {
     ip: IpAddr,
     port: u16,
@@ -46,6 +46,10 @@ impl NodeIp {
             ip: node_ip.ip,
             port: node_ip.port,
         }
+    }
+
+    pub fn get_port(&self) -> u16 {
+        self.port
     }
 
     pub fn get_std_socket(&self) -> SocketAddr {
