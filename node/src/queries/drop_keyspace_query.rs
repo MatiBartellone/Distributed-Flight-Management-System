@@ -1,4 +1,6 @@
-use crate::utils::functions::{get_long_string_from_str, use_data_access, use_keyspace_meta_data};
+
+use crate::utils::response::Response;
+use crate::utils::functions::{use_data_access, use_keyspace_meta_data};
 use crate::{
     queries::query::Query,
     utils::{constants::KEYSPACE_METADATA_PATH, errors::Errors},
@@ -40,7 +42,7 @@ impl Query for DropKeySpaceQuery {
             }
             Ok(())
         })?;
-        Ok(get_long_string_from_str("Drop keyspace was successful"))
+        Response::schema_change("DROPPED", "KEYSPACE", &self.keyspace)
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {

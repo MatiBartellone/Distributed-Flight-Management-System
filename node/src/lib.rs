@@ -9,6 +9,7 @@ pub mod parsers;
 pub mod queries;
 pub mod query_delegation;
 pub mod response_builders;
+pub mod read_reparation;
 pub mod utils;
 
 pub mod client_handler;

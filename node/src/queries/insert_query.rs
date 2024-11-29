@@ -1,9 +1,10 @@
 use crate::data_access::row::{Column, Row};
 use crate::parsers::tokens::data_type::DataType;
 use crate::utils::functions::{
-    check_table_name, get_columns_from_table, get_long_string_from_str,
+    check_table_name, get_columns_from_table,
     get_table_clustering_columns, get_table_partition, split_keyspace_table, use_data_access,
 };
+use crate::utils::response::Response;
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -143,7 +144,7 @@ impl Query for InsertQuery {
             }
             Ok(())
         })?;
-        Ok(get_long_string_from_str("Insertion was successful"))
+        Response::void()
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {

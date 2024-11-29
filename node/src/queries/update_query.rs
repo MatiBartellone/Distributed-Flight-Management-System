@@ -6,9 +6,10 @@ use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
-    check_table_name, get_columns_from_table, get_long_string_from_str,
+    check_table_name, get_columns_from_table,
     get_partition_key_from_where, get_table_pk, split_keyspace_table, use_data_access,
 };
+use crate::utils::response::Response;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::cmp::PartialEq;
@@ -124,7 +125,7 @@ impl Query for UpdateQuery {
         use_data_access(|data_access| {
             data_access.update_row(&self.table_name, &self.changes, where_clause)
         })?;
-        Ok(get_long_string_from_str("Update was successful"))
+        Response::void()
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {

@@ -1,7 +1,8 @@
 use super::query::Query;
 use crate::utils::constants::CLIENT_METADATA_PATH;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{get_long_string_from_str, use_client_meta_data};
+use crate::utils::response::Response;
+use crate::utils::functions::use_client_meta_data;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 
@@ -29,7 +30,7 @@ impl Query for UseQuery {
         use_client_meta_data(|handler| {
             handler.use_keyspace(CLIENT_METADATA_PATH.to_owned(), &self.keyspace_name)
         })?;
-        Ok(get_long_string_from_str("Use was successful"))
+        Response::set_keyspace(&self.keyspace_name)
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {

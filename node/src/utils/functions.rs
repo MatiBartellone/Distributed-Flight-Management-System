@@ -136,6 +136,7 @@ pub fn get_own_ip() -> Result<NodeIp, Errors> {
     NodeIp::new_from_string(split[0], port)
 }
 
+
 pub fn start_listener<F>(socket: SocketAddr, handle_connection: F) -> Result<(), Errors>
 where
     F: Fn(&mut TcpStream) -> Result<(), Errors>,

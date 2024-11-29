@@ -1,7 +1,8 @@
 use crate::queries::query::Query;
 use crate::utils::constants::{KEYSPACE_METADATA_PATH, REPLICATION, STRATEGY};
 use crate::utils::errors::Errors;
-use crate::utils::functions::{get_long_string_from_str, use_keyspace_meta_data};
+use crate::utils::response::Response;
+use crate::utils::functions::use_keyspace_meta_data;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::HashMap;
@@ -53,7 +54,7 @@ impl Query for CreateKeyspaceQuery {
                 self.get_replication(),
             )
         })?;
-        Ok(get_long_string_from_str("Create keyspace was successful"))
+        Response::schema_change("CREATED", "KEYSPACE", &self.keyspace)
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {

@@ -2,7 +2,6 @@ use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
 use std::collections::HashMap;
 use std::io::{Cursor, Read};
-
 pub struct BytesCursor {
     cursor: Cursor<Vec<u8>>,
 }
@@ -36,6 +35,14 @@ impl BytesCursor {
             .read_exact(&mut buf)
             .map_err(|_| Errors::ProtocolError(String::from("Could not read bytes")))?;
         Ok(u32::from_be_bytes(buf))
+    }
+
+    pub fn read_u64(&mut self) -> Result<u64, Errors> {
+        let mut buf = [0u8; 8];
+        self.cursor
+            .read_exact(&mut buf)
+            .map_err(|_| Errors::ProtocolError(String::from("Could not read bytes")))?;
+        Ok(u64::from_be_bytes(buf))
     }
 
     pub fn read_remaining_bytes(&mut self) -> Result<Vec<u8>, Errors> {

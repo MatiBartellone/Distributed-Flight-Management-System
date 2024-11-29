@@ -5,6 +5,7 @@ use crate::parsers::tokens::{
     terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term},
     token::Token,
 };
+
 use crate::utils::errors::Errors;
 use std::{iter::Peekable, vec::IntoIter};
 use BooleanOperations::*;
@@ -158,6 +159,10 @@ pub fn create_brace_list_token(list: Vec<Token>) -> Token {
 // Term
 pub fn create_token_literal(value: &str, data_type: DataType) -> Token {
     Token::Term(Term::Literal(Literal::new(value.to_string(), data_type)))
+}
+
+pub fn create_token_from_literal(literal: Literal) -> Token {
+    Token::Term(Term::Literal(literal))
 }
 
 pub fn create_logical_operation_token(operation: LogicalOperators) -> Token {

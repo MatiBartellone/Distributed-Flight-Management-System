@@ -1,3 +1,5 @@
+pub const ERROR_WRITE: &str = "Could not write byte";
+pub const BEST: &str = "BETTER_RESPONSE";
 pub const NODES_METADATA_PATH: &str = "src/meta_data/nodes/metadata.json";
 pub const CLIENT_METADATA_PATH: &str = "src/meta_data/clients/data/";
 pub const DATA_ACCESS_PATH: &str = "src/data_access/data/";
@@ -14,3 +16,4 @@ pub const SEED_LISTENER_MOD: i32 = 5;
 pub const HINTS_RECEIVER_MOD: i32 = 6;
 pub const REPLICATION: &str = "replication_factor";
 pub const STRATEGY: &str = "class";
+pub const ASTERIK: &str = "*";
