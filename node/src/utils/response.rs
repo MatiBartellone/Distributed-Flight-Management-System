@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 
-use crate::hinted_handoff::handler;
 use crate::{
     data_access::row::Row, parsers::tokens::data_type::DataType,
-    utils::types_to_bytes::TypesToBytes, meta_data::meta_data_handler::MetaDataHandler,
+    utils::types_to_bytes::TypesToBytes,
 };
 use crate::utils::functions::serialize_to_string;
 use super::functions::use_keyspace_meta_data;
-use super::{errors::Errors, constants::KEYSPACE_METADATA_PATH, functions::get_columns_from_table};
+use super::{errors::Errors, constants::KEYSPACE_METADATA_PATH};
 pub struct Response;
 
 impl Response {

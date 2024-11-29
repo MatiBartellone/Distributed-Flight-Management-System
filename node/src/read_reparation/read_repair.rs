@@ -145,7 +145,8 @@ impl ReadRepair {
             rows = compare_response(rows, next_response);
         }
         let (keyspace, table) = self.get_keyspace_table(first_ip)?;
-        let betters = Response::rows(rows, &keyspace, &table)?;
+        let column = self.get_columns(first_ip)?;
+        let betters = Response::rows(rows, &keyspace, &table, &column)?;
         let (best_rows, best_meta_data) = ReadRepair::split_bytes(&betters)?;
         self.responses_bytes.insert(BEST.to_owned(), best_rows);
         self.meta_data_bytes.insert(BEST.to_owned(), best_meta_data);
