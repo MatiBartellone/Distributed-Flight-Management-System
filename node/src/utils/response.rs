@@ -61,7 +61,7 @@ impl Response {
         encoder.write_int(rows.len() as i32)?;
         for row in rows {
             for header in &headers {
-                match row.get_some_column(&header) {
+                match row.get_some_column(header) {
                     Ok(column) => encoder.write_string(&column.value.value)?,
                     _ => encoder.write_string("None")?,
                 }
@@ -88,7 +88,7 @@ impl Response {
         encoder.write_int(0x0002)?;
         encoder.write_short(rows.len() as u16)?;
         for row in rows {
-            encoder.write_string(&serialize_to_string(row)?.as_str())?;
+            encoder.write_string(serialize_to_string(row)?.as_str())?;
         };
         Ok(())
     }
@@ -105,7 +105,7 @@ impl Response {
         }
         encoder.write_short(columns.len() as u16)?;
         for name in columns {
-            encoder.write_string(&name)?;
+            encoder.write_string(name)?;
         }
         Ok(())
     }
@@ -147,7 +147,7 @@ fn filter_keys(vec: Vec<String>, map: HashMap<String, DataType>) -> HashMap<Stri
 
 #[cfg(test)]
 mod tests {
-    use crate::{utils::{response::Response, types::timestamp::Timestamp ,types_to_bytes::TypesToBytes}, parsers::tokens::{data_type::DataType, literal::Literal}, data_access::row::{Column, Row}};
+    use crate::{utils::{response::Response}, parsers::tokens::data_type::DataType};
 
     #[test]
     fn test_void_response() {
@@ -184,32 +184,4 @@ mod tests {
         assert_eq!(Response::data_type_to_byte(DataType::Int), 0x0009);
         assert_eq!(Response::data_type_to_byte(DataType::Text), 0x000A);
     }
-
-    fn mock_columns() -> Vec<Column> {
-        vec![
-            Column {
-                column_name: "col1".to_string(),
-                value: Literal {
-                    data_type: DataType::Int,
-                    value: "42".to_string(),
-                },
-                timestamp: Timestamp::new_from_i64(123456789),
-            },
-            Column {
-                column_name: "col2".to_string(),
-                value: Literal {
-                    data_type: DataType::Text,
-                    value: "hello".to_string(),
-                },
-                timestamp: Timestamp::new_from_i64(123456789),
-            },
-        ]
-    }
-
-   fn mock_rows() -> Vec<Row> {
-    vec![Row::new(
-        mock_columns(),
-        vec!["key1".to_string()], 
-    )]
-}
 }

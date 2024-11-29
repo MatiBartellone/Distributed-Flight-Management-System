@@ -5,3 +5,4 @@ pub mod reserved_words;
 pub mod symbols;
 pub mod terms;
 pub mod token;
+pub mod character_mapping;
