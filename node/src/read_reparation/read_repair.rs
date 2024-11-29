@@ -169,10 +169,17 @@ impl ReadRepair {
         Ok(data_response.headers_pks().clone())
     }
 
+    fn get_columns(&self, ip: &str) -> Result<Vec<String>, Errors> {
+        let bytes = self.meta_data_bytes.get(ip).ok_or_else(|| Errors::ServerError(format!("Key {} not found in meta_data_bytes", ip)))?;
+        let data_response = RowResponse::read_meta_data_response(bytes.to_vec())?;
+        Ok(data_response.colums())
+    }
+
     fn cast_to_protocol_row(&self, ip: &str) -> Result<Vec<u8>, Errors> {
         let rows = self.read_rows(ip)?;
         let (keyspace, table) = self.get_keyspace_table(ip)?;
-        Response::protocol_row(rows, &keyspace, &table)
+        let columns = self.get_columns(ip)?;
+        Response::protocol_row(rows, &keyspace, &table, columns)
     }
 
 

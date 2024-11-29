@@ -34,7 +34,13 @@ impl RowResponse {
             let data_type = byte_to_data_type(data_type_bytes)?;
             headers_pks.insert(title, data_type);
         }
-        Ok(DataResponse::new(headers_pks, table, keyspace))
+        let mut columns: Vec<String> = Vec::new();
+        let column_count = cursor.read_short()?;
+        for _ in 0..column_count{
+            let name = cursor.read_string()?;
+            columns.push(name)
+        }
+        Ok(DataResponse::new(headers_pks, table, keyspace, columns))
     }
 }
 

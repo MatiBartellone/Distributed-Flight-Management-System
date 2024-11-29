@@ -5,7 +5,7 @@ use crate::{
     utils::types_to_bytes::TypesToBytes, meta_data::meta_data_handler::MetaDataHandler,
 };
 use crate::utils::functions::serialize_to_string;
-use super::{errors::Errors, constants::KEYSPACE_METADATA_PATH};
+use super::{errors::Errors, constants::KEYSPACE_METADATA_PATH, functions::get_columns_from_table};
 pub struct Response;
 
 impl Response {
@@ -36,18 +36,17 @@ impl Response {
     }
 
 
-    pub fn protocol_row(rows: Vec<Row>, keyspace: &str, table: &str) -> Result<Vec<u8>, Errors> {
+    pub fn protocol_row(rows: Vec<Row>, keyspace: &str, table: &str, headers: Vec<String>) -> Result<Vec<u8>, Errors> {
         let mut encoder = TypesToBytes::default();
-        Response::write_protocol_response(&rows, keyspace, table, &mut encoder)?;
+        Response::write_protocol_response(&rows, keyspace, table, headers, &mut encoder)?;
         Ok(encoder.into_bytes())
     }
 
-    fn write_protocol_response(rows: &Vec<Row>, keyspace: &str, table: &str, encoder: &mut TypesToBytes) -> Result<(), Errors>{
+    fn write_protocol_response(rows: &Vec<Row>, keyspace: &str, table: &str, headers: Vec<String>, encoder: &mut TypesToBytes) -> Result<(), Errors>{
         encoder.write_int(0x0002)?;
         encoder.write_int(0x0001)?;
-        if let Some(first_row) = rows.first() {
-            encoder.write_int(first_row.columns.len() as i32)?;
-        }
+        encoder.write_int(headers.len() as i32)?;
+        
         encoder.write_string(keyspace)?;
         encoder.write_string(table)?;
         for column in &rows[0].columns {
@@ -57,12 +56,17 @@ impl Response {
         }
         encoder.write_int(rows.len() as i32)?;
         for row in rows {
-            for column in &row.columns {
-                encoder.write_string(&column.value.value)?;
+            for header in &headers {
+                match row.get_some_column(header) {
+                    Ok(column) => encoder.write_string(&column.value.value)?,
+                    _ => encoder.write_string("")?,
+                }
             }
         }
         Ok(())
     }
+
+    
 
     pub fn rows(rows: Vec<Row>, keyspace: &str, table: &str) -> Result<Vec<u8>, Errors> {
         let mut encoder = TypesToBytes::default();
@@ -94,6 +98,11 @@ impl Response {
             encoder.write_string(&pk)?;
             let data_type_id = Response::data_type_to_byte(type_);
             encoder.write_i16(data_type_id)?;
+        }
+        let columns = get_columns_from_table(&format!("{}.{}", keyspace, table))?;
+        encoder.write_short(columns.len() as u16)?;
+        for name in columns.keys() {
+            encoder.write_string(&name)?;
         }
         Ok(())
     }
@@ -168,7 +177,7 @@ mod tests {
         let rows = mock_rows(); 
         let keyspace = "test_keyspace";
         let table = "test_table";
-        let result = Response::protocol_row(rows, keyspace, table);
+        let result = Response::protocol_row(rows, keyspace, table, vec!["col1".to_string(), "col2".to_string()]);
         assert!(result.is_ok());
     }
 
@@ -186,7 +195,7 @@ mod tests {
         let keyspace = "test_keyspace";
         let table = "test_table";
         let mut encoder = TypesToBytes::default();
-        let result = Response::write_protocol_response(&rows, keyspace, table, &mut encoder);
+        let result = Response::write_protocol_response(&rows, keyspace, table,vec!["col1".to_string(), "col2".to_string()], &mut encoder);
         assert!(result.is_ok());
         assert!(!encoder.into_bytes().is_empty());
     }
