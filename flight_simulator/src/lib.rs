@@ -1,4 +1,4 @@
-pub mod cassandra_client;
+pub mod cassandra_comunication;
 pub mod flight_implementation;
 pub mod utils;
 

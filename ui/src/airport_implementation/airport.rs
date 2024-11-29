@@ -9,7 +9,6 @@ pub struct Airport {
     pub position: (f64, f64),
 }
 
-// Comunicacion con Cassandra o informacion de aeropuerto
 impl Airport {
     pub fn new(name: String, code: String, position: (f64, f64)) -> Self {
         Airport {
@@ -19,32 +18,34 @@ impl Airport {
         }
     }
 
+    /// List the airport in the UI with its information
     pub fn list_information(&self, ui: &mut egui::Ui) {
         ui.label(format!("{} ({})", self.name, self.code));
     }
 
+    /// Get the position of the airport in the screen
     pub fn get_airport_pos2(&self, projector: &Projector) -> Pos2 {
         self.get_flight_vec2(projector).to_pos2()
     }
 
+    /// Get the vec2 of the airport
     pub fn get_flight_vec2(&self, projector: &Projector) -> Vec2 {
         let airport_coordinates = self.position;
         let airport_position = Position::from_lon_lat(airport_coordinates.0, airport_coordinates.1);
         projector.project(airport_position)
     }
-}
 
-// Interfaz grafica
-impl Airport {
+    /// Draw the airport in the screen with its icon and information when hovering
+    /// If the airport is clicked, it will change the selected airport
     pub fn draw(
         &self,
         response: &Response,
         painter: Painter,
         projector: &Projector,
-        on_airport_selected: &Arc<Mutex<Option<Airport>>>,
+        selected_airport_code: &Arc<Mutex<Option<String>>>,
     ) {
         self.draw_icon_airport(painter.clone(), projector);
-        self.clickeable_airport(response, projector, on_airport_selected);
+        self.clickeable_airport(response, projector, selected_airport_code);
         self.holdeable_airport(response, painter, projector);
     }
 
@@ -84,7 +85,7 @@ impl Airport {
     }
 
     // Dibuja el icono del avion en su posicion
-    pub fn draw_icon_airport(&self, painter: Painter, projector: &Projector) {
+    fn draw_icon_airport(&self, painter: Painter, projector: &Projector) {
         let screen_airport_position = self.get_airport_pos2(projector);
         painter.text(
             screen_airport_position,
@@ -101,19 +102,19 @@ impl Airport {
         &self,
         response: &Response,
         projector: &Projector,
-        on_airport_selected: &Arc<Mutex<Option<Airport>>>,
+        selected_airport_code: &Arc<Mutex<Option<String>>>,
     ) {
         let screen_airport_position = self.get_airport_pos2(projector);
         if self.is_hovering_on_airport(response, screen_airport_position)
             && response.clicked_by(egui::PointerButton::Primary)
         {
-            let mut selected_airport = match on_airport_selected.lock() {
+            let mut selected_airport = match selected_airport_code.lock() {
                 Ok(lock) => lock,
                 Err(_) => return,
             };
             match &*selected_airport {
-                Some(airport) if airport == self => *selected_airport = None,
-                Some(_) | None => *selected_airport = Some(self.clone()),
+                Some(airport) if airport == &self.code => *selected_airport = None,
+                Some(_) | None => *selected_airport = Some(self.code.to_string()),
             }
         }
     }
