@@ -8,28 +8,28 @@ pub struct TypesToBytes {
 
 impl TypesToBytes {
     pub fn write_u8(&mut self, value: u8) -> Result<(), Errors> {
-        self.bytes.write_all(&[value]).map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)));
+        self.bytes.write_all(&[value]).map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
         Ok(())
     }
 
     pub fn write_i16(&mut self, value: i16) -> Result<(), Errors> {
         self.bytes
             .write_all(&value.to_be_bytes())
-            .map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)));
+            .map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
         Ok(())
     }
 
     pub fn write_u32(&mut self, value: u32) -> Result<(), Errors> {
         self.bytes
             .write_all(&value.to_be_bytes())
-            .map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)));
+            .map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
         Ok(())
     }
 
     pub fn write_u64(&mut self, value: u64) -> Result<(), Errors> {
         self.bytes
             .write_all(&value.to_be_bytes())
-            .map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)));
+            .map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
         Ok(())
     }
 
@@ -40,14 +40,14 @@ impl TypesToBytes {
     pub fn write_int(&mut self, value: i32) -> Result<(), Errors> {
         self.bytes
             .write_all(&value.to_be_bytes())
-            .map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)));
+            .map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
         Ok(())
     }
 
     pub fn write_long(&mut self, value: i64) -> Result<(), Errors> {
         self.bytes
             .write_all(&value.to_be_bytes())
-            .map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)));
+            .map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
         Ok(())
     }
 
@@ -55,7 +55,7 @@ impl TypesToBytes {
         let bytes = value.as_bytes();
         let length = bytes.len() as i16;
         self.write_short(length as u16)?; // Usa write_short
-        self.bytes.write_all(bytes).map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)));
+        self.bytes.write_all(bytes).map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
         Ok(())
     }
 
@@ -63,7 +63,7 @@ impl TypesToBytes {
         let bytes = value.as_bytes();
         let length = bytes.len() as i32;
         self.write_int(length)?; // Usa write_int
-        self.bytes.write_all(bytes).map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)));
+        self.bytes.write_all(bytes).map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
         Ok(())
     }
 

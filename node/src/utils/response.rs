@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    data_access::row::{Row, Column}, parsers::tokens::data_type::DataType,
+    data_access::row::Row, parsers::tokens::data_type::DataType,
     utils::types_to_bytes::TypesToBytes, meta_data::meta_data_handler::MetaDataHandler,
 };
 use crate::utils::functions::serialize_to_string;
@@ -100,7 +100,7 @@ impl Response {
             encoder.write_i16(data_type_id)?;
         }
         let columns = get_columns_from_table(&format!("{}.{}", keyspace, table))?;
-        encoder.write_short(columns.len() as u16)?;
+        encoder.write_short(columns.keys().len() as u16)?;
         for name in columns.keys() {
             encoder.write_string(&name)?;
         }

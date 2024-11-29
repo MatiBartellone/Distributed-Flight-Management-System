@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{utils::{errors::Errors, functions::deserialize_from_str}, parsers::tokens::{data_type::DataType, literal::create_literal}, data_access::row::{Row, Column}};
+use crate::{utils::{errors::Errors, functions::deserialize_from_str}, parsers::tokens::data_type::DataType, data_access::row::Row};
 use crate::utils::types::bytes_cursor::BytesCursor;
 use super::data_response::DataResponse;
 
@@ -19,7 +19,6 @@ impl RowResponse {
             let row : Row = deserialize_from_str(&cursor.read_string()?)?;
             res.push(row);
         }
-        dbg!(&res);
         Ok(res)
     }
 
@@ -62,7 +61,7 @@ fn byte_to_data_type(byte: i16) -> Result<DataType, Errors> {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::{response::Response, types_to_bytes::TypesToBytes};
+    use crate::{utils::{response::Response, types_to_bytes::TypesToBytes}, data_access::row::Column, parsers::tokens::literal::create_literal};
 
     use super::*;
 
