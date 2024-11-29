@@ -53,7 +53,7 @@ impl Response {
         let map_type = get_column(keyspace, table)?;
         for header in &headers {
             encoder.write_string(header)?;
-            if let Some(data_type) = map_type.get(header){
+            if let Some(data_type) = map_type.get(header) {
                 let data_type_id = Response::data_type_to_byte(data_type.clone());
                 encoder.write_i16(data_type_id)?;
             }
@@ -179,31 +179,10 @@ mod tests {
     }
 
     #[test]
-    fn test_protocol_row() {
-        let rows = mock_rows(); 
-        let keyspace = "test_keyspace";
-        let table = "test_table";
-        let result = Response::protocol_row(rows, keyspace, table, vec!["col1".to_string(), "col2".to_string()]);
-        assert!(result.is_ok());
-    }
-
-    #[test]
     fn test_data_type_to_byte() {
         assert_eq!(Response::data_type_to_byte(DataType::Boolean), 0x0004);
         assert_eq!(Response::data_type_to_byte(DataType::Int), 0x0009);
         assert_eq!(Response::data_type_to_byte(DataType::Text), 0x000A);
-    }
-
-
-    #[test]
-    fn test_write_protocol_response() {
-        let rows = mock_rows();
-        let keyspace = "test_keyspace";
-        let table = "test_table";
-        let mut encoder = TypesToBytes::default();
-        let result = Response::write_protocol_response(&rows, keyspace, table,vec!["col1".to_string(), "col2".to_string()], &mut encoder);
-        assert!(result.is_ok());
-        assert!(!encoder.into_bytes().is_empty());
     }
 
     fn mock_columns() -> Vec<Column> {

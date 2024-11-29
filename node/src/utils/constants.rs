@@ -16,3 +16,4 @@ pub const SEED_LISTENER_MOD: i32 = 5;
 pub const HINTS_RECEIVER_MOD: i32 = 6;
 pub const REPLICATION: &str = "replication_factor";
 pub const STRATEGY: &str = "class";
+pub const ASTERIK: &str = "*";

@@ -1,10 +1,11 @@
 use super::query::Query;
 use super::where_logic::where_clause::WhereClause;
 use crate::queries::order_by_clause::OrderByClause;
+use crate::utils::constants::{KEYSPACE_METADATA_PATH, ASTERIK};
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
     check_table_name, get_columns_from_table,
-    get_partition_key_from_where, split_keyspace_table, use_data_access,
+    get_partition_key_from_where, split_keyspace_table, use_data_access, use_keyspace_meta_data,
 };
 use crate::utils::response::Response;
 use serde::{Deserialize, Serialize};
@@ -96,6 +97,11 @@ impl Query for SelectQuery {
             data_access.select_rows(&self.table_name, where_clause, &self.order_clauses)
         })?;
         let (kesypace_name, table) = split_keyspace_table(&self.table_name)?;
+        if self.columns.first() == Some(&ASTERIK.to_string()) {
+            let aux = use_keyspace_meta_data(|handler| handler.get_columns_type(KEYSPACE_METADATA_PATH.to_string(), kesypace_name, table))?;
+            let column_names: Vec<String> = aux.keys().cloned().collect();
+            return Response::rows(rows, kesypace_name, table, &column_names);
+        }
         Response::rows(rows, kesypace_name, table, &self.columns)
     }
 
