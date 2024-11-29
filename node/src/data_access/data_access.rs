@@ -1,4 +1,4 @@
-use crate::data_access::row::{Column, Row};
+use crate::data_access::row::Row;
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
 use crate::parsers::tokens::terms::ArithMath;
@@ -17,6 +17,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::fs::{metadata, remove_file, rename, File, OpenOptions};
 use std::io::{BufReader, Seek, SeekFrom};
+use crate::data_access::column::Column;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DataAccess;

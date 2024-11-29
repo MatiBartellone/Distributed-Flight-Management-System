@@ -1,6 +1,5 @@
 use std::io;
 use std::io::Write;
-use std::net::TcpStream;
 use test_client::bytes_cursor::BytesCursor;
 use test_client::cassandra_connector::CassandraConnection;
 use test_client::errors::Errors;
