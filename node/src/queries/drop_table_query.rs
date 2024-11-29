@@ -1,12 +1,13 @@
 use crate::utils::constants::KEYSPACE_METADATA_PATH;
 use crate::utils::functions::{
-    check_table_name, split_keyspace_table, use_data_access,
-    use_keyspace_meta_data,
+    check_table_name, split_keyspace_table
 };
 use crate::utils::response::Response;
 use crate::{queries::query::Query, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
+use crate::data_access::data_access_handler::use_data_access;
+use crate::meta_data::meta_data_handler::use_keyspace_meta_data;
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct DropTableQuery {

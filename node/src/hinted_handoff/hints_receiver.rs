@@ -4,11 +4,12 @@ use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::functions::{
-    bind_listener, flush_stream, read_exact_from_stream, use_node_meta_data, write_to_stream,
+    bind_listener, flush_stream, read_exact_from_stream, write_to_stream,
 };
 use crate::utils::types::node_ip::NodeIp;
 use std::net::TcpStream;
 use std::time::{Duration, Instant};
+use crate::meta_data::meta_data_handler::use_node_meta_data;
 
 pub struct HintsReceiver;
 

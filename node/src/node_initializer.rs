@@ -189,16 +189,6 @@ impl NodeInitializer {
     }
 }
 
-fn get_user_data(msg: &str) -> String {
-    print!("{}", msg);
-    io::stdout().flush().expect("Failed to flush stdout");
-    let mut data = String::new();
-    io::stdin()
-        .read_line(&mut data)
-        .expect("Error reading data");
-    data.trim().to_string()
-}
-
 fn store_ip(ip: &NodeIp) -> Result<(), Errors> {
     let mut file = File::create(IP_FILE).expect("Error creating file");
     file.write_all(ip.get_string_ip().as_bytes())
@@ -230,4 +220,14 @@ fn eliminate_node_by_ip(nodes: &Vec<Node>, ip: &NodeIp) -> Vec<Node> {
         }
     }
     new_nodes
+}
+
+fn get_user_data(msg: &str) -> String {
+    print!("{}", msg);
+    io::stdout().flush().expect("Failed to flush stdout");
+    let mut data = String::new();
+    io::stdin()
+        .read_line(&mut data)
+        .expect("Error reading data");
+    data.trim().to_string()
 }

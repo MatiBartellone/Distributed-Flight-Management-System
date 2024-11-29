@@ -26,13 +26,22 @@ impl DataAccessHandler {
     }
 
     /// connects to the data access socket
-    pub fn establish_connection() -> Result<TcpStream, Errors> {
+    fn establish_connection() -> Result<TcpStream, Errors> {
         connect_to_socket(get_own_ip()?.get_data_access_socket())
     }
 
     /// given a data access TcpStream, returns a DataAccess instance to use its functionalities
-    pub fn get_instance(stream: &mut TcpStream) -> Result<DataAccess, Errors> {
+    fn get_instance(stream: &mut TcpStream) -> Result<DataAccess, Errors> {
         flush_stream(stream)?;
         deserialize_from_slice(read_from_stream_no_zero(stream)?.as_slice())
     }
+}
+
+pub fn use_data_access<F, T>(action: F) -> Result<T, Errors>
+where
+    F: FnOnce(&DataAccess) -> Result<T, Errors>,
+{
+    let mut meta_data_stream = DataAccessHandler::establish_connection()?;
+    let data_access = DataAccessHandler::get_instance(&mut meta_data_stream)?;
+    action(&data_access)
 }

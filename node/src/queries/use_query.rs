@@ -2,9 +2,9 @@ use super::query::Query;
 use crate::utils::constants::CLIENT_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::response::Response;
-use crate::utils::functions::use_client_meta_data;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
+use crate::meta_data::meta_data_handler::use_client_meta_data;
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct UseQuery {

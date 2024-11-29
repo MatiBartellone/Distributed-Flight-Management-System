@@ -2,23 +2,25 @@ use std::collections::HashMap;
 
 use crate::parsers::tokens::data_type::DataType;
 
-
-
 pub struct DataResponse {
     headers_pks: HashMap<String, DataType>,
     table: String,
     keyspace: String,
-    columns: Vec<String>
+    columns: Vec<String>,
 }
 
-
 impl DataResponse {
-    pub fn new(headers_pks: HashMap<String, DataType>, table: String, keyspace: String, columns: Vec<String>) -> Self {
+    pub fn new(
+        headers_pks: HashMap<String, DataType>,
+        table: String,
+        keyspace: String,
+        columns: Vec<String>,
+    ) -> Self {
         Self {
             headers_pks,
             table,
             keyspace,
-            columns
+            columns,
         }
     }
 

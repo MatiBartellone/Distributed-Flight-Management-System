@@ -1,5 +1,5 @@
-use crate::utils::parser_constants::*;
 use crate::utils::parser_constants::SPACE;
+use crate::utils::parser_constants::*;
 
 use super::character_mapping::CharacterMappings;
 
@@ -154,8 +154,8 @@ fn replace_simple_chars(query: &str) -> String {
         let current_str = current.to_string();
         if let Some(replace) = characters.get_mapping(&current_str) {
             result.push_str(replace);
-            chars.next(); 
-            continue; 
+            chars.next();
+            continue;
         }
 
         result.push(current);

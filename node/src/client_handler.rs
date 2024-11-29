@@ -7,9 +7,10 @@ use crate::utils::errors::Errors;
 use crate::utils::parser_constants::{AUTH_RESPONSE, AUTH_SUCCESS, STARTUP};
 use crate::utils::types::frame::Frame;
 use crate::utils::types::tls_stream::{
-    flush_tls_stream, read_exact_from_tls_stream, use_client_meta_data, write_to_tls_stream,
+    flush_tls_stream, read_exact_from_tls_stream, write_to_tls_stream,
 };
 use std::net::TcpStream;
+use crate::meta_data::meta_data_handler::use_client_meta_data;
 
 pub struct ClientHandler {}
 
