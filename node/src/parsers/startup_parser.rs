@@ -1,8 +1,8 @@
 use crate::executables::executable::Executable;
 use crate::executables::startup_executable::StartupExecutable;
 use crate::parsers::parser::Parser;
-use crate::utils::bytes_cursor::BytesCursor;
 use crate::utils::errors::Errors;
+use crate::utils::types::bytes_cursor::BytesCursor;
 use std::collections::HashMap;
 
 const CQL_VERSION: &str = "CQL_VERSION";

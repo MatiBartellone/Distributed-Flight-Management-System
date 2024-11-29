@@ -1,22 +1,24 @@
+use rustls::{ServerConnection, StreamOwned};
+
 use crate::parsers::parser_factory::ParserFactory;
 use crate::response_builders::error_builder::ErrorBuilder;
 use crate::utils::constants::CLIENT_METADATA_PATH;
 use crate::utils::errors::Errors;
-use crate::utils::frame::Frame;
-use crate::utils::functions::{
-    flush_stream, read_exact_from_stream, use_client_meta_data, write_to_stream,
+use crate::utils::types::tls_stream::{
+    flush_tls_stream, read_exact_from_tls_stream, use_client_meta_data, write_to_tls_stream,
 };
 use crate::utils::parser_constants::{AUTH_RESPONSE, AUTH_SUCCESS, STARTUP};
+use crate::utils::types::frame::Frame;
 use std::net::TcpStream;
 
 pub struct ClientHandler {}
 
 impl ClientHandler {
-    pub fn handle_client(mut stream: TcpStream) -> Result<(), Errors> {
+    pub fn handle_client(mut stream: StreamOwned<ServerConnection, TcpStream>) -> Result<(), Errors> {
         add_new_client()?;
         loop {
-            flush_stream(&mut stream)?;
-            match read_exact_from_stream(&mut stream)? {
+            flush_tls_stream(&mut stream)?;
+            match read_exact_from_tls_stream(&mut stream)? {
                 vec if vec.is_empty() => {
                     println!("Client disconnected");
                     delete_client()?;
@@ -24,16 +26,16 @@ impl ClientHandler {
                 }
                 vec => match execute_request(vec.clone()) {
                     Ok(response) => {
-                        flush_stream(&mut stream)?;
-                        write_to_stream(&mut stream, response.as_slice())?
+                        flush_tls_stream(&mut stream)?;
+                        write_to_tls_stream(&mut stream, response.as_slice())?
                     }
                     Err(e) => {
                         let frame = ErrorBuilder::build_error_frame(
                             Frame::parse_frame(vec.as_slice())?,
                             e,
                         )?;
-                        flush_stream(&mut stream)?;
-                        write_to_stream(&mut stream, frame.to_bytes().as_slice())?
+                        flush_tls_stream(&mut stream)?;
+                        write_to_tls_stream(&mut stream, frame.to_bytes().as_slice())?
                     }
                 },
             }

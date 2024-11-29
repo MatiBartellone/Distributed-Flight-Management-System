@@ -1,4 +1,4 @@
-use crate::utils::constants::*;
+use crate::utils::parser_constants::COMMA;
 use crate::{
     parsers::tokens::{
         terms::{ComparisonOperators, Term},
@@ -7,7 +7,7 @@ use crate::{
     queries::set_logic::assigmente_value::AssignmentValue,
     utils::{
         errors::Errors,
-        token_conversor::{get_arithmetic_math, get_comparison_operator, get_next_value},
+        types::token_conversor::{get_arithmetic_math, get_comparison_operator, get_next_value},
     },
 };
 use std::collections::HashMap;
@@ -130,13 +130,13 @@ mod tests {
             },
         },
         queries::set_logic::assigmente_value::AssignmentValue,
-        utils::token_conversor::{
+        utils::types::token_conversor::{
             create_arith_math_token, create_comparison_operation_token, create_identifier_token,
             create_symbol_token, create_token_literal,
         },
     };
 
-    use super::COMMA;
+    use crate::utils::parser_constants::COMMA;
 
     fn test_successful_parser_case(caso: Vec<Token>, expected: HashMap<String, AssignmentValue>) {
         let resultado = SetClauseParser::parse(caso);

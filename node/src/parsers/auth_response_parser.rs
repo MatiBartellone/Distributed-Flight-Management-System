@@ -4,8 +4,8 @@ use crate::auth::password_authenticator::PasswordAuthenticator;
 use crate::executables::auth_response_executable::AuthResponseExecutable;
 use crate::executables::executable::Executable;
 use crate::parsers::parser::Parser;
-use crate::utils::bytes_cursor::BytesCursor;
 use crate::utils::errors::Errors;
+use crate::utils::types::bytes_cursor::BytesCursor;
 
 pub struct AuthResponseParser;
 

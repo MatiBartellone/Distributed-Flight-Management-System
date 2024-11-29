@@ -3,7 +3,7 @@ use crate::utils::errors::Errors;
 use crate::utils::functions::{
     bind_listener, flush_stream, read_exact_from_stream, write_to_stream,
 };
-use crate::utils::node_ip::NodeIp;
+use crate::utils::types::node_ip::NodeIp;
 use std::io::Write;
 use std::net::TcpStream;
 use std::thread;

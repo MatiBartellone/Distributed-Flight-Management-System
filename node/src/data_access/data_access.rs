@@ -7,12 +7,11 @@ use crate::queries::if_clause::IfClause;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::queries::set_logic::assigmente_value::AssignmentValue;
 use crate::queries::where_logic::where_clause::WhereClause;
-use crate::utils::constants::{ASC, DATA_ACCESS_PATH};
+use crate::utils::constants::DATA_ACCESS_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
-use crate::utils::functions::{
-    get_int_from_string, get_timestamp, serialize_to_string, write_all_to_file,
-};
+use crate::utils::functions::{get_int_from_string, serialize_to_string, write_all_to_file};
+use crate::utils::parser_constants::ASC;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::format;
@@ -24,23 +23,29 @@ use std::io::{BufReader, Seek, SeekFrom};
 pub struct DataAccess;
 
 impl DataAccess {
+    fn create_file(&self, path: &String) -> Result<(), Errors> {
+        fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
+        let mut file =
+            File::create(path).map_err(|_| ServerError(String::from("Could not create file")))?;
+        write_all_to_file(&mut file, b"[]")
+    }
+
+    /// creates the table_name (keyspace.table) given
+    ///
+    /// let table_name = "keyspace.table";
+    /// data_access.create_table(&table_name);
     pub fn create_table(&self, table_name: &String) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
         if metadata(&path).is_ok() {
             return Err(Errors::AlreadyExists(format!("Table already exists: {}", table_name)));
         }
-        self.create_file(&path)?;
-        Ok(())
+        self.create_file(&path)
     }
 
-    fn create_file(&self, path: &String) -> Result<(), Errors> {
-        fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
-        let mut file =
-            File::create(path).map_err(|_| ServerError(String::from("Could not create file")))?;
-        write_all_to_file(&mut file, b"[]")?;
-        Ok(())
-    }
-
+    /// alters the table_name (keyspace.table) given
+    ///
+    /// let table_name = "keyspace.table";
+    /// data_access.truncate_table(&table_name);
     pub fn truncate_table(&self, table_name: &String) -> Result<(), Errors> {
         fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
         let _file = OpenOptions::new()
@@ -51,6 +56,10 @@ impl DataAccess {
         Ok(())
     }
 
+    /// eliminates the table_name (keyspace.table) given
+    ///
+    /// let table_name = "keyspace.table";
+    /// data_access.drop_table(&table_name);
     pub fn drop_table(&self, table_name: String) -> Result<(), Errors> {
         fs::create_dir_all(DATA_ACCESS_PATH).map_err(|e| ServerError(e.to_string()))?;
         remove_file(self.get_file_path(&table_name))
@@ -58,7 +67,9 @@ impl DataAccess {
         Ok(())
     }
 
-    /// Inserts a new row into the table. If the primary key already exists, it does nothing.
+    /// inserts the given row appending it to the end of file given by table_name
+    ///
+    ///  If the primary key already exists, it does nothing.
     pub fn insert(&self, table_name: &String, row: &Row) -> Result<bool, Errors> {
         let path = self.get_file_path(table_name);
         if self.pk_already_exists(&path, &row.primary_key)? {
@@ -98,7 +109,10 @@ impl DataAccess {
         Ok(())
     }
 
-    /// Deletes rows from the table. If the if clause is provided, returns true if the row was deleted and false otherwise.
+    /// sets de rows that matches the where clause to deleted
+    ///
+    ///  If the if clause is provided, returns true if the row was deleted and false otherwise.
+    /// it uses temp files and iters over the table_name file. The deleted rows are not deleted but set deleted true
     pub fn set_deleted_rows(
         &self,
         table_name: &String,
@@ -129,6 +143,9 @@ impl DataAccess {
         Ok(applied)
     }
 
+    /// updates de rows that matches the where clause applying changes given
+    ///
+    /// it uses temp files and iters over the table_name file. builds the updated row from the read one.
     pub fn update_row(
         &self,
         table_name: &String,
@@ -189,11 +206,8 @@ impl DataAccess {
             Some(AssignmentValue::Column(column)) => Ok(Column::new(
                 column_name,
                 &row.get_some_column(column)?.value,
-                get_timestamp()?,
             )),
-            Some(AssignmentValue::Simple(literal)) => {
-                Ok(Column::new(column_name, literal, get_timestamp()?))
-            }
+            Some(AssignmentValue::Simple(literal)) => Ok(Column::new(column_name, literal)),
             Some(AssignmentValue::Arithmetic(column, arith, literal)) => {
                 let value1 = get_int_from_string(&row.get_some_column(column)?.value.value)?;
                 let value2 = get_int_from_string(&literal.value)?;
@@ -207,13 +221,13 @@ impl DataAccess {
                 Ok(Column::new(
                     column_name,
                     &Literal::new(new_value.to_string(), DataType::Int),
-                    get_timestamp()?,
                 ))
             }
             _ => Err(ServerError(String::from("Column not found"))),
         }
     }
 
+    /// returns the rows filtered by the where clause ordered by the order_clauses
     pub fn select_rows(
         &self,
         table_name: &String,
@@ -335,20 +349,21 @@ impl DataAccess {
 
     fn append_row(&self, path: &String, row: &Row) -> Result<(), Errors> {
         let mut file = self.open_file(path)?;
-        let file_size = file
-            .seek(SeekFrom::End(0))
-            .map_err(|_| ServerError("Failed to seek in file".to_string()))?;
+        let file_size = Self::seek_file(&mut file, 0)?;
         if file_size > 2 {
-            file.seek(SeekFrom::End(-1))
-                .map_err(|_| ServerError("Failed to seek in file".to_string()))?;
+            Self::seek_file(&mut file, -1)?;
             write_all_to_file(&mut file, b",")?;
         } else {
-            file.seek(SeekFrom::End(-1))
-                .map_err(|_| ServerError("Failed to seek in file".to_string()))?;
+            Self::seek_file(&mut file, -1)?;
         }
         let json_row = serialize_to_string(&row)?;
         write_all_to_file(&mut file, json_row.as_bytes())?;
         write_all_to_file(&mut file, b"]")
+    }
+
+    fn seek_file(file: &mut File, position: i64) -> Result<u64, Errors> {
+        file.seek(SeekFrom::End(position))
+            .map_err(|_| ServerError("Failed to seek in file".to_string()))
     }
 
     fn pk_already_exists(&self, path: &String, primary_keys: &Vec<String>) -> Result<bool, Errors> {
@@ -381,6 +396,7 @@ mod tests {
     use crate::parsers::tokens::literal::Literal;
     use crate::parsers::tokens::terms::ComparisonOperators;
     use crate::queries::where_logic::comparison::ComparisonExpr;
+    use crate::utils::types::timestamp::Timestamp;
     use std::fs::read_to_string;
     use std::path::Path;
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -451,7 +467,7 @@ mod tests {
                     value: "John".to_string(),
                     data_type: DataType::Text,
                 },
-                time_stamp: 1235,
+                timestamp: Timestamp::new_from_i64(1235),
             }],
             vec!["name".to_string()],
         )
@@ -478,7 +494,7 @@ mod tests {
                     value: "Jane".to_string(),
                     data_type: DataType::Text,
                 },
-                time_stamp: 1234,
+                timestamp: Timestamp::new_from_i64(1234),
             }],
             vec!["_".to_string()],
         )

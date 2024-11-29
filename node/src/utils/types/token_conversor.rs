@@ -1,4 +1,3 @@
-use super::errors::Errors;
 use crate::parsers::tokens::token::Token::{IterateToken, ParenList};
 use crate::parsers::tokens::{
     data_type::DataType,
@@ -6,6 +5,7 @@ use crate::parsers::tokens::{
     terms::{ArithMath, BooleanOperations, ComparisonOperators, LogicalOperators, Term},
     token::Token,
 };
+use crate::utils::errors::Errors;
 use std::{iter::Peekable, vec::IntoIter};
 use BooleanOperations::*;
 use LogicalOperators::*;

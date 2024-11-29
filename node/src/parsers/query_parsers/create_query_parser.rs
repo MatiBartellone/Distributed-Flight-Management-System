@@ -1,17 +1,13 @@
-use crate::{
-    parsers::tokens::token::Token,
-    queries::query::Query,
-    utils::{
-        constants::{KEYSPACE, TABLE},
-        errors::Errors,
-        token_conversor::get_next_value,
-    },
-};
-use Token::*;
-
 use super::{
     create_keyspace_parser::CreateKeyspaceParser, create_table_query_parser::CreateTableQueryParser,
 };
+use crate::utils::parser_constants::{KEYSPACE, TABLE};
+use crate::{
+    parsers::tokens::token::Token,
+    queries::query::Query,
+    utils::{errors::Errors, types::token_conversor::get_next_value},
+};
+use Token::*;
 pub struct CreateQueryParser;
 
 impl CreateQueryParser {
@@ -37,15 +33,15 @@ impl CreateQueryParser {
 #[cfg(test)]
 mod tests {
     use crate::parsers::tokens::terms::{BooleanOperations, ComparisonOperators};
+    use crate::utils::parser_constants::COMMA;
     use crate::{
         parsers::{
             query_parsers::create_query_parser::CreateQueryParser,
             tokens::{data_type::DataType, literal::Literal, terms::Term, token::Token},
         },
         utils::{
-            constants::COMMA,
             errors::Errors,
-            token_conversor::{
+            types::token_conversor::{
                 create_identifier_token, create_paren_list_token, create_reserved_token,
                 create_symbol_token, create_token_literal,
             },

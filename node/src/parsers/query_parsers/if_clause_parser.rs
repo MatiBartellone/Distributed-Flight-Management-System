@@ -8,9 +8,9 @@ use Token::*;
 use crate::parsers::tokens::terms::{BooleanOperations, LogicalOperators, Term};
 use crate::parsers::tokens::token::Token;
 use crate::queries::if_clause::{and_if, comparison_if, not_if, or_if, IfClause};
-use crate::utils::constants::*;
 use crate::utils::errors::Errors;
-use crate::utils::token_conversor::{
+use crate::utils::parser_constants::EXISTS;
+use crate::utils::types::token_conversor::{
     get_comparison_operator, get_literal, get_next_value, precedence,
 };
 
@@ -83,7 +83,7 @@ mod tests {
             token::Token,
         },
         queries::if_clause::{and_if, comparison_if, not_if, or_if, IfClause},
-        utils::token_conversor::{
+        utils::types::token_conversor::{
             create_comparison_operation_token, create_identifier_token,
             create_logical_operation_token, create_paren_list_token, create_reserved_token,
             create_token_literal,

@@ -1,7 +1,7 @@
-use FlightStatus::*;
+use FlightState::*;
 
 #[derive(Clone, PartialEq, Debug, Default)]
-pub enum FlightStatus {
+pub enum FlightState {
     OnTime,
     Delayed,
     Cancelled,
@@ -10,7 +10,7 @@ pub enum FlightStatus {
     Inactive,
 }
 
-impl FlightStatus {
+impl FlightState {
     pub fn new(status: &str) -> Self {
         match status {
             "OnTime" => OnTime,
@@ -18,11 +18,11 @@ impl FlightStatus {
             "Canceled" => Cancelled,
             "Arrived" => Arrived,
             "Inactive" => Inactive,
-            _ => FlightStatus::default(),
+            _ => FlightState::default(),
         }
     }
 
-    pub fn get_status(&self) -> String {
+    pub fn to_string(&self) -> String {
         match self {
             OnTime => "OnTime".to_string(),
             Delayed => "Delayed".to_string(),

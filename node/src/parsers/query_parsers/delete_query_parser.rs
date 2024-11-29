@@ -7,7 +7,8 @@ use std::vec::IntoIter;
 
 use super::if_clause_parser::IfClauseParser;
 use super::where_clause_parser::WhereClauseParser;
-use crate::utils::constants::*;
+use crate::utils::parser_constants::{FROM, WHERE};
+
 pub struct DeleteQueryParser;
 
 impl DeleteQueryParser {

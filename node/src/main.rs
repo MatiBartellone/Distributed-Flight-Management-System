@@ -3,30 +3,48 @@ use node::gossip::gossip_emitter::GossipEmitter;
 use node::hinted_handoff::hints_receiver::HintsReceiver;
 use node::hinted_handoff::hints_sender::HintsSender;
 use node::node_initializer::NodeInitializer;
+use node::utils::config_constants::MAX_CLIENTS;
 use node::utils::constants::NODES_METADATA_PATH;
 use node::utils::errors::Errors;
 use node::utils::functions::use_node_meta_data;
-use node::utils::node_ip::NodeIp;
-use std::net::TcpListener;
-use std::thread;
+use node::utils::types::node_ip::NodeIp;
+use node::utils::types::tls_stream::{create_server_config, get_stream_owned};
+use rustls::ServerConfig;
+use std::net::{TcpListener, TcpStream};
+use std::sync::{mpsc, Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
+use std::{env, thread};
 
-fn main() {
-    let node_data = NodeInitializer::new().unwrap();
+fn main() -> Result<(), Errors>{
+    let (uses_config, config_file) = get_args();
+    let node_data = NodeInitializer::new(uses_config, config_file)?;
 
-    let needs_booting = node_data.set_cluster().unwrap();
+    let needs_booting = node_data.set_cluster()?;
 
     node_data.start_listeners();
 
     if needs_booting {
-        HintsReceiver::start_listening(node_data.get_network_ip())
-            .expect("Error starting Hints listener");
+        HintsReceiver::start_listening(node_data.get_network_ip())?;
     };
 
-    start_gossip().expect("Error starting gossip");
+    start_gossip()?;
 
-    set_node_listener(node_data.get_ip());
+    set_node_listener(node_data.get_ip())
+}
+
+fn get_args() -> (bool, String) {
+    let args: Vec<String> = env::args().collect();
+    match args.len() {
+        2 => {
+            let first_arg = &args[1];
+            match first_arg.as_str() {
+                "config" => (true, String::new()),
+                x => (true, x.to_string()),
+            }
+        }
+        _ => (false, String::new()),
+    }
 }
 
 fn start_gossip() -> Result<(), Errors> {
@@ -47,22 +65,59 @@ fn start_gossip() -> Result<(), Errors> {
     Ok(())
 }
 
-fn set_node_listener(ip: NodeIp) {
+fn set_node_listener(ip: NodeIp) -> Result<(), Errors>{
     let listener = TcpListener::bind(ip.get_std_socket()).expect("Error binding socket");
-    println!("Server listening in {}", ip.get_string_ip());
+    println!("Server listening on {}", ip.get_string_ip());
+
+    let (tx, rx) = mpsc::channel();
+    let rx = Arc::new(Mutex::new(rx));
+
+    start_thread_pool(Arc::clone(&rx))?;
+
+    accept_connections(listener, tx);
+    Ok(())
+}
+
+fn accept_connections(listener: TcpListener, tx: mpsc::Sender<TcpStream>) {
     for incoming in listener.incoming() {
         match incoming {
             Ok(stream) => {
                 println!("Client connected: {:?}", stream.peer_addr());
-                thread::spawn(move || {
-                    if let Err(e) = ClientHandler::handle_client(stream) {
-                        println!("{}", e);
-                    }
-                });
+                if let Err(e) = tx.send(stream) {
+                    println!("Error sending stream to thread pool: {}", e);
+                }
             }
             Err(e) => {
                 println!("Error accepting connection: {}", e);
             }
         }
     }
+}
+
+fn start_thread_pool(rx: Arc<Mutex<mpsc::Receiver<TcpStream>>>) -> Result<(), Errors> {
+    let server_config = create_server_config()?;
+    for _ in 0..MAX_CLIENTS {
+        let rx = Arc::clone(&rx);
+        let server_config = Arc::new(server_config.clone());
+        thread::spawn(move || loop {
+            let stream = {
+                let lock = rx.lock().unwrap();
+                lock.recv()
+            };
+            match stream {
+                Ok(stream) => {
+                    if let Err(e) = handle_client(stream, server_config.clone()) {
+                        println!("Error handling client: {}", e);
+                    }
+                }
+                _ => break,
+            }
+        });
+    }
+    Ok(())
+}
+
+fn handle_client(stream: TcpStream, server_config: Arc<ServerConfig>) -> Result<(), Errors> {
+    let tls_stream = get_stream_owned(stream, server_config)?;
+    ClientHandler::handle_client(tls_stream)
 }

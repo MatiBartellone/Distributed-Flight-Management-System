@@ -8,7 +8,7 @@ use crate::{
     },
     utils::{
         errors::Errors,
-        token_conversor::{
+        types::token_conversor::{
             get_comparison_operator, get_list, get_literal, get_next_value, precedence,
         },
     },
@@ -116,7 +116,7 @@ mod tests {
     use crate::queries::where_logic::where_clause::{
         and_where, comparison_where, not_where, or_where, tuple_expr, WhereClause,
     };
-    use crate::utils::token_conversor::{
+    use crate::utils::types::token_conversor::{
         create_comparison_operation_token, create_identifier_token, create_logical_operation_token,
         create_token_literal,
     };

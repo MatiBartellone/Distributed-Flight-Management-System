@@ -1,16 +1,15 @@
-use crate::utils::constants::*;
 use crate::{
     parsers::tokens::token::Token,
     queries::query::Query,
-    utils::{errors::Errors, token_conversor::get_next_value},
+    utils::{errors::Errors, types::token_conversor::get_next_value},
 };
 use std::{iter::Peekable, vec::IntoIter};
-
-use Token::*;
 
 use super::{
     drop_keyspace_parser::DropKeySpaceQueryParser, drop_table_parser::DropTableQueryParser,
 };
+use crate::utils::parser_constants::{KEYSPACE, TABLE};
+use Token::*;
 
 pub struct DropQueryParser;
 

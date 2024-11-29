@@ -1,6 +1,6 @@
 use std::{iter::Peekable, vec::IntoIter};
 
-use crate::utils::token_conversor::get_next_value;
+use crate::utils::types::token_conversor::get_next_value;
 use crate::{parsers::tokens::token::Token, queries::use_query::UseQuery, utils::errors::Errors};
 
 const UNEXPECTED_TOKEN: &str = "Unexpected token in keyspace_name";

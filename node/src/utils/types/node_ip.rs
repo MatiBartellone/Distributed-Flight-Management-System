@@ -34,6 +34,10 @@ impl NodeIp {
         }
     }
 
+    pub fn get_port(&self) -> u16 {
+        self.port
+    }
+
     pub fn get_std_socket(&self) -> SocketAddr {
         SocketAddr::new(self.ip, self.port)
     }

@@ -1,26 +1,19 @@
 use eframe::egui;
 
-use crate::flight_app::FlightApp;
+use crate::app_implementation::flight_app::FlightApp;
 
 pub struct InformationPanel;
 
 impl InformationPanel {
+    /// Shows the information of the airports or the flights of an airport if one is selected
     pub fn ui(&self, ui: &mut egui::Ui, app: &mut FlightApp) {
-        // Intenta abrir el lock del aeropuerto seleccionado
-        let selected_airport_lock = match app.selected_airport.lock() {
-            Ok(lock) => lock,
-            Err(_) => return,
-        };
-
-        if let Some(airport) = &*selected_airport_lock {
-            // Informacion Vuelos
-            let airport_name = airport.name.to_string();
-            drop(selected_airport_lock);
+        if let Some(airport_name) = app.get_airport_selected_name() {
+            // Information of flights of an airport
             self.show_heading_fligths(ui, app, &airport_name);
             ui.separator();
             self.show_flight_information(ui, app);
         } else {
-            // Informacion Aeropuertos
+            // Information of airports
             ui.heading("Aeropuertos");
             ui.separator();
             app.airports.list_airports(ui);
@@ -29,21 +22,9 @@ impl InformationPanel {
 
     fn show_heading_fligths(&self, ui: &mut egui::Ui, app: &mut FlightApp, airport_name: &str) {
         if ui.button("⬅").clicked() {
-            self.clear_selection(app);
+            app.clear_selection();
         }
         ui.heading(airport_name);
-    }
-
-    fn clear_selection(&self, app: &mut FlightApp) {
-        if let Ok(mut selected_airport) = app.selected_airport.lock() {
-            *selected_airport = None;
-        }
-        if let Ok(mut selected_flight_lock) = app.selected_flight.lock() {
-            *selected_flight_lock = None;
-        }
-        if let Ok(mut flights_lock) = app.flights.flights.lock() {
-            *flights_lock = Vec::new();
-        }
     }
 
     fn show_flight_information(&self, ui: &mut egui::Ui, app: &mut FlightApp) {

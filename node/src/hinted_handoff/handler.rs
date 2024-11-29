@@ -3,7 +3,7 @@ use crate::utils::constants::HINTED_HANDOFF_DATA;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::functions::{deserialize_from_slice, serialize_to_string, write_all_to_file};
-use crate::utils::node_ip::NodeIp;
+use crate::utils::types::node_ip::NodeIp;
 use std::fs;
 use std::fs::{rename, File, OpenOptions};
 use std::io::{BufRead, BufReader};

@@ -6,7 +6,7 @@ use crate::{
     queries::update_query::UpdateQuery,
     utils::{
         errors::Errors,
-        token_conversor::{get_next_value, get_sublist},
+        types::token_conversor::{get_next_value, get_sublist},
     },
 };
 
@@ -14,7 +14,7 @@ use super::{
     if_clause_parser::IfClauseParser, set_clause_parser::SetClauseParser,
     where_clause_parser::WhereClauseParser,
 };
-use crate::utils::constants::*;
+use crate::utils::parser_constants::{IF, SET, WHERE};
 
 pub struct UpdateQueryParser;
 
@@ -109,7 +109,7 @@ mod tests {
         },
         utils::{
             errors::Errors,
-            token_conversor::{
+            types::token_conversor::{
                 create_comparison_operation_token, create_identifier_token,
                 create_iterate_list_token, create_reserved_token, create_token_literal,
             },

@@ -1,5 +1,5 @@
 use crate::utils::errors::Errors;
-use crate::utils::frame::Frame;
+use crate::utils::types::frame::Frame;
 
 pub struct FrameBuilder;
 impl FrameBuilder {
