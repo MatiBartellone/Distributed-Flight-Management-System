@@ -1,10 +1,12 @@
 use std::collections::HashMap;
 
+use crate::hinted_handoff::handler;
 use crate::{
     data_access::row::Row, parsers::tokens::data_type::DataType,
     utils::types_to_bytes::TypesToBytes, meta_data::meta_data_handler::MetaDataHandler,
 };
 use crate::utils::functions::serialize_to_string;
+use super::functions::use_keyspace_meta_data;
 use super::{errors::Errors, constants::KEYSPACE_METADATA_PATH, functions::get_columns_from_table};
 pub struct Response;
 
@@ -49,15 +51,18 @@ impl Response {
         
         encoder.write_string(keyspace)?;
         encoder.write_string(table)?;
-        for column in &rows[0].columns {
-            encoder.write_string(&column.column_name)?;
-            let data_type_id = Response::data_type_to_byte(column.value.data_type.clone());
-            encoder.write_i16(data_type_id)?;
+        let map_type = get_column(keyspace, table)?;
+        for header in &headers {
+            encoder.write_string(header)?;
+            if let Some(data_type) = map_type.get(header){
+                let data_type_id = Response::data_type_to_byte(data_type.clone());
+                encoder.write_i16(data_type_id)?;
+            }
         }
         encoder.write_int(rows.len() as i32)?;
         for row in rows {
             for header in &headers {
-                match row.get_some_column(header) {
+                match row.get_some_column(&header) {
                     Ok(column) => encoder.write_string(&column.value.value)?,
                     _ => encoder.write_string("None")?,
                 }
@@ -68,12 +73,12 @@ impl Response {
 
     
 
-    pub fn rows(rows: Vec<Row>, keyspace: &str, table: &str) -> Result<Vec<u8>, Errors> {
+    pub fn rows(rows: Vec<Row>, keyspace: &str, table: &str, columns: &Vec<String>) -> Result<Vec<u8>, Errors> {
         let mut encoder = TypesToBytes::default();
         Response::write_rows(&rows, &mut encoder)?;
         let division_offset = encoder.length();
         //Division
-        Response::write_meta_data_response(&mut encoder, keyspace, table, )?;
+        Response::write_meta_data_response(&mut encoder, keyspace, table, columns)?;
         encoder.write_int(division_offset as i32)?;
         Ok(encoder.into_bytes())
     }
@@ -89,7 +94,7 @@ impl Response {
         Ok(())
     }
 
-    pub fn write_meta_data_response(encoder: &mut TypesToBytes, keyspace: &str, table: &str) -> Result<(), Errors> {
+    pub fn write_meta_data_response(encoder: &mut TypesToBytes, keyspace: &str, table: &str, columns: &Vec<String>) -> Result<(), Errors> {
         encoder.write_string(keyspace)?;
         encoder.write_string(table)?;
         let pks = get_pks(keyspace, table)?;
@@ -99,9 +104,8 @@ impl Response {
             let data_type_id = Response::data_type_to_byte(type_);
             encoder.write_i16(data_type_id)?;
         }
-        let columns = get_columns_from_table(&format!("{}.{}", keyspace, table))?;
-        encoder.write_short(columns.keys().len() as u16)?;
-        for name in columns.keys() {
+        encoder.write_short(columns.len() as u16)?;
+        for name in columns {
             encoder.write_string(&name)?;
         }
         Ok(())
@@ -121,12 +125,15 @@ impl Response {
 }
 
 fn get_pks(keyspace: &str, table: &str) -> Result<HashMap<String, DataType>, Errors> {
-    let mut stream = MetaDataHandler::establish_connection()?;
-    let meta_data_handler = MetaDataHandler::get_instance(&mut stream)?;
-    let keyspace_meta_data = meta_data_handler.get_keyspace_meta_data_access();
-    let pks = keyspace_meta_data.get_primary_key(KEYSPACE_METADATA_PATH.to_owned(), keyspace, table)?;
-    let types = keyspace_meta_data.get_columns_type(KEYSPACE_METADATA_PATH.to_string(), keyspace, table)?;
-    Ok(filter_keys(pks.get_full_primary_key(), types))
+    use_keyspace_meta_data(|handler| {
+        let pks = handler.get_primary_key(KEYSPACE_METADATA_PATH.to_owned(), keyspace, table)?;
+        let types = handler.get_columns_type(KEYSPACE_METADATA_PATH.to_string(), keyspace, table)?;
+        Ok(filter_keys(pks.get_full_primary_key(), types))
+    })   
+}
+
+fn get_column(keyspace: &str, table: &str) -> Result<HashMap<String, DataType>, Errors> {
+    use_keyspace_meta_data(|handler| handler.get_columns_type(KEYSPACE_METADATA_PATH.to_string(), keyspace, table))
 }
 
 fn filter_keys(vec: Vec<String>, map: HashMap<String, DataType>) -> HashMap<String, DataType> {

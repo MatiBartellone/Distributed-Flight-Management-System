@@ -96,7 +96,7 @@ impl Query for SelectQuery {
             data_access.select_rows(&self.table_name, where_clause, &self.order_clauses)
         })?;
         let (kesypace_name, table) = split_keyspace_table(&self.table_name)?;
-        Response::rows(rows, kesypace_name, table)
+        Response::rows(rows, kesypace_name, table, &self.columns)
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
