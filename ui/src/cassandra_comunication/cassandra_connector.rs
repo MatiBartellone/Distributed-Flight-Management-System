@@ -16,7 +16,6 @@ impl CassandraConnection {
     pub fn new(node: &str) -> Result<Self, String> {
         let (ip, _port) = node.split_once(":")
             .ok_or_else(|| "Formato incorrecto de la cadena ip:port".to_string())?;
-        println!("Connecting to {}", ip);
 
         // Get the ClientConfig
         let config = CassandraConnection::get_config()?;

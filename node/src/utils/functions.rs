@@ -18,6 +18,8 @@ use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
+use openssl::symm::{Cipher, encrypt, decrypt};
+use openssl::rand::rand_bytes;
 
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
@@ -154,9 +156,17 @@ pub fn flush_stream(stream: &mut TcpStream) -> Result<(), Errors> {
         .map_err(|_| ServerError(String::from("Failed to flush stream")))
 }
 
+const AES_KEY: [u8; 32] = [
+    107, 133, 195, 73, 171, 146, 174, 177, 245, 55, 2, 116, 4, 202, 100, 1,
+    75, 15, 151, 34, 194, 240, 98, 3, 111, 115, 214, 153, 82, 205, 149, 103
+];
+
 pub fn write_to_stream(stream: &mut TcpStream, content: &[u8]) -> Result<(), Errors> {
+    let (encrypted_data, iv) = encrypt_message(&content, &AES_KEY)?;
+    let mut message = iv.clone();
+    message.extend(encrypted_data);
     stream
-        .write_all(content)
+        .write_all(&message)
         .map_err(|_| ServerError(String::from("Failed to write to stream")))
 }
 
@@ -165,10 +175,13 @@ pub fn read_exact_from_stream(stream: &mut TcpStream) -> Result<Vec<u8>, Errors>
     let size = stream
         .read(&mut buffer)
         .map_err(|_| ServerError(String::from("Failed to read stream")))?;
-    if size == 0 {
+    if size < 16 {
         return Ok(Vec::new());
     }
-    Ok(buffer[0..size].to_vec())
+    let iv = &buffer[..16];
+    let encrypted_data = &buffer[16..size];
+
+    decrypt_message(encrypted_data, iv, &AES_KEY)
 }
 
 pub fn read_from_stream_no_zero(stream: &mut TcpStream) -> Result<Vec<u8>, Errors> {
@@ -177,6 +190,28 @@ pub fn read_from_stream_no_zero(stream: &mut TcpStream) -> Result<Vec<u8>, Error
         return Err(ServerError(String::from("Empty stream")));
     }
     Ok(buf)
+}
+
+fn encrypt_message(message: &[u8], aes_key: &[u8]) -> Result<(Vec<u8>, Vec<u8>), Errors> {
+    let cipher = Cipher::aes_256_cbc();
+    let iv = generate_iv()?;
+    let encrypted = encrypt(cipher, aes_key, Some(&iv), message)
+        .map_err(|_| ServerError(String::from("Failed to write to stream")))?;
+    Ok((encrypted, iv))
+}
+
+fn decrypt_message(encrypted_message: &[u8], iv: &[u8], aes_key: &[u8]) -> Result<Vec<u8>, Errors> {
+    let cipher = Cipher::aes_256_cbc();
+    let decrypted_data = decrypt(cipher, aes_key, Some(iv), encrypted_message)
+        .map_err(|_| ServerError(String::from("Failed to read to stream")))?;
+    Ok(decrypted_data) 
+}
+
+fn generate_iv() -> Result<Vec<u8>, Errors> {
+    let mut iv = vec![0; 16]; 
+    rand_bytes(&mut iv)
+        .map_err(|_| ServerError(String::from("Failed to write to stream")))?;
+    Ok(iv)
 }
 
 pub fn serialize_to_string<T: Serialize>(object: &T) -> Result<String, Errors> {

@@ -1,0 +1,1 @@
+{"own_node":{"ip":{"ip":"127.0.0.2","port":9090},"position":2,"is_seed":false,"state":"Active","timestamp":{"timestamp":1732841339535}},"other_nodes":[{"ip":{"ip":"127.0.0.1","port":9090},"position":1,"is_seed":true,"state":"Active","timestamp":{"timestamp":1732841082430}}]}
