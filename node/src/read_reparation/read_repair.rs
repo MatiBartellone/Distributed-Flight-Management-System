@@ -246,9 +246,9 @@ fn compare_row(original: &Row, new: &Row) -> Row {
     for col_ori in &original.columns {
         if let Some(col_new) = new_map.get(&col_ori.column_name) {
             if col_ori.timestamp.is_older_than(Timestamp::new_from_timestamp(&col_new.timestamp))  {
-                best_columns.push(Column::new_from_column(&col_new));
+                best_columns.push(Column::new_from_column(col_new));
             } else {
-                best_columns.push(Column::new_from_column(&col_ori));
+                best_columns.push(Column::new_from_column(col_ori));
             }
         }
     }
