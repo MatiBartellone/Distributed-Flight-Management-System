@@ -44,7 +44,8 @@ fn if_comparision(
     tokens: &mut Peekable<IntoIter<Token>>,
     column_name: String,
 ) -> Result<IfClause, Errors> {
-    let operator = get_comparison_operator(tokens)?;
+    let operator = get_comparison_operator(tokens)
+        .map_err(|_| Errors::SyntaxError("Expected comparision operator".to_string()))?;
     let literal = get_literal(tokens)?;
     let expression = comparison_if(&column_name, operator, literal);
     if_and_or(tokens, expression)

@@ -1,22 +1,25 @@
 use crate::parsers::tokens::token::Token;
 use crate::queries::delete_query::DeleteQuery;
 use crate::utils::errors::Errors;
+use std::iter::Peekable;
 use std::vec::IntoIter;
 
+use super::if_clause_parser::IfClauseParser;
 use super::where_clause_parser::WhereClauseParser;
-use crate::utils::parser_constants::{FROM, WHERE};
+use crate::utils::parser_constants::{FROM, IF, WHERE};
+use crate::utils::types::token_conversor::get_next_value;
 
 pub struct DeleteQueryParser;
 
 impl DeleteQueryParser {
     pub fn parse(tokens: Vec<Token>) -> Result<DeleteQuery, Errors> {
-        let mut delete_query = DeleteQuery::new();
-        from(&mut tokens.into_iter(), &mut delete_query)?;
+        let mut delete_query = DeleteQuery::default();
+        from(&mut tokens.into_iter().peekable(), &mut delete_query)?;
         Ok(delete_query)
     }
 }
 
-fn from(tokens: &mut IntoIter<Token>, query: &mut DeleteQuery) -> Result<(), Errors> {
+fn from(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DeleteQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Reserved(res) if res == *FROM => table(tokens, query),
         _ => Err(Errors::SyntaxError(String::from(
@@ -25,11 +28,11 @@ fn from(tokens: &mut IntoIter<Token>, query: &mut DeleteQuery) -> Result<(), Err
     }
 }
 
-fn table(tokens: &mut IntoIter<Token>, query: &mut DeleteQuery) -> Result<(), Errors> {
+fn table(tokens: &mut Peekable<IntoIter<Token>>, query: &mut DeleteQuery) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::Identifier(identifier) => {
             query.table_name = identifier;
-            where_keyword(tokens, query)
+            where_clause(tokens, query)
         }
         _ => Err(Errors::SyntaxError(String::from(
             "Unexpected token in table_name",
@@ -37,40 +40,48 @@ fn table(tokens: &mut IntoIter<Token>, query: &mut DeleteQuery) -> Result<(), Er
     }
 }
 
-fn where_keyword(tokens: &mut IntoIter<Token>, query: &mut DeleteQuery) -> Result<(), Errors> {
-    let Some(token) = tokens.next() else {
-        return Ok(());
+fn where_clause(
+    tokens: &mut Peekable<IntoIter<Token>>,
+    query: &mut DeleteQuery,
+) -> Result<(), Errors> {
+    match tokens.peek() {
+        Some(Token::Reserved(res)) if res == WHERE => tokens.next(),
+        _ => return if_clause(tokens, query),
     };
-    match token {
-        Token::Reserved(res) if res == *WHERE => where_clause(tokens, query),
-        _ => Err(Errors::SyntaxError(String::from("WHERE keyword not found"))),
+    match get_next_value(tokens)? {
+        Token::IterateToken(sub_list) => {
+            query.where_clause = Some(WhereClauseParser::parse(sub_list)?);
+            if_clause(tokens, query)
+        }
+        _ => Err(Errors::SyntaxError(
+            "Unexpected token in where_clause".to_string(),
+        )),
     }
 }
 
-fn where_clause(tokens: &mut IntoIter<Token>, query: &mut DeleteQuery) -> Result<(), Errors> {
-    let Some(token) = tokens.next() else {
-        return Ok(());
+fn if_clause(
+    tokens: &mut Peekable<IntoIter<Token>>,
+    query: &mut DeleteQuery,
+) -> Result<(), Errors> {
+    match tokens.next() {
+        Some(Token::Reserved(res)) if res == IF => {}
+        Some(_) => return Err(Errors::SyntaxError("Unexpected token".to_string())),
+        None => return Ok(()),
     };
-    match token {
-        Token::ParenList(list) => {
-            query.where_clause = Some(WhereClauseParser::parse(list)?);
-            let None = tokens.next() else {
+    match get_next_value(tokens)? {
+        Token::IterateToken(sub_list) => {
+            query.if_clause = Some(IfClauseParser::parse(sub_list)?);
+            if tokens.next().is_some() {
                 return Err(Errors::SyntaxError(String::from(
-                    "Nothing should follow a where-clause",
+                    "Nothing should follow a if-clause",
                 )));
-            };
+            }
             Ok(())
         }
-        _ => Err(Errors::SyntaxError(String::from(
-            "Unexpected token in where_clause",
-        ))),
+        _ => Err(Errors::SyntaxError(
+            "Unexpected token in if-clause".to_string(),
+        )),
     }
-}
-
-fn get_next_value(tokens: &mut IntoIter<Token>) -> Result<Token, Errors> {
-    tokens
-        .next()
-        .ok_or(Errors::SyntaxError(String::from("Query lacks parameters")))
 }
 
 #[cfg(test)]
@@ -85,7 +96,7 @@ mod tests {
         }
     }
     #[test]
-    fn test_insert_query_parser_valid_no_where() {
+    fn test_delete_query_parser_valid_no_where_and_if() {
         let tokens = vec![
             Token::Reserved(String::from(FROM)),
             Token::Identifier(String::from("kp.table_name")),
@@ -93,18 +104,20 @@ mod tests {
         let expected = DeleteQuery {
             table_name: "kp.table_name".to_string(),
             where_clause: None,
+            if_clause: None,
         };
         assert_eq!(expected, DeleteQueryParser::parse(tokens).unwrap());
     }
 
     #[test]
-    fn test_insert_query_parser_missing_from() {
+    fn test_delete_query_parser_missing_from() {
         let tokens = vec![Token::Identifier(String::from("table_name"))];
         let result = DeleteQueryParser::parse(tokens);
         assert_error(result, "DELETE not followed by FROM");
     }
+
     #[test]
-    fn test_insert_query_parser_unexpected_table_name() {
+    fn test_delete_query_parser_unexpected_table_name() {
         let tokens = vec![
             Token::Reserved(String::from(FROM)),
             Token::Reserved(String::from("UNEXPECTED")),
@@ -114,18 +127,18 @@ mod tests {
     }
 
     #[test]
-    fn test_insert_query_parser_unexpected_in_where() {
+    fn test_delete_query_parser_unexpected_in_where() {
         let tokens = vec![
             Token::Reserved(String::from(FROM)),
             Token::Identifier(String::from("table_name")),
             Token::Reserved(String::from("NOT WHERE")),
         ];
         let result = DeleteQueryParser::parse(tokens);
-        assert_error(result, "WHERE keyword not found");
+        assert_error(result, "Unexpected token");
     }
 
     #[test]
-    fn test_insert_query_parser_unexpected_in_where_clause() {
+    fn test_delete_query_parser_unexpected_in_where_clause() {
         let tokens = vec![
             Token::Reserved(String::from(FROM)),
             Token::Identifier(String::from("table_name")),

@@ -10,7 +10,6 @@ use std::net::TcpStream;
 pub struct DataAccessHandler {}
 
 impl DataAccessHandler {
-
     /// binds the data access TcpListener
     pub fn start_listening(ip: NodeIp) -> Result<(), Errors> {
         start_listener(ip.get_data_access_socket(), Self::handle_connection)

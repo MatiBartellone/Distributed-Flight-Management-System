@@ -3,6 +3,7 @@ use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
 use crate::parsers::tokens::terms::ArithMath;
 use crate::queries::evaluate::Evaluate;
+use crate::queries::if_clause::IfClause;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::queries::set_logic::assigmente_value::AssignmentValue;
 use crate::queries::where_logic::where_clause::WhereClause;
@@ -35,7 +36,10 @@ impl DataAccess {
     pub fn create_table(&self, table_name: &String) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
         if metadata(&path).is_ok() {
-            return Err(Errors::AlreadyExists("Table already exists".to_string()));
+            return Err(Errors::AlreadyExists(format!(
+                "Table already exists: {}",
+                table_name
+            )));
         }
         self.create_file(&path)
     }
@@ -67,37 +71,78 @@ impl DataAccess {
 
     /// inserts the given row appending it to the end of file given by table_name
     ///
-    /// Before inserting, the previous existence of the primary key is checked
-    pub fn insert(&self, table_name: &String, row: &Row) -> Result<(), Errors> {
+    ///  If the primary key already exists, it does nothing.
+    pub fn insert(&self, table_name: &String, row: &Row) -> Result<bool, Errors> {
         let path = self.get_file_path(table_name);
         if self.pk_already_exists(&path, &row.primary_key)? {
-            return Err(Errors::AlreadyExists(
-                "Primary key already exists".to_string(),
-            ));
+            return Ok(false);
         }
-        self.append_row(&path, row)
+        self.append_row(&path, row)?;
+        Ok(true)
+    }
+
+    /// Updates a row in the table. If the primary key does not exist, it does nothing.
+    pub fn simple_update_row(&self, table_name: &String, new_row: &Row) -> Result<bool, Errors> {
+        let path = self.get_file_path(table_name);
+        let temp_path = format!("{}.tmp", path);
+        self.create_file(&temp_path)?;
+
+        let mut updated = false;
+        for mut row in self.get_deserialized_stream(&path)? {
+            if new_row.primary_key == row.primary_key {
+                let changes = new_row.get_row_hash_assigment();
+                row = self.build_updated_row(&row, &changes)?;
+                updated = true;
+            }
+            self.append_row(&temp_path, &row)?;
+        }
+
+        rename(temp_path, path).map_err(|_| ServerError(String::from("Error renaming file")))?;
+        Ok(updated)
+    }
+
+    /// Inserts a new row into the table. If the primary key already exists, it updates the row.
+    pub fn insert_or_update(&self, table_name: &String, new_row: &Row) -> Result<(), Errors> {
+        let updated = self.simple_update_row(table_name, new_row)?;
+        if !updated {
+            let path = self.get_file_path(table_name);
+            self.append_row(&path, new_row)?;
+        }
+        Ok(())
     }
 
     /// sets de rows that matches the where clause to deleted
     ///
+    ///  If the if clause is provided, returns true if the row was deleted and false otherwise.
     /// it uses temp files and iters over the table_name file. The deleted rows are not deleted but set deleted true
     pub fn set_deleted_rows(
         &self,
         table_name: &String,
         where_clause: &WhereClause,
-    ) -> Result<(), Errors> {
+        if_clause: &Option<IfClause>,
+    ) -> Result<Option<bool>, Errors> {
         let path = self.get_file_path(table_name);
         let temp_path = format!("{}.tmp", path);
         self.create_file(&temp_path)?;
-        for row in self.get_deserialized_stream(&path)? {
+
+        let mut applied = None;
+        for mut row in self.get_deserialized_stream(&path)? {
             if where_clause.evaluate(&row.get_row_hash())? {
-                self.append_row(&temp_path, &Row::new_deleted_row()?)?;
-            } else {
-                self.append_row(&temp_path, &row)?;
+                if let Some(if_clause) = if_clause {
+                    if if_clause.evaluate(&row.get_row_hash())? {
+                        applied = Some(true);
+                        row = Row::new_deleted_row()?;
+                    } else {
+                        applied = Some(false);
+                    }
+                } else {
+                    row = Row::new_deleted_row()?;
+                }
             }
+            self.append_row(&temp_path, &row)?;
         }
         rename(temp_path, path).map_err(|_| ServerError(String::from("Error renaming file")))?;
-        Ok(())
+        Ok(applied)
     }
 
     /// updates de rows that matches the where clause applying changes given
@@ -108,19 +153,30 @@ impl DataAccess {
         table_name: &String,
         changes: &HashMap<String, AssignmentValue>,
         where_clause: &WhereClause,
-    ) -> Result<(), Errors> {
+        if_clause: &Option<IfClause>,
+    ) -> Result<Option<bool>, Errors> {
         let path = self.get_file_path(table_name);
         let temp_path = format!("{}.tmp", path);
         self.create_file(&temp_path)?;
-        for row in self.get_deserialized_stream(&path)? {
+
+        let mut applied = None;
+        for mut row in self.get_deserialized_stream(&path)? {
             if where_clause.evaluate(&row.get_row_hash())? {
-                self.append_row(&temp_path, &self.build_updated_row(&row, changes)?)?;
-            } else {
-                self.append_row(&temp_path, &row)?;
+                if let Some(if_clause) = if_clause {
+                    if if_clause.evaluate(&row.get_row_hash())? {
+                        applied = Some(true);
+                        row = self.build_updated_row(&row, changes)?;
+                    } else {
+                        applied = Some(false);
+                    }
+                } else {
+                    row = self.build_updated_row(&row, changes)?;
+                }
             }
+            self.append_row(&temp_path, &row)?;
         }
         rename(temp_path, path).map_err(|_| ServerError(String::from("Error renaming file")))?;
-        Ok(())
+        Ok(applied)
     }
 
     fn build_updated_row(
@@ -379,7 +435,9 @@ mod tests {
         assert!(data_access.create_table(&table_name).is_ok());
         let result = data_access.create_table(&table_name);
         assert!(result.is_err());
-        let expected = Err(Errors::AlreadyExists(String::from("Table already exists")));
+        let expected = Err(Errors::AlreadyExists(String::from(
+            "Table already exists: test_table2",
+        )));
         assert_eq!(result, expected);
         remove_file(data_access.get_file_path(&table_name)).unwrap();
     }
@@ -478,7 +536,7 @@ mod tests {
 
         data_access.insert(&table_name, &row).unwrap();
         let result = data_access.insert(&table_name, &row);
-        assert!(matches!(result, Err(Errors::AlreadyExists(_))));
+        assert!(matches!(result, Ok(false)));
         remove_file(data_access.get_file_path(&table_name)).unwrap();
     }
 
@@ -502,7 +560,7 @@ mod tests {
             literal,
         ));
 
-        let result = data_access.update_row(&table_name, &get_assignment(), &where_clause);
+        let result = data_access.update_row(&table_name, &get_assignment(), &where_clause, &None);
         assert!(result.is_ok());
         let table_path = data_access.get_file_path(&table_name);
         let file_content = read_to_string(&table_path).unwrap();

@@ -1,3 +1,4 @@
+use super::if_clause::IfClause;
 use super::{query::Query, where_logic::where_clause::WhereClause};
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
@@ -8,24 +9,24 @@ use crate::utils::response::Response;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(Default, PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct DeleteQuery {
     pub table_name: String,
     pub where_clause: Option<WhereClause>,
+    pub if_clause: Option<IfClause>,
 }
 
 impl DeleteQuery {
-    pub fn new() -> Self {
+    pub fn new(
+        table_name: String,
+        where_clause: Option<WhereClause>,
+        if_clause: Option<IfClause>,
+    ) -> Self {
         Self {
-            table_name: String::new(),
-            where_clause: None,
+            table_name,
+            where_clause,
+            if_clause,
         }
-    }
-}
-
-impl Default for DeleteQuery {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -36,8 +37,8 @@ impl Query for DeleteQuery {
                 "Where clause must be defined",
             )));
         };
-        use_data_access(|data_access| {
-            data_access.set_deleted_rows(&self.table_name, where_clause)
+        let _apllied = use_data_access(|data_access| {
+            data_access.set_deleted_rows(&self.table_name, where_clause, &self.if_clause)
         })?;
         Response::void()
     }

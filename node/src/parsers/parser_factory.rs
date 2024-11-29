@@ -14,7 +14,6 @@ use crate::utils::parser_constants::*;
 pub struct ParserFactory {}
 
 impl ParserFactory {
-
     /// given a request opcode, returns the matching parser
     pub fn get_parser(opcode: u8) -> Result<Box<dyn Parser>, Errors> {
         match opcode {

@@ -74,7 +74,8 @@ fn if_clause(
 ) -> Result<(), Errors> {
     match tokens.next() {
         Some(Reserved(res)) if res == IF => {}
-        _ => return Ok(()),
+        Some(_) => return Err(Errors::SyntaxError("Unexpected token".to_string())),
+        None => return Ok(()),
     };
     match get_next_value(tokens)? {
         IterateToken(sub_list) => {

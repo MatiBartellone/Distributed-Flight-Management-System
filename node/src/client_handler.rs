@@ -4,17 +4,19 @@ use crate::parsers::parser_factory::ParserFactory;
 use crate::response_builders::error_builder::ErrorBuilder;
 use crate::utils::constants::CLIENT_METADATA_PATH;
 use crate::utils::errors::Errors;
+use crate::utils::parser_constants::{AUTH_RESPONSE, AUTH_SUCCESS, STARTUP};
+use crate::utils::types::frame::Frame;
 use crate::utils::types::tls_stream::{
     flush_tls_stream, read_exact_from_tls_stream, use_client_meta_data, write_to_tls_stream,
 };
-use crate::utils::parser_constants::{AUTH_RESPONSE, AUTH_SUCCESS, STARTUP};
-use crate::utils::types::frame::Frame;
 use std::net::TcpStream;
 
 pub struct ClientHandler {}
 
 impl ClientHandler {
-    pub fn handle_client(mut stream: StreamOwned<ServerConnection, TcpStream>) -> Result<(), Errors> {
+    pub fn handle_client(
+        mut stream: StreamOwned<ServerConnection, TcpStream>,
+    ) -> Result<(), Errors> {
         add_new_client()?;
         loop {
             flush_tls_stream(&mut stream)?;
