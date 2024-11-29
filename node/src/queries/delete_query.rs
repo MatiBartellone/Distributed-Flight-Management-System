@@ -1,5 +1,4 @@
-use super::if_clause::{self, IfClause};
-use super::where_logic::where_clause;
+use super::if_clause::IfClause;
 use super::{query::Query, where_logic::where_clause::WhereClause};
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
@@ -17,11 +16,15 @@ pub struct DeleteQuery {
 }
 
 impl DeleteQuery {
-    pub fn new(table_name: String, where_clause: Option<WhereClause>, if_clause: Option<IfClause>) -> Self {
+    pub fn new(
+        table_name: String,
+        where_clause: Option<WhereClause>,
+        if_clause: Option<IfClause>,
+    ) -> Self {
         Self {
             table_name,
             where_clause,
-            if_clause
+            if_clause,
         }
     }
 }
@@ -33,7 +36,7 @@ impl Query for DeleteQuery {
                 "Where clause must be defined",
             )));
         };
-        let apllied = use_data_access(|data_access| {
+        let _apllied = use_data_access(|data_access| {
             data_access.set_deleted_rows(&self.table_name, where_clause, &self.if_clause)
         })?;
         Ok(get_long_string_from_str("Delete was successful"))

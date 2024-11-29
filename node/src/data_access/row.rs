@@ -56,7 +56,10 @@ impl Row {
                 value: String::from(&column.value.value),
                 data_type: column.value.data_type.clone(),
             };
-            hash.insert(String::from(&column.column_name), AssignmentValue::Simple(literal));
+            hash.insert(
+                String::from(&column.column_name),
+                AssignmentValue::Simple(literal),
+            );
         }
         hash
     }

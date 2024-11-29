@@ -47,7 +47,7 @@ impl PrepareExecutable {
             }
         }
         if let Some(last_line) = last_line {
-            let last_query: PrepareQuery = deserialize_from_str(&last_line.trim())?;
+            let last_query: PrepareQuery = deserialize_from_str(last_line.trim())?;
             PrepareQuery::new(&self.query, last_query.id + 1)
         } else {
             PrepareQuery::new(&self.query, 0)
@@ -68,6 +68,7 @@ pub struct PrepareQuery {
     pub query: QueryEnum,
 }
 impl PrepareQuery {
+    #[allow(clippy::borrowed_box)]
     pub fn new(query: &Box<dyn Query>, id: i16) -> Result<Self, Errors> {
         let Some(query_enum) = QueryEnum::from_query(query) else {
             return Err(Errors::ServerError(String::from("")));

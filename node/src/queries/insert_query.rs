@@ -18,7 +18,6 @@ pub struct InsertQuery {
 }
 
 impl InsertQuery {
-
     fn check_columns(&self) -> Result<(), Errors> {
         let columns = get_columns_from_table(&self.table_name)?;
         self.check_different_values()?;
@@ -124,7 +123,7 @@ impl InsertQuery {
 impl Query for InsertQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
         self.check_columns()?;
-        let applied = use_data_access(|data_access| {
+        let _applied = use_data_access(|data_access| {
             let mut applied = None;
             for values in self.values_list.iter() {
                 let row = self.build_row(values)?;

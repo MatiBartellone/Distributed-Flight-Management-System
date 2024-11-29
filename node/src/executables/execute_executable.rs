@@ -29,18 +29,18 @@ impl ExecuteExecutable {
 
     fn get_query(&self) -> Result<PrepareQuery, Errors> {
         if !Path::new(PREPARE_FILE).exists() {
-            File::create(&PREPARE_FILE)
+            File::create(PREPARE_FILE)
                 .map_err(|_| ServerError(String::from("Unable to create file")))?;
         }
         let file = OpenOptions::new()
             .read(true)
-            .open(&PREPARE_FILE)
+            .open(PREPARE_FILE)
             .map_err(|_| ServerError(String::from("Unable to open file")))?;
 
         let reader = BufReader::new(file);
         for line in reader.lines() {
             if let Ok(line) = line {
-                let deserialzied: PrepareQuery = deserialize_from_str(&line.trim())?;
+                let deserialzied: PrepareQuery = deserialize_from_str(line.trim())?;
                 if deserialzied.id == self.id {
                     return Ok(deserialzied);
                 }

@@ -16,7 +16,7 @@ use std::thread::sleep;
 use std::time::Duration;
 use std::{env, thread};
 
-fn main() -> Result<(), Errors>{
+fn main() -> Result<(), Errors> {
     let (uses_config, config_file) = get_args();
     let node_data = NodeInitializer::new(uses_config, config_file)?;
 
@@ -65,7 +65,7 @@ fn start_gossip() -> Result<(), Errors> {
     Ok(())
 }
 
-fn set_node_listener(ip: NodeIp) -> Result<(), Errors>{
+fn set_node_listener(ip: NodeIp) -> Result<(), Errors> {
     let listener = TcpListener::bind(ip.get_std_socket()).expect("Error binding socket");
     println!("Server listening on {}", ip.get_string_ip());
 

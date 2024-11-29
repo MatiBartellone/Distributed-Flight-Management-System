@@ -14,7 +14,6 @@ use crate::utils::functions::{get_int_from_string, serialize_to_string, write_al
 use crate::utils::parser_constants::ASC;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::fmt::format;
 use std::fs;
 use std::fs::{metadata, remove_file, rename, File, OpenOptions};
 use std::io::{BufReader, Seek, SeekFrom};
@@ -37,7 +36,10 @@ impl DataAccess {
     pub fn create_table(&self, table_name: &String) -> Result<(), Errors> {
         let path = self.get_file_path(table_name);
         if metadata(&path).is_ok() {
-            return Err(Errors::AlreadyExists(format!("Table already exists: {}", table_name)));
+            return Err(Errors::AlreadyExists(format!(
+                "Table already exists: {}",
+                table_name
+            )));
         }
         self.create_file(&path)
     }
@@ -94,14 +96,14 @@ impl DataAccess {
             }
             self.append_row(&temp_path, &row)?;
         }
-        
+
         rename(temp_path, path).map_err(|_| ServerError(String::from("Error renaming file")))?;
         Ok(updated)
     }
 
     /// Inserts a new row into the table. If the primary key already exists, it updates the row.
     pub fn insert_or_update(&self, table_name: &String, new_row: &Row) -> Result<(), Errors> {
-        let updated = self.simple_update_row(&table_name, new_row)?;
+        let updated = self.simple_update_row(table_name, new_row)?;
         if !updated {
             let path = self.get_file_path(table_name);
             self.append_row(&path, new_row)?;
@@ -151,7 +153,7 @@ impl DataAccess {
         table_name: &String,
         changes: &HashMap<String, AssignmentValue>,
         where_clause: &WhereClause,
-        if_clause: &Option<IfClause>
+        if_clause: &Option<IfClause>,
     ) -> Result<Option<bool>, Errors> {
         let path = self.get_file_path(table_name);
         let temp_path = format!("{}.tmp", path);
@@ -433,7 +435,9 @@ mod tests {
         assert!(data_access.create_table(&table_name).is_ok());
         let result = data_access.create_table(&table_name);
         assert!(result.is_err());
-        let expected = Err(Errors::AlreadyExists(String::from("Table already exists: test_table2")));
+        let expected = Err(Errors::AlreadyExists(String::from(
+            "Table already exists: test_table2",
+        )));
         assert_eq!(result, expected);
         remove_file(data_access.get_file_path(&table_name)).unwrap();
     }

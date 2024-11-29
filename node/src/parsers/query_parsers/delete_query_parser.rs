@@ -1,13 +1,13 @@
 use crate::parsers::tokens::token::Token;
 use crate::queries::delete_query::DeleteQuery;
 use crate::utils::errors::Errors;
-use crate::utils::token_conversor::get_next_value;
 use std::iter::Peekable;
 use std::vec::IntoIter;
 
 use super::if_clause_parser::IfClauseParser;
 use super::where_clause_parser::WhereClauseParser;
-use crate::utils::parser_constants::{FROM, WHERE};
+use crate::utils::parser_constants::{FROM, IF, WHERE};
+use crate::utils::types::token_conversor::get_next_value;
 
 pub struct DeleteQueryParser;
 

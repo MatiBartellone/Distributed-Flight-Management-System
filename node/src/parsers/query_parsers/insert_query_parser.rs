@@ -3,9 +3,9 @@ use crate::parsers::tokens::terms::Term;
 use crate::parsers::tokens::token::Token;
 use crate::queries::insert_query::InsertQuery;
 use crate::utils::errors::Errors;
-use crate::utils::token_conversor::get_next_value;
+use crate::utils::parser_constants::{COMMA, EXISTS, IF, INTO, NOT, VALUES};
+use crate::utils::types::token_conversor::get_next_value;
 use std::iter::Peekable;
-use crate::utils::parser_constants::{COMMA, INTO, VALUES};
 use std::vec::IntoIter;
 
 pub struct InsertQueryParser;
@@ -59,7 +59,10 @@ fn values(tokens: &mut Peekable<IntoIter<Token>>, query: &mut InsertQuery) -> Re
     }
 }
 
-fn values_list(tokens: &mut Peekable<IntoIter<Token>>, query: &mut InsertQuery) -> Result<(), Errors> {
+fn values_list(
+    tokens: &mut Peekable<IntoIter<Token>>,
+    query: &mut InsertQuery,
+) -> Result<(), Errors> {
     let Some(token) = tokens.next() else {
         return Ok(());
     };
@@ -110,20 +113,20 @@ fn exists(tokens: &mut Peekable<IntoIter<Token>>) -> Result<bool, Errors> {
             }
             Ok(true)
         }
-        Some(Token::Reserved(res)) if res == NOT => {
-            match tokens.next() {
-                Some(Token::Reserved(res)) if res == EXISTS => { 
-                    if tokens.next().is_some() {
-                        return Err(Errors::SyntaxError(String::from(
-                            "Nothing should follow a if-clause",
-                        )));
-                    }
-                    Ok(false)
+        Some(Token::Reserved(res)) if res == NOT => match tokens.next() {
+            Some(Token::Reserved(res)) if res == EXISTS => {
+                if tokens.next().is_some() {
+                    return Err(Errors::SyntaxError(String::from(
+                        "Nothing should follow a if-clause",
+                    )));
                 }
-                _ => Err(Errors::SyntaxError("Unexpected token".to_string())),
+                Ok(false)
             }
-        }
-        _ => Err(Errors::SyntaxError("Unexpected token in if-clause".to_string())),
+            _ => Err(Errors::SyntaxError("Unexpected token".to_string())),
+        },
+        _ => Err(Errors::SyntaxError(
+            "Unexpected token in if-clause".to_string(),
+        )),
     }
 }
 
@@ -229,7 +232,7 @@ mod tests {
                 Literal::new(col1.to_string(), DataType::Int),
                 Literal::new(col2.to_string(), DataType::Text),
             ]],
-            if_exists: None
+            if_exists: None,
         }
     }
 
