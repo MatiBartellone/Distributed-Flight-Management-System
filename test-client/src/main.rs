@@ -2,6 +2,7 @@ use std::io;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use test_client::bytes_cursor::BytesCursor;
+use test_client::errors::Errors;
 use test_client::frame::Frame;
 
 pub const ERROR: u8 = 0;
@@ -77,7 +78,7 @@ fn main() {
                                 }
                             }
                             RESULT => {
-                                show_response(frame.body);
+                                show_response(frame.body).unwrap();
                             }
                             _ => {}
                         }
@@ -175,47 +176,55 @@ fn build_frame(body: Vec<u8>, opcode: u8) -> Vec<u8> {
     frame
 }
 
-fn show_response(body: Vec<u8>) {
+fn show_response(body: Vec<u8>) -> Result<(), Errors> {
     let mut cursor = BytesCursor::new(body.as_slice());
 
-    match cursor.read_int().unwrap() {
-        1 => println!("Operation was succesful"),
-        3 => println!("Use keyspace was succesful"),
+    match cursor.read_int()?{
+        1 => {
+            println!("Operation was succesful");
+            Ok(())
+        },
+        3 => {
+            println!("Use keyspace was succesful");
+            Ok(())
+        },
         5 => {
-            let change = cursor.read_string().unwrap();
-            let target = cursor.read_string().unwrap();
-            let option = cursor.read_string().unwrap();
+            let change = cursor.read_string()?;
+            let target = cursor.read_string()?;
+            let option = cursor.read_string()?;
             println!("Operation was succesful, change: {}, target: {}, option: {}", change, target, option);
+            Ok(())
         },
         2 => {
-            let _ = cursor.read_int().unwrap();
-            let col_count = cursor.read_int().unwrap();
-            let keyspace = cursor.read_string().unwrap();
-            let table = cursor.read_string().unwrap();
-            println!("Rows from keyspace: {} and table {}", keyspace, table);
+            let _ = cursor.read_int()?;
+            let col_count = cursor.read_int()?;
+            let keyspace = cursor.read_string()?;
+            let table = cursor.read_string()?;
+            println!("Rows from keyspace: {} and table {}:", keyspace, table);
             let mut header = String::new();
             for i in 0..col_count {
                 if i != 0 {
                     header += ", ";
                 }
-                let col_name = cursor.read_string().unwrap();
-                let _ = cursor.read_i16().unwrap();
+                let col_name = cursor.read_string()?;
+                let _ = cursor.read_i16()?;
                 header += &col_name;
             }
             println!("{}", header);
-            let row_count = cursor.read_int().unwrap();
+            let row_count = cursor.read_int()?;
             for _ in 0..row_count {
                 let mut row = String::new();
                 for i in 0..col_count {
                     if i != 0 {
                         row += ", ";
                     }
-                    let value = cursor.read_string().unwrap();
+                    let value = cursor.read_string()?;
                     row += &value;
                 }
                 println!("{}", row);
             }
+            Ok(())
         }
-        _ => {}
+        _ => {Ok(())}
     }
 }

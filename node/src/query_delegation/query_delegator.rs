@@ -131,7 +131,6 @@ impl QueryDelegator {
         let expected_bytes = 2i32.to_be_bytes();
         let all_rows = responses.values().all(|response| response.starts_with(&expected_bytes));
         if all_rows {
-            println!("delegating");
             let mut read_repair = ReadRepair::new(&responses)?;
             return read_repair.get_response()
         }
