@@ -19,6 +19,7 @@ impl RowResponse {
             let row : Row = deserialize_from_str(&cursor.read_string()?)?;
             res.push(row);
         }
+        dbg!(&res);
         Ok(res)
     }
 
