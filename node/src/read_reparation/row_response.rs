@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{utils::{errors::Errors}, parsers::tokens::{data_type::DataType, literal::create_literal}, data_access::row::{Row, Column}};
+use crate::{utils::{errors::Errors, functions::deserialize_from_str}, parsers::tokens::{data_type::DataType, literal::create_literal}, data_access::row::{Row, Column}};
 use crate::utils::types::bytes_cursor::BytesCursor;
 use super::data_response::DataResponse;
 
@@ -16,32 +16,10 @@ impl RowResponse {
         let count_rows = cursor.read_short()?;
         let mut res: Vec<Row> = Vec::new();
         for _ in 0..count_rows {
-            let mut columns: Vec<Column> = Vec::new();
-            let count_columns = cursor.read_short()?;
-            for _ in 0..count_columns {
-                let column = Self::read_column(&mut cursor)?;
-                columns.push(column)
-            }
-
-            let mut primary_keys: Vec<String> = Vec::new(); 
-            let count_pks = cursor.read_short()?;
-            for _ in 0..count_pks {
-                let pk = cursor.read_string()?; 
-                primary_keys.push(pk)
-            }
-            let row = Row::new(columns, primary_keys);
+            let row : Row = deserialize_from_str(&cursor.read_string()?)?;
             res.push(row);
         }
         Ok(res)
-    }
-
-    fn read_column(cursor: &mut BytesCursor) -> Result<Column, Errors> {
-        let name = cursor.read_string()?;
-        let value = cursor.read_string()?;
-        let data_type = byte_to_data_type(cursor.read_i16()?)?;
-        let time_stamp = cursor.read_u64()?;
-        let literal = create_literal(&value, data_type);
-        Ok(Column::new(&name, &literal))
     }
 
     pub fn read_meta_data_response(bytes: Vec<u8>) -> Result<DataResponse, Errors> {
@@ -84,8 +62,8 @@ mod tests {
     #[test]
     fn test_read_rows() {
         // Crear datos para las filas
-        let column1 = Column::new(&"col1".to_string(), &create_literal("42", DataType::Int), 12345);
-        let column2 = Column::new(&"col2".to_string(), &create_literal("test", DataType::Text), 67890);
+        let column1 = Column::new(&"col1".to_string(), &create_literal("42", DataType::Int));
+        let column2 = Column::new(&"col2".to_string(), &create_literal("test", DataType::Text));
         let row = Row::new(vec![column1, column2], vec!["pk_value".to_string()]);
         let rows = vec![row];
         let mut encoder = TypesToBytes::default();

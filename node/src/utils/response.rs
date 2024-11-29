@@ -11,20 +11,14 @@ pub struct Response;
 impl Response {
     pub fn void() -> Result<Vec<u8>, Errors> {
         let mut encoder = TypesToBytes::default();
-        encoder
-            .write_int(0x0001)
-            .map_err(Errors::TruncateError)?;
+        encoder.write_int(0x0001)?;
         Ok(encoder.into_bytes())
     }
 
     pub fn set_keyspace(keyspace: &str) -> Result<Vec<u8>, Errors> {
         let mut encoder = TypesToBytes::default();
-        encoder
-            .write_int(0x0003)
-            .map_err(Errors::TruncateError)?;
-        encoder
-            .write_string(keyspace)
-            .map_err(Errors::TruncateError)?;
+        encoder.write_int(0x0003)?;
+        encoder.write_string(keyspace)?;
         Ok(encoder.into_bytes())
     }
 
@@ -34,18 +28,10 @@ impl Response {
         options: &str,
     ) -> Result<Vec<u8>, Errors> {
         let mut encoder = TypesToBytes::default();
-        encoder
-            .write_int(0x0005)
-            .map_err(Errors::TruncateError)?;
-        encoder
-            .write_string(change_type)
-            .map_err(Errors::TruncateError)?;
-        encoder
-            .write_string(target)
-            .map_err(Errors::TruncateError)?;
-        encoder
-            .write_string(options)
-            .map_err(Errors::TruncateError)?;
+        encoder.write_int(0x0005)?;
+        encoder.write_string(change_type)?;
+        encoder.write_string(target)?;
+        encoder.write_string(options)?;
         Ok(encoder.into_bytes())
     }
 
@@ -57,22 +43,22 @@ impl Response {
     }
 
     fn write_protocol_response(rows: &Vec<Row>, keyspace: &str, table: &str, encoder: &mut TypesToBytes) -> Result<(), Errors>{
-        encoder.write_int(0x0002).map_err(Errors::TruncateError)?;
-        encoder.write_int(0x0001).map_err(Errors::TruncateError)?;
+        encoder.write_int(0x0002)?;
+        encoder.write_int(0x0001)?;
         if let Some(first_row) = rows.first() {
-            encoder.write_int(first_row.columns.len() as i32).map_err(Errors::TruncateError)?;
+            encoder.write_int(first_row.columns.len() as i32)?;
         }
-        encoder.write_string(keyspace).map_err(Errors::TruncateError)?;
-        encoder.write_string(table).map_err(Errors::TruncateError)?;
+        encoder.write_string(keyspace)?;
+        encoder.write_string(table)?;
         for column in &rows[0].columns {
-            encoder.write_string(&column.column_name).map_err(Errors::TruncateError)?;
+            encoder.write_string(&column.column_name)?;
             let data_type_id = Response::data_type_to_byte(column.value.data_type.clone());
-            encoder.write_i16(data_type_id).map_err(Errors::TruncateError)?;
+            encoder.write_i16(data_type_id)?;
         }
-        encoder.write_int(rows.len() as i32).map_err(Errors::TruncateError)?;
+        encoder.write_int(rows.len() as i32)?;
         for row in rows {
             for column in &row.columns {
-                encoder.write_string(&column.value.value).map_err(Errors::TruncateError)?;
+                encoder.write_string(&column.value.value)?;
             }
         }
         Ok(())
@@ -84,55 +70,32 @@ impl Response {
         let division_offset = encoder.length();
         //Division
         Response::write_meta_data_response(&mut encoder, keyspace, table, )?;
-        encoder.write_int(division_offset as i32).map_err(Errors::TruncateError)?;
+        encoder.write_int(division_offset as i32)?;
         Ok(encoder.into_bytes())
     }
 
     
 
     pub fn write_rows(rows: &Vec<Row>, encoder: &mut TypesToBytes) -> Result<(), Errors> {
-        encoder.write_int(0x0002).map_err(Errors::TruncateError)?;
-        encoder.write_short(rows.len() as u16).map_err(Errors::TruncateError)?;
+        encoder.write_int(0x0002)?;
+        encoder.write_short(rows.len() as u16)?;
         for row in rows {
-            //Write columns
-            encoder.write_short(row.columns.len() as u16).map_err(Errors::TruncateError)?;
-            for column in &row.columns {
-                Response::write_column(column, encoder)?;
-            }
-            //Write primarys keys values
-            encoder.write_short(row.primary_key.len() as u16).map_err(Errors::TruncateError)?;
-            for pk_value in &row.primary_key {
-                encoder.write_string(pk_value).map_err(Errors::TruncateError)?;
-            }
-            //Write deleted
-            //hacer con mati
-        }
+            encoder.write_string(&serialize_to_string(row)?.as_str())?;
+        };
         Ok(())
     }
 
     pub fn write_meta_data_response(encoder: &mut TypesToBytes, keyspace: &str, table: &str) -> Result<(), Errors> {
-        encoder.write_string(keyspace).map_err(Errors::TruncateError)?;
-        encoder.write_string(table).map_err(Errors::TruncateError)?;
+        encoder.write_string(keyspace)?;
+        encoder.write_string(table)?;
         let pks = get_pks(keyspace, table)?;
-        encoder.write_short(pks.len() as u16).map_err(Errors::TruncateError)?;
+        encoder.write_short(pks.len() as u16)?;
         for (pk, type_) in pks {
-            encoder.write_string(&pk).map_err(Errors::TruncateError)?;
+            encoder.write_string(&pk)?;
             let data_type_id = Response::data_type_to_byte(type_);
-            encoder.write_i16(data_type_id).map_err(Errors::TruncateError)?;
+            encoder.write_i16(data_type_id)?;
         }
         Ok(())
-    }
-
-    fn write_column(column: &Column, encoder: &mut TypesToBytes) -> Result<(), Errors> {
-        encoder.write_string(&serialize_to_string(column)?);
-        //Write column name
-        encoder.write_string(&column.column_name).map_err(Errors::TruncateError)?;
-        //Write column value->literal
-        encoder.write_string(&column.value.value).map_err(Errors::TruncateError)?;
-        let data_type_id = Response::data_type_to_byte(column.value.data_type.clone());
-        encoder.write_i16(data_type_id).map_err(Errors::TruncateError)?;
-        //Write time stamp
-        encoder.write_u64(column.time_stamp).map_err(Errors::TruncateError)
     }
 
     fn data_type_to_byte(data: DataType) -> i16 {

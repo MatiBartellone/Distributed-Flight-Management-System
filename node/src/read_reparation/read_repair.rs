@@ -238,9 +238,9 @@ fn compare_row(original: &Row, new: &Row) -> Row {
     for col_ori in &original.columns {
         if let Some(col_new) = new_map.get(&col_ori.column_name) {
             if col_ori.timestamp.is_older_than(Timestamp::new_from_timestamp(&col_new.timestamp))  {
-                best_columns.push(col_new.clone());
+                best_columns.push(Column::new_from_column(&col_new));
             } else {
-                best_columns.push(col_ori.clone());
+                best_columns.push(Column::new_from_column(&col_ori));
             }
         }
     }
@@ -272,11 +272,11 @@ mod tests {
 
     use super::*;
 
-    fn create_test_column(name: &str, value: &str, timestamp: u64) -> Column {
+    fn create_test_column(name: &str, value: &str, timestamp: i64) -> Column {
         Column {
             column_name: name.to_string(),
             value: Literal::new(value.to_string(), DataType::Text),
-            time_stamp: timestamp,
+            timestamp: Timestamp::new_from_i64(timestamp),
         }
     }
 
