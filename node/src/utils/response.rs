@@ -59,7 +59,7 @@ impl Response {
             for header in &headers {
                 match row.get_some_column(header) {
                     Ok(column) => encoder.write_string(&column.value.value)?,
-                    _ => encoder.write_string("")?,
+                    _ => encoder.write_string("None")?,
                 }
             }
         }
