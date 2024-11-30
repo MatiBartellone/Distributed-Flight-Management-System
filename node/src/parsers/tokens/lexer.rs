@@ -153,8 +153,7 @@ fn replace_simple_chars(query: &str) -> String {
     while let Some(current) = chars.next() {
         let current_str = current.to_string();
         if let Some(replace) = characters.get_mapping(&current_str) {
-            result.push_str(replace);
-            chars.next(); 
+            result.push_str(replace); 
             continue; 
         }
 
