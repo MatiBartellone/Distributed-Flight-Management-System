@@ -1,9 +1,7 @@
 use crate::utils::constants::HINTED_HANDOFF_DATA;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
-use crate::utils::functions::{
-    connect_to_socket, flush_stream, read_from_stream_no_zero, write_to_stream,
-};
+use crate::utils::functions::{connect_to_socket, read_from_stream_no_zero, write_to_stream};
 use crate::utils::types::node_ip::NodeIp;
 use std::fs;
 use std::fs::File;
@@ -23,9 +21,7 @@ impl HintsSender {
             let mut reader = BufReader::new(file).lines();
             while let Some(Ok(line)) = reader.next() {
                 write_to_stream(&mut stream, line.trim().as_bytes())?;
-                flush_stream(&mut stream)?;
                 Self::expect_acknowledge(&mut stream)?;
-                flush_stream(&mut stream)?;
             }
             write_to_stream(&mut stream, b"FINISHED")?;
             fs::remove_file(Path::new(&hints_path))

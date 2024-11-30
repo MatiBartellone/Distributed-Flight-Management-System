@@ -2,6 +2,7 @@ use node::client_handler::ClientHandler;
 use node::gossip::gossip_emitter::GossipEmitter;
 use node::hinted_handoff::hints_receiver::HintsReceiver;
 use node::hinted_handoff::hints_sender::HintsSender;
+use node::meta_data::meta_data_handler::use_node_meta_data;
 use node::node_initializer::NodeInitializer;
 use node::utils::config_constants::MAX_CLIENTS;
 use node::utils::constants::NODES_METADATA_PATH;
@@ -14,7 +15,6 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
 use std::{env, thread};
-use node::meta_data::meta_data_handler::use_node_meta_data;
 
 fn main() -> Result<(), Errors> {
     let (uses_config, config_file) = get_args();
@@ -25,7 +25,7 @@ fn main() -> Result<(), Errors> {
     node_data.start_listeners();
 
     if needs_booting {
-        HintsReceiver::start_listening(node_data.get_network_ip())?;
+        HintsReceiver::start_listening(node_data.get_ip())?;
     };
 
     start_gossip()?;

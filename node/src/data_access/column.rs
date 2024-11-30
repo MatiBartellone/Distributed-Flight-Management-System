@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use crate::parsers::tokens::literal::Literal;
 use crate::utils::types::timestamp::Timestamp;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct Column {

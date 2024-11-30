@@ -14,8 +14,8 @@ impl CassandraConnection {
     /// Create a new connection to the server with the given node (ip:port)
     pub fn new(node: &str) -> Result<Self, String> {
         let (ip, _port) = node.split_once(":")
-            .ok_or_else(|| "Formato incorrecto de la cadena ip:port".to_string())?;
 
+            .ok_or_else(|| "Formato incorrecto de la cadena ip:port".to_string())?;
         // Get the ClientConfig
         let config = CassandraConnection::get_config()?;
         let rc_config = Arc::new(config);

@@ -1,16 +1,14 @@
 use rustls::{ServerConnection, StreamOwned};
 
+use crate::meta_data::meta_data_handler::use_client_meta_data;
 use crate::parsers::parser_factory::ParserFactory;
 use crate::response_builders::error_builder::ErrorBuilder;
 use crate::utils::constants::CLIENT_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::parser_constants::{AUTH_RESPONSE, AUTH_SUCCESS, STARTUP};
 use crate::utils::types::frame::Frame;
-use crate::utils::types::tls_stream::{
-    flush_tls_stream, read_exact_from_tls_stream, write_to_tls_stream,
-};
+use crate::utils::types::tls_stream::{read_exact_from_tls_stream, write_to_tls_stream};
 use std::net::TcpStream;
-use crate::meta_data::meta_data_handler::use_client_meta_data;
 
 pub struct ClientHandler {}
 
@@ -20,7 +18,6 @@ impl ClientHandler {
     ) -> Result<(), Errors> {
         add_new_client()?;
         loop {
-            flush_tls_stream(&mut stream)?;
             match read_exact_from_tls_stream(&mut stream)? {
                 vec if vec.is_empty() => {
                     println!("Client disconnected");
@@ -28,16 +25,12 @@ impl ClientHandler {
                     break;
                 }
                 vec => match execute_request(vec.clone()) {
-                    Ok(response) => {
-                        flush_tls_stream(&mut stream)?;
-                        write_to_tls_stream(&mut stream, response.as_slice())?
-                    }
+                    Ok(response) => write_to_tls_stream(&mut stream, response.as_slice())?,
                     Err(e) => {
                         let frame = ErrorBuilder::build_error_frame(
                             Frame::parse_frame(vec.as_slice())?,
                             e,
                         )?;
-                        flush_tls_stream(&mut stream)?;
                         write_to_tls_stream(&mut stream, frame.to_bytes().as_slice())?
                     }
                 },

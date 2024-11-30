@@ -1,16 +1,16 @@
 use super::query::Query;
 use super::where_logic::where_clause::WhereClause;
+use crate::data_access::data_access_handler::use_data_access;
+use crate::meta_data::meta_data_handler::use_keyspace_meta_data;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::utils::constants::{ASTERIK, KEYSPACE_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
-    check_table_name, get_columns_from_table, get_partition_key_from_where, split_keyspace_table
+    check_table_name, get_columns_from_table, get_partition_key_from_where, split_keyspace_table,
 };
 use crate::utils::response::Response;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
-use crate::data_access::data_access_handler::use_data_access;
-use crate::meta_data::meta_data_handler::use_keyspace_meta_data;
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct SelectQuery {

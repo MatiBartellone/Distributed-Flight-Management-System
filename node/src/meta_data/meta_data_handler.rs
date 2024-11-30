@@ -3,7 +3,7 @@ use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAcces
 use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
-    connect_to_socket, deserialize_from_slice, flush_stream, get_own_ip, read_exact_from_stream,
+    connect_to_socket, deserialize_from_slice, get_own_ip, read_exact_from_stream,
     read_from_stream_no_zero, serialize_to_string, start_listener, write_to_stream,
 };
 use crate::utils::types::node_ip::NodeIp;
@@ -21,9 +21,7 @@ impl MetaDataHandler {
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
         let meta_data_handler = MetaDataHandler {};
         let serialized = serialize_to_string(&meta_data_handler)?;
-        flush_stream(stream)?;
         write_to_stream(stream, serialized.as_bytes())?;
-        flush_stream(stream)?;
         read_exact_from_stream(stream)?;
         Ok(())
     }
@@ -33,7 +31,6 @@ impl MetaDataHandler {
     }
 
     fn get_instance(stream: &mut TcpStream) -> Result<MetaDataHandler, Errors> {
-        flush_stream(stream)?;
         deserialize_from_slice(read_from_stream_no_zero(stream)?.as_slice())
     }
 

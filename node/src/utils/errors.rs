@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display, Formatter};
 
 const SERVER_ERROR: &[u8] = &[0x00, 0x00];
@@ -16,7 +17,7 @@ const CONFIG_ERROR: &[u8] = &[0x23, 0x00];
 const ALREADY_EXISTS: &[u8] = &[0x24, 0x00];
 const UNPREPARED: &[u8] = &[0x25, 0x00];
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub enum Errors {
     ServerError(String),
     ProtocolError(String),
@@ -53,6 +54,101 @@ impl Errors {
             Errors::ConfigError(msg) => join_bytes(CONFIG_ERROR, msg),
             Errors::AlreadyExists(msg) => join_bytes(ALREADY_EXISTS, msg),
             Errors::Unprepared(msg) => join_bytes(UNPREPARED, msg),
+        }
+    }
+
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut data = Vec::new();
+        match self {
+            Errors::ServerError(msg) => {
+                data.push(6);
+                data.extend(msg.as_bytes());
+            }
+            Errors::ProtocolError(msg) => {
+                data.push(7);
+                data.extend(msg.as_bytes());
+            }
+            Errors::BadCredentials(msg) => {
+                data.push(8);
+                data.extend(msg.as_bytes());
+            }
+            Errors::UnavailableException(msg) => {
+                data.push(9);
+                data.extend(msg.as_bytes());
+            }
+            Errors::Overloaded(msg) => {
+                data.push(10);
+                data.extend(msg.as_bytes());
+            }
+            Errors::IsBootstrapping(msg) => {
+                data.push(11);
+                data.extend(msg.as_bytes());
+            }
+            Errors::TruncateError(msg) => {
+                data.push(12);
+                data.extend(msg.as_bytes());
+            }
+            Errors::WriteTimeout(msg) => {
+                data.push(13);
+                data.extend(msg.as_bytes());
+            }
+            Errors::ReadTimeout(msg) => {
+                data.push(14);
+                data.extend(msg.as_bytes());
+            }
+            Errors::SyntaxError(msg) => {
+                data.push(15);
+                data.extend(msg.as_bytes());
+            }
+            Errors::Unauthorized(msg) => {
+                data.push(16);
+                data.extend(msg.as_bytes());
+            }
+            Errors::Invalid(msg) => {
+                data.push(17);
+                data.extend(msg.as_bytes());
+            }
+            Errors::ConfigError(msg) => {
+                data.push(18);
+                data.extend(msg.as_bytes());
+            }
+            Errors::AlreadyExists(msg) => {
+                data.push(19);
+                data.extend(msg.as_bytes());
+            }
+            Errors::Unprepared(msg) => {
+                data.push(20);
+                data.extend(msg.as_bytes());
+            }
+        }
+        data
+    }
+
+    pub fn deserialize(data: &[u8]) -> Option<Self> {
+        if data.is_empty() {
+            return None;
+        }
+
+        let (discriminador, mensaje) = (data[0], &data[1..]);
+        let msg = String::from_utf8_lossy(mensaje).into_owned();
+
+        match discriminador {
+            6 => Some(Errors::ServerError(msg)),
+            7 => Some(Errors::ProtocolError(msg)),
+            8 => Some(Errors::BadCredentials(msg)),
+            9 => Some(Errors::UnavailableException(msg)),
+            10 => Some(Errors::Overloaded(msg)),
+            11 => Some(Errors::IsBootstrapping(msg)),
+            12 => Some(Errors::TruncateError(msg)),
+            13 => Some(Errors::WriteTimeout(msg)),
+            14 => Some(Errors::ReadTimeout(msg)),
+            15 => Some(Errors::SyntaxError(msg)),
+            16 => Some(Errors::Unauthorized(msg)),
+            17 => Some(Errors::Invalid(msg)),
+            18 => Some(Errors::ConfigError(msg)),
+            19 => Some(Errors::AlreadyExists(msg)),
+            20 => Some(Errors::Unprepared(msg)),
+            _ => None,
         }
     }
 }

@@ -1,5 +1,6 @@
 use crate::hinted_handoff::handler::Handler;
 use crate::hinted_handoff::stored_query::StoredQuery;
+use crate::meta_data::meta_data_handler::{use_keyspace_meta_data, use_node_meta_data};
 use crate::queries::query::{Query, QueryEnum};
 use crate::query_delegation::query_serializer::QuerySerializer;
 use crate::read_reparation::read_repair::ReadRepair;
@@ -7,17 +8,13 @@ use crate::utils::config_constants::TIMEOUT_SECS;
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::constants::{KEYSPACE_METADATA_PATH, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
-use crate::utils::functions::{
-    flush_stream, read_from_stream_no_zero,
-};
+use crate::utils::functions::{read_from_stream_no_zero, write_to_stream};
 use crate::utils::types::node_ip::NodeIp;
 use std::collections::HashMap;
-use std::io::Write;
 use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use crate::meta_data::meta_data_handler::{use_keyspace_meta_data, use_node_meta_data};
 
 pub struct QueryDelegator {
     #[allow(dead_code)]
@@ -67,14 +64,16 @@ impl QueryDelegator {
         for _ in 0..self.consistency.get_consistency(self.get_replication()?) {
             match rx.recv_timeout(timeout) {
                 Ok((ip, response)) => {
+                    println!("OK");
                     let mut res = responses.lock().unwrap();
                     res.insert(ip, response);
                 }
                 _ => {
+                    println!("timeout");
                     return match error.lock().unwrap().take() {
                         Some(e) => Err(e),
                         None => Err(Errors::ReadTimeout(String::from("Timeout"))),
-                    }
+                    };
                 }
             }
         }
@@ -107,16 +106,13 @@ impl QueryDelegator {
     pub fn send_to_node(ip: NodeIp, query: Box<dyn Query>) -> Result<(NodeIp, Vec<u8>), Errors> {
         match TcpStream::connect(ip.get_query_delegation_socket()) {
             Ok(mut stream) => {
-                if stream
-                    .write(QuerySerializer::serialize(&query)?.as_slice())
-                    .is_err()
-                {
-                    return Err(Errors::ServerError(String::from(
-                        "Unable to send query to node",
-                    )));
-                };
-                flush_stream(&mut stream)?;
+                write_to_stream(&mut stream, QuerySerializer::serialize(&query)?.as_slice())?;
+                //flush_stream(&mut stream)?;
                 let response = read_from_stream_no_zero(&mut stream)?;
+                if let Some(e) = Errors::deserialize(&response.as_slice()) {
+                    dbg!(&e);
+                    return Err(e);
+                }
                 Ok((ip, response))
             }
             Err(e) => {

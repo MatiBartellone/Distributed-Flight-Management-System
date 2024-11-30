@@ -1,11 +1,11 @@
-use std::collections::HashMap;
 use super::{constants::KEYSPACE_METADATA_PATH, errors::Errors};
+use crate::meta_data::meta_data_handler::use_keyspace_meta_data;
 use crate::utils::functions::serialize_to_string;
 use crate::{
     data_access::row::Row, parsers::tokens::data_type::DataType,
     utils::types_to_bytes::TypesToBytes,
 };
-use crate::meta_data::meta_data_handler::use_keyspace_meta_data;
+use std::collections::HashMap;
 
 pub struct Response;
 

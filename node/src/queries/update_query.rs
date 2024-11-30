@@ -2,6 +2,7 @@ use super::{
     if_clause::IfClause, query::Query, set_logic::assigmente_value::AssignmentValue,
     where_logic::where_clause::WhereClause,
 };
+use crate::data_access::data_access_handler::use_data_access;
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
 use crate::utils::errors::Errors;
@@ -14,7 +15,6 @@ use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::cmp::PartialEq;
 use std::collections::HashMap;
-use crate::data_access::data_access_handler::use_data_access;
 
 #[derive(PartialEq, Debug, Serialize, Deserialize, Clone)]
 pub struct UpdateQuery {

@@ -21,7 +21,6 @@ use std::{fs, io, thread};
 
 pub struct NodeInitializer {
     pub ip: NodeIp,
-    pub network_ip: NodeIp,
     pub seed_ip: NodeIp,
     pub node: Node,
     pub is_first: bool,
@@ -31,9 +30,7 @@ pub struct NodeInitializer {
 #[derive(Deserialize)]
 struct Config {
     ip: NodeIp,
-    network_ip: NodeIp,
     seed_ip: NodeIp,
-    uses_network: bool,
     is_seed: bool,
     is_first: bool,
 }
@@ -50,15 +47,8 @@ impl NodeInitializer {
     }
 
     fn get_data_by_user() -> Result<Self, Errors> {
-        let (ip, uses_network) =
-            match get_user_data("Will this be used across network? [Y][N]: ").as_str() {
-                "Y" => (get_user_data("Device's ip (e.g. tail scale): "), true),
-                _ => (get_user_data("Node's ip: "), false),
-            };
-        let (ip, network_ip) = match uses_network {
-            true => ("0.0.0.0".to_string(), ip),
-            false => (ip.to_string(), ip),
-        };
+        let ip = get_user_data("Node's ip: ");
+
         let port = get_user_data("Node's port ([port, port+5] are used): ");
         let port = port.parse::<u16>().expect("Could not parse port");
 
@@ -78,12 +68,11 @@ impl NodeInitializer {
             _ => matches!(get_user_data("Is this a seed node? [Y][N]: ").as_str(), "Y"),
         };
 
-        let node_ip = NodeIp::new_from_string(network_ip.as_str(), port)?;
+        let node_ip = NodeIp::new_from_string(ip.as_str(), port)?;
         store_ip(&NodeIp::new_from_string(ip.as_str(), port)?)?;
 
         Ok(Self {
             ip: NodeIp::new_from_string(ip.as_str(), port)?,
-            network_ip: NodeIp::new_from_string(network_ip.as_str(), port)?,
             seed_ip: NodeIp::new_from_string(seed_ip.as_str(), seed_port)?,
             node: Node::new(&node_ip, 1, is_seed).expect("Error creating node"),
             is_first,
@@ -96,22 +85,14 @@ impl NodeInitializer {
             .map_err(|_| ServerError(String::from("Could not read config file")))?;
         let mut config: Config = serde_yaml::from_str(&contents)
             .map_err(|_| ServerError(String::from("Could not deserialize config info")))?;
-        if config.uses_network {
-            config.ip = NodeIp::new_from_string("0.0.0.0", config.ip.get_port())?;
-        } else {
-            config.network_ip = NodeIp::new_from_ip(&config.ip);
-        }
         if config.is_first {
             config.is_seed = true;
-        }
-        if config.is_seed {
             config.seed_ip = NodeIp::new_from_ip(&config.ip);
         }
         store_ip(&NodeIp::new_from_ip(&config.ip))?;
         Ok(Self {
-            node: Node::new(&config.network_ip, 1, config.is_seed).expect("Error creating node"),
+            node: Node::new(&config.ip, 1, config.is_seed).expect("Error creating node"),
             ip: config.ip,
-            network_ip: config.network_ip,
             seed_ip: config.seed_ip,
             is_first: config.is_first,
             is_seed: config.is_seed,
@@ -120,10 +101,6 @@ impl NodeInitializer {
 
     pub fn get_ip(&self) -> NodeIp {
         NodeIp::new_from_ip(&self.ip)
-    }
-
-    pub fn get_network_ip(&self) -> NodeIp {
-        NodeIp::new_from_ip(&self.network_ip)
     }
 
     pub fn get_seed_ip(&self) -> NodeIp {
@@ -145,8 +122,8 @@ impl NodeInitializer {
     pub fn start_listeners(&self) {
         let metadata_ip = self.get_ip();
         let data_access_ip = self.get_ip();
-        let query_receiver_ip = self.get_network_ip();
-        let gossip_ip = self.get_network_ip();
+        let query_receiver_ip = self.get_ip();
+        let gossip_ip = self.get_ip();
         thread::spawn(move || {
             MetaDataHandler::start_listening(metadata_ip)
                 .expect("Failed to start metadata listener");
@@ -163,7 +140,7 @@ impl NodeInitializer {
             GossipListener::start_listening(gossip_ip).expect("Failed to start gossip listener");
         });
         if self.is_seed {
-            let seed_ip = NodeIp::new_from_ip(&self.get_network_ip());
+            let seed_ip = NodeIp::new_from_ip(&self.get_ip());
             thread::spawn(move || SeedListener::start_listening(seed_ip));
         }
     }

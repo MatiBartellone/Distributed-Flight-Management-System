@@ -1,3 +1,5 @@
+use crate::data_access::column::Column;
+use crate::data_access::data_access_handler::use_data_access;
 use crate::data_access::row::Row;
 use crate::parsers::tokens::data_type::DataType;
 use crate::utils::functions::{
@@ -9,8 +11,6 @@ use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::err
 use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::collections::{HashMap, HashSet};
-use crate::data_access::column::Column;
-use crate::data_access::data_access_handler::use_data_access;
 
 #[derive(Default, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct InsertQuery {

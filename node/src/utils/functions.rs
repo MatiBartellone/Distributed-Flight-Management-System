@@ -1,3 +1,4 @@
+use crate::meta_data::meta_data_handler::use_client_meta_data;
 use crate::meta_data::meta_data_handler::use_keyspace_meta_data;
 use crate::parsers::tokens::data_type::DataType;
 use crate::queries::where_logic::where_clause::WhereClause;
@@ -15,7 +16,6 @@ use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
-use crate::meta_data::meta_data_handler::use_client_meta_data;
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
     bytes.extend_from_slice((str.len() as u32).to_be_bytes().as_ref());
@@ -145,7 +145,7 @@ where
     Ok(())
 }
 
-pub fn flush_stream(stream: &mut TcpStream) -> Result<(), Errors> {
+fn flush_stream(stream: &mut TcpStream) -> Result<(), Errors> {
     stream
         .flush()
         .map_err(|_| ServerError(String::from("Failed to flush stream")))

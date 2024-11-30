@@ -1,3 +1,5 @@
+extern crate core;
+
 pub mod auth;
 pub mod data_access;
 pub mod executables;

@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use super::row_response::RowResponse;
+use crate::data_access::column::Column;
 use crate::parsers::tokens::terms::ComparisonOperators::Equal;
 use crate::parsers::tokens::terms::LogicalOperators::And;
 use crate::utils::types::bytes_cursor::BytesCursor;
@@ -24,7 +25,6 @@ use crate::{
         },
     },
 };
-use crate::data_access::column::Column;
 
 pub struct ReadRepair {
     responses_bytes: HashMap<String, Vec<u8>>,

@@ -1,7 +1,7 @@
 use crate::data_access::data_access::DataAccess;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
-    connect_to_socket, deserialize_from_slice, flush_stream, get_own_ip, read_exact_from_stream,
+    connect_to_socket, deserialize_from_slice, get_own_ip, read_exact_from_stream,
     read_from_stream_no_zero, serialize_to_string, start_listener, write_to_stream,
 };
 use crate::utils::types::node_ip::NodeIp;
@@ -18,9 +18,7 @@ impl DataAccessHandler {
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
         let data_access = DataAccess {};
         let serialized = serialize_to_string(&data_access)?;
-        flush_stream(stream)?;
         write_to_stream(stream, serialized.as_bytes())?;
-        flush_stream(stream)?;
         read_exact_from_stream(stream)?;
         Ok(())
     }
@@ -32,7 +30,6 @@ impl DataAccessHandler {
 
     /// given a data access TcpStream, returns a DataAccess instance to use its functionalities
     fn get_instance(stream: &mut TcpStream) -> Result<DataAccess, Errors> {
-        flush_stream(stream)?;
         deserialize_from_slice(read_from_stream_no_zero(stream)?.as_slice())
     }
 }

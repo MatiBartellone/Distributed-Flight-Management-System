@@ -1,5 +1,6 @@
 use super::if_clause::IfClause;
 use super::{query::Query, where_logic::where_clause::WhereClause};
+use crate::data_access::data_access_handler::use_data_access;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
     check_table_name, get_partition_key_from_where, split_keyspace_table,
@@ -7,7 +8,6 @@ use crate::utils::functions::{
 use crate::utils::response::Response;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
-use crate::data_access::data_access_handler::use_data_access;
 
 #[derive(Default, PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct DeleteQuery {

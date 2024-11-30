@@ -1,3 +1,4 @@
+use crate::data_access::column::Column;
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
 use crate::queries::set_logic::assigmente_value::AssignmentValue;
@@ -5,7 +6,6 @@ use crate::utils::errors::Errors;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::option::Option;
-use crate::data_access::column::Column;
 
 pub const EQUAL: i8 = 0;
 pub const GREATER: i8 = 1;
