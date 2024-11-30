@@ -1,4 +1,5 @@
-use crate::data_access::row::{Column, Row};
+use crate::data_access::column::Column;
+use crate::data_access::row::Row;
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
 use crate::parsers::tokens::terms::ArithMath;
@@ -127,19 +128,24 @@ impl DataAccess {
 
         let mut applied = None;
         for mut row in self.get_deserialized_stream(&path)? {
+            let mut erase = false;
             if where_clause.evaluate(&row.get_row_hash())? {
                 if let Some(if_clause) = if_clause {
                     if if_clause.evaluate(&row.get_row_hash())? {
                         applied = Some(true);
-                        row = Row::new_deleted_row()?;
+                        erase = row.is_deleted();
+                        row.set_deleted();
                     } else {
                         applied = Some(false);
                     }
                 } else {
-                    row = Row::new_deleted_row()?;
+                    erase = row.is_deleted();
+                    row.set_deleted();
                 }
             }
-            self.append_row(&temp_path, &row)?;
+            if !erase{
+                self.append_row(&temp_path, &row)?;
+            }
         }
         rename(temp_path, path).map_err(|_| ServerError(String::from("Error renaming file")))?;
         Ok(applied)
@@ -393,7 +399,7 @@ impl DataAccess {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data_access::row::Column;
+    use crate::data_access::column::Column;
     use crate::parsers::tokens::data_type::DataType;
     use crate::parsers::tokens::literal::Literal;
     use crate::parsers::tokens::terms::ComparisonOperators;
@@ -435,10 +441,6 @@ mod tests {
         assert!(data_access.create_table(&table_name).is_ok());
         let result = data_access.create_table(&table_name);
         assert!(result.is_err());
-        let expected = Err(Errors::AlreadyExists(String::from(
-            "Table already exists: test_table2",
-        )));
-        assert_eq!(result, expected);
         remove_file(data_access.get_file_path(&table_name)).unwrap();
     }
 

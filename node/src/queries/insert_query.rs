@@ -1,8 +1,10 @@
-use crate::data_access::row::{Column, Row};
+use crate::data_access::column::Column;
+use crate::data_access::data_access_handler::use_data_access;
+use crate::data_access::row::Row;
 use crate::parsers::tokens::data_type::DataType;
 use crate::utils::functions::{
-    check_table_name, get_columns_from_table,
-    get_table_clustering_columns, get_table_partition, split_keyspace_table, use_data_access,
+    check_table_name, get_columns_from_table, get_table_clustering_columns, get_table_partition,
+    split_keyspace_table,
 };
 use crate::utils::response::Response;
 use crate::{parsers::tokens::literal::Literal, queries::query::Query, utils::errors::Errors};

@@ -1,7 +1,7 @@
 use std::io;
-use std::io::{Read, Write};
-use std::net::TcpStream;
+use std::io::Write;
 use test_client::bytes_cursor::BytesCursor;
+use test_client::cassandra_connector::CassandraConnection;
 use test_client::errors::Errors;
 use test_client::frame::Frame;
 
@@ -22,76 +22,70 @@ const FLAG: u8 = 0;
 
 fn main() {
     let node = get_user_data("FULL IP (ip:port): ");
+    let mut connector = CassandraConnection::new(&node).expect("Failed to connect to Cassandra");
 
-    if let Ok(mut stream) = TcpStream::connect(node) {
-        let mut input = String::new();
-        while io::stdin().read_line(&mut input).is_ok() {
-            match input.trim() {
-                "startup" => send_startup(&mut stream),
-                "admin" => send_auth_admin(&mut stream),
-                "auth_response" => send_auth_response(&mut stream),
-                "options" => send_options(&mut stream),
-                "query" => send_query(&mut stream),
-                "prepare" => send_prepare(&mut stream),
-                "execute" => send_execute(&mut stream),
-                _ => {
-                    input.clear();
-                    continue;
-                }
+    let mut input = String::new();
+    while io::stdin().read_line(&mut input).is_ok() {
+        match input.trim() {
+            "startup" => send_startup(&mut connector),
+            "admin" => send_auth_admin(&mut connector),
+            "auth_response" => send_auth_response(&mut connector),
+            "options" => send_options(&mut connector),
+            "query" => send_query(&mut connector),
+            "prepare" => send_prepare(&mut connector),
+            "execute" => send_execute(&mut connector),
+            _ => {
+                input.clear();
+                continue;
             }
-            println!();
-            stream.flush().expect("could not flush stream");
-            let mut buf = [0; 1024];
-            match stream.read(&mut buf) {
-                Ok(n) => {
-                    if n > 0 {
-                        let frame = Frame::parse_frame(&buf[..n]).expect("Error parsing frame");
-                        match frame.opcode {
-                            ERROR => {
-                                let mut cursor = BytesCursor::new(frame.body.as_slice());
-                                println!("ERROR");
-                                if let Ok(string) = cursor.read_long_string() {
-                                    println!("{}", string);
-                                } else {
-                                    println!(
-                                        "{:?}",
-                                        &String::from_utf8_lossy(frame.body.as_slice())
-                                    );
-                                }
-                            }
-                            AUTHENTICATE => {
-                                let mut cursor = BytesCursor::new(frame.body.as_slice());
-                                println!("AUTHENTICATE");
-                                println!("{}", cursor.read_string().unwrap());
-                            }
-                            AUTH_SUCCESS => {
-                                println!("AUTH_SUCCESS");
-                            }
-                            AUTH_CHALLENGE => {
-                                println!("AUTH_CHALLENGE");
-                            }
-                            SUPPORTED => {
-                                let mut cursor = BytesCursor::new(frame.body.as_slice());
-                                println!("SUPPORTED");
-                                for (key, value) in cursor.read_string_map().unwrap() {
-                                    println!("{}: {}", key, value);
-                                }
-                            }
-                            RESULT => {
-                                show_response(frame.body).unwrap();
-                            }
-                            _ => {}
+        }
+        println!();
+        match connector.read_stream() {
+            Ok(frame) => {
+                match frame.opcode {
+                    ERROR => {
+                        let mut cursor = BytesCursor::new(frame.body.as_slice());
+                        println!("ERROR");
+                        if let Ok(string) = cursor.read_long_string() {
+                            println!("{}", string);
+                        } else {
+                            println!(
+                                "{:?}",
+                                &String::from_utf8_lossy(frame.body.as_slice())
+                            );
                         }
                     }
+                    AUTHENTICATE => {
+                        let mut cursor = BytesCursor::new(frame.body.as_slice());
+                        println!("AUTHENTICATE");
+                        println!("{}", cursor.read_string().unwrap());
+                    }
+                    AUTH_SUCCESS => {
+                        println!("AUTH_SUCCESS");
+                    }
+                    AUTH_CHALLENGE => {
+                        println!("AUTH_CHALLENGE");
+                    }
+                    SUPPORTED => {
+                        let mut cursor = BytesCursor::new(frame.body.as_slice());
+                        println!("SUPPORTED");
+                        for (key, value) in cursor.read_string_map().unwrap() {
+                            println!("{}: {}", key, value);
+                        }
+                    }
+                    RESULT => {
+                        show_response(frame.body).unwrap();
+                    }
+                    _ => {}
                 }
-                Err(e) => {
-                    println!("Error leyendo del socket: {}", e);
-                }
+
             }
-            stream.flush().expect("sds");
-            input.clear();
-            println!()
+            Err(e) => {
+                println!("Error leyendo del socket: {}", e);
+            }
         }
+        input.clear();
+        println!()
     }
 }
 
@@ -105,68 +99,67 @@ fn get_user_data(msg: &str) -> String {
     data.trim().to_string()
 }
 
-fn write_to_stream(stream: &mut TcpStream, content: &[u8]) {
-    stream
-        .write_all(content)
-        .expect("Error writing to socket");
-}
-
 fn parse_string_to_i16_be_bytes(string: String) -> [u8; 2] {
     string.parse::<i16>().unwrap().to_be_bytes()
 }
 
-fn send_startup(stream: &mut TcpStream) {
+fn send_startup(connector: &mut CassandraConnection) {
     let startup_bytes = vec![
         VERSION, FLAG, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x16, 0x00, 0x01, // n = 1
         0x00, 0x0B, b'C', b'Q', b'L', b'_', b'V', b'E', b'R', b'S', b'I', b'O',
         b'N', // "CQL_VERSION"
         0x00, 0x05, b'3', b'.', b'0', b'.', b'0', // "3.0.0"
     ];
-    write_to_stream(stream, &startup_bytes.as_slice());
+    connector.write_stream(&Frame::parse_frame(startup_bytes.as_slice()).unwrap()).unwrap()
 }
 
-fn send_auth_admin(stream: &mut TcpStream) {
+fn send_auth_admin(connector: &mut CassandraConnection) {
     let auth_response_bytes = vec![
         VERSION, FLAG, 0x00, 0x01, 0x0F, 0x00, 0x00, 0x00, 0x12, 0x00, 0x00, 0x00, 0x0E, b'a', b'd',
         b'm', b'i', b'n', b':', b'p', b'a', b's', b's', b'w', b'o', b'r', b'd',
     ];
-    write_to_stream(stream, &auth_response_bytes.as_slice());
+    connector.write_stream(&Frame::parse_frame(auth_response_bytes.as_slice()).unwrap()).unwrap()
 }
 
-fn send_auth_response(stream: &mut TcpStream) {
+fn send_auth_response(connector: &mut CassandraConnection) {
     let credentiasl = get_user_data("Enter credentials user:password");
-    write_to_stream(stream, &build_frame(credentiasl.as_bytes().to_vec(), AUTH_RESPONSE).as_slice());
+    let frame_bytes = build_frame(credentiasl.as_bytes().to_vec(), AUTH_RESPONSE);
+    connector.write_stream(&Frame::parse_frame(frame_bytes.as_slice()).unwrap()).unwrap()
 }
 
-fn send_options(stream: &mut TcpStream) {
-    write_to_stream(stream, &build_frame(Vec::new(), OPTIONS).as_slice());
+fn send_options(connector: &mut CassandraConnection) {
+    let frame_bytes = build_frame(Vec::new(), OPTIONS);
+    connector.write_stream(&Frame::parse_frame(frame_bytes.as_slice()).unwrap()).unwrap()
 }
 
-fn send_query(stream: &mut TcpStream) {
+fn send_query(connector: &mut CassandraConnection) {
     let query = get_user_data("Query: ");
     let consistency = get_user_data("Consistency: ");
     let mut body = Vec::new();
     body.extend_from_slice((query.len() as i32).to_be_bytes().as_slice());
     body.extend_from_slice(query.as_bytes());
     body.extend_from_slice(&parse_string_to_i16_be_bytes(consistency));
-    write_to_stream(stream, &build_frame(body, QUERY).as_slice())
+    let frame_bytes = build_frame(body, QUERY);
+    connector.write_stream(&Frame::parse_frame(frame_bytes.as_slice()).unwrap()).unwrap()
 }
 
-fn send_prepare(stream: &mut TcpStream) {
+fn send_prepare(connector: &mut CassandraConnection) {
     let query = get_user_data("Query: ");
     let mut body = Vec::new();
     body.extend_from_slice((query.len() as i32).to_be_bytes().as_slice());
     body.extend_from_slice(query.as_bytes());
-    write_to_stream(stream, &build_frame(body, PREPARE).as_slice())
+    let frame_bytes = build_frame(body, PREPARE);
+    connector.write_stream(&Frame::parse_frame(frame_bytes.as_slice()).unwrap()).unwrap()
 }
 
-fn send_execute(stream: &mut TcpStream) {
+fn send_execute(connector: &mut CassandraConnection) {
     let id = get_user_data("Query id: ");
     let consistency = get_user_data("Consistency: ");
     let mut body = Vec::new();
     body.extend_from_slice(&parse_string_to_i16_be_bytes(id));
     body.extend_from_slice(&parse_string_to_i16_be_bytes(consistency));
-    write_to_stream(stream, &build_frame(body, EXECUTE).as_slice())
+    let frame_bytes = build_frame(body, EXECUTE);
+    connector.write_stream(&Frame::parse_frame(frame_bytes.as_slice()).unwrap()).unwrap()
 }
 
 fn build_frame(body: Vec<u8>, opcode: u8) -> Vec<u8> {
