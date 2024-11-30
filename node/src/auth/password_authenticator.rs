@@ -13,9 +13,6 @@ use argon2::{
     Argon2, PasswordHash, PasswordVerifier
 };
 
-
-use super::authenticator::Authenticator;
-
 const CREDENTIALS: &str = "src/auth/credentials.json";
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -86,8 +83,7 @@ impl PasswordAuthenticator {
             .map_err(|_| Errors::ServerError(String::from("Failed to read credentials")))?;
 
         let credentials: Result<Vec<Credential>, Errors> = deserialize_from_str(&data);
-
-        Ok(credentials)
+        credentials
     }
 
     pub fn create_user(&self, user: &str, pass: &str) -> Result<(), Errors> {
