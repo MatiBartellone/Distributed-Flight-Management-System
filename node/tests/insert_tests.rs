@@ -8,8 +8,6 @@ use node::utils::errors::Errors;
 use node::utils::types::node_ip::NodeIp;
 use std::sync::{Once, Arc, Mutex};
 use std::sync::atomic::{AtomicUsize, Ordering};
-
-static TEST_COUNT: AtomicUsize = AtomicUsize::new(0);
 static INIT: Once = Once::new();
 static FINISHED: AtomicUsize = AtomicUsize::new(0);
 
@@ -57,7 +55,7 @@ fn teardown() {
 // Chequear si esta es la última prueba y ejecutar el "teardown" global.
 fn check_and_run_teardown() {
     // Si todas las pruebas se completaron, ejecutamos el teardown
-    if FINISHED.load(Ordering::SeqCst) == 2 { // Ajusta este número según el número total de pruebas
+    if FINISHED.load(Ordering::SeqCst) == 3 { // Ajusta este número según el número total de pruebas
         teardown();
     }
 }
@@ -66,17 +64,8 @@ fn check_and_run_teardown() {
 fn insert_test() {
     let global_state = GlobalState::new();
     setup(&global_state);  // Pasamos el estado a la configuración
-    TEST_COUNT.fetch_add(1, Ordering::SeqCst);  // Incrementamos el contador de pruebas
-    let query = "INSERT INTO test.tb1 (id, name) VALUES (1, 'Mati')".to_string();
-    let tokens = query_lexer(query).unwrap();
-    let query = query_parser(tokens).unwrap();
-    let result = query.run();
-    if let Err(e) = result {
-        panic!("{:?}", e);
-    }
+    let result = get_query_result("INSERT INTO test.tb1 (id, name) VALUES (1, 'Mati')");
     assert!(result.is_ok());
-
-    // Marcamos la prueba como completada
     FINISHED.fetch_add(1, Ordering::SeqCst);
     check_and_run_teardown();
 }
@@ -85,17 +74,18 @@ fn insert_test() {
 fn insert_test2() {
     let global_state = GlobalState::new();
     setup(&global_state);  // Pasamos el estado a la configuración
-    TEST_COUNT.fetch_add(1, Ordering::SeqCst);  // Incrementamos el contador de pruebas
-    let query = "INSERT INTO test.tb1 (id, name) VALUES (2, 'Mati')".to_string();
-    let tokens = query_lexer(query).unwrap();
-    let query = query_parser(tokens).unwrap();
-    let result = query.run();
-    if let Err(e) = result {
-        panic!("{:?}", e);
-    }
+    let result = get_query_result("INSERT INTO test.tb1 (id, name) VALUES (2, 'Mati')");
     assert!(result.is_ok());
+    FINISHED.fetch_add(1, Ordering::SeqCst);
+    check_and_run_teardown();
+}
 
-    // Marcamos la prueba como completada
+#[test]
+fn insert_test3() {
+    let global_state = GlobalState::new();
+    setup(&global_state);  // Pasamos el estado a la configuración
+    let result = get_query_result("INSERT INTO test.tb1 (id, last_name) VALUES (2, 'Mati')");
+    assert!(result.is_err());
     FINISHED.fetch_add(1, Ordering::SeqCst);
     check_and_run_teardown();
 }
@@ -105,6 +95,13 @@ fn store_ip(ip: &NodeIp) -> Result<(), Errors> {
     file.write_all(ip.get_string_ip().as_bytes())
         .expect("Error writing to file");
     Ok(())
+}
+
+fn get_query_result(query: &str) -> Result<Vec<u8>, Errors> {
+    let query = query.to_string();
+    let tokens = query_lexer(query).unwrap();
+    let query = query_parser(tokens).unwrap();
+    query.run()
 }
 
 fn run_query(query: &str) {
