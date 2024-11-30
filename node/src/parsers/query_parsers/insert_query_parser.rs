@@ -65,7 +65,7 @@ fn values_list(
 ) -> Result<(), Errors> {
     match get_next_value(tokens)? {
         Token::ParenList(list) => {
-            query.values_list.push(get_values(list)?);
+            query.values = get_values(list)?;
             if_clause(tokens, query)
         }
         _ => Err(Errors::SyntaxError(String::from(
@@ -237,10 +237,10 @@ mod tests {
         InsertQuery {
             table_name: table.to_string(),
             headers: vec![String::from(hd1), String::from(hd2)],
-            values_list: vec![vec![
+            values: vec![
                 Literal::new(col1.to_string(), DataType::Int),
                 Literal::new(col2.to_string(), DataType::Text),
-            ]],
+            ],
             if_exists,
         }
     }

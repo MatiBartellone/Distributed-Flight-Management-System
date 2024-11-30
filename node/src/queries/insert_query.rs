@@ -13,7 +13,7 @@ use std::collections::{HashMap, HashSet};
 pub struct InsertQuery {
     pub table_name: String,
     pub headers: Vec<String>,
-    pub values_list: Vec<Vec<Literal>>,
+    pub values: Vec<Literal>,
     pub if_exists: Option<bool>,
 }
 
@@ -26,10 +26,7 @@ impl InsertQuery {
                 "More columns given than defined in table",
             )));
         }
-        let Some(values) = self.values_list.first() else {
-            return Err(Errors::SyntaxError("No values provided".to_string()));
-        };
-        self.check_data_types_and_existance(values, &columns)?;
+        self.check_data_types_and_existance(&columns)?;
 
         Ok(())
     }
@@ -46,15 +43,14 @@ impl InsertQuery {
 
     fn check_data_types_and_existance(
         &self,
-        values: &[Literal],
         columns: &HashMap<String, DataType>,
     ) -> Result<(), Errors> {
-        if values.len() != self.headers.len() {
+        if self.values.len() != self.headers.len() {
             return Err(Errors::SyntaxError(String::from(
                 "Values doesnt match given headers",
             )));
         }
-        for (value, header) in values.iter().zip(self.headers.iter()) {
+        for (value, header) in self.values.iter().zip(self.headers.iter()) {
             if let Some(column_data_type) = columns.get(header) {
                 if &value.data_type != column_data_type {
                     return Err(Errors::SyntaxError(format!(
@@ -94,17 +90,14 @@ impl InsertQuery {
     }
 
     fn get_keys(&self, set: HashSet<String>) -> Result<Option<Vec<String>>, Errors> {
-        let Some(row) = self.values_list.first() else {
-            return Err(Errors::SyntaxError("No values provided".to_string()));
-        };
         self.check_different_values()?;
         let mut partition_keys = Vec::new();
-        if row.len() != self.headers.len() {
+        if self.values.len() != self.headers.len() {
             return Err(Errors::SyntaxError(String::from(
                 "Values doesnt match given headers",
             )));
         }
-        for (value, header) in row.iter().zip(self.headers.iter()) {
+        for (value, header) in self.values.iter().zip(self.headers.iter()) {
             if set.contains(header) {
                 partition_keys.push(value.value.to_string());
             }
@@ -125,17 +118,15 @@ impl Query for InsertQuery {
         self.check_columns()?;
         let _applied = use_data_access(|data_access| {
             let mut applied = None;
-            for values in self.values_list.iter() {
-                let row = self.build_row(values)?;
-                if let Some(if_exists) = self.if_exists {
-                    if if_exists {
-                        applied = Some(data_access.simple_update_row(&self.table_name, &row)?);
-                    } else {
-                        applied = Some(data_access.insert(&self.table_name, &row)?);
-                    }
+            let row = self.build_row(&self.values)?;
+            if let Some(if_exists) = self.if_exists {
+                if if_exists {
+                    applied = Some(data_access.simple_update_row(&self.table_name, &row)?);
                 } else {
-                    data_access.insert_or_update(&self.table_name, &row)?;
+                    applied = Some(data_access.insert(&self.table_name, &row)?);
                 }
+            } else {
+                data_access.insert_or_update(&self.table_name, &row)?;
             }
             Ok(applied)
         })?;
