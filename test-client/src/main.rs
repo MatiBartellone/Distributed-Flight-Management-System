@@ -45,15 +45,10 @@ fn main() {
                 match frame.opcode {
                     ERROR => {
                         let mut cursor = BytesCursor::new(frame.body.as_slice());
-                        println!("ERROR");
-                        if let Ok(string) = cursor.read_long_string() {
-                            println!("{}", string);
-                        } else {
-                            println!(
-                                "{:?}",
-                                &String::from_utf8_lossy(frame.body.as_slice())
-                            );
-                        }
+                        let error_type = vec![cursor.read_u8().unwrap(), cursor.read_u8().unwrap()];
+                        let msg = cursor.read_string().unwrap();
+                        let error = Errors::new(error_type.as_slice(), msg);
+                        println!("{}", error);
                     }
                     AUTHENTICATE => {
                         let mut cursor = BytesCursor::new(frame.body.as_slice());
@@ -122,8 +117,11 @@ fn send_auth_admin(connector: &mut CassandraConnection) {
 }
 
 fn send_auth_response(connector: &mut CassandraConnection) {
-    let credentiasl = get_user_data("Enter credentials user:password");
-    let frame_bytes = build_frame(credentiasl.as_bytes().to_vec(), AUTH_RESPONSE);
+    let credentiasl = get_user_data("Enter credentials (user:password) :");
+    let mut body = Vec::new();
+    body.extend_from_slice((credentiasl.len() as i32).to_be_bytes().as_slice());
+    body.extend_from_slice(credentiasl.as_bytes());
+    let frame_bytes = build_frame(body, AUTH_RESPONSE);
     connector.write_stream(&Frame::parse_frame(frame_bytes.as_slice()).unwrap()).unwrap()
 }
 

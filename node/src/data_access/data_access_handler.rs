@@ -34,6 +34,16 @@ impl DataAccessHandler {
     }
 }
 
+/// use_data_access is the way to access data_access functions.
+/// It represents a lock, in which the DataAccess instance ends its lifetime when the function finishes.
+/// action is a function that uses the data access
+///
+/// ```ignore
+/// use node::data_access::data_access_handler::use_data_access;
+/// use_data_access(|data_access| {
+///     data_access.drop_table(String::from("kp1.table1"))
+/// })
+/// ```
 pub fn use_data_access<F, T>(action: F) -> Result<T, Errors>
 where
     F: FnOnce(&DataAccess) -> Result<T, Errors>,
