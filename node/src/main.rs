@@ -2,6 +2,7 @@ use node::client_handler::ClientHandler;
 use node::gossip::gossip_emitter::GossipEmitter;
 use node::hinted_handoff::hints_receiver::HintsReceiver;
 use node::hinted_handoff::hints_sender::HintsSender;
+use node::hinted_handoff::handler::Handler;
 use node::meta_data::meta_data_handler::use_node_meta_data;
 use node::node_initializer::NodeInitializer;
 use node::utils::config_constants::MAX_CLIENTS;
@@ -52,6 +53,7 @@ fn start_gossip() -> Result<(), Errors> {
         loop {
             sleep(Duration::from_secs(1));
             GossipEmitter::start_gossip()?;
+            Handler::check_for_perished()?;
             {
                 use_node_meta_data(|handler| {
                     for ip in handler.get_booting_nodes(NODES_METADATA_PATH)? {
