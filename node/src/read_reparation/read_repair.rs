@@ -37,6 +37,7 @@ impl ReadRepair {
         let mut meta_data_bytes = HashMap::new();
 
         for (ip, response) in responses {
+
             let (response_node, meta_data_response) = ReadRepair::split_bytes(response)?;
             responses_bytes.insert(ip.get_string_ip(), response_node);
             meta_data_bytes.insert(ip.get_string_ip(), meta_data_response);
@@ -73,6 +74,22 @@ impl ReadRepair {
         query.push(create_reserved_token("UPDATE"));
         query.push(create_identifier_token(&format!("{}.{}", keyspace, table)));
         query.push(create_reserved_token("SET"));
+        Ok(())
+    }
+
+    fn create_base_delete(&self, query: &mut Vec<Token>) -> Result<(), Errors> {
+        query.push(create_reserved_token("DELETE"));
+        query.push(create_reserved_token("FROM"));
+        let (keyspace, table) = self.get_keyspace_table(BEST)?;
+        query.push(create_identifier_token(&format!("{}.{}", keyspace, table)));
+        Ok(())
+    }
+
+    fn create_base_insert(&self, query: &mut Vec<Token>) -> Result<(), Errors> {
+        query.push(create_reserved_token("INSERT"));
+        query.push(create_reserved_token("INTO"));
+        let (keyspace, table) = self.get_keyspace_table(BEST)?;
+        query.push(create_identifier_token(&format!("{}.{}", keyspace, table)));
         Ok(())
     }
 
@@ -119,30 +136,47 @@ impl ReadRepair {
             //hay un row que no esta en best->es imposible este caso
             //hay una row en best que no esta en el nodo -> INSERT
             if let Some(best_row) = best.get(&node_row.primary_key) {
-                //Esta eliminada en best
-                /*if node_row.deleted != best_row.deleted {
-                    query.push(create_reserved_token("DELETE"));
-                    for column_deleted in &best_row.deleted {
-                        if !node_row.deleted.contains(column_deleted) {
-                            query.push(create_identifier_token(&column_deleted.column_name));
-                        }
+                //Esta eliminada en best pero no en el nodo -> Delete al nodo
+                if best_row.is_deleted() && !node_row.is_deleted() {
+                    self.create_base_delete(&mut query)?;
+                    change_row = true
+                }
+                //Esta en best, pero eliminada en el nodo -> insert al nodo
+                if !best_row.deleted && node_row.is_deleted() {
+                    self.create_base_insert(&mut query)?;
+                    change_row = true;
+                    let mut values: Vec<Literal> = Vec::new();
+                    let mut headers: Vec<String> = Vec::new();
+                    for best_column in best_row.columns.clone() {
+                        headers.push(best_column.column_name);
+                        values.push(best_column.value);
                     }
-                }*/
-                self.create_base_update(&mut query)?;
-                let best_col_map = to_hash_columns(best_row.columns.clone());
-                for column in &node_row.columns {
-                    if let Some(best_column) = best_col_map.get(&column.column_name) {
-                        if column.value.value != best_column.value.value {
-                            ReadRepair::add_update_changes(
-                                &mut query,
-                                &column.column_name,
-                                &best_column.value,
-                            );
-                            change_row = true
-                        }
+                    for header in headers {
+                        query.push(create_identifier_token(&header));
+                    }
+                    query.push(create_reserved_token("VALUES"));
+                    for value in values {
+                        query.push(create_token_from_literal(value));
                     }
                 }
-                best.remove(&node_row.primary_key);
+                else {
+                    self.create_base_update(&mut query)?;
+                    let best_col_map = to_hash_columns(best_row.columns.clone());
+                    for column in &node_row.columns {
+                        if let Some(best_column) = best_col_map.get(&column.column_name) {
+                            if column.value.value != best_column.value.value {
+                                ReadRepair::add_update_changes(
+                                    &mut query,
+                                    &column.column_name,
+                                    &best_column.value,
+                                );
+                                change_row = true
+                            }
+                        }
+                    }
+                    best.remove(&node_row.primary_key);
+                }
+                
             }
             if change_row {
                 self.add_where(&mut query, node_row)?;
@@ -151,6 +185,9 @@ impl ReadRepair {
                 change_row = false;
             }
         }
+        //Fijarse los remanentes del hash best, ya que por cada row que quede en ese hash, esa row no esta el nodo:
+        //Si la row deberia aparecer con delete true, pass
+        //Si la row deberia aparecer con delete false, delegear insert al nodo
         Ok(())
     }
 
@@ -232,6 +269,10 @@ impl ReadRepair {
         }
         let first_response = &responses[0];
         let all_equal = responses.iter().all(|response| response == first_response);
+        if !all_equal {
+            return Ok(false);
+        }
+        //Agregar condicion de que si una sola row con deleted true, ya se necesita reparar
         Ok(all_equal)
     }
 
@@ -268,6 +309,7 @@ fn compare_response(original: Vec<Row>, next: Vec<Row>) -> Vec<Row> {
 fn compare_row(original: &Row, new: &Row) -> Row {
     let mut best_columns: Vec<Column> = Vec::new();
     let new_map = to_hash_columns(new.columns.clone());
+    //Se queda con las mejores columnas
     for col_ori in &original.columns {
         if let Some(col_new) = new_map.get(&col_ori.column_name) {
             if col_ori
@@ -280,7 +322,13 @@ fn compare_row(original: &Row, new: &Row) -> Row {
             }
         }
     }
-    Row::new(best_columns, original.primary_key.clone())
+    let mut res = Row::new(best_columns, original.primary_key.clone());
+    //Se queda con el deleted de mejor timestump
+    if original.timestamp().is_older_than(new.timestamp()){
+        res.set_timestamp(new.timestamp());
+        res.deleted = new.is_deleted();
+    }
+    res
 }
 
 fn to_hash_rows(rows: Vec<Row>) -> HashMap<Vec<String>, Row> {

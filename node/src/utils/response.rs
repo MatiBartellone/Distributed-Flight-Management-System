@@ -70,6 +70,9 @@ impl Response {
         }
         encoder.write_int(rows.len() as i32)?;
         for row in rows {
+            if row.deleted {
+                continue;
+            }
             for header in &headers {
                 match row.get_some_column(header) {
                     Ok(column) => encoder.write_string(&column.value.value)?,

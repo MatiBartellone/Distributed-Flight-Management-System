@@ -38,6 +38,14 @@ impl Row {
         self.deleted
     }
 
+    pub fn timestamp(&self) -> Timestamp {
+        self.timestamp.clone()
+    }
+
+    pub fn set_timestamp(&mut self, new_time: Timestamp) {
+        self.timestamp = new_time;
+    }
+
     pub fn get_row_hash(&self) -> HashMap<String, Literal> {
         let mut hash: HashMap<String, Literal> = HashMap::new();
         for column in &self.columns {
