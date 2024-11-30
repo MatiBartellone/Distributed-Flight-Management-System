@@ -5,9 +5,7 @@ use crate::meta_data::meta_data_handler::use_keyspace_meta_data;
 use crate::queries::order_by_clause::OrderByClause;
 use crate::utils::constants::{ASTERIK, KEYSPACE_METADATA_PATH};
 use crate::utils::errors::Errors;
-use crate::utils::functions::{
-    check_table_name, get_columns_from_table, get_partition_key_from_where, split_keyspace_table,
-};
+use crate::utils::functions::{check_table_name, get_columns_from_table, get_partition_key_from_where, split_keyspace_table};
 use crate::utils::response::Response;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -50,34 +48,6 @@ impl SelectQuery {
         }
         Ok(())
     }
-
-    /*fn get_rows_string(&self, rows: Vec<Row>) -> Result<String, Errors> {
-        let mut display_columns = Vec::new();
-        if self.columns.contains(&'*'.to_string()) {
-            display_columns = get_columns_from_table(&self.table_name)?
-                .keys()
-                .map(|x| x.to_string())
-                .collect::<Vec<String>>();
-        } else {
-            for column in &self.columns {
-                display_columns.push(column.to_string());
-            }
-        }
-        let mut text = "".to_string();
-        text.push_str(&display_columns.join(", "));
-        text.push('\n');
-        for row in rows {
-            let mut displayed_values = Vec::new();
-            for column in &display_columns {
-                if let Some(value) = row.get_value(column)? {
-                    displayed_values.push(value);
-                }
-            }
-            text.push_str(&displayed_values.join(", "));
-            text.push('\n');
-        }
-        Ok(text)
-    }*/
 }
 
 impl Default for SelectQuery {

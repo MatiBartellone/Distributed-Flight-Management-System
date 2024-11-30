@@ -3,7 +3,7 @@ use crate::executables::executable::Executable;
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::BadCredentials;
-use crate::utils::parser_constants::{AUTH_CHALLENGE, AUTH_SUCCESS};
+use crate::utils::parser_constants::AUTH_SUCCESS;
 use crate::utils::types::frame::Frame;
 
 pub struct AuthResponseExecutable {
@@ -23,10 +23,6 @@ impl AuthResponseExecutable {
             password,
             authenticator,
         }
-    }
-
-    fn get_token(&self) -> Vec<u8> {
-        Vec::<u8>::new()
     }
 }
 
@@ -115,6 +111,7 @@ mod tests {
         assert!(response.is_err());
     }
 
+    use crate::utils::parser_constants::AUTH_CHALLENGE;
     use super::*;
     #[test]
     fn test_01_successfull_response() {

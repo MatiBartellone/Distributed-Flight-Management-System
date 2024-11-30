@@ -6,10 +6,7 @@ use crate::data_access::data_access_handler::use_data_access;
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{
-    check_table_name, get_columns_from_table, get_partition_key_from_where, get_table_pk,
-    split_keyspace_table,
-};
+use crate::utils::functions::{check_table_name, get_columns_from_table, get_partition_key_from_where, get_table_pk, split_keyspace_table};
 use crate::utils::response::Response;
 use serde::{Deserialize, Serialize};
 use std::any::Any;
