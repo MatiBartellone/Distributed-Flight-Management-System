@@ -1,4 +1,5 @@
 use super::query::Query;
+use crate::parsers::tokens::data_type::data_type_to_string;
 use crate::utils::constants::KEYSPACE_METADATA_PATH;
 use crate::utils::functions::{
     check_table_name, split_keyspace_table, use_keyspace_meta_data,
@@ -87,12 +88,12 @@ impl Query for AlterTableQuery {
             let (change_type, target, options) = match operation {
                 Operations::ADD => {
                     self.add().map_err(|e| Errors::ServerError(format!("Failed to add: {}", e)))?;
-                    let options = format!("{} {}", self.table_name, "ADD column_name column_type");
+                    let options = format!("{} {} {} {}", self.table_name, "ADD ", self.first_column, data_type_to_string(&self.data));
                     ("ALTERED", "TABLE", options)
                 }
                 Operations::DROP => {
                     self.drop().map_err(|e| Errors::ServerError(format!("Failed to drop: {}", e)))?;
-                    let options = format!("{} {}", self.table_name, "DROP column_name");
+                    let options = format!("{} {} {}", self.table_name, "DROP" , self.first_column);
                     ("ALTERED", "TABLE", options)
                 }
                 Operations::RENAME => {

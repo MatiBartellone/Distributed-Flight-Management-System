@@ -24,3 +24,15 @@ pub fn string_to_data_type(word: &str) -> Option<Token> {
         _ => None,
     }
 }
+
+pub fn data_type_to_string(data_type: &DataType) -> String {
+    match data_type {
+        DataType::Int => "int".to_string(),
+        DataType::Boolean => "boolean".to_string(),
+        DataType::Date => "date".to_string(),
+        DataType::Decimal => "decimal".to_string(),
+        DataType::Text => "text".to_string(),
+        DataType::Duration => "duration".to_string(),
+        DataType::Time => "time".to_string(),
+    }
+}
