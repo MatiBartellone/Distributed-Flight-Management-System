@@ -40,7 +40,6 @@ impl ReadRepair {
         self.get_better_response()?;
         self.repair()?;
         self.cast_to_protocol_row(BEST)
-        
     }
 
 
