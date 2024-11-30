@@ -159,6 +159,11 @@ impl ReadRepair {
                         query.push(create_token_from_literal(value));
                     }
                 }
+                //Si esta borrada en ambos->aprovechamos y hacemos limpieza
+                if best_row.is_deleted() && node_row.is_deleted() {
+                    self.create_base_delete(&mut query)?;
+                    change_row = true;
+                }
                 else {
                     self.create_base_update(&mut query)?;
                     let best_col_map = to_hash_columns(best_row.columns.clone());
@@ -188,6 +193,28 @@ impl ReadRepair {
         //Fijarse los remanentes del hash best, ya que por cada row que quede en ese hash, esa row no esta el nodo:
         //Si la row deberia aparecer con delete true, pass
         //Si la row deberia aparecer con delete false, delegear insert al nodo
+        for row_remaining in best.values() {
+            let mut query: Vec<Token> = Vec::new();
+            if !row_remaining.is_deleted() {
+                self.create_base_insert(&mut query)?;
+                let mut values: Vec<Literal> = Vec::new();
+                let mut headers: Vec<String> = Vec::new();
+                for column in row_remaining.columns.clone() {
+                    headers.push(column.column_name);
+                    values.push(column.value);
+                }
+                for header in headers {
+                    query.push(create_identifier_token(&header));
+                }
+                query.push(create_reserved_token("VALUES"));
+                for value in values {
+                    query.push(create_token_from_literal(value));
+                }
+                self.add_where(&mut query, row_remaining)?;
+                let query_parsed = query_parser(query)?;
+                QueryDelegator::send_to_node(NodeIp::new_from_single_string(ip)?, query_parsed)?;
+            }
+        }
         Ok(())
     }
 
@@ -259,7 +286,8 @@ impl ReadRepair {
         }
     }
 
-    fn repair_innecesary(&self) -> Result<bool, Errors> {
+    fn all_responses_equal(&self) -> Result<bool, Errors> {
+        //Si alguna respuesta difiere de otra
         let mut responses: Vec<Vec<u8>> = Vec::new();
         for ip in self.responses_bytes.keys() {
             responses.push(self.cast_to_protocol_row(ip)?)
@@ -269,11 +297,30 @@ impl ReadRepair {
         }
         let first_response = &responses[0];
         let all_equal = responses.iter().all(|response| response == first_response);
-        if !all_equal {
+        Ok(all_equal)
+    }
+
+    fn some_row_is_deleted(&self) -> Result<bool, Errors> {
+        //Si alguna respuesta tiene un row que se debe borrar
+        for ip in self.responses_bytes.keys() {
+            let rows = self.read_rows(ip)?;
+            for row in rows {
+                if row.is_deleted() {
+                    return Ok(true);
+                }
+            }
+        }
+        Ok(false)
+    }
+
+    fn repair_innecesary(&self) -> Result<bool, Errors> {
+        if !self.all_responses_equal()? {
             return Ok(false);
         }
-        //Agregar condicion de que si una sola row con deleted true, ya se necesita reparar
-        Ok(all_equal)
+        if self.some_row_is_deleted()? {
+            return Ok(false);
+        }
+        Ok(true)
     }
 
     fn split_bytes(data: &[u8]) -> Result<(Vec<u8>, Vec<u8>), Errors> {
