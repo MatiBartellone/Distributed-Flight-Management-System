@@ -23,7 +23,7 @@ impl AuthResponseExecutable {
             authenticator,
         }
     }
-fv
+
     fn get_token(&self) -> Vec<u8> {
         Vec::<u8>::new()
     }
@@ -34,7 +34,7 @@ impl Executable for AuthResponseExecutable {
         let user = self.user.to_string();
         let password = self.password.to_string();
         let ok = self.authenticator.validate_credentials(user, password)?;
-        
+
         let mut new_body: Vec<u8> = Vec::new();
         let mut opcode: u8 = AUTH_CHALLENGE;
         if ok {
