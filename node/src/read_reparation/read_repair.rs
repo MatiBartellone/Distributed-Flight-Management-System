@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::row_response::RowResponse;
-use crate::data_access::column::Column;
+use crate::data_access::column::{Column, self};
 use crate::parsers::tokens::terms::ComparisonOperators::Equal;
 use crate::parsers::tokens::terms::LogicalOperators::And;
 use crate::utils::types::bytes_cursor::BytesCursor;
@@ -85,11 +85,24 @@ impl ReadRepair {
         Ok(())
     }
 
-    fn create_base_insert(&self, query: &mut Vec<Token>) -> Result<(), Errors> {
+    fn create_base_insert(&self, query: &mut Vec<Token>, columns: Vec<Column>) -> Result<(), Errors> {
         query.push(create_reserved_token("INSERT"));
         query.push(create_reserved_token("INTO"));
         let (keyspace, table) = self.get_keyspace_table(BEST)?;
         query.push(create_identifier_token(&format!("{}.{}", keyspace, table)));
+        let mut values: Vec<Literal> = Vec::new();
+        let mut headers: Vec<String> = Vec::new();
+        for best_column in columns {
+            headers.push(best_column.column_name);
+            values.push(best_column.value);
+        }
+        for header in headers {
+            query.push(create_identifier_token(&header));
+        }
+        query.push(create_reserved_token("VALUES"));
+        for value in values {
+            query.push(create_token_from_literal(value));
+        }
         Ok(())
     }
 
@@ -100,6 +113,26 @@ impl ReadRepair {
             create_token_from_literal(literal.clone()),
         ]));
     }
+
+    fn create_update_changes(&self, query: &mut Vec<Token>, best_column: Vec<Column>,  node_columns: Vec<Column>) -> Result<bool, Errors> {
+        let mut change_row = false;
+        self.create_base_update(query)?;
+        let best_col_map = to_hash_columns(best_column);
+        for column in node_columns {
+            if let Some(best_column) = best_col_map.get(&column.column_name) {
+                if column.value.value != best_column.value.value {
+                    ReadRepair::add_update_changes(
+                        query,
+                        &column.column_name,
+                        &best_column.value,
+                    );
+                    change_row = true
+                }
+            }
+        }
+        Ok(change_row)
+    }
+
 
     fn add_where(&self, query: &mut Vec<Token>, row: &Row) -> Result<(), Errors> {
         let pks = self.get_pks_headers(BEST)?;
@@ -124,69 +157,41 @@ impl ReadRepair {
         Ok(())
     }
 
+    fn repair_row(&self, best_row: Row, node_row: Row) -> Result<(bool, Vec<Token>), Errors> {
+        let mut query: Vec<Token> = Vec::new();
+        let change_row;
+        if (best_row.is_deleted() && !node_row.is_deleted()) || //Esta eliminada en best pero no en el nodo -> Delete al nodo
+            (best_row.is_deleted() && node_row.is_deleted()){ //Si esta borrada en ambos->aprovechamos y hacemos limpieza
+            self.create_base_delete(&mut query)?;
+            change_row = true
+        }
+        //Esta en best, pero eliminada en el nodo -> insert al nodo
+        else if !best_row.deleted && node_row.is_deleted() {
+            self.create_base_insert(&mut query, best_row.columns.clone())?;
+            change_row = true;
+        }
+        //Si esta en ambos -> se fija si difiera algun valor para actualizar
+        else {
+            //Si hay algun cambio, devuelve true
+            change_row = self.create_update_changes(&mut query, best_row.columns.clone(), node_row.columns.clone())?;
+            
+        }
+        Ok((change_row, query))
+    }
+
     fn repair_node(&self, ip: &str) -> Result<(), Errors> {
         let node_rows = self.read_rows(ip)?;
         let mut best = to_hash_rows(self.read_rows(BEST)?);
         let mut change_row = false;
         for node_row in &node_rows {
             let mut query: Vec<Token> = Vec::new();
-            //Si esa linea esta en la mejor response:
-            //difiere en valores -> UPDATE
-            //esta eliminada en best pero no en actual -> DELETE
-            //hay un row que no esta en best->es imposible este caso
-            //hay una row en best que no esta en el nodo -> INSERT
             if let Some(best_row) = best.get(&node_row.primary_key) {
-                //Esta eliminada en best pero no en el nodo -> Delete al nodo
-                if best_row.is_deleted() && !node_row.is_deleted() {
-                    self.create_base_delete(&mut query)?;
-                    change_row = true
-                }
-                //Esta en best, pero eliminada en el nodo -> insert al nodo
-                if !best_row.deleted && node_row.is_deleted() {
-                    self.create_base_insert(&mut query)?;
-                    change_row = true;
-                    let mut values: Vec<Literal> = Vec::new();
-                    let mut headers: Vec<String> = Vec::new();
-                    for best_column in best_row.columns.clone() {
-                        headers.push(best_column.column_name);
-                        values.push(best_column.value);
-                    }
-                    for header in headers {
-                        query.push(create_identifier_token(&header));
-                    }
-                    query.push(create_reserved_token("VALUES"));
-                    for value in values {
-                        query.push(create_token_from_literal(value));
-                    }
-                }
-                //Si esta borrada en ambos->aprovechamos y hacemos limpieza
-                if best_row.is_deleted() && node_row.is_deleted() {
-                    self.create_base_delete(&mut query)?;
-                    change_row = true;
-                }
-                else {
-                    self.create_base_update(&mut query)?;
-                    let best_col_map = to_hash_columns(best_row.columns.clone());
-                    for column in &node_row.columns {
-                        if let Some(best_column) = best_col_map.get(&column.column_name) {
-                            if column.value.value != best_column.value.value {
-                                ReadRepair::add_update_changes(
-                                    &mut query,
-                                    &column.column_name,
-                                    &best_column.value,
-                                );
-                                change_row = true
-                            }
-                        }
-                    }
-                    best.remove(&node_row.primary_key);
-                }
-                
+                (change_row, query) = self.repair_row(best_row.clone(), node_row.clone())?;
+                best.remove(&node_row.primary_key);
             }
             if change_row {
                 self.add_where(&mut query, node_row)?;
-                let query_parsed = query_parser(query)?;
-                QueryDelegator::send_to_node(NodeIp::new_from_single_string(ip)?, query_parsed)?;
+                ReadRepair::send_reparation(query, ip)?;
                 change_row = false;
             }
         }
@@ -196,25 +201,18 @@ impl ReadRepair {
         for row_remaining in best.values() {
             let mut query: Vec<Token> = Vec::new();
             if !row_remaining.is_deleted() {
-                self.create_base_insert(&mut query)?;
-                let mut values: Vec<Literal> = Vec::new();
-                let mut headers: Vec<String> = Vec::new();
-                for column in row_remaining.columns.clone() {
-                    headers.push(column.column_name);
-                    values.push(column.value);
-                }
-                for header in headers {
-                    query.push(create_identifier_token(&header));
-                }
-                query.push(create_reserved_token("VALUES"));
-                for value in values {
-                    query.push(create_token_from_literal(value));
-                }
+                self.create_base_insert(&mut query, row_remaining.columns.clone())?;
                 self.add_where(&mut query, row_remaining)?;
-                let query_parsed = query_parser(query)?;
-                QueryDelegator::send_to_node(NodeIp::new_from_single_string(ip)?, query_parsed)?;
+                ReadRepair::send_reparation(query, ip)?;
             }
         }
+        Ok(())
+    }
+
+    fn send_reparation(query: Vec<Token>, ip: &str) -> Result<(), Errors> {
+        let query_parsed = query_parser(query)?;
+        let node_ip = NodeIp::new_from_single_string(ip)?;
+        QueryDelegator::send_to_node(node_ip, query_parsed)?;
         Ok(())
     }
 
