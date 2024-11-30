@@ -1,9 +1,5 @@
-use crate::data_access::data_access::DataAccess;
-use crate::data_access::data_access_handler::DataAccessHandler;
-use crate::meta_data::clients::meta_data_client::ClientMetaDataAcces;
-use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess;
-use crate::meta_data::meta_data_handler::MetaDataHandler;
-use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
+use crate::meta_data::meta_data_handler::use_client_meta_data;
+use crate::meta_data::meta_data_handler::use_keyspace_meta_data;
 use crate::parsers::tokens::data_type::DataType;
 use crate::queries::where_logic::where_clause::WhereClause;
 use crate::utils::constants::{CLIENT_METADATA_PATH, IP_FILE, KEYSPACE_METADATA_PATH};
@@ -20,7 +16,6 @@ use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
-
 pub fn get_long_string_from_str(str: &str) -> Vec<u8> {
     let mut bytes = Vec::new();
     bytes.extend_from_slice((str.len() as u32).to_be_bytes().as_ref());
@@ -136,7 +131,6 @@ pub fn get_own_ip() -> Result<NodeIp, Errors> {
     NodeIp::new_from_string(split[0], port)
 }
 
-
 pub fn start_listener<F>(socket: SocketAddr, handle_connection: F) -> Result<(), Errors>
 where
     F: Fn(&mut TcpStream) -> Result<(), Errors>,
@@ -151,11 +145,11 @@ where
     Ok(())
 }
 
-pub fn flush_stream(stream: &mut TcpStream) -> Result<(), Errors> {
-    stream
-        .flush()
-        .map_err(|_| ServerError(String::from("Failed to flush stream")))
-}
+// fn flush_stream(stream: &mut TcpStream) -> Result<(), Errors> {
+//     stream
+//         .flush()
+//         .map_err(|_| ServerError(String::from("Failed to flush stream")))
+// }
 
 const AES_KEY: [u8; 32] = [
     107, 133, 195, 73, 171, 146, 174, 177, 245, 55, 2, 116, 4, 202, 100, 1, 75, 15, 151, 34, 194,
@@ -233,45 +227,6 @@ pub fn bind_listener(socket_addr: SocketAddr) -> Result<TcpListener, Errors> {
 pub fn connect_to_socket(socket_addr: SocketAddr) -> Result<TcpStream, Errors> {
     TcpStream::connect(socket_addr)
         .map_err(|_| ServerError(String::from("Error connecting to socket.")))
-}
-
-pub fn use_node_meta_data<F, T>(action: F) -> Result<T, Errors>
-where
-    F: FnOnce(&NodesMetaDataAccess) -> Result<T, Errors>,
-{
-    let mut meta_data_stream = MetaDataHandler::establish_connection()?;
-    let node_metadata =
-        MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
-    action(&node_metadata)
-}
-
-pub fn use_keyspace_meta_data<F, T>(action: F) -> Result<T, Errors>
-where
-    F: FnOnce(&KeyspaceMetaDataAccess) -> Result<T, Errors>,
-{
-    let mut meta_data_stream = MetaDataHandler::establish_connection()?;
-    let keyspace_metadata =
-        MetaDataHandler::get_instance(&mut meta_data_stream)?.get_keyspace_meta_data_access();
-    action(&keyspace_metadata)
-}
-
-pub fn use_client_meta_data<F, T>(action: F) -> Result<T, Errors>
-where
-    F: FnOnce(&ClientMetaDataAcces) -> Result<T, Errors>,
-{
-    let mut meta_data_stream = MetaDataHandler::establish_connection()?;
-    let client_metadata =
-        MetaDataHandler::get_instance(&mut meta_data_stream)?.get_client_meta_data_access();
-    action(&client_metadata)
-}
-
-pub fn use_data_access<F, T>(action: F) -> Result<T, Errors>
-where
-    F: FnOnce(&DataAccess) -> Result<T, Errors>,
-{
-    let mut meta_data_stream = DataAccessHandler::establish_connection()?;
-    let data_access = DataAccessHandler::get_instance(&mut meta_data_stream)?;
-    action(&data_access)
 }
 
 pub fn write_all_to_file(file: &mut File, content: &[u8]) -> Result<(), Errors> {

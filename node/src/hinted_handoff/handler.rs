@@ -25,7 +25,7 @@ impl Handler {
         write_all_to_file(&mut file, line.as_bytes())
     }
 
-    pub fn check_for_perished(&self) -> Result<(), Errors> {
+    pub fn check_for_perished() -> Result<(), Errors> {
         for entry in fs::read_dir(HINTED_HANDOFF_DATA)
             .map_err(|_| ServerError(String::from("cannot read directory")))?
         {

@@ -13,9 +13,9 @@ SELECT name, genre FROM kp1.table1 WHERE id = 1 ORDER BY name, id DESC
 
 
 CREATE KEYSPACE kp1 WITH replication = {'replication_factor' : 3}
-CREATE TABLE kp1.aviones (id int, aeropuerto text, pos int, activo boolean, compuerta int, PRIMARY KEY (aeropuerto, id))
+CREATE TABLE kp1.aviones (id int, aeropuerto text, pos int, activo boolean, PRIMARY KEY (aeropuerto, id))
 INSERT INTO kp1.aviones (id, aeropuerto, activo, compuerta) VALUES (1, 'Ezeiza', true, 17)
-INSERT INTO kp1.aviones (id, aeropuerto, activo) VALUES (2, 'Ezeiza', false)
+INSERT INTO kp1.aviones (id, aeropuerto, activo) VALUES (2, 'Ezeiza', false) IF NOT EXISTS
 INSERT INTO kp1.aviones (id, aeropuerto, activo) VALUES (3, 'Ezeiza', true)
 SELECT * FROM kp1.aviones WHERE id = 1
 SELECT * FROM kp1.aviones WHERE aeropuerto = 'Aeroparque'

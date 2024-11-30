@@ -1,12 +1,12 @@
-use std::collections::HashMap;
-
+use super::{constants::KEYSPACE_METADATA_PATH, errors::Errors};
+use crate::meta_data::meta_data_handler::use_keyspace_meta_data;
+use crate::utils::functions::serialize_to_string;
 use crate::{
     data_access::row::Row, parsers::tokens::data_type::DataType,
     utils::types_to_bytes::TypesToBytes,
 };
-use crate::utils::functions::serialize_to_string;
-use super::functions::use_keyspace_meta_data;
-use super::{errors::Errors, constants::KEYSPACE_METADATA_PATH};
+use std::collections::HashMap;
+
 pub struct Response;
 
 impl Response {
@@ -36,18 +36,28 @@ impl Response {
         Ok(encoder.into_bytes())
     }
 
-
-    pub fn protocol_row(rows: Vec<Row>, keyspace: &str, table: &str, headers: Vec<String>) -> Result<Vec<u8>, Errors> {
+    pub fn protocol_row(
+        rows: Vec<Row>,
+        keyspace: &str,
+        table: &str,
+        headers: Vec<String>,
+    ) -> Result<Vec<u8>, Errors> {
         let mut encoder = TypesToBytes::default();
         Response::write_protocol_response(&rows, keyspace, table, headers, &mut encoder)?;
         Ok(encoder.into_bytes())
     }
 
-    fn write_protocol_response(rows: &Vec<Row>, keyspace: &str, table: &str, headers: Vec<String>, encoder: &mut TypesToBytes) -> Result<(), Errors>{
+    fn write_protocol_response(
+        rows: &Vec<Row>,
+        keyspace: &str,
+        table: &str,
+        headers: Vec<String>,
+        encoder: &mut TypesToBytes,
+    ) -> Result<(), Errors> {
         encoder.write_int(0x0002)?;
         encoder.write_int(0x0001)?;
         encoder.write_int(headers.len() as i32)?;
-        
+
         encoder.write_string(keyspace)?;
         encoder.write_string(table)?;
         let map_type = get_column(keyspace, table)?;
@@ -70,9 +80,12 @@ impl Response {
         Ok(())
     }
 
-    
-
-    pub fn rows(rows: Vec<Row>, keyspace: &str, table: &str, columns: &Vec<String>) -> Result<Vec<u8>, Errors> {
+    pub fn rows(
+        rows: Vec<Row>,
+        keyspace: &str,
+        table: &str,
+        columns: &Vec<String>,
+    ) -> Result<Vec<u8>, Errors> {
         let mut encoder = TypesToBytes::default();
         Response::write_rows(&rows, &mut encoder)?;
         let division_offset = encoder.length();
@@ -82,18 +95,21 @@ impl Response {
         Ok(encoder.into_bytes())
     }
 
-    
-
     pub fn write_rows(rows: &Vec<Row>, encoder: &mut TypesToBytes) -> Result<(), Errors> {
         encoder.write_int(0x0002)?;
         encoder.write_short(rows.len() as u16)?;
         for row in rows {
             encoder.write_string(serialize_to_string(row)?.as_str())?;
-        };
+        }
         Ok(())
     }
 
-    pub fn write_meta_data_response(encoder: &mut TypesToBytes, keyspace: &str, table: &str, columns: &Vec<String>) -> Result<(), Errors> {
+    pub fn write_meta_data_response(
+        encoder: &mut TypesToBytes,
+        keyspace: &str,
+        table: &str,
+        columns: &Vec<String>,
+    ) -> Result<(), Errors> {
         encoder.write_string(keyspace)?;
         encoder.write_string(table)?;
         let pks = get_pks(keyspace, table)?;
@@ -126,13 +142,16 @@ impl Response {
 fn get_pks(keyspace: &str, table: &str) -> Result<HashMap<String, DataType>, Errors> {
     use_keyspace_meta_data(|handler| {
         let pks = handler.get_primary_key(KEYSPACE_METADATA_PATH.to_owned(), keyspace, table)?;
-        let types = handler.get_columns_type(KEYSPACE_METADATA_PATH.to_string(), keyspace, table)?;
+        let types =
+            handler.get_columns_type(KEYSPACE_METADATA_PATH.to_string(), keyspace, table)?;
         Ok(filter_keys(pks.get_full_primary_key(), types))
-    })   
+    })
 }
 
 fn get_column(keyspace: &str, table: &str) -> Result<HashMap<String, DataType>, Errors> {
-    use_keyspace_meta_data(|handler| handler.get_columns_type(KEYSPACE_METADATA_PATH.to_string(), keyspace, table))
+    use_keyspace_meta_data(|handler| {
+        handler.get_columns_type(KEYSPACE_METADATA_PATH.to_string(), keyspace, table)
+    })
 }
 
 fn filter_keys(vec: Vec<String>, map: HashMap<String, DataType>) -> HashMap<String, DataType> {
@@ -147,13 +166,13 @@ fn filter_keys(vec: Vec<String>, map: HashMap<String, DataType>) -> HashMap<Stri
 
 #[cfg(test)]
 mod tests {
-    use crate::{utils::{response::Response}, parsers::tokens::data_type::DataType};
+    use crate::{parsers::tokens::data_type::DataType, utils::response::Response};
 
     #[test]
     fn test_void_response() {
         let result = Response::void();
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), vec![0x00, 0x00, 0x00, 0x01]); 
+        assert_eq!(result.unwrap(), vec![0x00, 0x00, 0x00, 0x01]);
     }
 
     #[test]
@@ -171,7 +190,7 @@ mod tests {
         let result = Response::schema_change("CREATE", "table", "options");
         assert!(result.is_ok());
         let bytes = result.unwrap();
-        assert_eq!(bytes[..4], [0x00, 0x00, 0x00, 0x05]); 
+        assert_eq!(bytes[..4], [0x00, 0x00, 0x00, 0x05]);
         let body = String::from_utf8_lossy(&bytes[4..]);
         assert!(body.contains("CREATE"));
         assert!(body.contains("table"));

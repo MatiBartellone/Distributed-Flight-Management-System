@@ -123,20 +123,21 @@ mod tests {
         let path_for_thread = name.to_string();
         let handle = thread::spawn(move || {
             meta_data
-                .add_new_client(path_for_thread)
+                .add_new_client(path_for_thread.to_string())
                 .expect("Failed to add client in thread");
+            cleanup_temp_file(&path_for_thread)
         });
         handle.join().expect("Failed to join thread");
         Ok(())
     }
 
     fn cleanup_temp_file(path: &str) {
-        let _ = remove_file(path);
+        let _ = remove_file(ClientMetaDataAcces::get_file_path(path));
     }
 
     #[test]
     fn test_get_keyspace() {
-        let name = "test_get_keyspace.json";
+        let name = "test_get_keyspace";
         create_test_file(name).expect("Failed to create test file");
         let meta_data = ClientMetaDataAcces {};
         let key = meta_data
@@ -148,7 +149,7 @@ mod tests {
 
     #[test]
     fn test_is_authorized() {
-        let name = "test_is_authorized.json";
+        let name = "test_is_authorized";
         create_test_file(name).expect("Failed to create test file");
         let meta_data = ClientMetaDataAcces {};
         let key = meta_data
@@ -160,7 +161,7 @@ mod tests {
 
     #[test]
     fn test_had_started() {
-        let name = "test_had_started.json";
+        let name = "test_had_started";
         create_test_file(name).expect("Failed to create test file");
         let meta_data = ClientMetaDataAcces {};
         let key = meta_data
@@ -172,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_authorize_client() {
-        let name = "test_autorize.json";
+        let name = "test_autorize";
         create_test_file(name).expect("Failed to create test file");
         let meta_data = ClientMetaDataAcces {};
         meta_data
@@ -187,7 +188,7 @@ mod tests {
 
     #[test]
     fn test_startup_client() {
-        let name = "test_startup_client.json";
+        let name = "test_startup_client";
         create_test_file(name).expect("Failed to create test file");
         let meta_data = ClientMetaDataAcces {};
         meta_data
@@ -202,7 +203,7 @@ mod tests {
 
     #[test]
     fn test_use_keyspace() {
-        let name = "test_use_keyspace.json";
+        let name = "test_use_keyspace";
         create_test_file(name).expect("Failed to create test file");
         let meta_data = ClientMetaDataAcces {};
         meta_data

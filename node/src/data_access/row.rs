@@ -1,11 +1,11 @@
-use crate::parsers::tokens::data_type::DataType;
+use crate::data_access::column::Column;
 use crate::parsers::tokens::literal::Literal;
 use crate::queries::set_logic::assigmente_value::AssignmentValue;
 use crate::utils::errors::Errors;
-use crate::utils::types::timestamp::Timestamp;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::option::Option;
+use crate::utils::types::timestamp::Timestamp;
 
 pub const EQUAL: i8 = 0;
 pub const GREATER: i8 = 1;
@@ -15,7 +15,8 @@ pub const LOWER: i8 = -1;
 pub struct Row {
     pub columns: Vec<Column>,
     pub primary_key: Vec<String>,
-    pub deleted: Option<Column>,
+    pub deleted: bool,
+    timestamp: Timestamp
 }
 
 impl Row {
@@ -23,19 +24,18 @@ impl Row {
         Self {
             columns,
             primary_key: primary_keys,
-            deleted: None,
+            deleted: false,
+            timestamp: Timestamp::new()
         }
     }
 
-    pub fn new_deleted_row() -> Result<Self, Errors> {
-        Ok(Self {
-            columns: Vec::new(),
-            primary_key: Vec::new(),
-            deleted: Some(Column::new(
-                &"deleted".to_string(),
-                &Literal::new("true".to_string(), DataType::Boolean),
-            )),
-        })
+    pub fn set_deleted(&mut self) {
+        self.timestamp = Timestamp::new();
+        self.deleted = true;
+    }
+
+    pub fn is_deleted(&self) -> bool {
+        self.deleted
     }
 
     pub fn get_row_hash(&self) -> HashMap<String, Literal> {
@@ -93,7 +93,7 @@ impl Row {
         }
         None
     }
-    
+
     pub fn get_some_column(&self, column_name: &String) -> Result<Column, Errors> {
         let mut column: Option<&Column> = None;
         for col in &self.columns {
@@ -116,36 +116,5 @@ impl Row {
             return Ok(None);
         };
         Ok(Some(literal.value.to_string()))
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
-pub struct Column {
-    pub(crate) column_name: String,
-    pub(crate) value: Literal,
-    pub(crate) timestamp: Timestamp,
-}
-
-impl Column {
-    pub fn new(column_name: &String, value: &Literal) -> Self {
-        Self {
-            column_name: String::from(column_name),
-            value: Literal {
-                value: String::from(&value.value),
-                data_type: value.data_type.clone(),
-            },
-            timestamp: Timestamp::new(),
-        }
-    }
-
-    pub fn new_from_column(column: &Column) -> Self {
-        Self {
-            column_name: column.column_name.to_string(),
-            value: Literal {
-                value: column.value.value.to_string(),
-                data_type: column.value.data_type.clone(),
-            },
-            timestamp: Timestamp::new_from_timestamp(&column.timestamp),
-        }
     }
 }
