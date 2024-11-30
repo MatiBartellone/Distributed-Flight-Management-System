@@ -147,10 +147,10 @@ fn replace_double_chars(query: &str) -> String {
 
 fn replace_simple_chars(query: &str) -> String {
     let mut result = String::new();
-    let mut chars = query.chars().peekable();
+    let chars = query.chars().peekable();
     let characters = CharacterMappings::new();
 
-    while let Some(current) = chars.next() {
+    for current in chars {
         let current_str = current.to_string();
         if let Some(replace) = characters.get_mapping(&current_str) {
             result.push_str(replace);

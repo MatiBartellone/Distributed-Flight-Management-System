@@ -64,12 +64,10 @@ impl QueryDelegator {
         for _ in 0..self.consistency.get_consistency(self.get_replication()?) {
             match rx.recv_timeout(timeout) {
                 Ok((ip, response)) => {
-                    println!("OK");
                     let mut res = responses.lock().unwrap();
                     res.insert(ip, response);
                 }
                 _ => {
-                    println!("timeout");
                     return match error.lock().unwrap().take() {
                         Some(e) => Err(e),
                         None => Err(Errors::ReadTimeout(String::from("Timeout"))),
@@ -109,8 +107,7 @@ impl QueryDelegator {
                 write_to_stream(&mut stream, QuerySerializer::serialize(&query)?.as_slice())?;
                 //flush_stream(&mut stream)?;
                 let response = read_from_stream_no_zero(&mut stream)?;
-                if let Some(e) = Errors::deserialize(&response.as_slice()) {
-                    dbg!(&e);
+                if let Some(e) = Errors::deserialize(response.as_slice()) {
                     return Err(e);
                 }
                 Ok((ip, response))

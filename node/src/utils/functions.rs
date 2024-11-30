@@ -145,11 +145,11 @@ where
     Ok(())
 }
 
-fn flush_stream(stream: &mut TcpStream) -> Result<(), Errors> {
-    stream
-        .flush()
-        .map_err(|_| ServerError(String::from("Failed to flush stream")))
-}
+// fn flush_stream(stream: &mut TcpStream) -> Result<(), Errors> {
+//     stream
+//         .flush()
+//         .map_err(|_| ServerError(String::from("Failed to flush stream")))
+// }
 
 const AES_KEY: [u8; 32] = [
     107, 133, 195, 73, 171, 146, 174, 177, 245, 55, 2, 116, 4, 202, 100, 1, 75, 15, 151, 34, 194,

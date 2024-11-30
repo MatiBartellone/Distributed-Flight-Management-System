@@ -64,7 +64,7 @@ fn byte_to_data_type(byte: i16) -> Result<DataType, Errors> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        data_access::row::Column,
+        data_access::column::Column,
         parsers::tokens::literal::create_literal,
         utils::{response::Response, types_to_bytes::TypesToBytes},
     };
