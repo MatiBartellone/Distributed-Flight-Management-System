@@ -158,51 +158,55 @@ impl ReadRepair {
     }
 
     fn repair_row(&self, best_row: Row, node_row: Row) -> Result<(bool, Vec<Token>), Errors> {
-        let mut query: Vec<Token> = Vec::new();
-        let change_row;
-        if (best_row.is_deleted() && !node_row.is_deleted()) || //Esta eliminada en best pero no en el nodo -> Delete al nodo
-            (best_row.is_deleted() && node_row.is_deleted()){ //Si esta borrada en ambos->aprovechamos y hacemos limpieza
-            self.create_base_delete(&mut query)?;
-            change_row = true
-        }
-        //Esta en best, pero eliminada en el nodo -> insert al nodo
-        else if !best_row.deleted && node_row.is_deleted() {
-            self.create_base_insert(&mut query, best_row.columns.clone())?;
-            change_row = true;
-        }
-        //Si esta en ambos -> se fija si difiera algun valor para actualizar
-        else {
-            //Si hay algun cambio, devuelve true
-            change_row = self.create_update_changes(&mut query, best_row.columns.clone(), node_row.columns.clone())?;
-            
-        }
+        let mut query = Vec::new();
+        let change_row = match (best_row.is_deleted(), node_row.is_deleted()) {
+            (true, false) | (true, true) => {
+                // Delete en nodo o limpieza
+                self.create_base_delete(&mut query)?;
+                true
+            }
+            (false, true) => {
+                // Insert al nodo
+                self.create_base_insert(&mut query, best_row.columns.clone())?;
+                true
+            }
+            (false, false) => {
+                // Actualización si difieren valores
+                self.create_update_changes(&mut query, best_row.columns.clone(), node_row.columns.clone())?
+            }
+        };
         Ok((change_row, query))
     }
 
     fn repair_node(&self, ip: &str) -> Result<(), Errors> {
         let node_rows = self.read_rows(ip)?;
         let mut best = to_hash_rows(self.read_rows(BEST)?);
-        let mut change_row = false;
-        for node_row in &node_rows {
-            let mut query: Vec<Token> = Vec::new();
-            if let Some(best_row) = best.get(&node_row.primary_key) {
-                (change_row, query) = self.repair_row(best_row.clone(), node_row.clone())?;
-                best.remove(&node_row.primary_key);
-            }
-            if change_row {
-                self.add_where(&mut query, node_row)?;
-                ReadRepair::send_reparation(query, ip)?;
-                change_row = false;
+    
+        self.process_existing_rows(ip, &node_rows, &mut best)?;
+        self.process_remaining_rows(ip, &best)?;
+    
+        Ok(())
+    }
+
+    fn process_existing_rows(&self, ip: &str, node_rows: &[Row], best: &mut HashMap<Vec<String>, Row>) -> Result<(), Errors> {
+        for node_row in node_rows {
+            if let Some(best_row) = best.remove(&node_row.primary_key) {
+                let (change_row, mut query) = self.repair_row(best_row.clone(), node_row.clone())?;
+                if change_row {
+                    self.add_where(&mut query, node_row)?;
+                    ReadRepair::send_reparation(query, ip)?;
+                }
             }
         }
-        //Fijarse los remanentes del hash best, ya que por cada row que quede en ese hash, esa row no esta el nodo:
-        //Si la row deberia aparecer con delete true, pass
-        //Si la row deberia aparecer con delete false, delegear insert al nodo
-        for row_remaining in best.values() {
-            let mut query: Vec<Token> = Vec::new();
-            if !row_remaining.is_deleted() {
-                self.create_base_insert(&mut query, row_remaining.columns.clone())?;
-                self.add_where(&mut query, row_remaining)?;
+        Ok(())
+    }
+    
+    fn process_remaining_rows(&self, ip: &str, best: &HashMap<Vec<String>, Row>) -> Result<(), Errors> {
+        for row in best.values() {
+            if !row.is_deleted() {
+                let mut query = Vec::new();
+                self.create_base_insert(&mut query, row.columns.clone())?;
+                self.add_where(&mut query, row)?;
                 ReadRepair::send_reparation(query, ip)?;
             }
         }
