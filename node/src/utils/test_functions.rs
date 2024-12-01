@@ -8,30 +8,32 @@ use crate::utils::types::bytes_cursor::BytesCursor;
 use crate::utils::types::node_ip::NodeIp;
 use std::fs::File;
 use std::io::Write;
-use std::sync::{Once, Arc, Mutex};
+use std::sync::{Once};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 
 static INIT: Once = Once::new();
-static FINISHED: AtomicUsize = AtomicUsize::new(0);
-const INTEGRATION_TESTS_QUANTITY: usize = 16;
+static FINISHED: AtomicUsize = AtomicUsize::new(1);
+const INTEGRATION_TESTS_QUANTITY: usize = 31;
 
-#[derive(Clone)]
-pub struct GlobalState {
-    data: Arc<Mutex<i32>>,
+pub fn add_one_finished() {
+    FINISHED.fetch_add(1, Ordering::SeqCst);
 }
 
-impl GlobalState {
-    pub fn new() -> Self {
-        GlobalState {
-            data: Arc::new(Mutex::new(42)),
-        }
+// Chequear si esta es la última prueba y ejecutar el "teardown" global.
+
+pub fn check_and_run_teardown() {
+    // Si todas las pruebas se completaron, ejecutamos el teardown
+    if FINISHED.load(Ordering::SeqCst) >= INTEGRATION_TESTS_QUANTITY {
+        // Ajusta este número según el número total de pruebas
+        teardown();
+        sleep(Duration::from_secs(2));
     }
 }
 
-pub fn setup(state: &GlobalState) {
+pub fn setup() {
     INIT.call_once(|| {
         let ip = NodeIp::new_from_single_string("127.0.0.1:9090").unwrap();
         store_ip(&ip).unwrap();
@@ -43,34 +45,22 @@ pub fn setup(state: &GlobalState) {
         thread::spawn(move || {
             MetaDataHandler::start_listening(metadata_ip).unwrap();
         });
-        sleep(Duration::from_secs(1));
-        run_query("CREATE KEYSPACE test WITH replication = {'replication_factor' : 1}");
-        run_query("CREATE TABLE test.tb1 (id int, name text, second text, PRIMARY KEY(id, name))");
-        run_query("CREATE TABLE test.del (id int, name text, second text, PRIMARY KEY(id, name))");
 
-        // Aquí puedes usar el estado global de forma segura
-        let mut data = state.data.lock().unwrap();
-        *data = 42; // Puedes actualizar el estado global de forma segura
+        //sleep(Duration::from_secs(1));
+        if get_query_result("CREATE KEYSPACE test WITH replication = {'replication_factor' : 1}").is_ok() {
+            get_query_result("CREATE TABLE test.tb1 (id int, name text, second text, PRIMARY KEY(id, name))").unwrap();
+            get_query_result("CREATE TABLE test.del (id int, name text, second text, PRIMARY KEY(id, name))").unwrap();
+            get_query_result("CREATE TABLE test.upd (id int, name text, age int, height int, PRIMARY KEY(id, name))").unwrap();
+        }
+
     });
 }
 
-
-
-fn teardown() {
+pub fn teardown() {
     let query = "DROP KEYSPACE test".to_string();
     let tokens = query_lexer(query).unwrap();
     let query = query_parser(tokens).unwrap();
     query.run().unwrap();
-}
-
-// Chequear si esta es la última prueba y ejecutar el "teardown" global.
-pub fn check_and_run_teardown() {
-    FINISHED.fetch_add(1, Ordering::SeqCst);
-    // Si todas las pruebas se completaron, ejecutamos el teardown
-    if FINISHED.load(Ordering::SeqCst) == INTEGRATION_TESTS_QUANTITY {
-        // Ajusta este número según el número total de pruebas
-        teardown();
-    }
 }
 
 pub fn store_ip(ip: &NodeIp) -> Result<(), Errors> {
@@ -85,13 +75,6 @@ pub fn get_query_result(query: &str) -> Result<Vec<u8>, Errors> {
     let tokens = query_lexer(query).unwrap();
     let query = query_parser(tokens).unwrap();
     query.run()
-}
-
-pub fn run_query(query: &str) {
-    let query = query.to_string();
-    let tokens = query_lexer(query).unwrap();
-    let query = query_parser(tokens).unwrap();
-    query.run();
 }
 
 pub fn get_rows_select(result: Vec<u8>) -> Vec<Row> {
