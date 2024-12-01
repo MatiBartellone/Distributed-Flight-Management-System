@@ -136,6 +136,42 @@ mod tests {
     }
 
     #[test]
+    fn update_test_arithmetic_one_value_sub() {
+        setup();
+        get_query_result("INSERT INTO test.upd (id, name, age, height) VALUES (15, 'Mati', 43, 23)").unwrap();
+        let result = get_query_result("UPDATE test.upd SET age = age - 7 WHERE id = 15");
+        assert!(result.is_ok());
+        let row_hash = get_one_row_hash("SELECT * FROM test.upd WHERE id = 15");
+        assert_eq!(row_hash.get("age").unwrap().value, "36");
+        add_one_finished();
+        check_and_run_teardown();
+    }
+
+    #[test]
+    fn update_test_arithmetic_one_value_mul() {
+        setup();
+        get_query_result("INSERT INTO test.upd (id, name, age, height) VALUES (16, 'Mati', 43, 23)").unwrap();
+        let result = get_query_result("UPDATE test.upd SET age = age * 10 WHERE id = 16");
+        assert!(result.is_ok());
+        let row_hash = get_one_row_hash("SELECT * FROM test.upd WHERE id = 16");
+        assert_eq!(row_hash.get("age").unwrap().value, "430");
+        add_one_finished();
+        check_and_run_teardown();
+    }
+
+    #[test]
+    fn update_test_arithmetic_one_value_div() {
+        setup();
+        get_query_result("INSERT INTO test.upd (id, name, age, height) VALUES (17, 'Mati', 33, 23)").unwrap();
+        let result = get_query_result("UPDATE test.upd SET age = age / 3 WHERE id = 17");
+        assert!(result.is_ok());
+        let row_hash = get_one_row_hash("SELECT * FROM test.upd WHERE id = 17");
+        assert_eq!(row_hash.get("age").unwrap().value, "11");
+        add_one_finished();
+        check_and_run_teardown();
+    }
+
+    #[test]
     fn update_test_arithmetic_two_values() {
         setup();
         get_query_result("INSERT INTO test.upd (id, name, age, height) VALUES (10, 'Mati', 1, 2)").unwrap();
