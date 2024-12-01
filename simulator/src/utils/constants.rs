@@ -19,3 +19,5 @@ pub const OP_BATCH: u8 = 13;
 pub const OP_AUTH_CHALLENGE: u8 = 14;
 pub const OP_AUTH_RESPONSE: u8 = 15;
 pub const OP_AUTH_SUCCESS: u8 = 16;
+
+pub const ROW_RESPONSE: i32 = 2;

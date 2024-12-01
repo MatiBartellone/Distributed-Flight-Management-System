@@ -21,7 +21,7 @@ impl UIClient {
         let (tx, rx) = mpsc::channel();
         let tx = Arc::new(Mutex::new(tx));
         for code in airports_codes {
-            let simulator = self.clone(); 
+            let ui_client = Self; 
             let tx = Arc::clone(&tx);
             thread_pool.execute(move |frame_id, client| {
                 if let Some(airport) = simulator.get_airport(client, &code, &frame_id) {

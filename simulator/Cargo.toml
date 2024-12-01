@@ -1,0 +1,10 @@
+[package]
+name = "simulator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rand = "0.8"
+rustls = "0.23.18"
+rustls-pki-types = "1.10.0"
+webpki-roots = "0.26"

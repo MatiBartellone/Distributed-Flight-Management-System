@@ -2,9 +2,8 @@
 resolver = "2"
 members = [
     "node",
-    "ui",
-    "flight_simulator", 
+    "flight_app",
+    "simulator", 
     "node_handler", 
-    "test-client"]
-
-
+    "test-client"
+    ]
