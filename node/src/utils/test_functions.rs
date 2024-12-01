@@ -16,7 +16,7 @@ use std::time::Duration;
 
 static INIT: Once = Once::new();
 static FINISHED: AtomicUsize = AtomicUsize::new(0);
-const INTEGRATION_TESTS_QUANTITY: usize = 51;
+const INTEGRATION_TESTS_QUANTITY: usize = 54;
 
 pub fn add_one_finished() {
     FINISHED.fetch_add(1, Ordering::SeqCst);
@@ -49,6 +49,7 @@ pub fn setup() {
             get_query_result("CREATE TABLE test.del (id int, name text, second text, PRIMARY KEY(id, name))").unwrap();
             get_query_result("CREATE TABLE test.upd (id int, name text, age int, height int, PRIMARY KEY(id, name))").unwrap();
             get_query_result("CREATE TABLE test.sel (id int, name text, age int, height int, PRIMARY KEY(id, name))").unwrap();
+            get_query_result("CREATE TABLE test.que (id int, name text, age int, height int, PRIMARY KEY(id))").unwrap();
         }
 
     });
