@@ -12,7 +12,7 @@ mod tests {
         assert!(select_result.is_ok());
         let rows = get_rows_select(select_result.unwrap());
         assert_eq!(rows.len(), 1);
-        let row = rows.get(0).unwrap();
+        let row = rows.first().unwrap();
         assert!(!row.is_deleted());
         let result = get_query_result("DELETE FROM test.del WHERE id = 1");
         assert!(result.is_ok());
@@ -20,7 +20,7 @@ mod tests {
         assert!(select_result.is_ok());
         let rows = get_rows_select(select_result.unwrap());
         assert_eq!(rows.len(), 1);
-        let row = rows.get(0).unwrap();
+        let row = rows.first().unwrap();
         assert!(row.is_deleted());
         add_one_finished();
         check_and_run_teardown();
@@ -48,14 +48,14 @@ mod tests {
         get_query_result("INSERT INTO test.del (id, name) VALUES (3, 'Ivan')").unwrap();
         let select_result = get_query_result("SELECT * FROM test.del WHERE id = 3");
         let rows = get_rows_select(select_result.unwrap());
-        assert!(!rows.get(0).unwrap().is_deleted());
+        assert!(!rows.first().unwrap().is_deleted());
         assert!(!rows.get(1).unwrap().is_deleted());
         assert!(!rows.get(2).unwrap().is_deleted());
         let result = get_query_result("DELETE FROM test.del WHERE id = 3");
         assert!(result.is_ok());
         let select_result = get_query_result("SELECT * FROM test.del WHERE id = 3");
         let rows = get_rows_select(select_result.unwrap());
-        assert!(rows.get(0).unwrap().is_deleted());
+        assert!(rows.first().unwrap().is_deleted());
         assert!(rows.get(1).unwrap().is_deleted());
         assert!(rows.get(2).unwrap().is_deleted());
         add_one_finished();

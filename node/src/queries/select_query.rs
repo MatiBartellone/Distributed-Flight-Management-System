@@ -57,11 +57,11 @@ impl SelectQuery {
         };
         let table_columns = get_columns_from_table(&self.table_name)?;
         for order_clause in order_clauses {
-            if table_columns.get(&order_clause.column).is_none() {
-                return Err(Errors::Invalid(String::from(format!(
+            if !table_columns.contains_key(&order_clause.column) {
+                return Err(Errors::Invalid(format!(
                     "Order column {} not found",
                     order_clause.column
-                ))));
+                )));
             }
         }
         Ok(())

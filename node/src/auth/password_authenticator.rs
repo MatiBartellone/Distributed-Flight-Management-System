@@ -130,7 +130,7 @@ fn hash_password(password: &str) -> Result<String, Errors> {
 
 fn verify_password(password: &str, hash: &str) -> Result<bool, Errors> {
     let argon2 = Argon2::default();
-    let parsed_hash = PasswordHash::new(&hash)
+    let parsed_hash = PasswordHash::new(hash)
         .map_err(|_| Errors::ServerError(String::from("Failed to parse password hash")))?;
     Ok(argon2
         .verify_password(password.as_bytes(), &parsed_hash)

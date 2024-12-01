@@ -15,7 +15,7 @@ mod tests {
         let rows = get_rows_select(result.unwrap());
         assert_eq!(rows.len(), 1);
 
-        let row = rows.get(0).unwrap();
+        let row = rows.first().unwrap();
         let row_hash = row.get_row_hash();
         assert_eq!(row_hash.get("id").unwrap().value, "1");
         assert_eq!(row_hash.get("name").unwrap().value, "Mati");
@@ -43,7 +43,7 @@ mod tests {
         let rows = get_rows_select(result.unwrap());
         assert_eq!(rows.len(), 3);
 
-        let row_1 = rows.get(0).unwrap();
+        let row_1 = rows.first().unwrap();
         assert_eq!(row_1.get_row_hash().get("name").unwrap().value, "Mati");
         assert_eq!(row_1.get_row_hash().get("age").unwrap().value, "11");
         assert_eq!(row_1.get_row_hash().get("height").unwrap().value, "43");
@@ -80,7 +80,7 @@ mod tests {
         let rows = get_rows_select(result.unwrap());
         assert_eq!(rows.len(), 1);
 
-        let row = rows.get(0).unwrap();
+        let row = rows.first().unwrap();
         let row_hash = row.get_row_hash();
         assert_eq!(row_hash.get("id").unwrap().value, "3");
         assert_eq!(row_hash.get("name").unwrap().value, "Ivan");

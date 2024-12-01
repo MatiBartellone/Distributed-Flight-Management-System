@@ -35,6 +35,7 @@ impl DataAccessHandler {
 }
 
 /// use_data_access is the way to access data_access functions.
+///
 /// It represents a lock, in which the DataAccess instance ends its lifetime when the function finishes.
 /// action is a function that uses the data access
 ///

@@ -253,7 +253,7 @@ mod tests {
         assert!(select_result.is_ok());
         let rows = get_rows_select(select_result.unwrap());
         assert_eq!(rows.len(), 3);
-        let row_hash = rows.get(0).unwrap().get_row_hash();
+        let row_hash = rows.first().unwrap().get_row_hash();
         assert_eq!(row_hash.get("age").unwrap().value, "5");
         let row_hash = rows.get(1).unwrap().get_row_hash();
         assert_eq!(row_hash.get("age").unwrap().value, "5");
@@ -268,7 +268,7 @@ mod tests {
         assert!(select_result.is_ok());
         let rows = get_rows_select(select_result.unwrap());
         assert_eq!(rows.len(), 1);
-        rows.get(0).unwrap().get_row_hash()
+        rows.first().unwrap().get_row_hash()
     }
 
     #[test]

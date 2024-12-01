@@ -32,7 +32,7 @@ impl Executable for AuthResponseExecutable {
         let password = self.password.to_string();
         let ok = self.authenticator.validate_credentials(user, password)?;
         if !ok {
-            return Err(BadCredentials(String::from("Invalid credentials provided")).into());
+            return Err(BadCredentials(String::from("Invalid credentials provided")));
         }
         FrameBuilder::build_response_frame(request, AUTH_SUCCESS, Vec::new())
     }
