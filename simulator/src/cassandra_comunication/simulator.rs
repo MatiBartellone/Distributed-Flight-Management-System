@@ -114,7 +114,7 @@ impl Simulator {
 
     fn insert_flight(&self, client: &mut CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
-            "INSERT INTO aviation.flightInfo (flightCode, status, departureAirport, arrivalAirport, departureTime, arrivalTime, positionLat, positionLon, altitude, speed, fuelLevel) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}');",
+            "INSERT INTO aviation.flightInfo (flightCode, status, departureAirport, arrivalAirport, departureTime, arrivalTime, positionLat, positionLon, arrivalPositionLat, arrivalPositionLon, altitude, speed, fuelLevel) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}');",
             flight.get_code(), 
             flight.get_status().to_string(), 
             flight.get_departure_airport(), 
@@ -123,6 +123,8 @@ impl Simulator {
             flight.get_arrival_time(),
             flight.get_position().0, 
             flight.get_position().1, 
+            flight.get_arrival_position().0, 
+            flight.get_arrival_position().1, 
             flight.get_altitude(), 
             flight.get_speed(), 
             flight.get_fuel_level()
