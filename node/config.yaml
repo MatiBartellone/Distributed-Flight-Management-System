@@ -4,6 +4,5 @@ ip:
 seed_ip:
   ip: "100.66.108.20"
   port: 9090
-uses_network: false
 is_first: true
 is_seed: true
