@@ -23,6 +23,7 @@ pub struct FlightStatus {
 pub struct FlightTracking  {
     // weak consistency
     pub position: (f64, f64),
+    pub arrival_position: (f64, f64),
     pub altitude: f64,
     pub speed: f32,
     pub fuel_level: f32
@@ -203,6 +204,10 @@ impl Flight {
 
     pub fn get_arrival_time(&self) -> &String {
         &self.status.arrival_time
+    }
+
+    pub fn get_arrival_position(&self) -> &(f64, f64) {
+        &self.info.arrival_position
     }
 }
 

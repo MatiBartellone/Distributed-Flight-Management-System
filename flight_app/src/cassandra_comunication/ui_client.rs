@@ -165,7 +165,7 @@ impl UIClient {
 
     fn get_flight_tracking(&self, client: &mut CassandraClient, flight: &mut Flight, frame_id: &usize) -> Option<()> {
         let query = format!(
-            "SELECT positionLat, positionLon FROM aviation.flightInfo WHERE flightCode = '{}';",
+            "SELECT positionLat, positionLon, arrivalPositionLat, arrivalPositionLon FROM aviation.flightInfo WHERE flightCode = '{}';",
             flight.code
         );
         let values = client.execute_weak_select_query(&query, frame_id).ok()?;
@@ -181,6 +181,15 @@ impl UIClient {
         
         flight.position.1 = weak_row
             .get("positionLon")?
+            .parse().ok()?;
+
+
+        flight.arrival_position.0 = weak_row
+            .get("arrivalPositionLat")?
+            .parse().ok()?;
+        
+        flight.arrival_position.1 = weak_row
+            .get("arrivalPositionLon")?
             .parse().ok()?;
         
         Some(())
@@ -239,7 +248,7 @@ impl UIClient {
 
     fn get_flight_selected_tracking(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightTracking> {
         let query = format!(
-            "SELECT positionLat, positionLon, altitude, speed, fuelLevel FROM aviation.flightInfo WHERE flightCode = '{}'",
+            "SELECT positionLat, positionLon, arrivalPositionLat, arrivalPositionLon, altitude, speed, fuelLevel FROM aviation.flightInfo WHERE flightCode = '{}'",
             flight_code
         );
         let values = client.execute_weak_select_query(&query, frame_id).ok()?;
@@ -250,12 +259,15 @@ impl UIClient {
         let weak_row = values.get(0)?;
         let position_lat: f64 = weak_row.get("positionLat")?.parse().ok()?;
         let position_lon: f64 = weak_row.get("positionLon")?.parse().ok()?;
+        let arrival_position_lat: f64 = weak_row.get("arrivalPositionLat")?.parse().ok()?;
+        let arrival_position_lon: f64 = weak_row.get("arrivalPositionLon")?.parse().ok()?;
         let altitude: f64 = weak_row.get("altitude")?.parse().ok()?;
         let speed: f32 = weak_row.get("speed")?.parse().ok()?;
         let fuel_level: f32 = weak_row.get("fuelLevel")?.parse().ok()?;
 
         Some(FlightTracking {
             position: (position_lat, position_lon),
+            arrival_position: (arrival_position_lat, arrival_position_lon),
             altitude,
             speed,
             fuel_level,

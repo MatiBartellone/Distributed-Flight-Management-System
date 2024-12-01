@@ -198,7 +198,7 @@ impl Simulator {
 
     fn get_flight_tracking(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightTracking> {
         let query = format!(
-            "SELECT positionLat, positionLon, altitude, speed, fuelLevel FROM aviation.flightInfo WHERE flightCode = '{}'",
+            "SELECT positionLat, positionLon, arrivalPositionLat, arrivalPositionLon, altitude, speed, fuelLevel FROM aviation.flightInfo WHERE flightCode = '{}'",
             flight_code
         );
         let values = client.execute_weak_select_query(&query, frame_id).ok()?;
@@ -210,12 +210,15 @@ impl Simulator {
 
         let position_lat: f64 = weak_row.get("positionLat")?.parse().ok()?;
         let position_lon: f64 = weak_row.get("positionLon")?.parse().ok()?;
+        let arrival_position_lat: f64 = weak_row.get("arrivalPositionLat")?.parse().ok()?;
+        let arrival_position_lon: f64 = weak_row.get("arrivalPositionLon")?.parse().ok()?;
         let altitude: f64 = weak_row.get("altitude")?.parse().ok()?;
         let speed: f32 = weak_row.get("speed")?.parse().ok()?;
         let fuel_level: f32 = weak_row.get("fuelLevel")?.parse().ok()?;
 
         Some(FlightTracking {
             position: (position_lat, position_lon),
+            arrival_position: (arrival_position_lat, arrival_position_lon),
             altitude,
             speed,
             fuel_level,
@@ -239,8 +242,8 @@ impl Simulator {
 
     fn update_flight_tracking(&self, client: &mut CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
-            "UPDATE aviation.flightInfo SET positionLat = '{}', positionLon = '{}', altitude = '{}', speed = '{}', fuelLevel = '{}' WHERE flightCode = '{}';",
-            flight.get_position().0, flight.get_position().1, flight.get_altitude(), flight.get_speed(), flight.get_fuel_level(),
+            "UPDATE aviation.flightInfo SET positionLat = '{}', positionLon = '{}', arrivalPositionLat = '{}', arrivalPositionLon = '{}', altitude = '{}', speed = '{}', fuelLevel = '{}' WHERE flightCode = '{}';",
+            flight.get_position().0, flight.get_position().1, flight.get_arrival_position().0, flight.get_arrival_position().1, flight.get_altitude(), flight.get_speed(), flight.get_fuel_level(),
             flight.get_code()
         );
         client.execute_weak_query_without_response(&query, frame_id)

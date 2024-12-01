@@ -87,7 +87,7 @@ impl Airports {
             }
             if let Some(airport) = self.airports.get(flight.get_arrival_airport()) {
                 airport.draw(response, painter.clone(), projector, &self.selected_airport_code);
-                flight.draw_flight_path(painter.clone(), projector, airport.position);
+                flight.draw_flight_path(painter.clone(), projector);
             }
             return true;
         }
@@ -118,15 +118,8 @@ impl Plugin for &mut Airports {
     }
 }
 
-/// Get the position of an airport given its code
-pub fn get_airport_position(airport: &str, projector: &Projector) -> Pos2 {
-    let airport_coordinates = get_airport_coordinates(airport);
-    let airport_position = Position::from_lon_lat(airport_coordinates.0, airport_coordinates.1);
-    projector.project(airport_position).to_pos2()
-}
-
 /// Get the position of an airport given its coordinates
-pub fn get_airport_screen_position(airport_coordinates: (f64, f64), projector: &Projector) -> Pos2 {
+pub fn get_airport_screen_position(airport_coordinates: &(f64, f64), projector: &Projector) -> Pos2 {
     let airport_position = Position::from_lon_lat(airport_coordinates.0, airport_coordinates.1);
     projector.project(airport_position).to_pos2()
 }
@@ -136,26 +129,4 @@ pub fn calculate_angle_to_airport(flight_position: Pos2, airport_position: Pos2)
     let delta_x = airport_position.x - flight_position.x;
     let delta_y = airport_position.y - flight_position.y;
     delta_y.atan2(delta_x)
-}
-
-/// Get the coordinates of an airport given its code
-pub fn get_airport_coordinates(airport: &str) -> (f64, f64) {
-    match airport {
-        "JFK" => (-73.7781, 40.6413),  // JFK, Nueva York
-        "LAX" => (-118.4085, 33.9416), // LAX, Los Ángeles
-        "EZE" => (-58.5358, -34.8222), // EZE, Buenos Aires (Ezeiza)
-        "CDG" => (2.55, 49.0097),      // CDG, París Charles de Gaulle
-        "LHR" => (-0.4543, 51.4700),   // LHR, Londres Heathrow
-        "NRT" => (140.3929, 35.7735),  // NRT, Tokio Narita
-        "FRA" => (8.5706, 50.0333),    // FRA, Frankfurt
-        "SYD" => (151.1772, -33.9399), // SYD, Sídney Kingsford Smith
-        "SCL" => (-70.7853, -33.3929), // SCL, Santiago de Chile
-        "MIA" => (-80.2906, 25.7957),  // MIA, Miami
-        "DFW" => (-97.0379, 32.8968),  // DFW, Dallas/Fort Worth
-        "GRU" => (-46.6506, -23.4253), // GRU, São Paulo-Guarulhos
-        "MAD" => (-3.5705, 40.4719),   // MAD, Madrid
-        "AMS" => (4.7600, 52.3081),    // AMS, Ámsterdam
-        "SFO" => (-122.4194, 37.6213), // SFO, San Francisco
-        _ => (0.0, 0.0),
-    }
 }

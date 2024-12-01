@@ -5,7 +5,7 @@ use std::{
 };
 use walkers::{extras::Image, Position, Projector, Texture};
 
-use crate::airport_implementation::airports::{calculate_angle_to_airport, get_airport_position};
+use crate::airport_implementation::airports::{calculate_angle_to_airport, get_airport_screen_position};
 
 use super::{
     flight_selected::FlightSelected,
@@ -17,6 +17,7 @@ use super::{
 pub struct Flight {
     // weak consistency
     pub position: (f64, f64),
+    pub arrival_position: (f64, f64),
     // strong consistency
     pub code: String,
     pub status: FlightState,
@@ -96,7 +97,7 @@ impl Flight {
         let flight_position = Position::from_lon_lat(self.position.0, self.position.1);
         let mut image = Image::new(airplane_texture, flight_position);
 
-        let screen_airport_position = get_airport_position(&self.arrival_airport, projector);
+        let screen_airport_position = get_airport_screen_position(&self.arrival_position, projector);
         let angle = calculate_angle_to_airport(
             get_flight_pos2(&self.position, projector),
             screen_airport_position,
@@ -138,6 +139,7 @@ impl Flight {
                     flight_selected.set_position(self.position);
                     flight_selected.set_arrival_airport(self.arrival_airport.to_string());
                     flight_selected.set_departure_airport(self.arrival_airport.to_string());
+                    flight_selected.set_arrival_position(self.arrival_position);
                     Some(flight_selected)
                 }
             }

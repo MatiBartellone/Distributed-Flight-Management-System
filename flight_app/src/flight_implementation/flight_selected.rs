@@ -25,6 +25,7 @@ pub struct FlightStatus {
 pub struct FlightTracking {
     // weak consistency
     pub position: (f64, f64),
+    pub arrival_position: (f64, f64),
     pub altitude: f64,
     pub speed: f32,
     pub fuel_level: f32,
@@ -51,11 +52,15 @@ impl FlightSelected {
         ui.label(format!("Hora de salida: {}", self.get_departure_time()));
         ui.label(format!("Aeropuerto de llegada: {}", self.get_arrival_airport()));
         ui.label(format!("Hora estimada de llegada: {}", self.get_arrival_time()));
+        ui.label(format!(
+            "Posición de llegada: ({:.2}, {:.2})",
+            self.get_arrival_position().0, self.get_arrival_position().1
+        ));
     }
 
     /// Draw the flight path of the selected flight on the map
-    pub fn draw_flight_path(&self, painter: Painter, projector: &Projector, airport_coordinates: (f64, f64)) {
-        let screen_airport_position = get_airport_screen_position(airport_coordinates, projector);
+    pub fn draw_flight_path(&self, painter: Painter, projector: &Projector) {
+        let screen_airport_position = get_airport_screen_position(self.get_arrival_position(), projector);
         let screen_flight_position = get_flight_pos2(self.get_position(), projector);
         draw_flight_curve(painter, screen_flight_position, screen_airport_position);
     }
@@ -114,6 +119,14 @@ impl FlightSelected {
 
     pub fn get_arrival_time(&self) -> &String {
         &self.status.arrival_time
+    }
+
+    pub fn get_arrival_position(&self) -> &(f64, f64) {
+        &self.info.arrival_position
+    }
+
+    pub fn set_arrival_position(&mut self, arrival_position: (f64, f64)) {
+        self.info.arrival_position = arrival_position;
     }
 }
 
