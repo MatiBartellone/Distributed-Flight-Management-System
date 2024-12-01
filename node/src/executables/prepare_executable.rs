@@ -43,7 +43,6 @@ impl PrepareExecutable {
         let mut last_line = None;
         for line in reader.lines().map_while(Result::ok) {
             last_line = Some(line);
-
         }
         if let Some(last_line) = last_line {
             let last_query: PrepareQuery = deserialize_from_str(last_line.trim())?;

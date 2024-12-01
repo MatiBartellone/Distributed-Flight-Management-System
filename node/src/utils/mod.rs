@@ -7,3 +7,4 @@ pub mod parser_constants;
 pub mod response;
 pub mod types;
 pub mod types_to_bytes;
+pub mod test_functions;

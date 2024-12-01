@@ -34,7 +34,7 @@ impl Executable for AuthResponseExecutable {
         if !ok {
             return Err(BadCredentials(String::from("Invalid credentials provided")).into());
         }
-        FrameBuilder::build_response_frame(request, AUTH_SUCCESS,  Vec::new())
+        FrameBuilder::build_response_frame(request, AUTH_SUCCESS, Vec::new())
     }
 }
 
@@ -111,8 +111,8 @@ mod tests {
         assert!(response.is_err());
     }
 
-    use crate::utils::parser_constants::AUTH_CHALLENGE;
     use super::*;
+    use crate::utils::parser_constants::AUTH_CHALLENGE;
     #[test]
     fn test_01_successfull_response() {
         // En este test debería cambiar el body con los tokens si no me equivoco

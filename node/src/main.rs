@@ -1,8 +1,8 @@
 use node::client_handler::ClientHandler;
 use node::gossip::gossip_emitter::GossipEmitter;
+use node::hinted_handoff::handler::Handler;
 use node::hinted_handoff::hints_receiver::HintsReceiver;
 use node::hinted_handoff::hints_sender::HintsSender;
-use node::hinted_handoff::handler::Handler;
 use node::meta_data::meta_data_handler::use_node_meta_data;
 use node::node_initializer::NodeInitializer;
 use node::utils::config_constants::MAX_CLIENTS;
