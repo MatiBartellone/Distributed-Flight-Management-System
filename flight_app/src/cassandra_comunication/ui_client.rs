@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, sync::{mpsc::{self}, Arc, Mutex}};
 
-use crate::{airport_implementation::airport::Airport, flight_implementation::{flight::Flight, flight_selected::{FlightSelected, FlightStatus, FlightTracking}, flight_state::FlightState}, utils::{constants::OP_RESULT, frame::Frame}};
+use crate::{airport_implementation::airport::Airport, flight_implementation::{flight::Flight, flight_selected::{FlightSelected, FlightStatus, FlightTracking}, flight_state::FlightState}};
 
 use super::{cassandra_client::{CassandraClient, STREAM}, thread_pool_client::ThreadPoolClient};
 

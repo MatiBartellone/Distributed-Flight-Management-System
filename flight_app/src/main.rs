@@ -1,4 +1,4 @@
-use app::{app_implementation::flight_app::FlightApp, cassandra_comunication::{cassandra_client::CassandraClient, ui_client::UIClient}, utils::system_functions::{clear_screen, get_user_data}};
+use flight_app::{app_implementation::flight_app::FlightApp, cassandra_comunication::{cassandra_client::CassandraClient, ui_client::UIClient}, utils::system_functions::{clear_screen, get_user_data}};
 
 fn main() -> Result<(), eframe::Error> {
     clear_screen();
