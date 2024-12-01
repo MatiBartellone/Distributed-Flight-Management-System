@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::utils::{
-        consistency_level::ConsistencyLevel, constants::{OP_AUTHENTICATE, OP_AUTH_CHALLENGE, OP_AUTH_RESPONSE, OP_AUTH_SUCCESS}, frame::Frame, system_functions::get_user_data, types_to_bytes::TypesToBytes
+        bytes_cursor::BytesCursor, consistency_level::ConsistencyLevel, constants::{ROW_RESPONSE, OP_AUTHENTICATE, OP_AUTH_CHALLENGE, OP_AUTH_RESPONSE, OP_AUTH_SUCCESS, OP_RESULT}, frame::Frame, system_functions::get_user_data, types_to_bytes::TypesToBytes
     };
 use super::cassandra_connector::CassandraConnection;
 
