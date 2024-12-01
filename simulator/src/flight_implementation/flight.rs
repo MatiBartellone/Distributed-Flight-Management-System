@@ -2,13 +2,13 @@ use rand::Rng;
 
 use super::flight_state::FlightState;
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Flight {
     pub status: FlightStatus,
     pub info: FlightTracking,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct FlightStatus {
     // strong consistency
     pub code: String,
@@ -19,7 +19,7 @@ pub struct FlightStatus {
     pub arrival_time: String,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct FlightTracking  {
     // weak consistency
     pub position: (f64, f64),
@@ -133,8 +133,8 @@ impl Flight {
         ((target_x - current_x).powi(2) + (target_y - current_y).powi(2)).sqrt()
     }
 
-    pub fn get_code(&self) -> &String {
-        &self.status.code
+    pub fn get_code(&self) -> String {
+        self.status.code.to_string()
     }
 
     pub fn set_code(&mut self, code: String) {
