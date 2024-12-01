@@ -21,13 +21,13 @@ fn loop_option(thread_pool: &ThreadPoolClient) {
     let mut flights = HashMap::new();
     loop {
         println!("Choose an option:");
-        println!("1. Restart flights for an airport");
+        println!("1. Add flights for an airport");
         println!("2. Add a single flight");
         println!("3. Start updating loop");
         println!("4. Exit");
         let option = get_user_data("--> ");
         match option.as_str() {
-            "1" => restart_flights_for_airport(&mut flights, &simulator, thread_pool),
+            "1" => add_flights_for_airport(&mut flights, &simulator, thread_pool),
             "2" => add_single_flight(&mut flights, &simulator, thread_pool),
             "3" => break,
             "4" => return,
@@ -51,7 +51,7 @@ fn flight_updates_loop(simulator: &Simulator, flights: Vec<Flight>, airports: &H
     simulator.flight_updates_loop(flights, airports, step, interval, thread_pool);
 }
 
-fn restart_flights_for_airport(flights: &mut HashMap<String, Flight>, simulator: &Simulator, thread_pool: &ThreadPoolClient) {
+fn add_flights_for_airport(flights: &mut HashMap<String, Flight>, simulator: &Simulator, thread_pool: &ThreadPoolClient) {
     let airport_code = get_user_data("Enter the airport code:");
     let flights_for_airport = simulator.get_flights(&airport_code, thread_pool);
     for flight in flights_for_airport {
