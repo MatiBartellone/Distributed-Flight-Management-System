@@ -11,25 +11,21 @@ use std::io::Write;
 use std::sync::{Once};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
-use std::thread::sleep;
-use std::time::Duration;
 
 static INIT: Once = Once::new();
-static FINISHED: AtomicUsize = AtomicUsize::new(1);
-const INTEGRATION_TESTS_QUANTITY: usize = 31;
+static FINISHED: AtomicUsize = AtomicUsize::new(0);
+const INTEGRATION_TESTS_QUANTITY: usize = 30;
 
 pub fn add_one_finished() {
     FINISHED.fetch_add(1, Ordering::SeqCst);
 }
 
 // Chequear si esta es la última prueba y ejecutar el "teardown" global.
-
 pub fn check_and_run_teardown() {
     // Si todas las pruebas se completaron, ejecutamos el teardown
-    if FINISHED.load(Ordering::SeqCst) >= INTEGRATION_TESTS_QUANTITY {
-        // Ajusta este número según el número total de pruebas
+    let finished = FINISHED.load(Ordering::SeqCst);
+    if finished >= INTEGRATION_TESTS_QUANTITY {
         teardown();
-        sleep(Duration::from_secs(2));
     }
 }
 
@@ -72,8 +68,8 @@ pub fn store_ip(ip: &NodeIp) -> Result<(), Errors> {
 
 pub fn get_query_result(query: &str) -> Result<Vec<u8>, Errors> {
     let query = query.to_string();
-    let tokens = query_lexer(query).unwrap();
-    let query = query_parser(tokens).unwrap();
+    let tokens = query_lexer(query)?;
+    let query = query_parser(tokens)?;
     query.run()
 }
 
