@@ -1,6 +1,7 @@
 
 use crate::parsers::tokens::terms::ComparisonOperators::Equal;
 use crate::parsers::tokens::terms::LogicalOperators::And;
+use crate::utils::types::token_conversor::{create_paren_list_token, create_symbol_token};
 use crate::{
     data_access::{column::Column, row::Row},
     parsers::tokens::{literal::Literal, token::Token},
@@ -96,19 +97,19 @@ impl RepairRow {
             "{}.{}",
             self.keyspace, self.table
         )));
-        let mut values: Vec<Literal> = Vec::new();
-        let mut headers: Vec<String> = Vec::new();
+        let mut values: Vec<Token> = Vec::new();
+        let mut headers: Vec<Token> = Vec::new();
         for best_column in columns {
-            headers.push(best_column.column_name);
-            values.push(best_column.value);
+            headers.push(create_identifier_token(&best_column.column_name));
+            headers.push(create_symbol_token(","));
+            values.push(create_token_from_literal(best_column.value));
+            values.push(create_symbol_token(","));
         }
-        for header in headers {
-            query.push(create_identifier_token(&header));
-        }
+        query.push(create_paren_list_token(headers));
+
         query.push(create_reserved_token("VALUES"));
-        for value in values {
-            query.push(create_token_from_literal(value));
-        }
+
+        query.push(create_paren_list_token(values));
         Ok(())
     }
 
@@ -218,13 +219,25 @@ mod tests {
             create_reserved_token("INSERT"),
             create_reserved_token("INTO"),
             create_identifier_token("test_keyspace.test_table"),
-            create_identifier_token("pk1"),
-            create_identifier_token("pk2"),
-            create_identifier_token("value"),
+            create_paren_list_token(vec![
+                create_identifier_token("pk1"),
+                create_symbol_token(","),
+                create_identifier_token("pk2"),
+                create_symbol_token(","),
+                create_identifier_token("value"),
+                create_symbol_token(","),
+            ]),
+            
             create_reserved_token("VALUES"),
-            create_token_literal("1", DataType::Int),
-            create_token_literal("2", DataType::Int),
-            create_token_literal("abc", DataType::Text),
+            create_paren_list_token(vec![
+                create_token_literal("1", DataType::Int),
+                create_symbol_token(","),
+                create_token_literal("2", DataType::Int),
+                create_symbol_token(","),
+                create_token_literal("abc", DataType::Text),
+                create_symbol_token(","),
+            ]),
+            
             create_reserved_token("WHERE"),
             create_iterate_list_token(vec![
                 create_identifier_token("pk1"),
@@ -306,11 +319,21 @@ mod tests {
             create_reserved_token("INSERT"),
             create_reserved_token("INTO"),
             create_identifier_token("test_keyspace.test_table"),
-            create_identifier_token("pk1"),
-            create_identifier_token("value"),
+            create_paren_list_token(vec![
+                create_identifier_token("pk1"),
+                create_symbol_token(","),
+                create_identifier_token("value"),
+                create_symbol_token(","),
+            ]),
+            
             create_reserved_token("VALUES"),
-            create_token_literal("1", DataType::Int),
-            create_token_literal("abc", DataType::Text),
+            create_paren_list_token(vec![
+                create_token_literal("1", DataType::Int),
+                create_symbol_token(","),
+                create_token_literal("abc", DataType::Text),
+                create_symbol_token(","),
+            ]),
+            
             create_reserved_token("WHERE"),
             create_iterate_list_token(vec![
                 create_identifier_token("pk1"),
