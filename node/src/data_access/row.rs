@@ -2,10 +2,10 @@ use crate::data_access::column::Column;
 use crate::parsers::tokens::literal::Literal;
 use crate::queries::set_logic::assigmente_value::AssignmentValue;
 use crate::utils::errors::Errors;
+use crate::utils::types::timestamp::Timestamp;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::option::Option;
-use crate::utils::types::timestamp::Timestamp;
 
 pub const EQUAL: i8 = 0;
 pub const GREATER: i8 = 1;
@@ -16,7 +16,7 @@ pub struct Row {
     pub columns: Vec<Column>,
     pub primary_key: Vec<String>,
     pub deleted: bool,
-    timestamp: Timestamp
+    timestamp: Timestamp,
 }
 
 impl Row {
@@ -25,7 +25,7 @@ impl Row {
             columns,
             primary_key: primary_keys,
             deleted: false,
-            timestamp: Timestamp::new()
+            timestamp: Timestamp::new(),
         }
     }
 
