@@ -156,3 +156,127 @@ impl ResponseManager {
 
     
 }
+
+
+#[cfg(test)]
+mod tests {
+    use crate::{data_access::column::Column, parsers::tokens::literal::Literal, utils::types_to_bytes::TypesToBytes};
+
+    use super::*;
+    use std::collections::HashMap;
+
+    // Mocks necesarios
+    fn mock_response_data() -> Vec<u8> {
+        let rows = vec![
+            Row::new(
+                vec![
+                    Column::new(&"column1".to_string(), &Literal::new("value1".to_string(), DataType::Text)),
+                    Column::new(&"column2".to_string(), &Literal::new("value2".to_string(), DataType::Text)),
+                ],
+                vec!["pk1".to_string(), "pk2".to_string()],
+            ),
+            Row::new(
+                vec![
+                    Column::new(&"column3".to_string(), &Literal::new("value3".to_string(), DataType::Text)),
+                    Column::new(&"column4".to_string(), &Literal::new("value4".to_string(), DataType::Text)),
+                ],
+                vec!["pk3".to_string(), "pk4".to_string()],
+            ),
+        ];
+        let mut encoder = TypesToBytes::default(); 
+        Response::write_rows(&rows, &mut encoder).expect("Failed to create mock response data");
+        encoder.into_bytes()
+    }
+
+    fn mock_meta_data() -> Vec<u8> {
+        let keyspace = "test_keyspace";
+        let table = "test_table";
+        let columns = vec!["column1".to_string(), "column2".to_string()];
+        let pks = vec![
+            ("pk1".to_string(), DataType::Text),
+            ("pk2".to_string(), DataType::Int),
+        ];
+    
+        let mut encoder = TypesToBytes::default();
+    
+        encoder.write_string(keyspace).unwrap();
+        encoder.write_string(table).unwrap();
+        encoder.write_short(pks.len() as u16).unwrap();
+        for (pk, type_) in pks {
+            encoder.write_string(&pk).unwrap();
+            let data_type_id = data_type_to_byte(type_);
+            encoder.write_i16(data_type_id).unwrap();
+        }
+        encoder.write_short(columns.len() as u16).unwrap();
+        for name in columns {
+            encoder.write_string(&name).unwrap();
+        }
+    
+        encoder.into_bytes()
+    }
+
+    fn rows() -> Vec<u8> {
+        let mut response_data = mock_response_data(); // Datos de las filas
+        let meta_data = mock_meta_data(); // Datos de los metadatos
+    
+        let division_offset = response_data.len(); // Offset de división
+        response_data.extend(meta_data); // Combina filas y metadatos
+        response_data.extend(&division_offset.to_be_bytes()); // Agrega el offset como un entero de 4 bytes
+    
+        response_data
+    }
+    
+    fn data_type_to_byte(data: DataType) -> i16 {
+        match data {
+            DataType::Boolean => 0x0004,  // Código de tipo para `BOOLEAN`
+            DataType::Date => 0x000B,     // Código de tipo para `DATE`
+            DataType::Decimal => 0x0006,  // Código de tipo para `DECIMAL`
+            DataType::Duration => 0x000F, // Código de tipo para `DURATION`
+            DataType::Int => 0x0009,      // Código de tipo para `INT`
+            DataType::Text => 0x000A,     // Código de tipo para `TEXT`
+            DataType::Time => 0x000C,     // Código de tipo para `TIME`
+        }
+    }
+
+    #[test]
+    fn test_new_response_manager() {
+        let mut responses = HashMap::new();
+        responses.insert(NodeIp::new_from_single_string("127.0.0.1:8080").unwrap(), rows());
+        let manager = ResponseManager::new(&responses);
+        assert!(manager.is_ok());
+        let manager = manager.unwrap();
+        assert_eq!(manager.responses_bytes.len(), 1);
+        assert!(!manager.meta_data_bytes.is_empty());
+    }
+
+    #[test]
+    fn test_get_ips() {
+        let mut responses = HashMap::new();
+        responses.insert(NodeIp::new_from_single_string("127.0.0.1:8080").unwrap(), rows());
+        let manager = ResponseManager::new(&responses).unwrap();
+        let ips = manager.get_ips();
+        assert_eq!(ips, vec!["127.0.0.1:8080".to_string()]);
+    }
+
+    #[test]
+    fn test_some_row_is_deleted() {
+        let mut responses = HashMap::new();
+        responses.insert(NodeIp::new_from_single_string("127.0.0.1:8080").unwrap(), rows());
+        let manager = ResponseManager::new(&responses).unwrap();
+        // Aquí debes simular un row eliminado para hacer que la función retorne verdadero
+        assert!(!manager.some_row_is_deleted().unwrap());
+    }
+
+    #[test]
+    fn test_get_keyspace_table() {
+        let mut responses = HashMap::new();
+        responses.insert(NodeIp::new_from_single_string("127.0.0.1:8080").unwrap(), rows());
+        let manager = ResponseManager::new(&responses).unwrap();
+        let result = manager.get_keyspace_table("127.0.0.1:8080");
+        assert!(result.is_ok());
+        let (keyspace, table) = result.unwrap();
+        assert_eq!(keyspace, "test_keyspace"); // Cambiar por un valor esperado
+        assert_eq!(table, "test_table");     // Cambiar por un valor esperado
+    }
+}
+
