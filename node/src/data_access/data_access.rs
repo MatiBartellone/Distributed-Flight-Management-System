@@ -143,7 +143,7 @@ impl DataAccess {
                     row.set_deleted();
                 }
             }
-            if !erase{
+            if !erase {
                 self.append_row(&temp_path, &row)?;
             }
         }

@@ -130,7 +130,7 @@ impl QueryDelegator {
             .collect();
         // Si hay respuestas tipo row, delega a read repair
         if !responses_to_repair.is_empty() {
-            let mut read_repair = ReadRepair::new(&responses_to_repair)?; 
+            let mut read_repair = ReadRepair::new(&responses_to_repair)?;
             return read_repair.get_response();
         }
         let response = responses.values().next().unwrap_or(&Vec::new()).to_vec();

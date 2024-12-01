@@ -6,11 +6,8 @@ use std::fs::File;
 use std::io::Read;
 
 use argon2::{
-    password_hash::{
-        rand_core::OsRng,
-        PasswordHasher, SaltString
-    },
-    Argon2, PasswordHash, PasswordVerifier
+    password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
+    Argon2, PasswordHash, PasswordVerifier,
 };
 
 const CREDENTIALS: &str = "src/auth/credentials.json";
@@ -50,7 +47,7 @@ impl PasswordAuthenticator {
     fn default_credentials(&self) -> Result<Vec<Credential>, Errors> {
         let credentials = vec![Credential {
             user: "admin".to_string(),
-            pass_hash: hash_password("password")?
+            pass_hash: hash_password("password")?,
         }];
         Ok(credentials)
     }
@@ -104,13 +101,18 @@ impl PasswordAuthenticator {
         Ok(())
     }
 
-    pub fn change_password(&self, user: &str, password: &str, new_password: &str) -> Result<(), Errors> {
+    pub fn change_password(
+        &self,
+        user: &str,
+        password: &str,
+        new_password: &str,
+    ) -> Result<(), Errors> {
         let mut credentials = self.get_credentials()?;
         for credential in &mut credentials {
             if credential.user == user && verify_password(password, &credential.pass_hash)? {
                 credential.pass_hash = hash_password(new_password)?;
                 self.save_credentials(credentials)?;
-                return Ok(()); 
+                return Ok(());
             }
         }
         Ok(())
@@ -120,7 +122,8 @@ impl PasswordAuthenticator {
 fn hash_password(password: &str) -> Result<String, Errors> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
-    let password_hash = argon2.hash_password(password.as_bytes(), &salt)
+    let password_hash = argon2
+        .hash_password(password.as_bytes(), &salt)
         .map_err(|_| Errors::ServerError(String::from("Failed to hash password")))?;
     Ok(password_hash.to_string())
 }
@@ -129,7 +132,9 @@ fn verify_password(password: &str, hash: &str) -> Result<bool, Errors> {
     let argon2 = Argon2::default();
     let parsed_hash = PasswordHash::new(&hash)
         .map_err(|_| Errors::ServerError(String::from("Failed to parse password hash")))?;
-    Ok(argon2.verify_password(password.as_bytes(), &parsed_hash).is_ok())
+    Ok(argon2
+        .verify_password(password.as_bytes(), &parsed_hash)
+        .is_ok())
 }
 
 #[cfg(test)]
@@ -145,7 +150,7 @@ mod tests {
         let result = authenticator.create_user("admin", "password");
         assert!(result.is_ok());
     }
-    
+
     #[test]
     fn test_valid_credentials() {
         let authenticator = PasswordAuthenticator::new();
