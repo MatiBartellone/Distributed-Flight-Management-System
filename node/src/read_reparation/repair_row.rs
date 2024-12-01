@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 
 use crate::parsers::tokens::terms::ComparisonOperators::Equal;
 use crate::parsers::tokens::terms::LogicalOperators::And;
@@ -14,6 +13,8 @@ use crate::{
         },
     },
 };
+
+use super::utils::to_hash_columns;
 
 pub struct RepairRow {
     keyspace: String,
@@ -169,13 +170,11 @@ impl RepairRow {
     }
 }
 
-fn to_hash_columns(columns: Vec<Column>) -> HashMap<String, Column> {
-    let mut hash: HashMap<String, Column> = HashMap::new();
-    for column in columns {
-        hash.insert(column.column_name.clone(), column);
+impl Default for RepairRow {
+    fn default() -> Self {
+            Self::new()
+        }
     }
-    hash
-}
 
 #[cfg(test)]
 mod tests {
