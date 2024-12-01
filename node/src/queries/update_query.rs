@@ -123,6 +123,7 @@ impl Query for UpdateQuery {
                 "Where clause must be defined",
             )));
         };
+        self.get_partition()?;
         let _apllied = use_data_access(|data_access| {
             data_access.update_row(
                 &self.table_name,

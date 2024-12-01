@@ -8,13 +8,15 @@ use crate::utils::types::bytes_cursor::BytesCursor;
 use crate::utils::types::node_ip::NodeIp;
 use std::fs::File;
 use std::io::Write;
-use std::sync::{Once};
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Once;
 use std::thread;
+use std::thread::sleep;
+use std::time::Duration;
 
 static INIT: Once = Once::new();
 static FINISHED: AtomicUsize = AtomicUsize::new(0);
-const INTEGRATION_TESTS_QUANTITY: usize = 38;
+const INTEGRATION_TESTS_QUANTITY: usize = 51;
 
 pub fn add_one_finished() {
     FINISHED.fetch_add(1, Ordering::SeqCst);
@@ -42,7 +44,6 @@ pub fn setup() {
             MetaDataHandler::start_listening(metadata_ip).unwrap();
         });
 
-        //sleep(Duration::from_secs(1));
         if get_query_result("CREATE KEYSPACE test WITH replication = {'replication_factor' : 1}").is_ok() {
             get_query_result("CREATE TABLE test.tb1 (id int, name text, second text, PRIMARY KEY(id, name))").unwrap();
             get_query_result("CREATE TABLE test.del (id int, name text, second text, PRIMARY KEY(id, name))").unwrap();
@@ -51,6 +52,7 @@ pub fn setup() {
         }
 
     });
+    sleep(Duration::from_millis(500));
 }
 
 pub fn teardown() {

@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::utils::test_functions::{add_one_finished, check_and_run_teardown, get_query_result, get_rows_select, setup};
+    use crate::utils::test_functions::{
+        add_one_finished, check_and_run_teardown, get_query_result, get_rows_select, setup,
+    };
 
     #[test]
     fn insert_test() {
@@ -44,8 +46,9 @@ mod tests {
     #[test]
     fn insert_test_pk_twice_changes_data() {
         setup();
-        let result =
-            get_query_result("INSERT INTO test.tb1 (id, name, second) VALUES (3, 'Thiago', 'Pacheco')");
+        let result = get_query_result(
+            "INSERT INTO test.tb1 (id, name, second) VALUES (3, 'Thiago', 'Pacheco')",
+        );
         assert!(result.is_ok());
         let result = get_query_result(
             "INSERT INTO test.tb1 (id, name, second) VALUES (3, 'Thiago', 'Bartellone')",

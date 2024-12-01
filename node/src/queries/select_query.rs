@@ -50,6 +50,22 @@ impl SelectQuery {
         }
         Ok(())
     }
+
+    fn check_order_columns(&self) -> Result<(), Errors> {
+        let Some(order_clauses) = &self.order_clauses else {
+            return Ok(());
+        };
+        let table_columns = get_columns_from_table(&self.table_name)?;
+        for order_clause in order_clauses {
+            if table_columns.get(&order_clause.column).is_none() {
+                return Err(Errors::Invalid(String::from(format!(
+                    "Order column {} not found",
+                    order_clause.column
+                ))));
+            }
+        }
+        Ok(())
+    }
 }
 
 impl Default for SelectQuery {
@@ -61,11 +77,13 @@ impl Default for SelectQuery {
 impl Query for SelectQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
         self.check_columns()?;
+        self.check_order_columns()?;
         let Some(where_clause) = &self.where_clause else {
             return Err(Errors::SyntaxError(String::from(
                 "Where clause must be defined",
             )));
         };
+        self.get_partition()?;
         let rows = use_data_access(|data_access| {
             data_access.select_rows(&self.table_name, where_clause, &self.order_clauses)
         })?;

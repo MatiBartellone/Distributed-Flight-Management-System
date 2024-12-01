@@ -37,6 +37,7 @@ impl Query for DeleteQuery {
                 "Where clause must be defined",
             )));
         };
+        self.get_partition()?;
         let _apllied = use_data_access(|data_access| {
             data_access.set_deleted_rows(&self.table_name, where_clause, &self.if_clause)
         })?;

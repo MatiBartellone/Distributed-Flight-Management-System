@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use crate::utils::test_functions::{add_one_finished, check_and_run_teardown, get_query_result, get_rows_select, setup};
+    use crate::utils::test_functions::{
+        add_one_finished, check_and_run_teardown, get_query_result, get_rows_select, setup,
+    };
 
     #[test]
     fn delete_test_one_simple_delete() {
@@ -85,6 +87,30 @@ mod tests {
         let select_result = get_query_result("SELECT * FROM test.del WHERE id = 4");
         let rows = get_rows_select(select_result.unwrap());
         assert_eq!(rows.len(), 0);
+        add_one_finished();
+        check_and_run_teardown();
+    }
+
+    #[test]
+    fn select_test_error_no_partition_in_where() {
+        setup();
+        get_query_result("INSERT INTO test.del (id, name) VALUES (6, 'Mati')").unwrap();
+
+        let result = get_query_result("select * from test.del WHERE name = 'Mati'");
+        assert!(result.is_err());
+
+        add_one_finished();
+        check_and_run_teardown();
+    }
+
+    #[test]
+    fn select_test_error_no_where() {
+        setup();
+        get_query_result("INSERT INTO test.del (id, name) VALUES (7, 'Mati')").unwrap();
+
+        let result = get_query_result("select * from test.del");
+        assert!(result.is_err());
+
         add_one_finished();
         check_and_run_teardown();
     }
