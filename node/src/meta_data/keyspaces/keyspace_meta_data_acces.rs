@@ -7,6 +7,7 @@ use super::{keyspace::Keyspace, table::Table};
 use crate::utils::functions::{deserialize_from_str, write_all_to_file};
 use crate::utils::types::primary_key::PrimaryKey;
 use std::{collections::HashMap, io::Read};
+use crate::utils::constants::KEYSPACE_METADATA_PATH;
 
 #[derive(Debug)]
 pub struct KeyspaceMetaDataAccess;
@@ -242,6 +243,12 @@ impl KeyspaceMetaDataAccess {
         file.seek(SeekFrom::Start(0))
             .map_err(|_| Errors::ServerError("Failed to reset file pointer".to_string()))?;
         Ok(())
+    }
+
+    pub fn exists_keyspace(&self, name: &str) -> Result<bool, Errors> {
+        let mut file = Self::open_file(KEYSPACE_METADATA_PATH.to_string())?;
+        let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
+        Ok(get_keyspace_mutable(&mut keyspaces, name).is_ok())
     }
 }
 

@@ -14,6 +14,8 @@ use std::net::TcpStream;
 pub struct GossipEmitter;
 
 impl GossipEmitter {
+    /// Starts Gossip process
+    /// It connects to a rando ip from the cluster and exchanges information from node metadata
     pub fn start_gossip() -> Result<(), Errors> {
         let Some(ip) = Self::get_random_ip()? else {
             return Ok(());

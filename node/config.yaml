@@ -3,7 +3,6 @@ ip:
   port: 9090
 seed_ip:
   ip: "100.66.108.20"
-  port: 8080
-uses_network: false
-is_first: false
+  port: 9090
+is_first: true
 is_seed: true

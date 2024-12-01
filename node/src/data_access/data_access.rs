@@ -10,7 +10,7 @@ use crate::queries::set_logic::assigmente_value::AssignmentValue;
 use crate::queries::where_logic::where_clause::WhereClause;
 use crate::utils::constants::DATA_ACCESS_PATH;
 use crate::utils::errors::Errors;
-use crate::utils::errors::Errors::ServerError;
+use crate::utils::errors::Errors::{Invalid, ServerError};
 use crate::utils::functions::{get_int_from_string, serialize_to_string, write_all_to_file};
 use crate::utils::parser_constants::ASC;
 use serde::{Deserialize, Serialize};
@@ -143,7 +143,7 @@ impl DataAccess {
                     row.set_deleted();
                 }
             }
-            if !erase{
+            if !erase {
                 self.append_row(&temp_path, &row)?;
             }
         }
@@ -231,7 +231,7 @@ impl DataAccess {
                     &Literal::new(new_value.to_string(), DataType::Int),
                 ))
             }
-            _ => Err(ServerError(String::from("Column not found"))),
+            _ => Err(Invalid(String::from("Column not found"))),
         }
     }
 

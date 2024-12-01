@@ -56,6 +56,9 @@ fn column(tokens: &mut IntoIter<Token>, query: &mut CreateTableQuery) -> Result<
     };
     match token {
         Token::Identifier(identifier) => {
+            if query.columns.contains_key(&identifier.to_string()) {
+                return Err(Errors::Invalid(String::from("There is a repeated column")));
+            }
             query
                 .columns
                 .insert(identifier.to_string(), get_data_type(tokens)?);

@@ -177,6 +177,7 @@ impl Display for Errors {
 
 fn join_bytes(bytes: &[u8], msg: &str) -> Vec<u8> {
     let mut new_bytes = bytes.to_vec();
+    new_bytes.extend((msg.len() as i16).to_be_bytes().to_vec());
     new_bytes.extend(msg.as_bytes());
     new_bytes
 }
