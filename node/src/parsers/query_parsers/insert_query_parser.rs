@@ -190,6 +190,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn get_insert_tokens(
         into: &str,
         table: &str,

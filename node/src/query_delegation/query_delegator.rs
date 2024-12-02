@@ -104,7 +104,6 @@ impl QueryDelegator {
         match TcpStream::connect(ip.get_query_delegation_socket()) {
             Ok(mut stream) => {
                 write_to_stream(&mut stream, QuerySerializer::serialize(&query)?.as_slice())?;
-                //flush_stream(&mut stream)?;
                 let response = read_from_stream_no_zero(&mut stream)?;
                 if let Some(e) = Errors::deserialize(response.as_slice()) {
                     return Err(e);
@@ -121,11 +120,15 @@ impl QueryDelegator {
 
     fn get_response(&self, responses: HashMap<NodeIp, Vec<u8>>) -> Result<Vec<u8>, Errors> {
         let expected_bytes = 2i32.to_be_bytes();
-        let all_rows = responses
-            .values()
-            .all(|response| response.starts_with(&expected_bytes));
-        if all_rows {
-            let mut read_repair = ReadRepair::new(&responses)?;
+        // Filtrar las respuestas tipo row
+        let responses_to_repair: HashMap<_, _> = responses
+            .iter()
+            .filter(|(_, response)| response.starts_with(&expected_bytes))
+            .map(|(key, value)| (key.clone(), value.clone()))
+            .collect();
+        // Si hay respuestas tipo row, delega a read repair
+        if !responses_to_repair.is_empty() {
+            let mut read_repair = ReadRepair::new(&responses_to_repair)?;
             return read_repair.get_response();
         }
         let response = responses.values().next().unwrap_or(&Vec::new()).to_vec();

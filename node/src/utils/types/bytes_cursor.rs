@@ -51,6 +51,14 @@ impl BytesCursor {
         Ok(u64::from_be_bytes(buf))
     }
 
+    pub fn read_i64(&mut self) -> Result<i64, Errors> {
+        let mut buf = [0u8; 8];
+        self.cursor
+            .read_exact(&mut buf)
+            .map_err(|_| Errors::ProtocolError(String::from("Could not read bytes")))?;
+        Ok(i64::from_be_bytes(buf))
+    }
+
     pub fn read_remaining_bytes(&mut self) -> Result<Vec<u8>, Errors> {
         let mut body = Vec::new();
         self.cursor
@@ -129,6 +137,15 @@ impl BytesCursor {
         match n {
             _ if n < 0 => Ok(None),
             _ => Ok(Some(self.read_exact(n as usize)?)),
+        }
+    }
+
+    pub fn read_bool(&mut self) -> Result<bool, Errors> {
+        let byte = self.read_u8()?; // Lee un byte
+        match byte {
+            0 => Ok(false),  // Si el byte es 0, devuelve false
+            1 => Ok(true),   // Si el byte es 1, devuelve true
+            _ => Err(Errors::ProtocolError(String::from("Invalid boolean value"))), // Si no es 0 o 1, da error
         }
     }
 }

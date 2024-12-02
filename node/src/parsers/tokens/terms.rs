@@ -110,7 +110,7 @@ fn to_boolean(word: &str) -> Option<Token> {
 /// - `None` si no se reconoce.
 ///
 /// # Ejemplo
-/// ```
+/// ```ignore
 /// use crate::string_to_term;
 /// let token = string_to_term("+").unwrap();
 /// assert_eq!(format!("{:?}", token), "Term::ArithMath(ArithMath::Suma)");

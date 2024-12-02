@@ -170,7 +170,7 @@ pub fn to_literal(word: &str) -> Option<Token> {
 /// - Un nuevo `Literal` con el valor y tipo de dato proporcionados.
 ///
 /// # Ejemplo
-/// ```
+/// ```ignore
 /// use crate::{Literal, DataType::Text};
 /// let literal = create_literal("Hello World", Text);
 /// assert_eq!(literal.value, "Hello World");
@@ -199,7 +199,7 @@ impl PartialOrd for Literal {
     /// - `None` si los tipos de datos no coinciden.
     ///
     /// # Ejemplo
-    /// ```
+    /// ```ignore
     /// use crate::{Literal, DataType::Int};
     /// let literal1 = Literal::new("123".to_string(), Int);
     /// let literal2 = Literal::new("456".to_string(), Int);

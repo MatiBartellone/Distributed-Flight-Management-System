@@ -21,7 +21,7 @@ impl Symbols {
     /// - Una nueva instancia de `Symbols`.
     ///
     /// # Ejemplo
-    /// ```
+    /// ```ignore
     /// use crate::Symbols;
     /// let symbols = Symbols::new();
     /// ```

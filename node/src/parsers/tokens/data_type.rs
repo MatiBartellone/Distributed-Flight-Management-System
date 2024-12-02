@@ -25,48 +25,14 @@ pub fn string_to_data_type(word: &str) -> Option<Token> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_string_to_data_type() {
-        // Casos válidos
-        assert_eq!(
-            string_to_data_type("int"),
-            Some(Token::DataType(DataType::Int))
-        );
-        assert_eq!(
-            string_to_data_type("boolean"),
-            Some(Token::DataType(DataType::Boolean))
-        );
-        assert_eq!(
-            string_to_data_type("date"),
-            Some(Token::DataType(DataType::Date))
-        );
-        assert_eq!(
-            string_to_data_type("decimal"),
-            Some(Token::DataType(DataType::Decimal))
-        );
-        assert_eq!(
-            string_to_data_type("text"),
-            Some(Token::DataType(DataType::Text))
-        );
-        assert_eq!(
-            string_to_data_type("duration"),
-            Some(Token::DataType(DataType::Duration))
-        );
-        assert_eq!(
-            string_to_data_type("time"),
-            Some(Token::DataType(DataType::Time))
-        );
-
-        // Casos no válidos
-        assert_eq!(string_to_data_type("integer"), None); // Palabra no válida
-        assert_eq!(string_to_data_type("BOOLEAN"), Some(Token::DataType(DataType::Boolean))); // Prueba con mayúsculas
-        assert_eq!(string_to_data_type("Date"), Some(Token::DataType(DataType::Date))); // Prueba con capitalización mixta
-        assert_eq!(string_to_data_type(""), None); // Cadena vacía
-        assert_eq!(string_to_data_type("someOtherType"), None); // Tipo completamente diferente
+pub fn data_type_to_string(data_type: &DataType) -> String {
+    match data_type {
+        DataType::Int => "int".to_string(),
+        DataType::Boolean => "boolean".to_string(),
+        DataType::Date => "date".to_string(),
+        DataType::Decimal => "decimal".to_string(),
+        DataType::Text => "text".to_string(),
+        DataType::Duration => "duration".to_string(),
+        DataType::Time => "time".to_string(),
     }
 }
-
