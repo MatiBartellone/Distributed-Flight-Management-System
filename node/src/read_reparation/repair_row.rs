@@ -48,12 +48,13 @@ impl RepairRow {
         Ok(())
     }
 
-    fn add_update_changes(query: &mut Vec<Token>, identifier: &str, literal: &Literal) {
-        query.push(create_iterate_list_token(vec![
-            create_identifier_token(identifier),
-            create_comparison_operation_token(Equal),
-            create_token_from_literal(literal.clone()),
-        ]));
+    fn add_update_changes(identifier: &str, literal: &Literal) -> Vec<Token> {
+        let mut res: Vec<Token> = Vec::new(); 
+        res.push(create_identifier_token(identifier));
+        res.push(create_comparison_operation_token(Equal));
+        res.push(create_token_from_literal(literal.clone()));
+        res.push(create_symbol_token(","));
+        res
     }
 
     fn create_update_changes(
@@ -65,14 +66,16 @@ impl RepairRow {
         let mut change_row = false;
         self.create_base_update(query)?;
         let best_col_map = to_hash_columns(best_column);
+        let mut changes: Vec<Token> = Vec::new(); 
         for column in node_columns {
             if let Some(best_column) = best_col_map.get(&column.column_name) {
                 if column.value.value != best_column.value.value {
-                    Self::add_update_changes(query, &column.column_name, &best_column.value);
+                    changes.append(&mut Self::add_update_changes(&column.column_name, &best_column.value));
                     change_row = true
                 }
             }
         }
+        query.push(create_iterate_list_token(changes));
         Ok(change_row)
     }
 
@@ -169,7 +172,6 @@ impl RepairRow {
                 }
             }
         };
-        dbg!(&query);
         Ok((change_row, query))
     }
 }
@@ -239,17 +241,6 @@ mod tests {
                 create_symbol_token(","),
                 create_token_literal("abc", DataType::Text),
                 create_symbol_token(","),
-            ]),
-            
-            create_reserved_token("WHERE"),
-            create_iterate_list_token(vec![
-                create_identifier_token("pk1"),
-                create_comparison_operation_token(Equal),
-                create_token_literal("1", DataType::Int),
-                create_logical_operation_token(And),
-                create_identifier_token("pk2"),
-                create_comparison_operation_token(Equal),
-                create_token_literal("2", DataType::Int),
             ]),
         ];
         assert_eq!(query, expected_tokens);
@@ -336,13 +327,6 @@ mod tests {
                 create_token_literal("abc", DataType::Text),
                 create_symbol_token(","),
             ]),
-            
-            create_reserved_token("WHERE"),
-            create_iterate_list_token(vec![
-                create_identifier_token("pk1"),
-                create_comparison_operation_token(Equal),
-                create_token_literal("1", DataType::Int),
-            ]),
         ];
 
         assert!(change_row);
@@ -384,6 +368,7 @@ mod tests {
                 create_identifier_token("value"),
                 create_comparison_operation_token(Equal),
                 create_token_literal("new", DataType::Text),
+                create_symbol_token(","),
             ]),
             create_reserved_token("WHERE"),
             create_iterate_list_token(vec![
