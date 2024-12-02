@@ -53,7 +53,6 @@ pub fn setup() {
         }
 
     });
-    sleep(Duration::from_millis(500));
 }
 
 pub fn teardown() {

@@ -7,10 +7,10 @@ mod tests {
     #[test]
     fn insert_test() {
         setup();
-        let result = get_query_result("INSERT INTO test.tb1 (id, name) VALUES (1, 'Mati')");
+        let result = get_query_result("INSERT INTO teSt.tb1 (id, NaMe) VALUES (1, 'Mati')");
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), 1i32.to_be_bytes().to_vec());
-        let select_result = get_query_result("SELECT * FROM test.tb1 WHERE id = 1");
+        let select_result = get_query_result("SELECT * FROM test.tb1 WHERE ID = 1");
         assert!(select_result.is_ok());
         let rows = get_rows_select(select_result.unwrap());
         assert_eq!(rows.len(), 1);
@@ -27,7 +27,7 @@ mod tests {
     #[test]
     fn insert_test2() {
         setup();
-        let result = get_query_result("INSERT INTO test.tb1 (id, name) VALUES (2, 'Thiago')");
+        let result = get_query_result("INSERT INTO tESt.tb1 (id, name) VALUES (2, 'Thiago')");
         assert!(result.is_ok());
         let select_result = get_query_result("SELECT * FROM test.tb1 WHERE id = 2");
         assert!(select_result.is_ok());
@@ -51,7 +51,7 @@ mod tests {
         );
         assert!(result.is_ok());
         let result = get_query_result(
-            "INSERT INTO test.tb1 (id, name, second) VALUES (3, 'Thiago', 'Bartellone')",
+            "INSERT INTO test.tb1 (id, name, sECOnd) VALUES (3, 'Thiago', 'Bartellone')",
         );
         assert!(result.is_ok());
         let select_result = get_query_result("SELECT * FROM test.tb1 WHERE id = 3");
