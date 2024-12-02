@@ -1,5 +1,5 @@
 use super::query::Query;
-use crate::meta_data::meta_data_handler::use_client_meta_data;
+use crate::meta_data::meta_data_handler::{use_client_meta_data, use_keyspace_meta_data};
 use crate::utils::constants::CLIENT_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::response::Response;
@@ -27,6 +27,9 @@ impl Default for UseQuery {
 
 impl Query for UseQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
+        if !use_keyspace_meta_data(|handler| handler.exists_keyspace(&self.keyspace_name))? {
+            return Err(Errors::Invalid(String::from("keyspace not found")));
+        }
         use_client_meta_data(|handler| {
             handler.use_keyspace(CLIENT_METADATA_PATH.to_owned(), &self.keyspace_name)
         })?;

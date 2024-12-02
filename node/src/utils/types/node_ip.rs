@@ -31,13 +31,13 @@ impl NodeIp {
         // Intentamos separar la cadena por el carácter ':' (usamos `split_once` para eso)
         if let Some((ip_str, port_str)) = ip_string.split_once(":") {
             let ip = IpAddr::from_str(ip_str)
-                .map_err(|_| Errors::ServerError("Could not parse IP".to_string()))?;
+                .map_err(|_| ServerError("Could not parse IP".to_string()))?;
             let port = port_str
                 .parse::<u16>()
-                .map_err(|_| Errors::ServerError("Could not parse port".to_string()))?;
+                .map_err(|_| ServerError("Could not parse port".to_string()))?;
             Ok(NodeIp { ip, port })
         } else {
-            Err(Errors::ServerError("Invalid IP format".to_string()))
+            Err(ServerError("Invalid IP format".to_string()))
         }
     }
 

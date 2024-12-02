@@ -8,6 +8,25 @@ use crate::utils::parser_constants::{
     SELECT, SET, WHERE,
 };
 
+
+/// Enum que representa los distintos tipos de tokens que se pueden generar durante
+/// la tokenización de una consulta CQL.
+/// 
+/// Los tokens están organizados en una estructura jerárquica, permitiendo representar
+/// de manera eficiente la consulta para su análisis posterior.
+/// 
+/// # Tipos de tokens
+/// - **Identifier(String):** Representa identificadores de objetos o entidades, como nombres de columnas,
+///   tablas, keyspaces, etc. Los identificadores pueden estar entre comillas dobles para preservar su formato exacto.
+/// - **Term(Term):** Representa literales, operadores aritméticos o booleanos utilizados en la consulta.
+/// - **Reserved(String):** Palabras reservadas de CQL que no pueden ser usadas como identificadores, como `SELECT`,
+///   `ORDER`, `PRIMARY`, etc.
+/// - **DataType(DataType):** Representa los tipos de datos soportados por CQL, como `Int`, `Boolean`, `Text`, etc.
+/// - **ParenList(Vec<Token>):** Agrupa elementos dentro de paréntesis, por ejemplo, las condiciones de una cláusula `WHERE`.
+/// - **IterateToken(Vec<Token>):** Agrupa secciones de longitud variable, como columnas en un `SELECT` o valores en un `INSERT`.
+/// - **BraceList(Vec<Token>):** Agrupa elementos dentro de llaves, como definiciones de tablas o keyspaces.
+/// - **Symbol(String):** Representa símbolos específicos utilizados en la consulta, como `,`, `;`, `:`.
+///
 #[derive(Debug, PartialEq)]
 pub enum Token {
     Identifier(String),
@@ -42,7 +61,7 @@ fn string_to_identifier(word: &str) -> Option<Token> {
                 return None;
             }
         }
-        return Some(Token::Identifier(word.to_string()));
+        return Some(Token::Identifier(word.to_ascii_lowercase()));
     }
     None
 }
@@ -149,6 +168,19 @@ fn close_sub_list_if(word: &str) -> bool {
         && !(word_upper == AND || word_upper == OR || word_upper == NOT || word_upper == EXISTS)
 }
 
+
+/// Tokenización recursiva.
+///
+/// Esta función es la base del proceso de tokenización y permite manejar
+/// estructuras anidadas como sublistas o bloques delimitados.
+/// 
+/// # Parámetros
+/// - `words`: Vector de palabras de entrada.
+/// - `closure`: Función que determina la condición de cierre de una sublista.
+/// - `i`: Índice mutable para rastrear la posición actual en el vector de palabras.
+///
+/// # Retorna
+/// Un `Result` con un vector de tokens o un error de tipo `Errors`.
 fn tokenize_recursive<F>(words: &[String], closure: F, i: &mut usize) -> Result<Vec<Token>, Errors>
 where
     F: Fn(&str) -> bool,
@@ -175,6 +207,43 @@ where
     Ok(res)
 }
 
+
+/// Tokenizador de consultas CQL.
+///
+/// Este módulo convierte una consulta en texto en una secuencia de tokens, siguiendo
+/// reglas predefinidas para clasificar cada palabra o símbolo.
+///
+/// # Funcionamiento
+/// La tokenización sigue los siguientes pasos:
+/// 1. Clasificar palabras y símbolos en tokens utilizando reglas predefinidas.
+/// 2. Identificar y agrupar sublistas basadas en paréntesis, llaves o palabras reservadas.
+/// 3. Validar que todos los elementos cumplen con las reglas sintácticas de CQL.
+///
+/// Si se encuentra un error durante el proceso, el sistema devuelve un `Errors::SyntaxError`
+/// con detalles sobre la naturaleza y ubicación del problema.
+///
+/// # Ejemplo de uso
+/// ```rust
+/// let consulta = vec![
+///     "SELECT".to_string(),
+///     "*".to_string(),
+///     "FROM".to_string(),
+///     "tabla".to_string(),
+///     "WHERE".to_string(),
+///     "id".to_string(),
+///     "=".to_string(),
+///     "42".to_string(),
+/// ];
+/// 
+/// let resultado = tokenize(consulta);
+/// assert!(resultado.is_ok());
+/// ```
+///
+/// # Manejo de errores
+/// Si un literal o palabra es inválido, el sistema devuelve un error detallado:
+/// ```rust
+/// Err(Errors::SyntaxError("Invalid word: 'token'".to_string()));
+/// ```
 pub fn tokenize(words: Vec<String>) -> Result<Vec<Token>, Errors> {
     // Definimos una closure que siempre devuelve false
     let fn_false = |_: &str| false;
@@ -601,10 +670,10 @@ mod tests {
             Token::Identifier("tAbla".to_string()),
             Token::ParenList(vec![
                 Token::Identifier("columna1".to_string()),
-                Token::Identifier("TEXT".to_string()),
+                Token::DataType(DataType::Text),
                 Token::Symbol(",".to_string()),
                 Token::Identifier("columna2".to_string()),
-                Token::Identifier("INT".to_string()),
+                Token::DataType(DataType::Int),
                 Token::Symbol(",".to_string()),
                 Token::Identifier("columna3".to_string()),
                 Token::Reserved("PRIMARY".to_string()),
@@ -675,7 +744,7 @@ mod tests {
 
     #[test]
     fn test_tokenize_drop_keyspace() {
-        let query = ["DROP", "KEYSPACE", "\"my_keyspace\""]
+        let query = ["DROP", "KEYSPACE", "\"my_Keyspace\""]
             .iter()
             .map(|s| s.to_string())
             .collect::<Vec<String>>();
@@ -683,7 +752,7 @@ mod tests {
         let expected_tokens = vec![
             Token::Reserved("DROP".to_string()),
             Token::Reserved("KEYSPACE".to_string()),
-            Token::Identifier("my_keyspace".to_string()), // Igualmente, asegúrate de manejar las comillas adecuadamente
+            Token::Identifier("my_Keyspace".to_string()), // Igualmente, asegúrate de manejar las comillas adecuadamente
         ];
 
         let result = tokenize(query).unwrap();
@@ -703,7 +772,7 @@ mod tests {
             Token::Identifier("users".to_string()), // Manejo de comillas
             Token::Reserved("ADD".to_string()),
             Token::Identifier("age".to_string()), // Manejo de comillas
-            Token::Identifier("INT".to_string()), // Tipo de dato
+            Token::DataType(DataType::Int) // Tipo de dato
         ];
 
         let result = tokenize(query).unwrap();

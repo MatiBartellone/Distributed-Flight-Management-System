@@ -1,3 +1,15 @@
+//! Módulo que proporciona funciones para procesar y estandarizar cadenas de texto,
+//! particularmente en el contexto de consultas SQL. Este módulo incluye funciones
+//! para eliminar comentarios, dividir el texto en secciones delimitadas, y estandarizar
+//! la entrada eliminando los comentarios y separando las palabras según las reglas definidas.
+//!
+//! Las funciones permiten:
+//! - **Eliminar comentarios**: Soporta la eliminación de comentarios de una línea y de bloque.
+//! - **Dividir el texto en secciones**: Identifica y divide partes del texto delimitadas por caracteres especiales como `$`, `'` o `"`, conservando estas secciones para su posterior procesamiento.
+//! - **Estandarizar la entrada**: Elimina los comentarios y divide el texto en palabras o secciones de acuerdo con las reglas de formato definidas, facilitando el análisis posterior de la cadena de texto.
+//!
+//! Este módulo puede ser útil para preprocesar consultas CQL, eliminar comentarios y manejar las secciones del texto de manera estructurada para su análisis o transformación posterior.
+
 use crate::utils::parser_constants::SPACE;
 use crate::utils::parser_constants::*;
 
@@ -82,9 +94,23 @@ fn out_section(
     }
 }
 
-//me separa todas las partes que esten entre $, ' o ""
-//hola $hola como estas$ "bien" 'vos' el resto de el string
-//queda como ["hola ", "$hola como estas$", " "bien" ", "'vos' el resto de el string"]
+/// Divide una cadena de texto en secciones, separadas por los delimitadores `$`, `'` o `"`.
+/// Cada sección será un string independiente en el vector de salida, incluyendo los delimitadores.
+/// Las secciones son aquellas partes del texto que están entre comillas simples, dobles o símbolos de dólar.
+///
+/// # Argumentos
+/// * `input`: La cadena de texto de entrada a dividir.
+///
+/// # Retorno
+/// Un `Vec<String>` con las secciones del texto, donde cada sección está entre los delimitadores
+/// definidos: `$`, `'`, o `"`. Las partes no delimitadas también se incluyen como strings individuales.
+///
+/// # Ejemplo
+/// ```rust
+/// let input = "hola $hola como estas$ \"bien\" 'vos' el resto de el string";
+/// let result = divide_sections(input);
+/// assert_eq!(result, ["hola ", "$hola como estas$", " \"bien\" ", "'vos' el resto de el string"]);
+/// ```
 fn divide_sections(input: &str) -> Vec<String> {
     let mut res = Vec::new();
     let mut section = String::new();
@@ -115,7 +141,21 @@ fn divide_sections(input: &str) -> Vec<String> {
     res
 }
 
-//Elimina todos los comments de la query
+/// Elimina todos los comentarios de una cadena de texto, incluyendo comentarios de una línea
+/// (tanto con `//` como con `--`) y comentarios de bloque (`/* */`).
+///
+/// # Argumentos
+/// * `input`: La cadena de texto de entrada que puede contener comentarios.
+///
+/// # Retorno
+/// La cadena de texto sin comentarios.
+///
+/// # Ejemplo
+/// ```rust
+/// let input = "SELECT * FROM table -- comentario\n WHERE x = 1 /* comentario bloque */";
+/// let result = remove_comments(input);
+/// assert_eq!(result, "SELECT * FROM table \n WHERE x = 1 ");
+/// ```
 fn remove_comments(input: &str) -> String {
     let without_diagonal = remove_between(input, "\n", "//");
     let without_bar = remove_between(&without_diagonal, "\n", "--");
@@ -147,17 +187,24 @@ fn replace_double_chars(query: &str) -> String {
 
 fn replace_simple_chars(query: &str) -> String {
     let mut result = String::new();
-    let chars = query.chars().peekable();
+    let mut chars = query.chars().peekable();
     let characters = CharacterMappings::new();
 
-    for current in chars {
-        let current_str = current.to_string();
-        if let Some(replace) = characters.get_mapping(&current_str) {
-            result.push_str(replace);
-            continue;
+    while let Some(current) = chars.next() {
+        if let Some(&next) = chars.peek() {
+            if current == '-' && next.is_ascii_digit() {
+                result.push_str(&current.to_string());
+                continue;
+            }
         }
-
-        result.push(current);
+        if let Some(replace) = characters.get_mapping(&current.to_string()) {
+            result.push_str(replace);
+            
+        }
+        else {
+            result.push(current);
+        }
+        
     }
 
     result
@@ -174,6 +221,23 @@ fn is_section(word: &str) -> bool {
     matches!(word.chars().next(), Some('$' | '\'' | '"'))
 }
 
+
+/// Establece un formato estándar para la entrada de texto, eliminando los comentarios y dividiendo
+/// el texto en palabras o secciones, de acuerdo con el contexto de los delimitadores.
+///
+/// # Argumentos
+/// * `input`: La cadena de texto de entrada que puede contener comentarios y secciones delimitadas.
+///
+/// # Retorno
+/// Un `Vec<String>` que contiene las palabras y secciones del texto en su formato estandarizado,
+/// donde los comentarios han sido eliminados y las secciones delimitadas se conservan tal como están.
+///
+/// # Ejemplo
+/// ```rust
+/// let input = "SELECT * FROM table -- comentario\n WHERE x = 1 /* comentario bloque */";
+/// let result = standardize(input);
+/// assert_eq!(result, ["SELECT", "*", "FROM", "table", "WHERE", "x", "=", "1"]);
+/// ```
 pub fn standardize(input: &str) -> Vec<String> {
     let input = remove_comments(input);
     let sections = divide_sections(&input);
@@ -208,6 +272,19 @@ mod tests {
             "de",
             "el",
             "string",
+        ];
+        //imprimir_vector(&resultado);
+        assert_eq!(resultado, expected);
+    }
+
+    #[test]
+    fn test_negative_number() {
+        let input = r#"hola -234 hola1"#;
+        let resultado = standardize(input);
+        let expected = vec![
+            "hola",
+            "-234",
+            "hola1",
         ];
         //imprimir_vector(&resultado);
         assert_eq!(resultado, expected);

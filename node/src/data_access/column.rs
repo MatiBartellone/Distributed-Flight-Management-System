@@ -2,6 +2,8 @@ use crate::parsers::tokens::literal::Literal;
 use crate::utils::types::timestamp::Timestamp;
 use serde::{Deserialize, Serialize};
 
+/// Column represents a single value in a Row, indicating the column_name, its value and the timestamp
+/// which indicates the last time that it was changed.
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct Column {
     pub column_name: String,

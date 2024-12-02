@@ -17,7 +17,6 @@ use std::thread;
 use std::time::Duration;
 
 pub struct QueryDelegator {
-    #[allow(dead_code)]
     primary_key: Option<Vec<String>>,
     query: Box<dyn Query>,
     consistency: ConsistencyLevel,

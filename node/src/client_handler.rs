@@ -18,13 +18,13 @@ impl ClientHandler {
     ) -> Result<(), Errors> {
         add_new_client()?;
         loop {
-            match read_exact_from_tls_stream(&mut stream)? {
-                vec if vec.is_empty() => {
+            match read_exact_from_tls_stream(&mut stream) {
+                Err(_) => {
                     println!("Client disconnected");
                     delete_client()?;
                     break;
                 }
-                vec => match execute_request(vec.clone()) {
+                Ok(vec) => match execute_request(vec.clone()) {
                     Ok(response) => write_to_tls_stream(&mut stream, response.as_slice())?,
                     Err(e) => {
                         let frame = ErrorBuilder::build_error_frame(
@@ -87,7 +87,7 @@ fn check_auth(opcode: u8) -> Result<(), Errors> {
             "Client is already authorized",
         )));
     } else if opcode != STARTUP && opcode != AUTH_RESPONSE && !is_authorized {
-        return Err(Errors::Unprepared(String::from(
+        return Err(Errors::Unauthorized(String::from(
             "Client must authorize first",
         )));
     }
