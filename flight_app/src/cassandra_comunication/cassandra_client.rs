@@ -141,18 +141,15 @@ impl CassandraClient {
     }
 
     fn get_response_row(&self, body: &[u8]) -> Result<Vec<HashMap<String, String>>, String> {
-        let mut cursor = BytesCursor::new(body);
-        let type_response = cursor.read_int()?;
-        if type_response != ROW_RESPONSE {
-            return Err("Invalid type response".to_string());
-        }
-        let body = cursor.read_bytes()?
-            .ok_or("Error reading the body")?;
         self.get_rows(&body)
     }
 
     fn get_rows(&self, body: &[u8]) -> Result<Vec<HashMap<String, String>>, String> {
         let mut cursor = BytesCursor::new(body);
+        let type_response = cursor.read_int()?;
+        if type_response != ROW_RESPONSE {
+            return Err("Invalid type response".to_string());
+        }
         let _ = cursor.read_int()?;
         let columns_count = cursor.read_int()?;
         let _keyspace = cursor.read_string()?;
@@ -160,7 +157,7 @@ impl CassandraClient {
         
         let mut column_names = Vec::new();
         for _ in 0..columns_count {
-            let column_name = cursor.read_long_string()?;
+            let column_name = cursor.read_string()?;
             let _ = cursor.read_i16()?;
             column_names.push(column_name);
         }

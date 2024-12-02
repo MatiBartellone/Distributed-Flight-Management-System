@@ -18,6 +18,7 @@ pub struct Airports {
 
 impl Airports {
     pub fn new(airports: Vec<Airport>, selected_airport_code: Arc<Mutex<Option<String>>>, selected_flight: Arc<Mutex<Option<FlightSelected>>>) -> Self {
+        println!("Creating airports len: {}", airports.len());
         let airports = airports
             .into_iter()
             .map(|airport| (airport.code.to_string(), airport))

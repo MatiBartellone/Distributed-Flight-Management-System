@@ -36,7 +36,7 @@ impl UIClient {
 
     fn get_airport(&self, client: &mut CassandraClient, airport_code: &str, frame_id: &usize) -> Option<Airport> {
         let query = format!(
-            "SELECT name, positionLat, positionLon, code FROM aviation.airports WHERE code = '{}';",
+            "SELECT name, \"positionLat\", \"positionLon\", code FROM \"aviation.airports\" WHERE code = '{}';",
             airport_code
         );
         let values = client.execute_strong_select_query(&query, frame_id).ok()?;
@@ -67,6 +67,7 @@ impl UIClient {
         let airport_code = airport_code.to_string();
         let ui_client = Self; 
         thread_pool.execute(move |frame_id, client| {
+            println!("Getting flight codes for airport: {}", airport_code);
             if let Some(flight_codes) = ui_client.get_flight_codes_by_airport(client, &airport_code, &frame_id) {
                 tx.send(flight_codes).expect("Error sending the flight codes");
             } else {
@@ -76,7 +77,10 @@ impl UIClient {
     
         thread_pool.join();
         match rx.recv() {
-            Ok(flight_codes) => flight_codes,
+            Ok(flight_codes) => {
+                println!("Flight codes received: {}", flight_codes.len());
+                flight_codes
+            }
             Err(_) => HashSet::new()
         }
     }
@@ -84,7 +88,7 @@ impl UIClient {
     // Gets all de flights codes going or leaving the aiport
     fn get_flight_codes_by_airport(&self, client: &mut CassandraClient, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
         let query = format!(
-            "SELECT flightCode FROM aviation.flightsByAirport WHERE airportCode = '{}'",
+            "SELECT \"flightCode\" FROM aviation.flightsByAirport WHERE \"airportCode\" = '{}'",
             airport_code
         );
         let values = client.execute_strong_select_query(&query, frame_id).ok()?;
@@ -116,6 +120,7 @@ impl UIClient {
             let ui_client = Self; 
             let tx = Arc::clone(&tx);
             thread_pool.execute(move |frame_id, client| {
+                println!("Getting flight: {}", code);
                 if let Some(flight) = ui_client.get_flight(client, &code, &frame_id) {
                     if let Ok(tx) = tx.lock(){
                         let _ = tx.send(flight);
@@ -139,7 +144,7 @@ impl UIClient {
 
     fn get_flight_status(&self, client: &mut CassandraClient, flight: &mut Flight, frame_id: &usize) -> Option<()> {
         let query = format!(
-            "SELECT flightCode, status, arrivalAirport FROM aviation.flightInfo WHERE flightCode = '{}';",
+            "SELECT \"flightCode\", status, \"arrivalAirport\" FROM aviation.flightInfo WHERE \"flightCode\" = '{}';",
             flight.code
         );
         let values = client.execute_strong_select_query(&query, frame_id).ok()?;
@@ -165,7 +170,7 @@ impl UIClient {
 
     fn get_flight_tracking(&self, client: &mut CassandraClient, flight: &mut Flight, frame_id: &usize) -> Option<()> {
         let query = format!(
-            "SELECT positionLat, positionLon, arrivalPositionLat, arrivalPositionLon FROM aviation.flightInfo WHERE flightCode = '{}';",
+            "SELECT \"positionLat\", \"positionLon\", \"arrivalPositionLat\", \"arrivalPositionLon\" FROM aviation.flightInfo WHERE \"flightCode\" = '{}';",
             flight.code
         );
         let values = client.execute_weak_select_query(&query, frame_id).ok()?;
@@ -219,7 +224,7 @@ impl UIClient {
 
     fn get_flight_selected_status(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightStatus> {
         let query = format!(
-            "SELECT flightCode, status, departureAirport, arrivalAirport, departureTime, arrivalTime FROM aviation.flightInfo WHERE flightCode = '{}';",
+            "SELECT \"flightCode\", status, \"departureAirport\", \"arrivalAirport\", \"departureTime\", \"arrivalTime\" FROM aviation.flightInfo WHERE \"flightCode\" = '{}';",
             flight_code
         );
         let values = client.execute_strong_select_query(&query, frame_id).ok()?;
@@ -248,7 +253,7 @@ impl UIClient {
 
     fn get_flight_selected_tracking(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightTracking> {
         let query = format!(
-            "SELECT positionLat, positionLon, arrivalPositionLat, arrivalPositionLon, altitude, speed, fuelLevel FROM aviation.flightInfo WHERE flightCode = '{}'",
+            "SELECT \"positionLat\", \"positionLon\", \"arrivalPositionLat\", \"arrivalPositionLon\", \"altitude\", speed, \"fuelLevel\" FROM aviation.flightInfo WHERE \"flightCode\" = '{}'",
             flight_code
         );
         let values = client.execute_weak_select_query(&query, frame_id).ok()?;

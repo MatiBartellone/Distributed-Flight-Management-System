@@ -37,7 +37,7 @@ impl Simulator {
     /// Get the information of the airport
     pub fn get_airport(&self, client: &mut CassandraClient, airport_code: &str, frame_id: &usize) -> Option<Airport> {
         let query = format!(
-            "SELECT name, positionLat, positionLon, code FROM aviation.airports WHERE code = '{}';",
+            "SELECT name, \"positionLat\", \"positionLon\", code FROM aviation.airports WHERE code = '{}';",
             airport_code
         );
         let values = client.execute_strong_select_query(&query, frame_id).ok()?;
@@ -85,7 +85,7 @@ impl Simulator {
     // Gets all de flights codes going or leaving the aiport
     fn get_flight_codes_by_airport(&self, client: &mut CassandraClient, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
         let query = format!(
-            "SELECT flightCode FROM aviation.flightsByAirport WHERE airportCode = '{}'",
+            "SELECT \"flightCode\" FROM aviation.flightsByAirport WHERE \"airportCode\" = '{}'",
             airport_code
         );
         let values = client.execute_strong_select_query(&query, frame_id).ok()?;
@@ -114,7 +114,7 @@ impl Simulator {
 
     fn insert_flight(&self, client: &mut CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
-            "INSERT INTO aviation.flightInfo (flightCode, status, departureAirport, arrivalAirport, departureTime, arrivalTime, positionLat, positionLon, arrivalPositionLat, arrivalPositionLon, altitude, speed, fuelLevel) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}');",
+            "INSERT INTO aviation.flightInfo (\"flightCode\", status, \"departureAirport\", \"arrivalAirport\", \"departureTime\", \"arrivalTime\", \"positionLat\", \"positionLon\", \"arrivalPositionLat\", \"arrivalPositionLon\", altitude, speed, \"fuelLevel\") VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}');",
             flight.get_code(), 
             flight.get_status().to_string(), 
             flight.get_departure_airport(), 
@@ -171,7 +171,7 @@ impl Simulator {
 
     fn get_flight_status(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightStatus> {
         let query = format!(
-            "SELECT flightCode, status, departureAirport, arrivalAirport, departureTime, arrivalTime FROM aviation.flightInfo WHERE flightCode = '{}';",
+            "SELECT \"flightCode, status, \"departureAirport\", \"arrivalAirport\", \"departureTime\", \"arrivalTime\" FROM aviation.flightInfo WHERE \"flightCode\" = '{}';",
             flight_code
         );
         let values = client.execute_strong_select_query(&query, frame_id).ok()?;
@@ -200,7 +200,7 @@ impl Simulator {
 
     fn get_flight_tracking(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightTracking> {
         let query = format!(
-            "SELECT positionLat, positionLon, arrivalPositionLat, arrivalPositionLon, altitude, speed, fuelLevel FROM aviation.flightInfo WHERE flightCode = '{}'",
+            "SELECT \"positionLat\", \"positionLon\", \"arrivalPositionLat\", \"arrivalPositionLon\", altitude, speed, \"fuelLevel\" FROM aviation.flightInfo WHERE \"flightCode\" = '{}'",
             flight_code
         );
         let values = client.execute_weak_select_query(&query, frame_id).ok()?;
@@ -235,7 +235,7 @@ impl Simulator {
 
     fn update_flight_status(&self, client: &mut CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
-            "UPDATE aviation.flightInfo SET status = '{}', departureAirport = '{}', arrivalAirport = '{}', departureTime = '{}', arrivalTime = '{}' WHERE flightCode = '{}';",
+            "UPDATE aviation.flightInfo SET status = '{}', \"departureAirport\" = '{}', \"arrivalAirport\" = '{}', \"departureTime\" = '{}', \"arrivalTime\" = '{}' WHERE \"flightCode\" = '{}';",
             flight.get_status().to_string(), flight.get_departure_airport(), flight.get_arrival_airport(), flight.get_departure_time(), flight.get_arrival_time(),
             flight.get_code()
         );
@@ -244,7 +244,7 @@ impl Simulator {
 
     fn update_flight_tracking(&self, client: &mut CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
-            "UPDATE aviation.flightInfo SET positionLat = '{}', positionLon = '{}', arrivalPositionLat = '{}', arrivalPositionLon = '{}', altitude = '{}', speed = '{}', fuelLevel = '{}' WHERE flightCode = '{}';",
+            "UPDATE aviation.flightInfo SET \"positionLat\" = '{}', \"positionLon\" = '{}', \"arrivalPositionLat\" = '{}', \"arrivalPositionLon\" = '{}', altitude = '{}', speed = '{}', \"fuelLevel\" = '{}' WHERE \"flightCode\" = '{}';",
             flight.get_position().0, flight.get_position().1, flight.get_arrival_position().0, flight.get_arrival_position().1, flight.get_altitude(), flight.get_speed(), flight.get_fuel_level(),
             flight.get_code()
         );
