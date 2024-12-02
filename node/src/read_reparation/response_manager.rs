@@ -164,8 +164,40 @@ mod tests {
 
     use super::*;
     use std::collections::HashMap;
-
+    fn rows_especial() ->Vec<u8> {
+        let mut response_data = mock_response_data_especial(); // Datos de las filas
+        let meta_data = mock_meta_data(); // Datos de los metadatos
+    
+        let division_offset = response_data.len(); // Offset de división
+        response_data.extend(meta_data); // Combina filas y metadatos
+        response_data.extend(&division_offset.to_be_bytes()); // Agrega el offset como un entero de 4 bytes
+    
+        response_data
+    }
     // Mocks necesarios
+    fn mock_response_data_especial() -> Vec<u8> {
+        let mut rows = vec![
+            Row::new(
+                vec![
+                    Column::new(&"column1".to_string(), &Literal::new("value1".to_string(), DataType::Text)),
+                    Column::new(&"column2".to_string(), &Literal::new("value2".to_string(), DataType::Text)),
+                ],
+                vec!["pk1".to_string(), "pk2".to_string()],
+            ),
+            Row::new(
+                vec![
+                    Column::new(&"column3".to_string(), &Literal::new("value3".to_string(), DataType::Text)),
+                    Column::new(&"column4".to_string(), &Literal::new("value4".to_string(), DataType::Text)),
+                ],
+                vec!["pk3".to_string(), "pk4".to_string()],
+            ),
+        ];
+        rows[0].deleted = true;
+        let mut encoder = TypesToBytes::default(); 
+        Response::write_rows(&rows, &mut encoder).expect("Failed to create mock response data");
+        encoder.into_bytes()
+    }
+
     fn mock_response_data() -> Vec<u8> {
         let rows = vec![
             Row::new(
@@ -261,10 +293,12 @@ mod tests {
     #[test]
     fn test_some_row_is_deleted() {
         let mut responses = HashMap::new();
-        responses.insert(NodeIp::new_from_single_string("127.0.0.1:8080").unwrap(), rows());
+        let rows = rows_especial();
+        responses.insert(NodeIp::new_from_single_string("127.0.0.1:8080").unwrap(), rows);
         let manager = ResponseManager::new(&responses).unwrap();
+        let resul = manager.some_row_is_deleted().unwrap();
         // Aquí debes simular un row eliminado para hacer que la función retorne verdadero
-        assert!(!manager.some_row_is_deleted().unwrap());
+        assert!(resul);
     }
 
     #[test]

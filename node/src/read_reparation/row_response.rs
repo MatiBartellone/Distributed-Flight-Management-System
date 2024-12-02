@@ -21,11 +21,10 @@ impl RowResponse {
         let mut res: Vec<Row> = Vec::new();
         for _ in 0..count_rows {
             let columns = RowResponse::reads_columns(&mut cursor)?;
-            println!("columnas {:?}", columns);
             let pks = RowResponse::read_pks(&mut cursor)?;
             let deleted = cursor.read_bool()?;
-            let timestamp = cursor.read_i16()?;
-            let row = RowResponse::create_row(columns, pks, deleted, Timestamp::new_from_i64(timestamp.into()));
+            let timestamp = cursor.read_i64()?;
+            let row = RowResponse::create_row(columns, pks, deleted, Timestamp::new_from_i64(timestamp));
             res.push(row);
         }
         Ok(res)
