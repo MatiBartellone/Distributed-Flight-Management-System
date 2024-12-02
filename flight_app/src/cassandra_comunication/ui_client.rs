@@ -43,10 +43,9 @@ impl UIClient {
         let (tx, rx) = mpsc::channel();
         let tx = Arc::new(Mutex::new(tx));
         for code in airports_codes {
-            let ui_client = Self; 
             let tx = Arc::clone(&tx);
             thread_pool.execute(move |frame_id, client| {
-                if let Some(airport) = ui_client.get_airport(client, &code, &frame_id) {
+                if let Some(airport) = Self.get_airport(client, &code, &frame_id) {
                     if let Ok(tx) = tx.lock(){
                         let _ = tx.send(airport);
                     }
@@ -90,9 +89,8 @@ impl UIClient {
     ) -> HashSet<String> {
         let (tx, rx) = mpsc::channel();
         let airport_code = airport_code.to_string();
-        let ui_client = Self; 
         thread_pool.execute(move |frame_id, client| {
-            if let Some(flight_codes) = ui_client.get_flight_codes_by_airport(client, &airport_code, &frame_id) {
+            if let Some(flight_codes) = Self.get_flight_codes_by_airport(client, &airport_code, &frame_id) {
                 tx.send(flight_codes).expect("Error sending the flight codes");
             } else {
                 tx.send(HashSet::new()).expect("Error sending the flight codes");
@@ -138,10 +136,9 @@ impl UIClient {
         let (tx, rx) = mpsc::channel();
         let tx = Arc::new(Mutex::new(tx));
         for code in flight_codes {
-            let ui_client = Self; 
             let tx = Arc::clone(&tx);
             thread_pool.execute(move |frame_id, client| {
-                if let Some(flight) = ui_client.get_flight(client, &code, &frame_id) {
+                if let Some(flight) = Self.get_flight(client, &code, &frame_id) {
                     if let Ok(tx) = tx.lock(){
                         let _ = tx.send(flight);
                     }
@@ -225,10 +222,9 @@ impl UIClient {
     pub fn get_flight_selected(&self, flight_code: &str, thread_pool: &ThreadPoolClient) -> Option<FlightSelected> {
         let (tx, rx) = mpsc::channel();
         let flight_code = flight_code.to_string();
-        let ui_client = Self; 
         thread_pool.execute(move |frame_id, client| {
-            let flight_status = ui_client.get_flight_selected_status(client, &flight_code, &frame_id);
-            let flight_tracking = ui_client.get_flight_selected_tracking(client, &flight_code, &frame_id);
+            let flight_status = Self.get_flight_selected_status(client, &flight_code, &frame_id);
+            let flight_tracking = Self.get_flight_selected_tracking(client, &flight_code, &frame_id);
             if let (Some(status), Some(tracking)) = (flight_status, flight_tracking) {
                 tx.send(Some(FlightSelected {
                     status,
@@ -293,7 +289,6 @@ impl UIClient {
         let altitude: f64 = weak_row.get(COL_ALTITUDE)?.parse().ok()?;
         let speed: f32 = weak_row.get(COL_SPEED)?.parse().ok()?;
         let fuel_level: f32 = weak_row.get(COL_FUEL_LEVEL)?.parse().ok()?;
-
 
         Some(FlightTracking {
             position: (position_lat, position_lon),
