@@ -1,3 +1,4 @@
+
 use crate::utils::parser_constants::SPACE;
 use crate::utils::parser_constants::*;
 
@@ -147,16 +148,24 @@ fn replace_double_chars(query: &str) -> String {
 
 fn replace_simple_chars(query: &str) -> String {
     let mut result = String::new();
-    let chars = query.chars().peekable();
+    let mut chars = query.chars().peekable();
     let characters = CharacterMappings::new();
 
-    for current in chars {
-        let current_str = current.to_string();
-        if let Some(replace) = characters.get_mapping(&current_str) {
-            result.push_str(replace);
-            continue;
+    while let Some(current) = chars.next() {
+        if let Some(&next) = chars.peek() {
+            if current == '-' && next.is_ascii_digit() {
+                result.push_str(&current.to_string());
+                continue;
+            }
         }
-        result.push(current);
+        if let Some(replace) = characters.get_mapping(&current.to_string()) {
+            result.push_str(replace);
+            
+        }
+        else {
+            result.push(current);
+        }
+        
     }
 
     result
@@ -207,6 +216,19 @@ mod tests {
             "de",
             "el",
             "string",
+        ];
+        //imprimir_vector(&resultado);
+        assert_eq!(resultado, expected);
+    }
+
+    #[test]
+    fn test_negative_number() {
+        let input = r#"hola -234 hola1"#;
+        let resultado = standardize(input);
+        let expected = vec![
+            "hola",
+            "-234",
+            "hola1",
         ];
         //imprimir_vector(&resultado);
         assert_eq!(resultado, expected);
