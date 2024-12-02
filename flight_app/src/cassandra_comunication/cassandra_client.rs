@@ -84,8 +84,6 @@ impl CassandraClient {
         }
     }
 
-
-
     // Get a query body with consistency
     pub fn get_body_query(
         &self,

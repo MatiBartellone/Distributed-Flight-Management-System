@@ -51,7 +51,7 @@ impl CassandraConnection {
     }
 
     fn read_stream(&mut self) -> Result<Frame, String> {
-        let mut buf = [0; 1024];
+        let mut buf = [0; 60000];
         match self.stream.read(&mut buf) {
             Ok(n) if n > 0 => Frame::parse_frame(&buf[..n]),
             _ => Err("Fail reading the response".to_string()),

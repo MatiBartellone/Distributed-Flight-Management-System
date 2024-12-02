@@ -13,7 +13,7 @@ use super::{
     flights::{get_flight_pos2, get_flight_vec2},
 };
 
-#[derive(PartialEq, Default)]
+#[derive(PartialEq, Default, Debug)]
 pub struct Flight {
     // weak consistency
     pub position: (f64, f64),

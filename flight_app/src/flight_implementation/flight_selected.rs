@@ -4,13 +4,13 @@ use crate::airport_implementation::airports::get_airport_screen_position;
 
 use super::{flight_state::FlightState, flights::get_flight_pos2};
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct FlightSelected {
     pub status: FlightStatus,
     pub info: FlightTracking
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct FlightStatus {
     // strong consistency
     pub code: String,
@@ -21,7 +21,7 @@ pub struct FlightStatus {
     pub arrival_time: String,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct FlightTracking {
     // weak consistency
     pub position: (f64, f64),

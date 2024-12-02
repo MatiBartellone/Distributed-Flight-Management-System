@@ -77,9 +77,12 @@ impl AppUpdater {
     fn load_selected_flight(&self){
         if let Some(selected_flight_code) = self.get_selected_flight() {
             let selected_flight = self.client.get_flight_selected(&selected_flight_code, &self.thread_pool);
+            println!("Selected flight: {:?}", &selected_flight);
             if let Ok(mut selected_flight_lock) = self.selected_flight.lock() {
                 *selected_flight_lock = selected_flight;
             }
+        } else {
+            println!("No flight selected");
         }
     }
 
