@@ -43,14 +43,14 @@ fn print_node_list(nodes_vec: &mut Vec<Node>) {
 
         println!(
             "IP: {} | Port: {} | Position: {} | is_seed: {}{}{} | STATE: {}{}{}",
-            node.ip.ip.to_string(),
-            node.ip.port.to_string(),
+            node.ip.ip,
+            node.ip.port,
             node.position,
             color::Fg(&*seed_color),
             is_seed,
             color::Fg(color::Reset),
             color::Fg(&*color),
-            node.state.to_string(),
+            node.state,
             color::Fg(color::Reset)
         );
     }
