@@ -1,5 +1,6 @@
+use std::fs::File;
 use std::io;
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use test_client::bytes_cursor::BytesCursor;
 use test_client::cassandra_connector::CassandraConnection;
 use test_client::errors::Errors;
@@ -34,6 +35,10 @@ fn main() {
             "query" => send_query(&mut connector),
             "prepare" => send_prepare(&mut connector),
             "execute" => send_execute(&mut connector),
+            "queries" => {
+                send_queries(&mut connector);
+                continue;
+            },
             _ => {
                 input.clear();
                 continue;
@@ -139,6 +144,46 @@ fn send_query(connector: &mut CassandraConnection) {
     body.extend_from_slice(&parse_string_to_i16_be_bytes(consistency));
     let frame_bytes = build_frame(body, QUERY);
     connector.write_stream(&Frame::parse_frame(frame_bytes.as_slice()).unwrap()).unwrap()
+}
+fn send_queries(connector: &mut CassandraConnection) {
+    let path = get_user_data("Queries path : ");
+    let consistency = get_user_data("General consistency: ");
+
+    let file = File::open(path).unwrap();
+    let reader = BufReader::new(file);
+    for line in reader.lines() {
+        let query = line.unwrap().trim();
+        if query.starts_with("/") {
+            continue;
+        }
+        let mut body = Vec::new();
+        body.extend_from_slice((query.len() as i32).to_be_bytes().as_slice());
+        body.extend_from_slice(query.as_bytes());
+        body.extend_from_slice(&parse_string_to_i16_be_bytes(consistency.to_string()));
+        let frame_bytes = build_frame(body, QUERY);
+        connector.write_stream(&Frame::parse_frame(frame_bytes.as_slice()).unwrap()).unwrap();
+
+        match connector.read_stream() {
+            Ok(frame) => {
+                match frame.opcode {
+                    ERROR => {
+                        let mut cursor = BytesCursor::new(frame.body.as_slice());
+                        let error_type = vec![cursor.read_u8().unwrap(), cursor.read_u8().unwrap()];
+                        let msg = cursor.read_string().unwrap();
+                        let error = Errors::new(error_type.as_slice(), msg);
+                        println!("{}", error);
+                    }
+                    RESULT => {
+                        show_response(frame.body).unwrap();
+                    }
+                    _ => {}
+                }
+            }
+            Err(e) => {
+                println!("Error reading from socket: {}", e);
+            }
+        }
+    }
 }
 
 fn send_prepare(connector: &mut CassandraConnection) {
