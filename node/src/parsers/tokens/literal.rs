@@ -118,7 +118,7 @@ fn is_valid_time(input: &str) -> Option<Token> {
                 let inner = &input[1..input.len() - 1];
                 let literal = Literal {
                     value: inner.to_string(),
-                    data_type: Date,
+                    data_type: Time,
                 };
                 return Some(Token::Term(Term::Literal(literal)));
             }
@@ -368,7 +368,7 @@ mod tests {
     fn test_to_literal_time() {
         let input = "'17:30:00'";
         let result = to_literal(input).unwrap();
-        let literal = Literal::new("17:30:00".to_string(), Date);
+        let literal = Literal::new("17:30:00".to_string(), Time);
         let token = Token::Term(Term::Literal(literal));
         assert_eq!(result, token);
     }
