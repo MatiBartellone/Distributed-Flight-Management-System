@@ -159,6 +159,7 @@ impl RepairRow {
                 true
             }
             (false, false) => {
+                
                 // Actualización si difieren valores
                 if self.create_update_changes(
                     &mut query,

@@ -29,6 +29,13 @@ impl RowComparer {
     }
 
     pub fn compare_row(original: &Row, new: &Row) -> Row {
+        if original.is_deleted() != new.is_deleted() {
+            if original.timestamp().is_newer_than(new.timestamp()) {
+                return  original.clone();
+            } else {
+                return new.clone();
+            }
+        }
         let mut best_columns: Vec<Column> = Vec::new();
         let new_map = to_hash_columns(new.columns.clone());
 
