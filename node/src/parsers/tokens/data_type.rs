@@ -13,7 +13,7 @@ pub enum DataType {
 }
 
 pub fn string_to_data_type(word: &str) -> Option<Token> {
-    match word {
+    match word.to_ascii_lowercase().as_str() {
         "int" => Some(Token::DataType(DataType::Int)),
         "boolean" => Some(Token::DataType(DataType::Boolean)),
         "date" => Some(Token::DataType(DataType::Date)),

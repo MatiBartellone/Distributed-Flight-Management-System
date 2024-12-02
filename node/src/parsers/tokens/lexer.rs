@@ -156,7 +156,6 @@ fn replace_simple_chars(query: &str) -> String {
             result.push_str(replace);
             continue;
         }
-
         result.push(current);
     }
 
