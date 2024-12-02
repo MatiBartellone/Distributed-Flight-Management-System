@@ -11,7 +11,6 @@ mod tests {
         setup();
         use_client_meta_data(|handler| handler.add_new_client(CLIENT_METADATA_PATH.to_string())).unwrap();
         let result = get_query_result("USE test");
-        dbg!(&result);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), vec![0, 0, 0, 3, 0, 4, 116, 101, 115, 116]);
         add_one_finished();

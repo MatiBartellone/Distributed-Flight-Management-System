@@ -14,7 +14,6 @@ pub struct InsertQueryParser;
 
 impl InsertQueryParser {
     pub fn parse(tokens_list: Vec<Token>) -> Result<InsertQuery, Errors> {
-        dbg!(&tokens_list);
         let mut insert_query = InsertQuery::default();
         into(&mut tokens_list.into_iter().peekable(), &mut insert_query)?;
         Ok(insert_query)
@@ -232,7 +231,6 @@ mod tests {
             };
             tokens.push(Token::IterateToken(list));
         }
-        dbg!(&tokens);
         tokens
     }
 
