@@ -54,6 +54,9 @@ impl RowComparer {
         if original.timestamp().is_older_than(new.timestamp()) {
             res.set_timestamp(new.timestamp());
             res.deleted = new.is_deleted();
+        } else {
+            res.set_timestamp(original.timestamp());
+            res.deleted = original.is_deleted();
         }
         res
     }
@@ -75,6 +78,13 @@ mod tests {
 
     fn create_test_row(primary_key: Vec<&str>, columns: Vec<Column>) -> Row {
         Row::new(columns, primary_key.into_iter().map(String::from).collect())
+    }
+    
+    fn create_special_row(primary_key: Vec<&str>, columns: Vec<Column>, deletd: bool, timestamp: i64) -> Row {
+        let mut row = Row::new(columns, primary_key.into_iter().map(String::from).collect());
+        row.deleted = deletd;
+        row.set_timestamp(Timestamp::new_from_i64(timestamp));
+        row
     }
     
     #[test]
@@ -133,6 +143,305 @@ mod tests {
         );
         assert_eq!(result[1].primary_key, vec!["pk3"]);
         assert_eq!(result[2].primary_key, vec!["pk2"]);
+    }
+
+    #[test]
+    fn test_better_3_responses() {
+        let response_1 = vec![
+            create_special_row(vec!["pk1"], vec![create_test_column("col1", "value1", 100)], true, 100),
+            create_special_row(vec!["pk3"], vec![create_test_column("col1", "value3", 110)], false, 110), //Best option
+        ];
+
+        let response_2 = vec![
+            create_special_row(vec!["pk1"], vec![create_test_column("col1", "value1", 100)], false, 110), //Best option
+            create_special_row(vec!["pk2"], vec![create_test_column("col1", "value2", 100)], true, 100),
+        ];
+
+        let response_3 = vec![
+            create_special_row(vec!["pk2"], vec![create_test_column("col1", "value2", 100)], false, 110), //Best Option
+            create_special_row(vec!["pk3"], vec![create_test_column("col1", "value2", 100)], true, 100),
+        ];
+
+        let response = RowComparer::compare_response(response_1, response_2);
+        let best = RowComparer::compare_response(response, response_3);
+
+        let expected = vec![
+            create_special_row(vec!["pk2"], vec![create_test_column("col1", "value2", 100)], false, 110),
+            create_special_row(vec!["pk3"], vec![create_test_column("col1", "value3", 110)], false, 110), 
+            create_special_row(vec!["pk1"], vec![create_test_column("col1", "value1", 100)], false, 110),
+        ];
+
+        assert_eq!(expected, best)
+    }
+
+
+    #[test]
+    fn test_better_3_responses_with_reparation() {
+        let response_1 = vec![
+            create_special_row(
+                vec!["pk1"], 
+                vec![
+                    create_test_column("col1", "value1a", 1),
+                    create_test_column("col2", "value1a", 2),
+                    create_test_column("col3", "value1a", 3),
+                ],
+                true, 
+                100),
+            create_special_row(
+                vec!["pk3"], 
+                vec![
+                    create_test_column("col1", "value3a", 1),
+                    create_test_column("col2", "value3a", 2),
+                    create_test_column("col3", "value3a", 3),
+                ],
+                false, 
+                110),
+        ];
+
+        let response_2 = vec![
+            create_special_row(
+                vec!["pk1"], 
+                vec![
+                    create_test_column("col1", "value1b", 4),
+                    create_test_column("col2", "value1b", 5),
+                    create_test_column("col3", "value1b", 6),
+                ],
+                false, 
+                110),
+            create_special_row(
+                vec!["pk2"], 
+                vec![
+                    create_test_column("col1", "value2b", 4),
+                    create_test_column("col2", "value2b", 5),
+                    create_test_column("col3", "value2b", 6),
+                ],
+                true, 
+                100),
+        ];
+
+        let response_3 = vec![
+            create_special_row(
+                vec!["pk2"], 
+                vec![
+                    create_test_column("col1", "value2c", 7),
+                    create_test_column("col2", "value2c", 8),
+                    create_test_column("col3", "value2c", 9),
+                ],
+                false, 
+                110),
+            create_special_row(
+                vec!["pk3"], 
+                vec![
+                    create_test_column("col1", "value3c", 7),
+                    create_test_column("col2", "value3c", 8),
+                    create_test_column("col3", "value3c", 9),
+                ],
+                true, 
+                100),
+        ];
+
+        let response = RowComparer::compare_response(response_1, response_2);
+        let best = RowComparer::compare_response(response, response_3);
+
+        let expected = vec![
+            create_special_row(
+                vec!["pk2"], 
+                vec![
+                    create_test_column("col1", "value2c", 7),
+                    create_test_column("col2", "value2c", 8),
+                    create_test_column("col3", "value2c", 9),
+                ],
+                false, 
+                110),
+            create_special_row(
+                vec!["pk3"], 
+                vec![
+                    create_test_column("col1", "value3a", 1),
+                    create_test_column("col2", "value3a", 2),
+                    create_test_column("col3", "value3a", 3),
+                ],
+                false, 
+                110), 
+            create_special_row(
+                vec!["pk1"], 
+                vec![
+                    create_test_column("col1", "value1b", 4),
+                    create_test_column("col2", "value1b", 5),
+                    create_test_column("col3", "value1b", 6),
+                ],
+                false, 
+                110),
+        ];
+
+        assert_eq!(expected, best)
+    }
+
+
+    #[test]
+    fn test_better_6_responses_with_reparation() {
+        let response_1 = vec![
+            create_special_row(
+                vec!["pk1"], 
+                vec![
+                    create_test_column("col1", "value1a", 1),
+                    create_test_column("col2", "value1a", 2),
+                    create_test_column("col3", "value1a", 3),
+                ],
+                true, 
+                100),
+            create_special_row(
+                vec!["pk3"], 
+                vec![
+                    create_test_column("col1", "value3_1a", 1),
+                    create_test_column("col2", "value3_1a", 20),
+                    create_test_column("col3", "value3_1a", 1),
+                ],
+                false, 
+                110),
+        ];
+
+        let response_2 = vec![
+            create_special_row(
+                vec!["pk1"], 
+                vec![
+                    create_test_column("col1", "value1_2b", 1),
+                    create_test_column("col2", "value1_2b", 20),
+                    create_test_column("col3", "value1_2b", 20),
+                ],
+                false, 
+                110),
+            create_special_row(
+                vec!["pk2"], 
+                vec![
+                    create_test_column("col1", "value2b", 4),
+                    create_test_column("col2", "value2b", 5),
+                    create_test_column("col3", "value2b", 6),
+                ],
+                true, 
+                100),
+        ];
+
+        let response_3 = vec![
+            create_special_row(
+                vec!["pk2"], 
+                vec![
+                    create_test_column("col1", "value2_3c", 1),
+                    create_test_column("col2", "value2_3c", 1),
+                    create_test_column("col3", "value2_3c", 20),
+                ],
+                false, 
+                110),
+            create_special_row(
+                vec!["pk3"], 
+                vec![
+                    create_test_column("col1", "value3c", 7),
+                    create_test_column("col2", "value3c", 8),
+                    create_test_column("col3", "value3c", 9),
+                ],
+                true, 
+                100),
+        ];
+
+        let response_4 = vec![
+            create_special_row(
+                vec!["pk1"], 
+                vec![
+                    create_test_column("col1", "value1a", 1),
+                    create_test_column("col2", "value1a", 2),
+                    create_test_column("col3", "value1a", 3),
+                ],
+                true, 
+                100),
+            create_special_row(
+                vec!["pk3"], 
+                vec![
+                    create_test_column("col1", "value3_4a", 20),
+                    create_test_column("col2", "value3_4a", 1),
+                    create_test_column("col3", "value3_4a", 20),
+                ],
+                false, 
+                110),
+        ];
+
+        let response_5 = vec![
+            create_special_row(
+                vec!["pk1"], 
+                vec![
+                    create_test_column("col1", "value1_5b", 20),
+                    create_test_column("col2", "value1_5b", 1),
+                    create_test_column("col3", "value1_5b", 1),
+                ],
+                false, 
+                110),
+            create_special_row(
+                vec!["pk2"], 
+                vec![
+                    create_test_column("col1", "value2b", 4),
+                    create_test_column("col2", "value2b", 5),
+                    create_test_column("col3", "value2b", 6),
+                ],
+                true, 
+                100),
+        ];
+
+        let response_6 = vec![
+            create_special_row(
+                vec!["pk2"], 
+                vec![
+                    create_test_column("col1", "value2_6c", 20),
+                    create_test_column("col2", "value2_6c", 20),
+                    create_test_column("col3", "value2_6c", 1),
+                ],
+                false, 
+                110),
+            create_special_row(
+                vec!["pk3"], 
+                vec![
+                    create_test_column("col1", "value3c", 7),
+                    create_test_column("col2", "value3c", 8),
+                    create_test_column("col3", "value3c", 9),
+                ],
+                true, 
+                100),
+        ];
+
+        let aux0 = RowComparer::compare_response(response_1, response_2);
+        let aux1 = RowComparer::compare_response(aux0, response_3);
+        let aux2 = RowComparer::compare_response(aux1, response_4);
+        let aux3 = RowComparer::compare_response(aux2, response_5);
+        let aux4 = RowComparer::compare_response(aux3, response_6);
+
+        let expected = vec![
+            create_special_row(
+                vec!["pk2"], 
+                vec![
+                    create_test_column("col1", "value2_6c", 20),
+                    create_test_column("col2", "value2_6c", 20),
+                    create_test_column("col3", "value2_3c", 20),
+                ],
+                false, 
+                110),
+            create_special_row(
+                vec!["pk3"], 
+                vec![
+                    create_test_column("col1", "value3_4a", 20),
+                    create_test_column("col2", "value3_1a", 20),
+                    create_test_column("col3", "value3_4a", 20),
+                ],
+                false, 
+                110), 
+            create_special_row(
+                vec!["pk1"], 
+                vec![
+                    create_test_column("col1", "value1_5b", 20),
+                    create_test_column("col2", "value1_2b", 20),
+                    create_test_column("col3", "value1_2b", 20),
+                ],
+                false, 
+                110),
+        ];
+
+        assert_eq!(expected, aux4)
     }
 }
 
