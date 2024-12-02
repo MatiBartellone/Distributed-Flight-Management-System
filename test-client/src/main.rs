@@ -152,7 +152,8 @@ fn send_queries(connector: &mut CassandraConnection) {
     let file = File::open(path).unwrap();
     let reader = BufReader::new(file);
     for line in reader.lines() {
-        let query = line.unwrap().trim();
+        let line = line.unwrap();
+        let query = line.trim();
         if query.starts_with("/") {
             continue;
         }
