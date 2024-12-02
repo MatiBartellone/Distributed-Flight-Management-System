@@ -1,6 +1,6 @@
 use super::{constants::KEYSPACE_METADATA_PATH, errors::Errors};
+use crate::data_access::column::Column;
 use crate::meta_data::meta_data_handler::use_keyspace_meta_data;
-use crate::utils::functions::serialize_to_string;
 use crate::{
     data_access::row::Row, parsers::tokens::data_type::DataType,
     utils::types_to_bytes::TypesToBytes,
@@ -102,9 +102,28 @@ impl Response {
         encoder.write_int(0x0002)?;
         encoder.write_short(rows.len() as u16)?;
         for row in rows {
-            encoder.write_string(serialize_to_string(row)?.as_str())?;
+            Response::write_columns(&row.columns, encoder)?;
+            encoder.write_short(row.primary_key.len() as u16)?;
+            for pk in &row.primary_key {
+                encoder.write_string(pk)?;
+            }
+            encoder.write_bool(row.deleted)?;
+            encoder.write_u64(row.timestamp().timestamp as u64)?;
         }
         Ok(())
+    }
+
+    fn write_columns(columns: &Vec<Column>, encoder: &mut TypesToBytes) -> Result<(), Errors> {
+        encoder.write_short(columns.len() as u16)?;
+        for column in columns {
+            encoder.write_string(&column.column_name)?;
+            encoder.write_string(&column.value.value)?;
+            let data_type_id = Response::data_type_to_byte(column.value.data_type.clone());
+            encoder.write_i16(data_type_id)?;
+            encoder.write_i64(column.timestamp.timestamp)?;  
+        }
+        Ok(())
+        
     }
 
     pub fn write_meta_data_response(

@@ -35,6 +35,13 @@ impl TypesToBytes {
         Ok(())
     }
 
+    pub fn write_i64(&mut self, value: i64) -> Result<(), Errors> {
+        self.bytes
+            .write_all(&value.to_be_bytes()) // Convierte i64 a bytes en Big Endian
+            .map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
+        Ok(())
+    }
+
     pub fn write_short(&mut self, value: u16) -> Result<(), Errors> {
         self.write_i16(value as i16)
     }
@@ -83,6 +90,11 @@ impl TypesToBytes {
         }
 
         Ok(())
+    }
+
+    pub fn write_bool(&mut self, value: bool) -> Result<(), Errors> {
+        let byte = if value { 1 } else { 0 };
+        self.write_u8(byte)
     }
 
     pub fn write_consistency(&mut self, consistency: ConsistencyLevel) -> Result<(), Errors> {

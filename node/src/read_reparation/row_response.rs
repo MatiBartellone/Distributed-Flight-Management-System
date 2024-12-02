@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 
 use super::data_response::DataResponse;
+use crate::data_access::column::Column;
+use crate::parsers::tokens::literal::create_literal;
 use crate::utils::types::bytes_cursor::BytesCursor;
+use crate::utils::types::timestamp::Timestamp;
 use crate::{
     data_access::row::Row,
     parsers::tokens::data_type::DataType,
-    utils::{errors::Errors, functions::deserialize_from_str},
+    utils::errors::Errors,
 };
 
 pub struct RowResponse;
@@ -17,8 +20,49 @@ impl RowResponse {
         let count_rows = cursor.read_short()?;
         let mut res: Vec<Row> = Vec::new();
         for _ in 0..count_rows {
-            let row: Row = deserialize_from_str(&cursor.read_string()?)?;
+            let columns = RowResponse::reads_columns(&mut cursor)?;
+            println!("columnas {:?}", columns);
+            let pks = RowResponse::read_pks(&mut cursor)?;
+            let deleted = cursor.read_bool()?;
+            let timestamp = cursor.read_i16()?;
+            let row = RowResponse::create_row(columns, pks, deleted, Timestamp::new_from_i64(timestamp.into()));
             res.push(row);
+        }
+        Ok(res)
+    }
+
+    fn create_row(columns: Vec<Column>, pks: Vec<String>, deleted: bool, timestamp: Timestamp) -> Row {
+        let mut row = Row::new(columns, pks);
+        row.deleted = deleted;
+        row.set_timestamp(timestamp);
+        row
+    }
+
+    fn read_pks(cursor: &mut BytesCursor) -> Result<Vec<String>, Errors> {
+        let count_pks = cursor.read_short()?;
+        let mut pks: Vec<String> = Vec::new();
+        for _ in 0..count_pks{
+            let pk = cursor.read_string()?;
+            pks.push(pk);
+        }
+        Ok(pks)
+    }
+
+    fn reads_columns(cursor: &mut BytesCursor) -> Result<Vec<Column>, Errors> {
+        let mut res: Vec<Column> = Vec::new();
+        let count_columns = cursor.read_short()?;
+        for _ in 0..count_columns {
+            let name = cursor.read_string()?;
+            let value = cursor.read_string()?;
+            let data_type = byte_to_data_type(cursor.read_i16()?)?;
+            let literal = create_literal(&value, data_type);
+            let timestamp = cursor.read_i64()?;
+            let column = Column {
+                column_name: name,
+                value: literal,
+                timestamp: Timestamp::new_from_i64(timestamp),
+            };
+            res.push(column);
         }
         Ok(res)
     }
