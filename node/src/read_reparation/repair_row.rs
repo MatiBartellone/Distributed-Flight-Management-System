@@ -138,7 +138,6 @@ impl RepairRow {
     pub fn create_insert(&self, row: &Row) -> Result<Vec<Token>, Errors> {
         let mut query = Vec::new();
         self.create_base_insert(&mut query, row.columns.clone())?;
-        self.add_where(&mut query, row)?;
         Ok(query)
     }
 
@@ -148,6 +147,7 @@ impl RepairRow {
             (true, false) | (true, true) => {
                 // Delete en nodo o limpieza
                 self.create_base_delete(&mut query)?;
+                self.add_where(&mut query, &node_row)?;
                 true
             }
             (false, true) => {
@@ -157,16 +157,19 @@ impl RepairRow {
             }
             (false, false) => {
                 // Actualización si difieren valores
-                self.create_update_changes(
+                if self.create_update_changes(
                     &mut query,
                     best_row.columns.clone(),
                     node_row.columns.clone(),
-                )?
+                )? {
+                    self.add_where(&mut query, &node_row)?;
+                    true
+                } else {
+                    false
+                }
             }
         };
-        if change_row {
-            self.add_where(&mut query, &node_row)?;
-        }
+        dbg!(&query);
         Ok((change_row, query))
     }
 }

@@ -2,8 +2,8 @@ ip:
   ip: "127.0.0.1"
   port: 8080
 seed_ip:
-  ip: "127.0.0.1"
+  ip: "127.0.0.2"
   port: 8080
 uses_network: false
-is_first: true
+is_first: false
 is_seed: true

@@ -105,7 +105,6 @@ impl QueryDelegator {
         match TcpStream::connect(ip.get_query_delegation_socket()) {
             Ok(mut stream) => {
                 write_to_stream(&mut stream, QuerySerializer::serialize(&query)?.as_slice())?;
-                //flush_stream(&mut stream)?;
                 let response = read_from_stream_no_zero(&mut stream)?;
                 if let Some(e) = Errors::deserialize(response.as_slice()) {
                     return Err(e);
