@@ -1,6 +1,7 @@
 use crate::utils::errors::Errors;
 use crate::utils::types::bytes_cursor::BytesCursor;
 
+/// this structure represents a Cassandra protocol frame
 #[derive(Debug, PartialEq, Clone)]
 pub struct Frame {
     pub version: u8,
@@ -12,6 +13,7 @@ pub struct Frame {
 }
 
 impl Frame {
+    /// parse frame initializes the frame given a slice of bytes representing it
     pub fn parse_frame(bytes: &[u8]) -> Result<Frame, Errors> {
         let mut cursor = BytesCursor::new(bytes);
         let version = cursor.read_u8()?;
@@ -31,6 +33,7 @@ impl Frame {
         })
     }
 
+    /// transforms a frame into a vec of bytes
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::new();
 
@@ -44,6 +47,7 @@ impl Frame {
         bytes
     }
 
+    /// validates version, flags and stream of the frame
     pub fn validate_request_frame(&self) -> Result<(), Errors> {
         if self.version != 0x03 {
             return Err(Errors::ProtocolError(format!(

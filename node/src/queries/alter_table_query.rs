@@ -1,8 +1,8 @@
 use super::query::Query;
+use crate::meta_data::meta_data_handler::use_keyspace_meta_data;
 use crate::utils::constants::KEYSPACE_METADATA_PATH;
-use crate::utils::functions::{
-    check_table_name, get_long_string_from_str, split_keyspace_table, use_keyspace_meta_data,
-};
+use crate::utils::functions::{check_table_name, split_keyspace_table};
+use crate::utils::response::Response;
 use crate::{parsers::tokens::data_type::DataType, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -83,23 +83,41 @@ impl AlterTableQuery {
 impl Query for AlterTableQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
         if let Some(operation) = &self.operation {
-            match operation {
-                Operations::ADD => self.add()?,
-                Operations::DROP => self.drop()?,
-                Operations::RENAME => self.rename()?, //Faltaria agregarle logica para el dataAcces
+            let (change_type, target, options) = match operation {
+                Operations::ADD => {
+                    self.add()
+                        .map_err(|e| Errors::ServerError(format!("Failed to add: {}", e)))?;
+                    let options = format!("{} {}", self.table_name, "ADD column_name column_type");
+                    ("ALTERED", "TABLE", options)
+                }
+                Operations::DROP => {
+                    self.drop()
+                        .map_err(|e| Errors::ServerError(format!("Failed to drop: {}", e)))?;
+                    let options = format!("{} {}", self.table_name, "DROP column_name");
+                    ("ALTERED", "TABLE", options)
+                }
+                Operations::RENAME => {
+                    self.rename()
+                        .map_err(|e| Errors::ServerError(format!("Failed to rename: {}", e)))?;
+                    let options = format!(
+                        "{} RENAME {} TO {}",
+                        self.table_name, self.first_column, self.second_column
+                    );
+                    ("ALTERED", "TABLE", options)
+                }
                 _ => {
                     return Err(Errors::SyntaxError(
                         "Invalid Operation to Alter Table".to_string(),
-                    ));
+                    ))
                 }
-            }
-        } else {
-            return Err(Errors::SyntaxError(
-                "Invalid Operation to Alter Table".to_string(),
-            ));
-        }
+            };
 
-        Ok(get_long_string_from_str("Alter table was successful"))
+            Response::schema_change(change_type, target, &options)
+        } else {
+            Err(Errors::SyntaxError(
+                "Invalid Operation to Alter Table".to_string(),
+            ))
+        }
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {

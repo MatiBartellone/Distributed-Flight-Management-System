@@ -12,6 +12,7 @@ use std::path::PathBuf;
 pub struct Handler;
 
 impl Handler {
+    /// Stores a hint for de node with the ip given
     pub fn store_query(query: StoredQuery, ip: NodeIp) -> Result<(), Errors> {
         fs::create_dir_all(HINTED_HANDOFF_DATA).map_err(|e| ServerError(e.to_string()))?;
         let path = format!("{}/{}.txt", HINTED_HANDOFF_DATA, ip.get_string_ip());
@@ -25,7 +26,7 @@ impl Handler {
         write_all_to_file(&mut file, line.as_bytes())
     }
 
-    pub fn check_for_perished(&self) -> Result<(), Errors> {
+    pub fn check_for_perished() -> Result<(), Errors> {
         for entry in fs::read_dir(HINTED_HANDOFF_DATA)
             .map_err(|_| ServerError(String::from("cannot read directory")))?
         {

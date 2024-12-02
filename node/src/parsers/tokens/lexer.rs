@@ -1,5 +1,7 @@
+use crate::utils::parser_constants::SPACE;
 use crate::utils::parser_constants::*;
-use crate::utils::parser_constants::{DF, DIV, EMPTY, GE, GT, LE, LT, MINUS, MOD, PLUS, SPACE};
+
+use super::character_mapping::CharacterMappings;
 
 fn characters(word: &str, start: usize, end: usize) -> String {
     word.chars().skip(start).take(end - start).collect()
@@ -120,24 +122,50 @@ fn remove_comments(input: &str) -> String {
     remove_between(&without_bar, "*/", "/*")
 }
 
+fn replace_double_chars(query: &str) -> String {
+    let mut result = String::new();
+    let mut chars = query.chars().peekable();
+    let characters = CharacterMappings::new();
+
+    while let Some(current) = chars.next() {
+        if let Some(&next) = chars.peek() {
+            let pair = format!("{}{}", current, next);
+
+            if let Some(replace) = characters.get_mapping(&pair) {
+                result.push_str(replace); // Agregamos el reemplazo al resultado
+                chars.next(); // Consumimos el siguiente carácter ya que procesamos el par
+                continue; // Pasamos al siguiente ciclo
+            }
+        }
+
+        // Si no es un par mapeado, agregamos el carácter actual
+        result.push(current);
+    }
+
+    result
+}
+
+fn replace_simple_chars(query: &str) -> String {
+    let mut result = String::new();
+    let chars = query.chars().peekable();
+    let characters = CharacterMappings::new();
+
+    for current in chars {
+        let current_str = current.to_string();
+        if let Some(replace) = characters.get_mapping(&current_str) {
+            result.push_str(replace);
+            continue;
+        }
+        result.push(current);
+    }
+
+    result
+}
+
 fn divide_words(query: &str) -> Vec<String> {
     let query = query.replace("\n", SPACE).replace("\t", SPACE);
-    let query = query
-        .replace(">=", GE) // Greater Equal
-        .replace("<=", LE) // Less Equal
-        .replace("!=", DF) // Different
-        .replace("+", PLUS) // Plus
-        .replace("-", MINUS) // Minus
-        .replace("/", DIV) // Division
-        .replace("%", MOD) // Modulus
-        .replace("<", LT) // Less Than
-        .replace(">", GT) // Greater Than
-        .replace("(", " ( ") // Open Parenthesis
-        .replace(")", " ) ") // Close Parenthesis
-        .replace("{", " { ") // Open Brace
-        .replace("}", " } ") // Close Brace
-        .replace(";", EMPTY) // Remove semicolon
-        .replace(",", " , "); // Remove semicolon
+    let query = replace_double_chars(&query);
+    let query = replace_simple_chars(&query);
     query.split_whitespace().map(|s| s.to_string()).collect()
 }
 

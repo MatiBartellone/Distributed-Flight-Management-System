@@ -1,4 +1,4 @@
-use crate::parsers::tokens::data_type::DataType;
+use crate::data_access::column::Column;
 use crate::parsers::tokens::literal::Literal;
 use crate::queries::set_logic::assigmente_value::AssignmentValue;
 use crate::utils::errors::Errors;
@@ -11,11 +11,15 @@ pub const EQUAL: i8 = 0;
 pub const GREATER: i8 = 1;
 pub const LOWER: i8 = -1;
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+/// Represents a row in a table. columns and primary key are the values of the row.
+/// deleted is a tombstone that indicates if deleted.
+/// timestamp indicates the last updated time.
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 pub struct Row {
     pub columns: Vec<Column>,
     pub primary_key: Vec<String>,
-    deleted: Option<Column>,
+    pub deleted: bool,
+    timestamp: Timestamp,
 }
 
 impl Row {
@@ -23,20 +27,22 @@ impl Row {
         Self {
             columns,
             primary_key: primary_keys,
-            deleted: None,
+            deleted: false,
+            timestamp: Timestamp::new(),
         }
     }
 
-    pub fn new_deleted_row() -> Result<Self, Errors> {
-        Ok(Self {
-            columns: Vec::new(),
-            primary_key: Vec::new(),
-            deleted: Some(Column::new(
-                &"deleted".to_string(),
-                &Literal::new("true".to_string(), DataType::Boolean),
-            )),
-        })
+    pub fn set_deleted(&mut self) {
+        self.timestamp = Timestamp::new();
+        self.deleted = true;
     }
+
+    pub fn is_deleted(&self) -> bool {
+        self.deleted
+    }
+
+    /// get_row_hash returns the vec of columns in hash format.
+    /// The hash is structured <column_name, Literal values>
     pub fn get_row_hash(&self) -> HashMap<String, Literal> {
         let mut hash: HashMap<String, Literal> = HashMap::new();
         for column in &self.columns {
@@ -49,6 +55,8 @@ impl Row {
         hash
     }
 
+    /// get_row_hash_assignment returns the vec of columns as Simple AssignmentValue in hash format.
+    /// The hash is structured <column_name, AssignmentValue>
     pub fn get_row_hash_assigment(&self) -> HashMap<String, AssignmentValue> {
         let mut hash: HashMap<String, AssignmentValue> = HashMap::new();
         for column in &self.columns {
@@ -64,6 +72,10 @@ impl Row {
         hash
     }
 
+    /// Compares two rows by column_name.
+    /// 0 if EQUAL
+    /// 1 if row1 > row2
+    /// -1 if row2 > row1
     pub fn cmp(row1: &Row, row2: &Row, column_name: &String) -> i8 {
         let column_opt1 = row1.get_column(column_name);
         let column_opt2 = row2.get_column(column_name);
@@ -92,6 +104,9 @@ impl Row {
         }
         None
     }
+
+    /// get_some_column searches for column_name in the row
+    /// If the column was find returns a Column, else Error
     pub fn get_some_column(&self, column_name: &String) -> Result<Column, Errors> {
         let mut column: Option<&Column> = None;
         for col in &self.columns {
@@ -100,50 +115,18 @@ impl Row {
             }
         }
         let Some(col) = column else {
-            return Err(Errors::ServerError(format!(
-                "Column {} not found",
-                column_name
-            )));
+            return Err(Errors::Invalid(format!("Column {} not found", column_name)));
         };
         Ok(Column::new_from_column(col))
     }
 
+    /// searches for column_name in row
+    /// if found, returns the column value in string format.
     pub fn get_value(&self, column_name: &String) -> Result<Option<String>, Errors> {
         let hash = self.get_row_hash();
         let Some(literal) = hash.get(&column_name.to_string()) else {
             return Ok(None);
         };
         Ok(Some(literal.value.to_string()))
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
-pub struct Column {
-    pub(crate) column_name: String,
-    pub(crate) value: Literal,
-    pub(crate) timestamp: Timestamp,
-}
-
-impl Column {
-    pub fn new(column_name: &String, value: &Literal) -> Self {
-        Self {
-            column_name: String::from(column_name),
-            value: Literal {
-                value: String::from(&value.value),
-                data_type: value.data_type.clone(),
-            },
-            timestamp: Timestamp::new(),
-        }
-    }
-
-    pub fn new_from_column(column: &Column) -> Self {
-        Self {
-            column_name: column.column_name.to_string(),
-            value: Literal {
-                value: column.value.value.to_string(),
-                data_type: column.value.data_type.clone(),
-            },
-            timestamp: Timestamp::new_from_timestamp(&column.timestamp),
-        }
     }
 }

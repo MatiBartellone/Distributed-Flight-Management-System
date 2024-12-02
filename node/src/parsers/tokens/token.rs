@@ -42,7 +42,7 @@ fn string_to_identifier(word: &str) -> Option<Token> {
                 return None;
             }
         }
-        return Some(Token::Identifier(word.to_string()));
+        return Some(Token::Identifier(word.to_ascii_lowercase()));
     }
     None
 }
@@ -601,10 +601,10 @@ mod tests {
             Token::Identifier("tAbla".to_string()),
             Token::ParenList(vec![
                 Token::Identifier("columna1".to_string()),
-                Token::Identifier("TEXT".to_string()),
+                Token::DataType(DataType::Text),
                 Token::Symbol(",".to_string()),
                 Token::Identifier("columna2".to_string()),
-                Token::Identifier("INT".to_string()),
+                Token::DataType(DataType::Int),
                 Token::Symbol(",".to_string()),
                 Token::Identifier("columna3".to_string()),
                 Token::Reserved("PRIMARY".to_string()),
@@ -675,7 +675,7 @@ mod tests {
 
     #[test]
     fn test_tokenize_drop_keyspace() {
-        let query = ["DROP", "KEYSPACE", "\"my_keyspace\""]
+        let query = ["DROP", "KEYSPACE", "\"my_Keyspace\""]
             .iter()
             .map(|s| s.to_string())
             .collect::<Vec<String>>();
@@ -683,7 +683,7 @@ mod tests {
         let expected_tokens = vec![
             Token::Reserved("DROP".to_string()),
             Token::Reserved("KEYSPACE".to_string()),
-            Token::Identifier("my_keyspace".to_string()), // Igualmente, asegúrate de manejar las comillas adecuadamente
+            Token::Identifier("my_Keyspace".to_string()), // Igualmente, asegúrate de manejar las comillas adecuadamente
         ];
 
         let result = tokenize(query).unwrap();
@@ -703,7 +703,7 @@ mod tests {
             Token::Identifier("users".to_string()), // Manejo de comillas
             Token::Reserved("ADD".to_string()),
             Token::Identifier("age".to_string()), // Manejo de comillas
-            Token::Identifier("INT".to_string()), // Tipo de dato
+            Token::DataType(DataType::Int) // Tipo de dato
         ];
 
         let result = tokenize(query).unwrap();

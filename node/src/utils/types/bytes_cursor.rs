@@ -3,6 +3,11 @@ use crate::utils::errors::Errors;
 use std::collections::HashMap;
 use std::io::{Cursor, Read};
 
+/// This structure represents a cursor to read bytes, which given an initial slice
+/// of bytes consumes them dynamically with the use of its functions
+///
+/// Its functions are defined to read specific sizes and different types of data
+/// represented by bytes
 pub struct BytesCursor {
     cursor: Cursor<Vec<u8>>,
 }
@@ -36,6 +41,14 @@ impl BytesCursor {
             .read_exact(&mut buf)
             .map_err(|_| Errors::ProtocolError(String::from("Could not read bytes")))?;
         Ok(u32::from_be_bytes(buf))
+    }
+
+    pub fn read_u64(&mut self) -> Result<u64, Errors> {
+        let mut buf = [0u8; 8];
+        self.cursor
+            .read_exact(&mut buf)
+            .map_err(|_| Errors::ProtocolError(String::from("Could not read bytes")))?;
+        Ok(u64::from_be_bytes(buf))
     }
 
     pub fn read_remaining_bytes(&mut self) -> Result<Vec<u8>, Errors> {

@@ -1,12 +1,13 @@
 use node::client_handler::ClientHandler;
 use node::gossip::gossip_emitter::GossipEmitter;
+use node::hinted_handoff::handler::Handler;
 use node::hinted_handoff::hints_receiver::HintsReceiver;
 use node::hinted_handoff::hints_sender::HintsSender;
+use node::meta_data::meta_data_handler::use_node_meta_data;
 use node::node_initializer::NodeInitializer;
 use node::utils::config_constants::MAX_CLIENTS;
 use node::utils::constants::NODES_METADATA_PATH;
 use node::utils::errors::Errors;
-use node::utils::functions::use_node_meta_data;
 use node::utils::types::node_ip::NodeIp;
 use node::utils::types::tls_stream::{create_server_config, get_stream_owned};
 use rustls::ServerConfig;
@@ -25,7 +26,7 @@ fn main() -> Result<(), Errors> {
     node_data.start_listeners();
 
     if needs_booting {
-        HintsReceiver::start_listening(node_data.get_network_ip())?;
+        HintsReceiver::start_listening(node_data.get_ip())?;
     };
 
     start_gossip()?;
@@ -52,6 +53,7 @@ fn start_gossip() -> Result<(), Errors> {
         loop {
             sleep(Duration::from_secs(1));
             GossipEmitter::start_gossip()?;
+            Handler::check_for_perished()?;
             {
                 use_node_meta_data(|handler| {
                     for ip in handler.get_booting_nodes(NODES_METADATA_PATH)? {

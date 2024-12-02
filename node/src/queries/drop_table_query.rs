@@ -1,8 +1,8 @@
+use crate::data_access::data_access_handler::use_data_access;
+use crate::meta_data::meta_data_handler::use_keyspace_meta_data;
 use crate::utils::constants::KEYSPACE_METADATA_PATH;
-use crate::utils::functions::{
-    check_table_name, get_long_string_from_str, split_keyspace_table, use_data_access,
-    use_keyspace_meta_data,
-};
+use crate::utils::functions::{check_table_name, split_keyspace_table};
+use crate::utils::response::Response;
 use crate::{queries::query::Query, utils::errors::Errors};
 use serde::{Deserialize, Serialize};
 use std::any::Any;
@@ -37,7 +37,7 @@ impl Query for DropTableQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
         self.push_on_data_acces()?;
         self.push_on_meta_data()?;
-        Ok(get_long_string_from_str("Drop table was successful"))
+        Response::schema_change("DROPPED", "TABLE", &self.table_name)
     }
 
     fn get_partition(&self) -> Result<Option<Vec<String>>, Errors> {
