@@ -11,8 +11,6 @@ use std::io::Write;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Once;
 use std::thread;
-use std::thread::sleep;
-use std::time::Duration;
 
 static INIT: Once = Once::new();
 static FINISHED: AtomicUsize = AtomicUsize::new(0);
