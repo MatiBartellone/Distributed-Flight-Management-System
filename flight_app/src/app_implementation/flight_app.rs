@@ -94,9 +94,9 @@ impl FlightApp {
     fn inicializate_airport_information(client: &UIClient, thread_pool: &ThreadPoolClient, selected_flight: &Arc<Mutex<Option<FlightSelected>>>) -> (Arc<Mutex<Option<String>>>, Airports) {
         let selected_airport_code = Arc::new(Mutex::new(None));
         let airports = Airports::new(
-            client.get_airports(get_airports_codes(), &thread_pool),
+            client.get_airports(get_airports_codes(), thread_pool),
             Arc::clone(&selected_airport_code),
-            Arc::clone(&selected_flight),
+            Arc::clone(selected_flight),
         );
         (selected_airport_code, airports)
     }
@@ -131,21 +131,14 @@ impl FlightApp {
 
     fn get_airport_code(&self) -> Option<String> {
         match self.selected_airport_code.lock() {
-            Ok(lock) => match &*lock {
-                Some(airport) => Some(airport.to_string()),
-                None => None,
-            },
+            Ok(lock) => (*lock).as_ref().map(|airport| airport.to_string()),
             Err(_) => None,
         }
     }
 
     /// Get the name of the selected airport code
     pub fn get_airport_selected_name(&self) -> Option<String> {
-        if let Some(airport_code) = self.get_airport_code() {
-            Some(self.airports.get_aiport_name(&airport_code))
-        } else {
-            None
-        }
+        self.get_airport_code().map(|airport_code| self.airports.get_aiport_name(&airport_code))
     }
 
     /// Clear the selected airport and flight information

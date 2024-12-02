@@ -68,8 +68,8 @@ impl UIClient {
     }
 
     // Transforms the row to airport
-    fn values_to_airport(&self, values: &Vec<HashMap<String, String>>) -> Option<Airport> {
-        let row = values.get(0)?;
+    fn values_to_airport(&self, values: &[HashMap<String, String>]) -> Option<Airport> {
+        let row = values.first()?;
         let name = row.get(COL_NAME)?.to_string();
         let code = row.get(COL_CODE)?.to_string();
         let position_lat = row.get(COL_POSITION_LAT)?.parse::<f64>().ok()?;
@@ -98,10 +98,7 @@ impl UIClient {
         });
     
         thread_pool.join();
-        match rx.recv() {
-            Ok(flight_codes) => flight_codes,
-            Err(_) => HashSet::new()
-        }
+        rx.recv().unwrap_or_default()
     }
 
     // Gets all de flights codes going or leaving the aiport
