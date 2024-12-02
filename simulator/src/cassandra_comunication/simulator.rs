@@ -70,8 +70,8 @@ impl Simulator {
     }
 
     // Transforms the row to airport
-    fn values_to_airport(&self, values: &Vec<HashMap<String, String>>) -> Option<Airport> {
-        let row = values.get(0)?;
+    fn values_to_airport(&self, values: &[HashMap<String, String>]) -> Option<Airport> {
+        let row = values.first()?;
         let name = row.get(COL_NAME)?.to_string();
         let code = row.get(COL_CODE)?.to_string();
         let position_lat = row.get(COL_POSITION_LAT)?.parse::<f64>().ok()?;
@@ -100,10 +100,7 @@ impl Simulator {
         });
     
         thread_pool.join();
-        match rx.recv() {
-            Ok(flight_codes) => flight_codes,
-            Err(_) => HashSet::new()
-        }
+        rx.recv().unwrap_or_default()
     }
 
     // Gets all de flights codes going or leaving the aiport
@@ -153,7 +150,7 @@ impl Simulator {
             "INSERT INTO {TABLE_FLIGHT_INFO} ({COL_FLIGHT_CODE}, {COL_STATUS}, {COL_DEPARTURE_AIRPORT}, {COL_ARRIVAL_AIRPORT}, {COL_DEPARTURE_TIME}, {COL_ARRIVAL_TIME}, {COL_POSITION_LAT}, {COL_POSITION_LON}, {COL_ARRIVAL_POSITION_LAT}, {COL_ARRIVAL_POSITION_LON}, {COL_ALTITUDE}, {COL_SPEED}, {COL_FUEL_LEVEL})
             VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}');",
             flight.get_code(), 
-            flight.get_status().to_string(), 
+            flight.get_status(), 
             flight.get_departure_airport(), 
             flight.get_arrival_airport(), 
             flight.get_departure_time(), 
@@ -224,8 +221,8 @@ impl Simulator {
         self.values_to_flight_status(&values)
     }
     
-    fn values_to_flight_status(&self, values: &Vec<HashMap<String, String>>)-> Option<FlightStatus> {
-        let strong_row = values.get(0)?;                
+    fn values_to_flight_status(&self, values: &[HashMap<String, String>])-> Option<FlightStatus> {
+        let strong_row = values.first()?;                
         let code = strong_row.get(COL_FLIGHT_CODE)?.to_string();
         let status_str = strong_row.get(COL_STATUS)?;
         let status = FlightState::new(status_str);
@@ -255,8 +252,8 @@ impl Simulator {
         self.values_to_flight_tracking(&values)
     }
 
-    fn values_to_flight_tracking(&self, values: &Vec<HashMap<String, String>>)-> Option<FlightTracking> {
-        let weak_row = values.get(0)?;
+    fn values_to_flight_tracking(&self, values: &[HashMap<String, String>])-> Option<FlightTracking> {
+        let weak_row = values.first()?;
         let position_lat: f64 = weak_row.get(COL_POSITION_LAT)?.parse().ok()?;
         let position_lon: f64 = weak_row.get(COL_POSITION_LON)?.parse().ok()?;
         let arrival_position_lat: f64 = weak_row.get(COL_ARRIVAL_POSITION_LAT)?.parse().ok()?;
@@ -283,7 +280,7 @@ impl Simulator {
     fn update_flight_status(&self, client: &mut CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
             "UPDATE {TABLE_FLIGHT_INFO} SET {COL_STATUS} = '{}', \"{COL_DEPARTURE_AIRPORT}\" = '{}', \"{COL_ARRIVAL_AIRPORT}\" = '{}', \"{COL_DEPARTURE_TIME}\" = '{}', \"{COL_ARRIVAL_TIME}\" = '{}' WHERE \"{COL_FLIGHT_CODE}\" = '{}';",
-            flight.get_status().to_string(),
+            flight.get_status(),
             flight.get_departure_airport(),
             flight.get_arrival_airport(),
             flight.get_departure_time(),
@@ -309,8 +306,8 @@ impl Simulator {
     }
 
     /// Restarts all the flights in the airport to the initial state
-    pub fn restart_flights(&self, flights: &mut Vec<Flight>, airports: &HashMap<String, Airport>, thread_pool: &ThreadPoolClient) {
-        for mut flight in flights.clone() {
+    pub fn restart_flights(&self, flights: &mut [Flight], airports: &HashMap<String, Airport>, thread_pool: &ThreadPoolClient) {
+        for mut flight in flights.iter().cloned() {
             let position = match airports.get(flight.get_departure_airport()) {
                 Some(airport) => airport.position,
                 None => continue,

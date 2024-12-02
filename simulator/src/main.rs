@@ -17,7 +17,7 @@ fn main() {
 fn loop_option(thread_pool: &ThreadPoolClient) {
     let simulator = Simulator;
     let codes = get_airports_codes();
-    let airports = simulator.get_airports(codes, &thread_pool);
+    let airports = simulator.get_airports(codes, thread_pool);
     let mut flights = HashMap::new();
     loop {
         println!("Choose an option:");
@@ -37,7 +37,7 @@ fn loop_option(thread_pool: &ThreadPoolClient) {
     }
     clear_screen();
     let mut flights: Vec<Flight> = flights.into_values().collect();
-    simulator.restart_flights(&mut flights, &airports, &thread_pool);
+    simulator.restart_flights(&mut flights, &airports, thread_pool);
     flight_updates_loop(&simulator, flights, &airports, thread_pool);
 }
 
@@ -86,7 +86,7 @@ fn get_flight_data() -> Flight {
 
 fn inicializate_clients() -> Result<Vec<CassandraClient>, String> {
     let cant_clients = get_user_data("Enter the number of clients: ").parse::<usize>()
-        .or_else(|_| Err("Error parsing the number of clients".to_string()))?;
+        .map_err(|_| "Error parsing the number of clients".to_string())?;
     
     let simulator = Simulator;
     let mut clients = Vec::new();

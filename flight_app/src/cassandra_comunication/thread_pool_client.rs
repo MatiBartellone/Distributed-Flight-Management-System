@@ -50,6 +50,7 @@ impl ThreadPoolClient {
     }
 
     // Create a notification channel (sender and shared receiver)
+    #[allow(clippy::type_complexity)]
     fn create_notification_channel() -> (
         Arc<Mutex<Sender<()>>>,
         Arc<Mutex<Receiver<()>>>,

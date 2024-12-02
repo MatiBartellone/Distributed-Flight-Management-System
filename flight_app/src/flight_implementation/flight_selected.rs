@@ -47,7 +47,7 @@ impl FlightSelected {
         ui.label(format!("Altitud: {} ft", self.get_altitude()));
         ui.label(format!("Velocidad: {} km/h", self.get_speed()));
         ui.label(format!("Nivel de combustible: {}%", self.get_fuel_level()));
-        ui.label(format!("Estado: {}", self.get_status().to_string()));
+        ui.label(format!("Estado: {}", self.get_status()));
         ui.label(format!("Aeropuerto de salida: {}", self.get_departure_airport()));
         ui.label(format!("Hora de salida: {}", self.get_departure_time()));
         ui.label(format!("Aeropuerto de llegada: {}", self.get_arrival_airport()));

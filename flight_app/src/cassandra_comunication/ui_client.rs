@@ -149,8 +149,7 @@ impl UIClient {
     }
 
     fn get_flight(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<Flight> {
-        let mut flight = Flight::default();
-        flight.code = flight_code.to_string();
+        let mut flight = Flight { code: flight_code.to_string(), ..Default::default() };
         self.get_flight_status(client, &mut flight, frame_id)?;
         self.get_flight_tracking(client, &mut flight, frame_id)?;
         Some(flight)
@@ -166,8 +165,8 @@ impl UIClient {
         self.values_to_flight_status(&values, flight)
     }
 
-    fn values_to_flight_status(&self, values: &Vec<HashMap<String, String>>, flight: &mut Flight)-> Option<()> {
-        let strong_row = values.get(0)?;
+    fn values_to_flight_status(&self, values: &[HashMap<String, String>], flight: &mut Flight)-> Option<()> {
+        let strong_row = values.first()?;
 
         flight.code = strong_row
             .get(COL_FLIGHT_CODE)?
@@ -193,8 +192,8 @@ impl UIClient {
         self.values_to_flight_tracking(&values, flight)
     }
 
-    fn values_to_flight_tracking(&self, values: &Vec<HashMap<String, String>>, flight: &mut Flight)-> Option<()> {
-        let weak_row = values.get(0)?;
+    fn values_to_flight_tracking(&self, values: &[HashMap<String, String>], flight: &mut Flight)-> Option<()> {
+        let weak_row = values.first()?;
 
         flight.position.0 = weak_row
             .get(COL_POSITION_LAT)?
@@ -248,8 +247,8 @@ impl UIClient {
         self.values_to_flight_selected_status(&values)
     }
     
-    fn values_to_flight_selected_status(&self, values: &Vec<HashMap<String, String>>)-> Option<FlightStatus> {
-        let strong_row = values.get(0)?;                
+    fn values_to_flight_selected_status(&self, values: &[HashMap<String, String>])-> Option<FlightStatus> {
+        let strong_row = values.first()?;                
         let code = strong_row.get(COL_FLIGHT_CODE)?.to_string();
         let status_str = strong_row.get(COL_STATUS)?;
         let status = FlightState::new(status_str);
@@ -280,8 +279,8 @@ impl UIClient {
         self.values_to_flight_selected_tracking(&values)
     }
 
-    fn values_to_flight_selected_tracking(&self, values: &Vec<HashMap<String, String>>)-> Option<FlightTracking> {
-        let weak_row = values.get(0)?;
+    fn values_to_flight_selected_tracking(&self, values: &[HashMap<String, String>])-> Option<FlightTracking> {
+        let weak_row = values.first()?;
         let position_lat: f64 = weak_row.get(COL_POSITION_LAT)?.parse().ok()?;
         let position_lon: f64 = weak_row.get(COL_POSITION_LON)?.parse().ok()?;
         let arrival_position_lat: f64 = weak_row.get(COL_ARRIVAL_POSITION_LAT)?.parse().ok()?;

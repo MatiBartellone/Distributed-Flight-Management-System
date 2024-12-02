@@ -1,3 +1,5 @@
+use std::fmt;
+
 use FlightState::*;
 
 #[derive(Clone, PartialEq, Debug, Default)]
@@ -21,14 +23,15 @@ impl FlightState {
             _ => FlightState::default(),
         }
     }
-
-    pub fn to_string(&self) -> String {
+}
+impl fmt::Display for FlightState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            OnTime => "OnTime".to_string(),
-            Delayed => "Delayed".to_string(),
-            Cancelled => "Canceled".to_string(),
-            Arrived => "Arrived".to_string(),
-            Inactive => "Inactive".to_string(),
+            FlightState::OnTime => write!(f, "OnTime"),
+            FlightState::Delayed => write!(f, "Delayed"),
+            FlightState::Cancelled => write!(f, "Cancelled"),
+            FlightState::Arrived => write!(f, "Arrived"),
+            FlightState::Inactive => write!(f, "Inactive"),
         }
     }
 }

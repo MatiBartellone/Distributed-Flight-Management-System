@@ -141,7 +141,7 @@ impl CassandraClient {
     }
 
     fn get_response_row(&self, body: &[u8]) -> Result<Vec<HashMap<String, String>>, String> {
-        self.get_rows(&body)
+        self.get_rows(body)
     }
 
     fn get_rows(&self, body: &[u8]) -> Result<Vec<HashMap<String, String>>, String> {
