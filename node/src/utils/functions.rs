@@ -173,7 +173,7 @@ pub fn write_to_stream(stream: &mut TcpStream, content: &[u8]) -> Result<(), Err
 
 /// reads from stream decrypting the received data
 pub fn read_exact_from_stream(stream: &mut TcpStream) -> Result<Vec<u8>, Errors> {
-    let mut buffer = [0; 1024];
+    let mut buffer = [0; 10000];
     let size = stream
         .read(&mut buffer)
         .map_err(|_| ServerError(String::from("Failed to read stream")))?;
@@ -182,7 +182,6 @@ pub fn read_exact_from_stream(stream: &mut TcpStream) -> Result<Vec<u8>, Errors>
     }
     let iv = &buffer[..16];
     let encrypted_data = &buffer[16..size];
-
     decrypt_message(encrypted_data, iv, &AES_KEY)
 }
 
@@ -206,7 +205,7 @@ fn encrypt_message(message: &[u8], aes_key: &[u8]) -> Result<(Vec<u8>, Vec<u8>),
 fn decrypt_message(encrypted_message: &[u8], iv: &[u8], aes_key: &[u8]) -> Result<Vec<u8>, Errors> {
     let cipher = Cipher::aes_256_cbc();
     let decrypted_data = decrypt(cipher, aes_key, Some(iv), encrypted_message)
-        .map_err(|_| ServerError(String::from("Failed to read to stream")))?;
+        .map_err(|e| ServerError(format!("Failed to read to stream: {}", e)))?;
     Ok(decrypted_data)
 }
 

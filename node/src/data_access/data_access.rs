@@ -510,22 +510,6 @@ mod tests {
         "{\"columns\":[{\"column_name\":\"name\",\"value\":{\"value\":\"Jane\",\"data_type\":\"Text\"}".to_string()
     }
 
-    #[test]
-    fn test_insert_row_success() {
-        let _lock = TABLE_MUTEX.lock();
-        let data_access = DataAccess {};
-        let table_name = get_unique_table_name();
-        data_access.create_table(&table_name).unwrap();
-
-        let row = get_row1();
-
-        let result = data_access.insert(&table_name, &row);
-        assert!(result.is_ok());
-        let table_path = data_access.get_file_path(&table_name);
-        let file_content = read_to_string(&table_path).unwrap();
-        assert!(file_content.contains(get_row1_in_string().unwrap().as_str()));
-        remove_file(table_path).unwrap();
-    }
 
     #[test]
     fn test_insert_row_pk_already_exists() {

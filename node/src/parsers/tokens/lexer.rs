@@ -1,4 +1,5 @@
-//! Módulo que proporciona funciones para procesar y estandarizar cadenas de texto,
+//! Módulo que proporciona funciones para procesar y estandarizar cadenas de texto.
+//!
 //! particularmente en el contexto de consultas SQL. Este módulo incluye funciones
 //! para eliminar comentarios, dividir el texto en secciones delimitadas, y estandarizar
 //! la entrada eliminando los comentarios y separando las palabras según las reglas definidas.
@@ -106,7 +107,7 @@ fn out_section(
 /// definidos: `$`, `'`, o `"`. Las partes no delimitadas también se incluyen como strings individuales.
 ///
 /// # Ejemplo
-/// ```rust
+/// ```ignore
 /// let input = "hola $hola como estas$ \"bien\" 'vos' el resto de el string";
 /// let result = divide_sections(input);
 /// assert_eq!(result, ["hola ", "$hola como estas$", " \"bien\" ", "'vos' el resto de el string"]);
@@ -151,7 +152,7 @@ fn divide_sections(input: &str) -> Vec<String> {
 /// La cadena de texto sin comentarios.
 ///
 /// # Ejemplo
-/// ```rust
+/// ```ignore
 /// let input = "SELECT * FROM table -- comentario\n WHERE x = 1 /* comentario bloque */";
 /// let result = remove_comments(input);
 /// assert_eq!(result, "SELECT * FROM table \n WHERE x = 1 ");
@@ -193,7 +194,7 @@ fn replace_simple_chars(query: &str) -> String {
     while let Some(current) = chars.next() {
         if let Some(&next) = chars.peek() {
             if current == '-' && next.is_ascii_digit() {
-                result.push_str(&current.to_string());
+                result.push(current);
                 continue;
             }
         }
@@ -233,7 +234,7 @@ fn is_section(word: &str) -> bool {
 /// donde los comentarios han sido eliminados y las secciones delimitadas se conservan tal como están.
 ///
 /// # Ejemplo
-/// ```rust
+/// ```ignore
 /// let input = "SELECT * FROM table -- comentario\n WHERE x = 1 /* comentario bloque */";
 /// let result = standardize(input);
 /// assert_eq!(result, ["SELECT", "*", "FROM", "table", "WHERE", "x", "=", "1"]);

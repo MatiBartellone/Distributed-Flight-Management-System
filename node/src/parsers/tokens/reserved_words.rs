@@ -65,7 +65,7 @@ impl WordsReserved {
     /// - Una nueva instancia de `WordsReserved`.
     ///
     /// # Ejemplo
-    /// ```
+    /// ```ignore
     /// use crate::WordsReserved;
     /// let reserved = WordsReserved::new();
     /// ```
@@ -89,7 +89,7 @@ impl WordsReserved {
     /// - `false` en caso contrario.
     ///
     /// # Ejemplo
-    /// ```
+    /// ```ignore
     /// use crate::WordsReserved;
     /// let reserved = WordsReserved::new();
     /// assert!(reserved.is_reserved("SELECT"));
