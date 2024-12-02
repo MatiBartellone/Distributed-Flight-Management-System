@@ -37,14 +37,12 @@ impl PrepareExecutable {
     fn get_new_query(&self) -> Result<PrepareQuery, Errors> {
         let file = OpenOptions::new()
             .read(true)
-            .open(&PREPARE_FILE)
+            .open(PREPARE_FILE)
             .map_err(|_| ServerError(String::from("Unable to open file")))?;
         let reader = BufReader::new(file);
         let mut last_line = None;
-        for line in reader.lines() {
-            if let Ok(line) = line {
-                last_line = Some(line);
-            }
+        for line in reader.lines().map_while(Result::ok) {
+            last_line = Some(line);
         }
         if let Some(last_line) = last_line {
             let last_query: PrepareQuery = deserialize_from_str(last_line.trim())?;

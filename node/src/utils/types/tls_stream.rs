@@ -1,3 +1,5 @@
+use crate::utils::errors::Errors;
+use crate::utils::errors::Errors::ServerError;
 use rustls::pki_types::pem::PemObject;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use rustls::{ServerConfig, ServerConnection, StreamOwned};
@@ -5,15 +7,6 @@ use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::path::Path;
 use std::sync::Arc;
-
-use crate::data_access::data_access::DataAccess;
-use crate::data_access::data_access_handler::DataAccessHandler;
-use crate::meta_data::clients::meta_data_client::ClientMetaDataAcces;
-use crate::meta_data::keyspaces::keyspace_meta_data_acces::KeyspaceMetaDataAccess;
-use crate::meta_data::meta_data_handler::MetaDataHandler;
-use crate::meta_data::nodes::node_meta_data_acces::NodesMetaDataAccess;
-use crate::utils::errors::Errors;
-use crate::utils::errors::Errors::ServerError;
 
 pub fn flush_tls_stream(
     stream: &mut StreamOwned<ServerConnection, TcpStream>,
@@ -116,43 +109,4 @@ pub fn connect_to_socket(
     let stream = TcpStream::connect(socket_addr)
         .map_err(|_| ServerError(String::from("Error connecting to socket.")))?;
     get_stream_owned(stream, Arc::new(config))
-}
-
-pub fn use_node_meta_data<F, T>(action: F) -> Result<T, Errors>
-where
-    F: FnOnce(&NodesMetaDataAccess) -> Result<T, Errors>,
-{
-    let mut meta_data_stream = MetaDataHandler::establish_connection()?;
-    let node_metadata =
-        MetaDataHandler::get_instance(&mut meta_data_stream)?.get_nodes_metadata_access();
-    action(&node_metadata)
-}
-
-pub fn use_keyspace_meta_data<F, T>(action: F) -> Result<T, Errors>
-where
-    F: FnOnce(&KeyspaceMetaDataAccess) -> Result<T, Errors>,
-{
-    let mut meta_data_stream = MetaDataHandler::establish_connection()?;
-    let keyspace_metadata =
-        MetaDataHandler::get_instance(&mut meta_data_stream)?.get_keyspace_meta_data_access();
-    action(&keyspace_metadata)
-}
-
-pub fn use_client_meta_data<F, T>(action: F) -> Result<T, Errors>
-where
-    F: FnOnce(&ClientMetaDataAcces) -> Result<T, Errors>,
-{
-    let mut meta_data_stream = MetaDataHandler::establish_connection()?;
-    let client_metadata =
-        MetaDataHandler::get_instance(&mut meta_data_stream)?.get_client_meta_data_access();
-    action(&client_metadata)
-}
-
-pub fn use_data_access<F, T>(action: F) -> Result<T, Errors>
-where
-    F: FnOnce(&DataAccess) -> Result<T, Errors>,
-{
-    let mut meta_data_stream = DataAccessHandler::establish_connection()?;
-    let data_access = DataAccessHandler::get_instance(&mut meta_data_stream)?;
-    action(&data_access)
 }

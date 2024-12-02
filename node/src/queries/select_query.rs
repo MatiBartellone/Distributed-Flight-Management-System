@@ -1,11 +1,12 @@
 use super::query::Query;
 use super::where_logic::where_clause::WhereClause;
+use crate::data_access::data_access_handler::use_data_access;
+use crate::meta_data::meta_data_handler::use_keyspace_meta_data;
 use crate::queries::order_by_clause::OrderByClause;
-use crate::utils::constants::{KEYSPACE_METADATA_PATH, ASTERIK};
+use crate::utils::constants::{ASTERIK, KEYSPACE_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
-    check_table_name, get_columns_from_table,
-    get_partition_key_from_where, split_keyspace_table, use_data_access, use_keyspace_meta_data,
+    check_table_name, get_columns_from_table, get_partition_key_from_where, split_keyspace_table,
 };
 use crate::utils::response::Response;
 use serde::{Deserialize, Serialize};
@@ -50,33 +51,21 @@ impl SelectQuery {
         Ok(())
     }
 
-    /*fn get_rows_string(&self, rows: Vec<Row>) -> Result<String, Errors> {
-        let mut display_columns = Vec::new();
-        if self.columns.contains(&'*'.to_string()) {
-            display_columns = get_columns_from_table(&self.table_name)?
-                .keys()
-                .map(|x| x.to_string())
-                .collect::<Vec<String>>();
-        } else {
-            for column in &self.columns {
-                display_columns.push(column.to_string());
+    fn check_order_columns(&self) -> Result<(), Errors> {
+        let Some(order_clauses) = &self.order_clauses else {
+            return Ok(());
+        };
+        let table_columns = get_columns_from_table(&self.table_name)?;
+        for order_clause in order_clauses {
+            if !table_columns.contains_key(&order_clause.column) {
+                return Err(Errors::Invalid(format!(
+                    "Order column {} not found",
+                    order_clause.column
+                )));
             }
         }
-        let mut text = "".to_string();
-        text.push_str(&display_columns.join(", "));
-        text.push('\n');
-        for row in rows {
-            let mut displayed_values = Vec::new();
-            for column in &display_columns {
-                if let Some(value) = row.get_value(column)? {
-                    displayed_values.push(value);
-                }
-            }
-            text.push_str(&displayed_values.join(", "));
-            text.push('\n');
-        }
-        Ok(text)
-    }*/
+        Ok(())
+    }
 }
 
 impl Default for SelectQuery {
@@ -88,17 +77,21 @@ impl Default for SelectQuery {
 impl Query for SelectQuery {
     fn run(&self) -> Result<Vec<u8>, Errors> {
         self.check_columns()?;
+        self.check_order_columns()?;
         let Some(where_clause) = &self.where_clause else {
             return Err(Errors::SyntaxError(String::from(
                 "Where clause must be defined",
             )));
         };
+        self.get_partition()?;
         let rows = use_data_access(|data_access| {
             data_access.select_rows(&self.table_name, where_clause, &self.order_clauses)
         })?;
         let (kesypace_name, table) = split_keyspace_table(&self.table_name)?;
         if self.columns.first() == Some(&ASTERIK.to_string()) {
-            let aux = use_keyspace_meta_data(|handler| handler.get_columns_type(KEYSPACE_METADATA_PATH.to_string(), kesypace_name, table))?;
+            let aux = use_keyspace_meta_data(|handler| {
+                handler.get_columns_type(KEYSPACE_METADATA_PATH.to_string(), kesypace_name, table)
+            })?;
             let column_names: Vec<String> = aux.keys().cloned().collect();
             return Response::rows(rows, kesypace_name, table, &column_names);
         }

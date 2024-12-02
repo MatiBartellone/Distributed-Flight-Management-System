@@ -38,12 +38,10 @@ impl ExecuteExecutable {
             .map_err(|_| ServerError(String::from("Unable to open file")))?;
 
         let reader = BufReader::new(file);
-        for line in reader.lines() {
-            if let Ok(line) = line {
-                let deserialzied: PrepareQuery = deserialize_from_str(line.trim())?;
-                if deserialzied.id == self.id {
-                    return Ok(deserialzied);
-                }
+        for line in reader.lines().map_while(Result::ok) {
+            let deserialzied: PrepareQuery = deserialize_from_str(line.trim())?;
+            if deserialzied.id == self.id {
+                return Ok(deserialzied);
             }
         }
         Err(Invalid(String::from("Query id not found")))
@@ -57,8 +55,8 @@ impl ExecuteExecutable {
             .map_err(|_| ServerError(String::from("could not create temp file")))?;
         let mut reader = BufReader::new(file).lines();
         while let Some(Ok(line)) = reader.next() {
-            let deserialzied: PrepareQuery = deserialize_from_str(&line.trim())?;
-            if deserialzied.id != self.id {
+            let deserialized: PrepareQuery = deserialize_from_str(line.trim())?;
+            if deserialized.id != self.id {
                 writeln!(temp_file, "{}", line.trim())
                     .map_err(|_| ServerError(String::from("could not write prepare query")))?;
             }

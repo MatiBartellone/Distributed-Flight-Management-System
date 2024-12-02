@@ -2,12 +2,13 @@ use super::{
     if_clause::IfClause, query::Query, set_logic::assigmente_value::AssignmentValue,
     where_logic::where_clause::WhereClause,
 };
+use crate::data_access::data_access_handler::use_data_access;
 use crate::parsers::tokens::data_type::DataType;
 use crate::parsers::tokens::literal::Literal;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
-    check_table_name, get_columns_from_table,
-    get_partition_key_from_where, get_table_pk, split_keyspace_table, use_data_access,
+    check_table_name, get_columns_from_table, get_partition_key_from_where, get_table_pk,
+    split_keyspace_table,
 };
 use crate::utils::response::Response;
 use serde::{Deserialize, Serialize};
@@ -122,6 +123,7 @@ impl Query for UpdateQuery {
                 "Where clause must be defined",
             )));
         };
+        self.get_partition()?;
         let _apllied = use_data_access(|data_access| {
             data_access.update_row(
                 &self.table_name,

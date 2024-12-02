@@ -8,7 +8,9 @@ pub struct TypesToBytes {
 
 impl TypesToBytes {
     pub fn write_u8(&mut self, value: u8) -> Result<(), Errors> {
-        self.bytes.write_all(&[value]).map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
+        self.bytes
+            .write_all(&[value])
+            .map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
         Ok(())
     }
 
@@ -55,7 +57,9 @@ impl TypesToBytes {
         let bytes = value.as_bytes();
         let length = bytes.len() as i16;
         self.write_short(length as u16)?; // Usa write_short
-        self.bytes.write_all(bytes).map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
+        self.bytes
+            .write_all(bytes)
+            .map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
         Ok(())
     }
 
@@ -63,7 +67,9 @@ impl TypesToBytes {
         let bytes = value.as_bytes();
         let length = bytes.len() as i32;
         self.write_int(length)?; // Usa write_int
-        self.bytes.write_all(bytes).map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
+        self.bytes
+            .write_all(bytes)
+            .map_err(|_| Errors::ServerError(String::from(ERROR_WRITE)))?;
         Ok(())
     }
 

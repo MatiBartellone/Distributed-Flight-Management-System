@@ -1,9 +1,9 @@
 use super::if_clause::IfClause;
 use super::{query::Query, where_logic::where_clause::WhereClause};
+use crate::data_access::data_access_handler::use_data_access;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
     check_table_name, get_partition_key_from_where, split_keyspace_table,
-    use_data_access,
 };
 use crate::utils::response::Response;
 use serde::{Deserialize, Serialize};
@@ -37,6 +37,7 @@ impl Query for DeleteQuery {
                 "Where clause must be defined",
             )));
         };
+        self.get_partition()?;
         let _apllied = use_data_access(|data_access| {
             data_access.set_deleted_rows(&self.table_name, where_clause, &self.if_clause)
         })?;

@@ -7,4 +7,5 @@ members = [
     "node_handler", 
     "test-client"]
 
-
+[profile.dev]
+debug = true

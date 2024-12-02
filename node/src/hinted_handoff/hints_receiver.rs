@@ -1,10 +1,11 @@
 use crate::hinted_handoff::stored_query::StoredQuery;
+use crate::meta_data::meta_data_handler::use_node_meta_data;
 use crate::utils::config_constants::HINTED_HANDOFF_TIMEOUT_SECS;
 use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::functions::{
-    bind_listener, flush_stream, read_exact_from_stream, use_node_meta_data, write_to_stream,
+    bind_listener, deserialize_from_slice, read_exact_from_stream, write_to_stream,
 };
 use crate::utils::types::node_ip::NodeIp;
 use std::net::TcpStream;
@@ -43,12 +44,9 @@ impl HintsReceiver {
         stream: &mut TcpStream,
         hints: &mut Vec<StoredQuery>,
     ) -> Result<(), Errors> {
-        while let Ok(hint) = serde_json::from_slice::<StoredQuery>(&read_exact_from_stream(stream)?)
-        {
+        while let Ok(hint) = deserialize_from_slice(&read_exact_from_stream(stream)?) {
             hints.push(hint);
-            flush_stream(stream)?;
             write_to_stream(stream, b"ACK")?;
-            flush_stream(stream)?;
         }
         Ok(())
     }

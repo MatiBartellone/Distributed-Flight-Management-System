@@ -1,22 +1,23 @@
 use std::collections::HashMap;
 
-use crate::{utils::{errors::Errors, functions::deserialize_from_str}, parsers::tokens::data_type::DataType, data_access::row::Row};
-use crate::utils::types::bytes_cursor::BytesCursor;
 use super::data_response::DataResponse;
-
-
+use crate::utils::types::bytes_cursor::BytesCursor;
+use crate::{
+    data_access::row::Row,
+    parsers::tokens::data_type::DataType,
+    utils::{errors::Errors, functions::deserialize_from_str},
+};
 
 pub struct RowResponse;
 
 impl RowResponse {
-
     pub fn read_rows(bytes: Vec<u8>) -> Result<Vec<Row>, Errors> {
         let mut cursor = BytesCursor::new(&bytes);
         let _ = cursor.read_int();
         let count_rows = cursor.read_short()?;
         let mut res: Vec<Row> = Vec::new();
         for _ in 0..count_rows {
-            let row : Row = deserialize_from_str(&cursor.read_string()?)?;
+            let row: Row = deserialize_from_str(&cursor.read_string()?)?;
             res.push(row);
         }
         Ok(res)
@@ -36,7 +37,7 @@ impl RowResponse {
         }
         let mut columns: Vec<String> = Vec::new();
         let column_count = cursor.read_short()?;
-        for _ in 0..column_count{
+        for _ in 0..column_count {
             let name = cursor.read_string()?;
             columns.push(name)
         }
@@ -53,15 +54,20 @@ fn byte_to_data_type(byte: i16) -> Result<DataType, Errors> {
         0x0009 => Ok(DataType::Int),
         0x000A => Ok(DataType::Text),
         0x000C => Ok(DataType::Time),
-        _ => Err(Errors::ProtocolError(format!("Unknown data type byte: {}", byte))),
+        _ => Err(Errors::ProtocolError(format!(
+            "Unknown data type byte: {}",
+            byte
+        ))),
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
-    use crate::{utils::{response::Response, types_to_bytes::TypesToBytes}, data_access::row::Column, parsers::tokens::literal::create_literal};
+    use crate::{
+        data_access::column::Column,
+        parsers::tokens::literal::create_literal,
+        utils::{response::Response, types_to_bytes::TypesToBytes},
+    };
 
     use super::*;
 

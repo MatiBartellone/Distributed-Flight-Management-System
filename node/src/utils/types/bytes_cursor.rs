@@ -2,6 +2,12 @@ use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::errors::Errors;
 use std::collections::HashMap;
 use std::io::{Cursor, Read};
+
+/// This structure represents a cursor to read bytes, which given an initial slice
+/// of bytes consumes them dynamically with the use of its functions
+///
+/// Its functions are defined to read specific sizes and different types of data
+/// represented by bytes
 pub struct BytesCursor {
     cursor: Cursor<Vec<u8>>,
 }
