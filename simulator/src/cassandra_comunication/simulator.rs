@@ -26,7 +26,7 @@ const COL_ARRIVAL_POSITION_LAT: &str = "arrival_position_lat";
 const COL_ARRIVAL_POSITION_LON: &str = "arrival_position_lon";
 const COL_ALTITUDE: &str = "altitude";
 const COL_SPEED: &str = "speed";
-const COL_FUEL_LEVEL: &str = "fuel_evel";
+const COL_FUEL_LEVEL: &str = "fuel_level";
 
 pub struct Simulator;
 

@@ -60,7 +60,6 @@ impl ReadRepair {
     fn repair_node(&self, ip: &str) -> Result<(), Errors> {
         let node_rows = self.response_manager.read_rows(ip)?;
         let mut best = to_hash_rows(self.response_manager.read_rows(BEST)?);
-        dbg!(best.clone());
         self.process_existing_rows(ip, &node_rows, &mut best)?;
         self.process_remaining_rows(ip, &best)?;
 

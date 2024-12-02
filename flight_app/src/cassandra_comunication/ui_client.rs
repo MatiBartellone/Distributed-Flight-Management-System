@@ -26,7 +26,7 @@ const COL_ARRIVAL_POSITION_LAT: &str = "arrival_position_lat";
 const COL_ARRIVAL_POSITION_LON: &str = "arrival_position_lon";
 const COL_ALTITUDE: &str = "altitude";
 const COL_SPEED: &str = "speed";
-const COL_FUEL_LEVEL: &str = "fuel_evel";
+const COL_FUEL_LEVEL: &str = "fuel_level";
 
 pub struct UIClient;
 
@@ -220,9 +220,7 @@ impl UIClient {
         let flight_code = flight_code.to_string();
         thread_pool.execute(move |frame_id, client| {
             let flight_status = Self.get_flight_selected_status(client, &flight_code, &frame_id);
-            dbg!(&flight_status);
             let flight_tracking = Self.get_flight_selected_tracking(client, &flight_code, &frame_id);
-            dbg!(&flight_tracking);
             if let (Some(status), Some(tracking)) = (flight_status, flight_tracking) {
                 tx.send(Some(FlightSelected {
                     status,
@@ -275,7 +273,6 @@ impl UIClient {
             TABLE_FLIGHT_INFO, COL_FLIGHT_CODE, flight_code
         );
         let values = client.execute_weak_select_query(&query, frame_id).ok()?;
-        dbg!(&values);
         self.values_to_flight_selected_tracking(&values)
     }
 
