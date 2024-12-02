@@ -1,14 +1,14 @@
-use rand::Rng;
+use std::f64::consts::PI;
 
 use super::flight_state::FlightState;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct Flight {
     pub status: FlightStatus,
     pub info: FlightTracking,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct FlightStatus {
     // strong consistency
     pub code: String,
@@ -19,7 +19,7 @@ pub struct FlightStatus {
     pub arrival_time: String,
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct FlightTracking  {
     // weak consistency
     pub position: (f64, f64),
@@ -39,12 +39,15 @@ impl Flight {
         self.set_position(position);
         self.set_altitude(0.0);
         self.set_speed(0.0);
-        self.set_fuel_level(gen_random(80.0, 100.0));
+        self.set_fuel_level(100.0);
         self.set_status(FlightState::OnTime);
     }
 
     /// Update the flight progress based on the arrival position and the step time
     pub fn update_progress(&mut self, arrival_position: (f64, f64), step: f32) {
+        if self.get_position() == &arrival_position {
+            return;
+        }
         self.update_position(arrival_position, step);
         self.update_altitude(arrival_position, step);
         self.update_speed(arrival_position, step);
@@ -53,34 +56,48 @@ impl Flight {
     }
 
     fn update_position(&mut self, arrival_position: (f64, f64), step: f32) {
-        let (current_x, current_y) = self.info.position;
-        let (target_x, target_y) = arrival_position;
-
-        // Calculate the direction to the target
-        let direction_x = target_x - current_x;
-        let direction_y = target_y - current_y;
-
-        // Calculate the distance to the target --> sqrt(x^2 + y^2)
-        let distance = (direction_x.powi(2) + direction_y.powi(2)).sqrt();
-        if distance == 0.0 {
+        // Convertir coordenadas a radianes
+        let lat1: f64 = deg_to_rad(self.info.position.0);
+        let lon1: f64 = deg_to_rad(self.info.position.1);
+        let lat2: f64 = deg_to_rad(arrival_position.0);
+        let lon2: f64 = deg_to_rad(arrival_position.1);
+    
+        // Radio de la Tierra (km)
+        let r: f64 = 6371.0;
+    
+        // Diferencias en latitud y longitud
+        let delta_lat = lat2 - lat1;
+        let delta_lon = lon2 - lon1;
+    
+        // Calcular la distancia restante al destino (fórmula de Haversine)
+        let a = (delta_lat / 2.0).sin().powi(2)
+            + lat1.cos() * lat2.cos() * (delta_lon / 2.0).sin().powi(2);
+        let distance_to_target = 2.0 * r * a.sqrt().atan2((1.0 - a).sqrt());
+    
+        // Distancia a recorrer en este paso (km)
+        let d_step: f64 = (self.get_speed() as f64) * (step as f64);
+    
+        // Si el paso supera la distancia restante, mover directamente al destino
+        if d_step >= distance_to_target {
+            self.set_position(arrival_position);
             return;
         }
-
-        // Normalize the direction to get the unit vector --> unit_x + unit_y = 1
-        let unit_x = direction_x / distance;
-        let unit_y = direction_y / distance;
-
-        // Calculate the movement with the step and the speed --> movement_x + movement_y = speed * step
-        let movement_x = unit_x * self.info.speed as f64 * step as f64;
-        let movement_y = unit_y * self.info.speed as f64 * step as f64;
-
-        // Update the position, if we are close enough to the target, we set the position to the target
-        if movement_x.abs() >= direction_x.abs() && movement_y.abs() >= direction_y.abs() {
-            self.info.position = arrival_position;
-        } else {
-            self.info.position.0 += movement_x;
-            self.info.position.1 += movement_y;
-        }
+    
+        // Calcular el rumbo (bearing)
+        let bearing: f64 = (delta_lon.sin() * lat2.cos())
+            .atan2(lat1.cos() * lat2.sin() - lat1.sin() * lat2.cos() * delta_lon.cos());
+    
+        // Calcular la nueva posición
+        let lat_new = (lat1.sin() * (d_step / r).cos()
+            + lat1.cos() * (d_step / r).sin() * bearing.cos())
+        .asin();
+    
+        let lon_new = lon1
+            + ((bearing.sin() * (d_step / r).sin() * lat1.cos())
+                .atan2((d_step / r).cos() - lat1.sin() * lat_new.sin()));
+    
+        // Convertir a grados y actualizar la posición
+        self.set_position((rad_to_deg(lat_new), rad_to_deg(lon_new)));
     }
 
     fn update_altitude(&mut self, arrival_position: (f64, f64), step: f32) {
@@ -179,7 +196,7 @@ impl Flight {
     }
 
     pub fn set_arrival_airport(&mut self, airport: String) {
-        self.status.arrival_airport = airport;
+        self.status.arrival_airport = airport
     }
 
     pub fn get_speed(&self) -> f32 {
@@ -211,29 +228,12 @@ impl Flight {
     }
 }
 
-// Generador aleatorio de float en un rango
-fn gen_random(min: f32, max: f32) -> f32 {
-    let mut rng = rand::thread_rng();
-    rng.gen_range(min..=max)
+/// Convierte grados a radianes.
+fn deg_to_rad(deg: f64) -> f64 {
+    deg * PI / 180.0
 }
 
-pub fn get_airport_coordinates(airport: &str) -> (f64, f64) {
-    match airport {
-        "JFK" => (-73.7781, 40.6413),  // JFK, Nueva York
-        "LAX" => (-118.4085, 33.9416), // LAX, Los Ángeles
-        "EZE" => (-58.5358, -34.8222), // EZE, Buenos Aires (Ezeiza)
-        "CDG" => (2.55, 49.0097),      // CDG, París Charles de Gaulle
-        "LHR" => (-0.4543, 51.4700),   // LHR, Londres Heathrow
-        "NRT" => (140.3929, 35.7735),  // NRT, Tokio Narita
-        "FRA" => (8.5706, 50.0333),    // FRA, Frankfurt
-        "SYD" => (151.1772, -33.9399), // SYD, Sídney Kingsford Smith
-        "SCL" => (-70.7853, -33.3929), // SCL, Santiago de Chile
-        "MIA" => (-80.2906, 25.7957),  // MIA, Miami
-        "DFW" => (-97.0379, 32.8968),  // DFW, Dallas/Fort Worth
-        "GRU" => (-46.6506, -23.4253), // GRU, São Paulo-Guarulhos
-        "MAD" => (-3.5705, 40.4719),   // MAD, Madrid
-        "AMS" => (4.7600, 52.3081),    // AMS, Ámsterdam
-        "SFO" => (-122.4194, 37.6213), // SFO, San Francisco
-        _ => (0.0, 0.0),
-    }
+/// Convierte radianes a grados.
+fn rad_to_deg(rad: f64) -> f64 {
+    rad * 180.0 / PI
 }

@@ -147,8 +147,7 @@ impl Simulator {
 
     fn insert_flight(&self, client: &mut CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
-            "INSERT INTO {TABLE_FLIGHT_INFO} ({COL_FLIGHT_CODE}, {COL_STATUS}, {COL_DEPARTURE_AIRPORT}, {COL_ARRIVAL_AIRPORT}, {COL_DEPARTURE_TIME}, {COL_ARRIVAL_TIME}, {COL_POSITION_LAT}, {COL_POSITION_LON}, {COL_ARRIVAL_POSITION_LAT}, {COL_ARRIVAL_POSITION_LON}, {COL_ALTITUDE}, {COL_SPEED}, {COL_FUEL_LEVEL})
-            VALUES ('{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}', '{}');",
+            "INSERT INTO {TABLE_FLIGHT_INFO} ({COL_FLIGHT_CODE}, {COL_STATUS}, {COL_DEPARTURE_AIRPORT}, {COL_ARRIVAL_AIRPORT}, {COL_DEPARTURE_TIME}, {COL_ARRIVAL_TIME}, {COL_POSITION_LAT}, {COL_POSITION_LON}, {COL_ARRIVAL_POSITION_LAT}, {COL_ARRIVAL_POSITION_LON}, {COL_ALTITUDE}, {COL_SPEED}, {COL_FUEL_LEVEL}) VALUES ('{}', '{}', '{}', '{}', '{}', '{}', {:.1}, {:.1}, {:.1}, {:.1}, {:.1}, {:.1}, {:.1});",
             flight.get_code(), 
             flight.get_status(), 
             flight.get_departure_airport(), 
@@ -163,15 +162,16 @@ impl Simulator {
             flight.get_speed(), 
             flight.get_fuel_level()
         );
+        dbg!(&query);
         client.execute_strong_query_without_response(&query, frame_id)
     }
 
     fn insert_flight_code_to_airport(&self, client: &mut CassandraClient, airport_code: &str, flight_code: &str, frame_id: &usize) -> Result<(), String> {
         let query = format!(
-            "INSERT INTO {TABLE_FLIGHTS_BY_AIRPORT} ({COL_AIRPORT_CODE}, {COL_FLIGHT_CODE})
-            VALUES ('{}', '{}');",
+            "INSERT INTO {TABLE_FLIGHTS_BY_AIRPORT} ({COL_AIRPORT_CODE}, {COL_FLIGHT_CODE}) VALUES ('{}', '{}');",
             airport_code, flight_code
         );
+        dbg!(&query);
         client.execute_strong_query_without_response(&query, frame_id)
     }
 
@@ -183,6 +183,30 @@ impl Simulator {
     ) -> Vec<Flight> {
         let flight_codes = self.get_codes(airport_code, thread_pool);
     
+        let (tx, rx) = mpsc::channel();
+        let tx = Arc::new(Mutex::new(tx));
+        for code in flight_codes {
+            let tx = Arc::clone(&tx);
+            thread_pool.execute(move |frame_id, client| {
+                if let Some(flight) = Self.get_flight(client, &code, &frame_id) {
+                    if let Ok(tx) = tx.lock(){
+                        let _ = tx.send(flight);
+                    }
+                }
+            });
+        }
+    
+        thread_pool.join();
+        drop(tx);
+        rx.into_iter().collect()
+    }
+
+    /// Get the information of the flights by their codes
+    fn get_flights_by_codes(
+        &self,
+        flight_codes: HashSet<String>,
+        thread_pool: &ThreadPoolClient
+    ) -> Vec<Flight> {
         let (tx, rx) = mpsc::channel();
         let tx = Arc::new(Mutex::new(tx));
         for code in flight_codes {
@@ -279,7 +303,7 @@ impl Simulator {
 
     fn update_flight_status(&self, client: &mut CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
-            "UPDATE {TABLE_FLIGHT_INFO} SET {COL_STATUS} = '{}', \"{COL_DEPARTURE_AIRPORT}\" = '{}', \"{COL_ARRIVAL_AIRPORT}\" = '{}', \"{COL_DEPARTURE_TIME}\" = '{}', \"{COL_ARRIVAL_TIME}\" = '{}' WHERE \"{COL_FLIGHT_CODE}\" = '{}';",
+            "UPDATE {TABLE_FLIGHT_INFO} SET {COL_STATUS} = '{}', {COL_DEPARTURE_AIRPORT} = '{}', {COL_ARRIVAL_AIRPORT} = '{}', \"{COL_DEPARTURE_TIME}\" = '{}', \"{COL_ARRIVAL_TIME}\" = '{}' WHERE \"{COL_FLIGHT_CODE}\" = '{}';",
             flight.get_status(),
             flight.get_departure_airport(),
             flight.get_arrival_airport(),
@@ -287,12 +311,13 @@ impl Simulator {
             flight.get_arrival_time(),
             flight.get_code()
         );
+        println!("Query:status: {}", query);
         client.execute_strong_query_without_response(&query, frame_id)
     }
 
     fn update_flight_tracking(&self, client: &mut CassandraClient, flight: &Flight, frame_id: &usize) -> Result<(), String> {
         let query = format!(
-            "UPDATE {TABLE_FLIGHT_INFO} SET \"{COL_POSITION_LAT}\" = '{}', \"{COL_POSITION_LON}\" = '{}', \"{COL_ARRIVAL_POSITION_LAT}\" = '{}', \"{COL_ARRIVAL_POSITION_LON}\" = '{}', {COL_ALTITUDE} = '{}', {COL_SPEED} = '{}', \"{COL_FUEL_LEVEL}\" = '{}' WHERE \"{COL_FLIGHT_CODE}\" = '{}';",
+            "UPDATE {TABLE_FLIGHT_INFO} SET {COL_POSITION_LAT} = {:.1}, {COL_POSITION_LON} = {:.1}, {COL_ARRIVAL_POSITION_LAT} = {:.1}, {COL_ARRIVAL_POSITION_LON} = {:.1}, {COL_ALTITUDE} = {:.1}, {COL_SPEED} = {:.1}, {COL_FUEL_LEVEL} = {:.1} WHERE {COL_FLIGHT_CODE} = '{}';",
             flight.get_position().0,
             flight.get_position().1,
             flight.get_arrival_position().0,
@@ -302,12 +327,14 @@ impl Simulator {
             flight.get_fuel_level(),
             flight.get_code()
         );
+        println!("Query:tracking: {}", query);
         client.execute_weak_query_without_response(&query, frame_id)
     }
 
     /// Restarts all the flights in the airport to the initial state
     pub fn restart_flights(&self, flights: &mut [Flight], airports: &HashMap<String, Airport>, thread_pool: &ThreadPoolClient) {
         for mut flight in flights.iter().cloned() {
+            println!("Restarting flight: {:?}", flight);
             let position = match airports.get(flight.get_departure_airport()) {
                 Some(airport) => airport.position,
                 None => continue,
@@ -315,6 +342,7 @@ impl Simulator {
             thread_pool.execute(move |frame_id, client| {
                 flight.restart(position);
                 _ = Self.update_flight(client, &flight, &frame_id);
+                println!("Restarted flight: {:?}", flight);
             });
         }
 
@@ -324,14 +352,15 @@ impl Simulator {
     /// Loop that updates the flights in the airport every interval of time
     pub fn flight_updates_loop(
         &self,
-        mut flights: Vec<Flight>,
+        flights: Vec<Flight>,
         airports: &HashMap<String, Airport>,
         step: f32,
         interval: u64,
         thread_pool: &ThreadPoolClient
     ) {
+        let codes: HashSet<String> = flights.iter().map(|flight| flight.get_code().to_string()).collect();
         loop {
-            for flight in flights.iter_mut() {
+            for flight in self.get_flights_by_codes(codes.clone(), thread_pool) {
                 let arrival_position = match  airports.get(flight.get_arrival_airport()) {
                     Some(airport) => airport.position,
                     None => continue,
