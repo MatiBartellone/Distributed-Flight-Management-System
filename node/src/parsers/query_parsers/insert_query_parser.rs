@@ -3,10 +3,12 @@ use crate::parsers::tokens::terms::Term;
 use crate::parsers::tokens::token::Token;
 use crate::queries::insert_query::InsertQuery;
 use crate::utils::errors::Errors;
-use crate::utils::parser_constants::{COMMA, EXISTS, IF, INTO, NOT, VALUES};
+use crate::utils::parser_constants::{COMMA, EXISTS, IF, INTO, VALUES};
 use crate::utils::types::token_conversor::get_next_value;
 use std::iter::Peekable;
 use std::vec::IntoIter;
+use crate::parsers::tokens::terms::BooleanOperations::Logical;
+use crate::parsers::tokens::terms::LogicalOperators::*;
 
 pub struct InsertQueryParser;
 
@@ -112,7 +114,7 @@ fn handle_not_exists(tokens: &mut Peekable<IntoIter<Token>>) -> Result<bool, Err
 fn exists(tokens: &mut Peekable<IntoIter<Token>>) -> Result<bool, Errors> {
     match tokens.next() {
         Some(Token::Reserved(res)) if res == EXISTS => handle_exists(tokens),
-        Some(Token::Reserved(res)) if res == NOT => match tokens.next() {
+        Some(Token::Term(Term::BooleanOperations(Logical(Not)))) => match tokens.next() {
             Some(Token::Reserved(res)) if res == EXISTS => handle_not_exists(tokens),
             _ => Err(Errors::SyntaxError("Unexpected token".to_string())),
         },
@@ -178,7 +180,7 @@ mod tests {
     use crate::parsers::tokens::{
         data_type::DataType, literal::Literal, terms::Term, token::Token,
     };
-
+    use crate::parsers::tokens::terms::BooleanOperations::Logical;
     use super::*;
 
     fn assert_error(result: Result<InsertQuery, Errors>, expected: &str) {
@@ -223,13 +225,12 @@ mod tests {
         }
         if let Some(exists) = exists {
             let list = match exists {
-                "NOT EXISTS" => vec![Token::Reserved(NOT.to_string()), Token::Reserved(EXISTS.to_string())],
+                "NOT EXISTS" => vec![Token::Term(Term::BooleanOperations(Logical(Not))), Token::Reserved(EXISTS.to_string())],
                 "EXISTS" => vec![Token::Reserved(EXISTS.to_string())],
                 _ => vec![Token::Reserved(exists.to_string())],
             };
             tokens.push(Token::IterateToken(list));
         }
-        dbg!(&tokens);
         tokens
     }
 

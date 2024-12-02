@@ -1,22 +1,22 @@
 use crate::hinted_handoff::handler::Handler;
 use crate::hinted_handoff::stored_query::StoredQuery;
-use crate::meta_data::meta_data_handler::MetaDataHandler;
+use crate::meta_data::meta_data_handler::{use_keyspace_meta_data, use_node_meta_data};
 use crate::queries::query::{Query, QueryEnum};
 use crate::query_delegation::query_serializer::QuerySerializer;
+use crate::read_reparation::read_repair::ReadRepair;
 use crate::utils::config_constants::TIMEOUT_SECS;
 use crate::utils::consistency_level::ConsistencyLevel;
 use crate::utils::constants::{KEYSPACE_METADATA_PATH, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
-use crate::utils::functions::{flush_stream, read_from_stream_no_zero, use_node_meta_data};
+use crate::utils::functions::{read_from_stream_no_zero, write_to_stream};
 use crate::utils::types::node_ip::NodeIp;
-use std::io::Write;
+use std::collections::HashMap;
 use std::net::TcpStream;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
 pub struct QueryDelegator {
-    #[allow(dead_code)]
     primary_key: Option<Vec<String>>,
     query: Box<dyn Query>,
     consistency: ConsistencyLevel,
@@ -36,7 +36,7 @@ impl QueryDelegator {
     }
 
     pub fn send(&self) -> Result<Vec<u8>, Errors> {
-        let responses = Arc::new(Mutex::new(Vec::new()));
+        let responses = Arc::new(Mutex::new(HashMap::new()));
         let (tx, rx) = mpsc::channel();
         let error = Arc::new(Mutex::new(None));
 
@@ -50,7 +50,7 @@ impl QueryDelegator {
             let error = Arc::clone(&error);
             let _ = thread::spawn(move || {
                 match QueryDelegator::send_to_node(ip, query_enum.into_query()) {
-                    Ok(response) => if tx.send(response).is_ok() {},
+                    Ok((ip, response)) => if tx.send((ip, response)).is_ok() {},
                     Err(e) => {
                         let mut error_lock = error.lock().unwrap();
                         *error_lock = Some(e);
@@ -62,15 +62,15 @@ impl QueryDelegator {
         let timeout = Duration::from_secs(TIMEOUT_SECS);
         for _ in 0..self.consistency.get_consistency(self.get_replication()?) {
             match rx.recv_timeout(timeout) {
-                Ok(response) => {
+                Ok((ip, response)) => {
                     let mut res = responses.lock().unwrap();
-                    res.push(response);
+                    res.insert(ip, response);
                 }
                 _ => {
                     return match error.lock().unwrap().take() {
                         Some(e) => Err(e),
                         None => Err(Errors::ReadTimeout(String::from("Timeout"))),
-                    }
+                    };
                 }
             }
         }
@@ -79,17 +79,15 @@ impl QueryDelegator {
     }
 
     fn get_replication(&self) -> Result<usize, Errors> {
-        let mut stream = MetaDataHandler::establish_connection()?;
-        let instance = MetaDataHandler::get_instance(&mut stream)?;
-        let keyspace_metadata = instance.get_keyspace_meta_data_access();
-        let nodes_meta_data = instance.get_nodes_metadata_access();
         if self.primary_key.is_none() {
-            return nodes_meta_data.get_nodes_quantity(NODES_METADATA_PATH);
+            return use_node_meta_data(|handler| handler.get_nodes_quantity(NODES_METADATA_PATH));
         }
-        keyspace_metadata.get_replication(
-            KEYSPACE_METADATA_PATH.to_string(),
-            &self.query.get_keyspace()?,
-        )
+        use_keyspace_meta_data(|handler| {
+            handler.get_replication(
+                KEYSPACE_METADATA_PATH.to_string(),
+                &self.query.get_keyspace()?,
+            )
+        })
     }
 
     fn get_nodes_ip(&self) -> Result<Vec<NodeIp>, Errors> {
@@ -102,19 +100,16 @@ impl QueryDelegator {
         })
     }
 
-    fn send_to_node(ip: NodeIp, query: Box<dyn Query>) -> Result<Vec<u8>, Errors> {
+    pub fn send_to_node(ip: NodeIp, query: Box<dyn Query>) -> Result<(NodeIp, Vec<u8>), Errors> {
         match TcpStream::connect(ip.get_query_delegation_socket()) {
             Ok(mut stream) => {
-                if stream
-                    .write(QuerySerializer::serialize(&query)?.as_slice())
-                    .is_err()
-                {
-                    return Err(Errors::ServerError(String::from(
-                        "Unable to send query to node",
-                    )));
-                };
-                flush_stream(&mut stream)?;
-                read_from_stream_no_zero(&mut stream)
+                write_to_stream(&mut stream, QuerySerializer::serialize(&query)?.as_slice())?;
+                //flush_stream(&mut stream)?;
+                let response = read_from_stream_no_zero(&mut stream)?;
+                if let Some(e) = Errors::deserialize(response.as_slice()) {
+                    return Err(e);
+                }
+                Ok((ip, response))
             }
             Err(e) => {
                 use_node_meta_data(|handler| handler.set_inactive(NODES_METADATA_PATH, &ip))?;
@@ -124,15 +119,16 @@ impl QueryDelegator {
         }
     }
 
-    fn get_response(&self, responses: Vec<Vec<u8>>) -> Result<Vec<u8>, Errors> {
-        let Some(response) = responses.first() else {
-            return Err(Errors::ServerError(String::from("No response found")));
-        };
-        for r in &responses {
-            if r != response {
-                // READ REPAIR
-            }
+    fn get_response(&self, responses: HashMap<NodeIp, Vec<u8>>) -> Result<Vec<u8>, Errors> {
+        let expected_bytes = 2i32.to_be_bytes();
+        let all_rows = responses
+            .values()
+            .all(|response| response.starts_with(&expected_bytes));
+        if all_rows {
+            let mut read_repair = ReadRepair::new(&responses)?;
+            return read_repair.get_response();
         }
-        Ok(response.clone())
+        let response = responses.values().next().unwrap_or(&Vec::new()).to_vec();
+        Ok(response)
     }
 }

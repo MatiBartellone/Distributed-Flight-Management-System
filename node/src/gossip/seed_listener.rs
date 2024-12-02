@@ -1,9 +1,10 @@
+use crate::meta_data::meta_data_handler::use_node_meta_data;
 use crate::meta_data::nodes::node::Node;
 use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
-    deserialize_from_slice, flush_stream, read_from_stream_no_zero, serialize_to_string,
-    start_listener, use_node_meta_data, write_to_stream,
+    deserialize_from_slice, read_from_stream_no_zero, serialize_to_string, start_listener,
+    write_to_stream,
 };
 use crate::utils::types::node_ip::NodeIp;
 use std::net::TcpStream;
@@ -25,7 +26,6 @@ impl SeedListener {
         let cluster =
             use_node_meta_data(|handler| handler.get_full_nodes_list(NODES_METADATA_PATH))?;
         let serialized = serialize_to_string(&cluster)?;
-        flush_stream(stream)?;
         write_to_stream(stream, serialized.as_bytes())
     }
 

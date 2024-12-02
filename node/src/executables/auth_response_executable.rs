@@ -2,7 +2,8 @@ use crate::auth::authenticator::Authenticator;
 use crate::executables::executable::Executable;
 use crate::response_builders::frame_builder::FrameBuilder;
 use crate::utils::errors::Errors;
-use crate::utils::parser_constants::{AUTH_CHALLENGE, AUTH_SUCCESS};
+use crate::utils::errors::Errors::BadCredentials;
+use crate::utils::parser_constants::AUTH_SUCCESS;
 use crate::utils::types::frame::Frame;
 
 pub struct AuthResponseExecutable {
@@ -23,25 +24,17 @@ impl AuthResponseExecutable {
             authenticator,
         }
     }
-
-    fn get_token(&self) -> Vec<u8> {
-        Vec::<u8>::new()
-    }
 }
 
 impl Executable for AuthResponseExecutable {
     fn execute(&mut self, request: Frame) -> Result<Frame, Errors> {
         let user = self.user.to_string();
         let password = self.password.to_string();
-
-        if self.authenticator.validate_credentials(user, password)? {
-            let body = self.get_token();
-            let ok_response = FrameBuilder::build_response_frame(request, AUTH_SUCCESS, body)?;
-            return Ok(ok_response);
+        let ok = self.authenticator.validate_credentials(user, password)?;
+        if !ok {
+            return Err(BadCredentials(String::from("Invalid credentials provided")));
         }
-
-        let response = FrameBuilder::build_response_frame(request, AUTH_CHALLENGE, Vec::new())?;
-        Ok(response)
+        FrameBuilder::build_response_frame(request, AUTH_SUCCESS, Vec::new())
     }
 }
 
@@ -91,7 +84,7 @@ mod tests {
         }
     }
 
-    fn assert_with(user: &str, pass: &str, expected_opcode: u8, expected_body: Vec<u8>) {
+    fn assert_ok(user: &str, pass: &str, expected_opcode: u8, expected_body: Vec<u8>) {
         let request = build_request_with(user, pass);
         let authenticator = AuthenticatorMock::new();
         let mut executable = AuthResponseExecutable::new(
@@ -99,30 +92,45 @@ mod tests {
             pass.to_string(),
             Box::new(authenticator),
         );
-        let response = executable.execute(request).unwrap();
-        assert_eq!(response.opcode, expected_opcode);
-        assert_eq!(response.body, expected_body);
+        let response = executable.execute(request);
+        assert!(response.is_ok());
+        let frame = response.unwrap();
+        assert_eq!(frame.opcode, expected_opcode);
+        assert_eq!(frame.body, expected_body);
+    }
+
+    fn assert_err(user: &str, pass: &str) {
+        let request = build_request_with(user, pass);
+        let authenticator = AuthenticatorMock::new();
+        let mut executable = AuthResponseExecutable::new(
+            user.to_string(),
+            pass.to_string(),
+            Box::new(authenticator),
+        );
+        let response = executable.execute(request);
+        assert!(response.is_err());
     }
 
     use super::*;
+    use crate::utils::parser_constants::AUTH_CHALLENGE;
     #[test]
     fn test_01_successfull_response() {
         // En este test debería cambiar el body con los tokens si no me equivoco
-        assert_with(VALID_USER, VALID_PASS, AUTH_SUCCESS, Vec::new());
+        assert_ok(VALID_USER, VALID_PASS, AUTH_SUCCESS, Vec::new());
     }
 
     #[test]
     fn test_02_unsuccessfull_response_with_invalid_pass() {
-        assert_with(VALID_USER, INVALID_PASS, AUTH_CHALLENGE, Vec::new());
+        assert_err(VALID_USER, INVALID_PASS);
     }
 
     #[test]
     fn test_03_unsuccessfull_response_with_invalid_user() {
-        assert_with(INVALID_USER, VALID_PASS, AUTH_CHALLENGE, Vec::new());
+        assert_err(INVALID_USER, VALID_PASS);
     }
 
     #[test]
     fn test_04_unsuccessfull_response_with_invalid_user_and_password() {
-        assert_with(INVALID_USER, INVALID_PASS, AUTH_CHALLENGE, Vec::new());
+        assert_err(INVALID_USER, INVALID_PASS);
     }
 }

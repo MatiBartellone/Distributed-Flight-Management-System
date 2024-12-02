@@ -1,10 +1,7 @@
 use crate::query_delegation::query_serializer::QuerySerializer;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{
-    bind_listener, flush_stream, read_exact_from_stream, write_to_stream,
-};
+use crate::utils::functions::{bind_listener, read_exact_from_stream, write_to_stream};
 use crate::utils::types::node_ip::NodeIp;
-use std::io::Write;
 use std::net::TcpStream;
 use std::thread;
 
@@ -17,11 +14,10 @@ impl QueryReceiver {
             match incoming {
                 Ok(mut stream) => {
                     thread::spawn(move || -> Result<(), Errors> {
-                        if let Ok(response) = handle_query(&mut stream) {
-                            respond_to_request(&mut stream, response)?;
-                        } else {
-                            respond_to_request(&mut stream, "error".as_bytes().to_vec())?;
-                        };
+                        match handle_query(&mut stream) {
+                            Ok(response) => write_to_stream(&mut stream, response.as_slice())?,
+                            Err(e) => write_to_stream(&mut stream, e.serialize().as_slice())?,
+                        }
                         Ok(())
                     });
                 }
@@ -33,16 +29,6 @@ impl QueryReceiver {
 }
 fn handle_query(stream: &mut TcpStream) -> Result<Vec<u8>, Errors> {
     let res = read_exact_from_stream(stream)?;
-    stream.flush().expect("sds");
     let query = QuerySerializer::deserialize(res.as_slice())?;
-    match query.run() {
-        Ok(result) => Ok(result),
-        Err(e) => Ok(e.to_string().as_bytes().to_vec()),
-    }
-}
-
-fn respond_to_request(stream: &mut TcpStream, response: Vec<u8>) -> Result<(), Errors> {
-    flush_stream(stream)?;
-    write_to_stream(stream, response.as_slice())?;
-    flush_stream(stream)
+    query.run()
 }

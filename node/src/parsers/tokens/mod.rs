@@ -1,3 +1,4 @@
+pub mod character_mapping;
 pub mod data_type;
 pub mod lexer;
 pub mod literal;

@@ -5,5 +5,7 @@ members = [
     "flight_app",
     "simulator", 
     "node_handler", 
-    "test-client"
-    ]
+    "test-client"]
+
+[profile.dev]
+debug = true

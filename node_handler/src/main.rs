@@ -65,8 +65,6 @@ fn main() {
         .read_line(&mut path)
         .expect("Error reading data");
     path = path.trim().to_string();
-    dbg!(&path);
-
     loop {
         let p = path.clone();
         print_node_list(&mut read_cluster(p.as_str()));
