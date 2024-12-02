@@ -49,12 +49,12 @@ impl RepairRow {
     }
 
     fn add_update_changes(identifier: &str, literal: &Literal) -> Vec<Token> {
-        let mut res: Vec<Token> = Vec::new(); 
-        res.push(create_identifier_token(identifier));
-        res.push(create_comparison_operation_token(Equal));
-        res.push(create_token_from_literal(literal.clone()));
-        res.push(create_symbol_token(","));
-        res
+        vec![
+            create_identifier_token(identifier),
+            create_comparison_operation_token(Equal),
+            create_token_from_literal(literal.clone()),
+            create_symbol_token(",")
+        ]
     }
 
     fn create_update_changes(

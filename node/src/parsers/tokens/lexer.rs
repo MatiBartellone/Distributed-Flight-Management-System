@@ -1,4 +1,5 @@
-//! Módulo que proporciona funciones para procesar y estandarizar cadenas de texto,
+//! Módulo que proporciona funciones para procesar y estandarizar cadenas de texto.
+//!
 //! particularmente en el contexto de consultas SQL. Este módulo incluye funciones
 //! para eliminar comentarios, dividir el texto en secciones delimitadas, y estandarizar
 //! la entrada eliminando los comentarios y separando las palabras según las reglas definidas.
@@ -193,7 +194,7 @@ fn replace_simple_chars(query: &str) -> String {
     while let Some(current) = chars.next() {
         if let Some(&next) = chars.peek() {
             if current == '-' && next.is_ascii_digit() {
-                result.push_str(&current.to_string());
+                result.push(current);
                 continue;
             }
         }

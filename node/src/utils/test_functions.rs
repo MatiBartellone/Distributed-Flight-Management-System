@@ -3,8 +3,6 @@ use crate::data_access::row::Row;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::parsers::query_parser::{query_lexer, query_parser};
 use crate::utils::errors::Errors;
-use crate::utils::functions::deserialize_from_str;
-use crate::utils::types::bytes_cursor::BytesCursor;
 use crate::utils::types::node_ip::NodeIp;
 use std::fs::File;
 use std::io::Write;
