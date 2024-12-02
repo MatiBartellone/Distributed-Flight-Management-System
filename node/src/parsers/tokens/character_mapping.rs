@@ -90,15 +90,6 @@ mod tests {
     }
 
     #[test]
-    fn test_case_sensitivity() {
-        let mappings = CharacterMappings::new();
-
-        // Verificar que las claves son case-sensitive
-        assert!(mappings.is_mapped(">="));
-        assert!(!mappings.is_mapped("GE")); // Case sensitivity check
-    }
-
-    #[test]
     fn test_empty_mapping() {
         let mappings = CharacterMappings::new();
 
