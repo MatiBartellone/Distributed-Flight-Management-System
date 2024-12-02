@@ -11,6 +11,7 @@ use std::io::Write;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Once;
 use std::thread;
+use crate::read_reparation::row_response::RowResponse;
 
 static INIT: Once = Once::new();
 static FINISHED: AtomicUsize = AtomicUsize::new(0);
@@ -75,12 +76,5 @@ pub fn get_query_result(query: &str) -> Result<Vec<u8>, Errors> {
 }
 
 pub fn get_rows_select(result: Vec<u8>) -> Vec<Row> {
-    let mut cursor = BytesCursor::new(result.as_slice());
-    assert_eq!(cursor.read_int().unwrap(), 2);
-    let rows_len = cursor.read_short().unwrap();
-    let mut rows = Vec::new();
-    for _ in 0..rows_len {
-        rows.push(deserialize_from_str(&cursor.read_string().unwrap()).unwrap());
-    }
-    rows
+    RowResponse::read_rows(result).unwrap()
 }

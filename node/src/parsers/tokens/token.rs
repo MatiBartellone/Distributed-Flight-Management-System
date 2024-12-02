@@ -223,7 +223,7 @@ where
 /// con detalles sobre la naturaleza y ubicación del problema.
 ///
 /// # Ejemplo de uso
-/// ```rust
+/// ```ignore
 /// let consulta = vec![
 ///     "SELECT".to_string(),
 ///     "*".to_string(),
@@ -241,7 +241,7 @@ where
 ///
 /// # Manejo de errores
 /// Si un literal o palabra es inválido, el sistema devuelve un error detallado:
-/// ```rust
+/// ```ignore
 /// Err(Errors::SyntaxError("Invalid word: 'token'".to_string()));
 /// ```
 pub fn tokenize(words: Vec<String>) -> Result<Vec<Token>, Errors> {

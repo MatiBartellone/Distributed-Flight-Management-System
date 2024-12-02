@@ -19,7 +19,7 @@ pub struct Row {
     pub columns: Vec<Column>,
     pub primary_key: Vec<String>,
     pub deleted: bool,
-    timestamp: Timestamp,
+    pub(crate) timestamp: Timestamp,
 }
 
 impl Row {
@@ -35,6 +35,14 @@ impl Row {
     pub fn set_deleted(&mut self) {
         self.timestamp = Timestamp::new();
         self.deleted = true;
+    }
+
+    pub fn set_timestamp(&mut self, timestamp: Timestamp) {
+        self.timestamp = timestamp;
+    }
+
+    pub fn timestamp(&self) -> Timestamp {
+        Timestamp::new_from_timestamp(&self.timestamp)
     }
 
     pub fn is_deleted(&self) -> bool {

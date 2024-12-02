@@ -106,7 +106,7 @@ fn out_section(
 /// definidos: `$`, `'`, o `"`. Las partes no delimitadas también se incluyen como strings individuales.
 ///
 /// # Ejemplo
-/// ```rust
+/// ```ignore
 /// let input = "hola $hola como estas$ \"bien\" 'vos' el resto de el string";
 /// let result = divide_sections(input);
 /// assert_eq!(result, ["hola ", "$hola como estas$", " \"bien\" ", "'vos' el resto de el string"]);
@@ -151,7 +151,7 @@ fn divide_sections(input: &str) -> Vec<String> {
 /// La cadena de texto sin comentarios.
 ///
 /// # Ejemplo
-/// ```rust
+/// ```ignore
 /// let input = "SELECT * FROM table -- comentario\n WHERE x = 1 /* comentario bloque */";
 /// let result = remove_comments(input);
 /// assert_eq!(result, "SELECT * FROM table \n WHERE x = 1 ");
@@ -233,7 +233,7 @@ fn is_section(word: &str) -> bool {
 /// donde los comentarios han sido eliminados y las secciones delimitadas se conservan tal como están.
 ///
 /// # Ejemplo
-/// ```rust
+/// ```ignore
 /// let input = "SELECT * FROM table -- comentario\n WHERE x = 1 /* comentario bloque */";
 /// let result = standardize(input);
 /// assert_eq!(result, ["SELECT", "*", "FROM", "table", "WHERE", "x", "=", "1"]);

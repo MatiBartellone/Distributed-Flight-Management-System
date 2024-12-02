@@ -108,7 +108,7 @@ impl Response {
                 encoder.write_string(pk)?;
             }
             encoder.write_bool(row.deleted)?;
-            encoder.write_i64(row.timestamp().timestamp)?;
+            encoder.write_i64(row.timestamp.timestamp)?;
         }
         Ok(())
     }
