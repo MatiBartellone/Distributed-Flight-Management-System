@@ -150,7 +150,10 @@ fn send_queries(connector: &mut CassandraConnection) {
     let path = get_user_data("Queries path : ");
     let consistency = get_user_data("General consistency: ");
 
-    let file = File::open(path).unwrap();
+    let Ok(file) = File::open(path) else {
+        return;
+    };
+
     let reader = BufReader::new(file);
     for line in reader.lines() {
         let line = line.unwrap();

@@ -3,7 +3,7 @@ CREATE KEYSPACE aviation WITH replication = { 'class': 'SimpleStrategy', 'replic
 //CREACION DE TABLAS
 CREATE TABLE aviation.airports ( code text PRIMARY KEY, name text, position_lat decimal, position_lon decimal );
 CREATE TABLE aviation.flights_by_airport ( airport_code text, flight_code text, PRIMARY KEY (airport_code, flight_code) );
-CREATE TABLE aviation.flight_info ( flight_code text PRIMARY KEY, departure_airport text, arrival_airport text, departure_time time, arrival_time time, status text, arrival_position_lat decimal, arrival_position_lon decimal, position_lat decimal, position_lon decimal, altitude decimal, speed decimal, fuel_level decimal );
+CREATE TABLE aviation.flight_info ( flight_code text, departure_airport text, arrival_airport text, departure_time time, arrival_time time, status text, arrival_position_lat decimal, arrival_position_lon decimal, position_lat decimal, position_lon decimal, altitude decimal, speed decimal, fuel_level decimal, PRIMARY KEY(departure_airport, flight_code);
 //CREACION DE AEROPUERTOS
 //AMERICA
 INSERT INTO aviation.airports (code, name, position_lon, position_lat) VALUES ('EZE', 'Aeropuerto Internacional Ministro Pistarini', -34.812, -58.535);
