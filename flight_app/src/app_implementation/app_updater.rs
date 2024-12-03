@@ -1,7 +1,6 @@
 use std::{
     sync::{Arc, Mutex},
     thread,
-    time::Duration,
 };
 
 use crate::{cassandra_comunication::{thread_pool_client::ThreadPoolClient, ui_client::UIClient}, flight_implementation::{flight::Flight, flight_selected::FlightSelected}};
@@ -36,7 +35,7 @@ impl AppUpdater {
         thread::spawn(move || loop {
             self.update_flights();
             ctx.request_repaint();
-            thread::sleep(Duration::from_millis(1000));
+            //thread::sleep(Duration::from_millis(1000));
         });
     }
 

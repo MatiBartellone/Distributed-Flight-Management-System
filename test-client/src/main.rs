@@ -186,6 +186,8 @@ fn send_queries(connector: &mut CassandraConnection) {
             }
         }
     }
+
+    println!("\nFinished running queries\n");
 }
 
 fn send_prepare(connector: &mut CassandraConnection) {

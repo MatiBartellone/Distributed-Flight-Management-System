@@ -309,7 +309,6 @@ impl Simulator {
             flight.get_arrival_time(),
             flight.get_code()
         );
-        println!("Query:status: {}", query);
         client.execute_strong_query_without_response(&query, frame_id)
     }
 
@@ -325,14 +324,12 @@ impl Simulator {
             flight.get_fuel_level(),
             flight.get_code()
         );
-        println!("Query:tracking: {}", query);
         client.execute_weak_query_without_response(&query, frame_id)
     }
 
     /// Restarts all the flights in the airport to the initial state
     pub fn restart_flights(&self, flights: &mut [Flight], airports: &HashMap<String, Airport>, thread_pool: &ThreadPoolClient) {
         for mut flight in flights.iter().cloned() {
-            println!("Restarting flight: {:?}", flight);
             let position = match airports.get(flight.get_departure_airport()) {
                 Some(airport) => airport.position,
                 None => continue,
@@ -340,7 +337,6 @@ impl Simulator {
             thread_pool.execute(move |frame_id, client| {
                 flight.restart(position);
                 _ = Self.update_flight(client, &flight, &frame_id);
-                println!("Restarted flight: {:?}", flight);
             });
         }
 

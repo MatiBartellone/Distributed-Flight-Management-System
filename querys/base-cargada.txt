@@ -1,5 +1,5 @@
 //CREACION DE KEYSPACES
-CREATE KEYSPACE aviation WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 1 };
+CREATE KEYSPACE aviation WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 3 };
 //CREACION DE TABLAS
 CREATE TABLE aviation.airports ( code text PRIMARY KEY, name text, position_lat decimal, position_lon decimal );
 CREATE TABLE aviation.flights_by_airport ( airport_code text, flight_code text, PRIMARY KEY (airport_code, flight_code) );
