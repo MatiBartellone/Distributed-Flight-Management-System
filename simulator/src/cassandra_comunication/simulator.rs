@@ -202,13 +202,14 @@ impl Simulator {
     /// Get the information of the flights by their codes
     fn get_flights_by_codes(
         &self,
-        flight_codes: HashSet<String>,
+        flight_codes: &HashSet<String>,
         thread_pool: &ThreadPoolClient
     ) -> Vec<Flight> {
         let (tx, rx) = mpsc::channel();
         let tx = Arc::new(Mutex::new(tx));
         for code in flight_codes {
             let tx = Arc::clone(&tx);
+            let code = code.to_string();
             thread_pool.execute(move |frame_id, client| {
                 if let Some(flight) = Self.get_flight(client, &code, &frame_id) {
                     if let Ok(tx) = tx.lock(){
@@ -328,8 +329,9 @@ impl Simulator {
     }
 
     /// Restarts all the flights in the airport to the initial state
-    pub fn restart_flights(&self, flights: &mut [Flight], airports: &HashMap<String, Airport>, thread_pool: &ThreadPoolClient) {
-        for mut flight in flights.iter().cloned() {
+    pub fn restart_flights(&self, flights: &HashSet<String>, airports: &HashMap<String, Airport>, thread_pool: &ThreadPoolClient) {
+        let flights = self.get_flights_by_codes(flights, thread_pool);
+        for mut flight in flights {
             let position = match airports.get(flight.get_departure_airport()) {
                 Some(airport) => airport.position,
                 None => continue,
@@ -339,27 +341,26 @@ impl Simulator {
                 _ = Self.update_flight(client, &flight, &frame_id);
             });
         }
-
         thread_pool.join();
     }
 
     /// Loop that updates the flights in the airport every interval of time
     pub fn flight_updates_loop(
         &self,
-        flights: Vec<Flight>,
+        flight_codes: HashSet<String>,
         airports: &HashMap<String, Airport>,
         step: f32,
         interval: u64,
         thread_pool: &ThreadPoolClient
     ) {
-        let codes: HashSet<String> = flights.iter().map(|flight| flight.get_code().to_string()).collect();
         loop {
-            for flight in self.get_flights_by_codes(codes.clone(), thread_pool) {
+            let flights = self.get_flights_by_codes(&flight_codes, thread_pool);
+            for mut flight in flights {
                 let arrival_position = match  airports.get(flight.get_arrival_airport()) {
                     Some(airport) => airport.position,
                     None => continue,
                 };
-                let mut flight = flight.clone();
+                
                 thread_pool.execute(move |frame_id, client| {
                     flight.update_progress(arrival_position, step);
                     _ = Self.update_flight(client, &flight, &frame_id);

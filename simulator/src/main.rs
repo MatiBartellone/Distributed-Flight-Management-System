@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use simulator::{cassandra_comunication::{cassandra_client::CassandraClient, simulator::Simulator, thread_pool_client::ThreadPoolClient}, flight_implementation::{airport::Airport, flight::{Flight, FlightStatus, FlightTracking}, flight_state::FlightState}, utils::system_functions::{clear_screen, get_user_data}};
 
@@ -18,8 +18,9 @@ fn loop_option(thread_pool: &ThreadPoolClient) {
     let simulator = Simulator;
     let codes = get_airports_codes();
     let airports = simulator.get_airports(codes, thread_pool);
-    let mut flights = HashMap::new();
+    let mut flight_codes = HashSet::new();
     loop {
+        clear_screen();
         println!("Choose an option:");
         println!("1. Add flights for an airport");
         println!("2. Add a single flight");
@@ -27,42 +28,40 @@ fn loop_option(thread_pool: &ThreadPoolClient) {
         println!("4. Exit");
         let option = get_user_data("--> ");
         match option.as_str() {
-            "1" => add_flights_for_airport(&mut flights, &simulator, thread_pool),
-            "2" => add_single_flight(&mut flights, &simulator, thread_pool),
+            "1" => add_flights_for_airport(&mut flight_codes, &simulator, thread_pool),
+            "2" => add_single_flight(&mut flight_codes, &simulator, thread_pool),
             "3" => break,
             "4" => return,
             _ => println!("Invalid option"),
         }
-        clear_screen();
     }
     clear_screen();
-    let mut flights: Vec<Flight> = flights.into_values().collect();
-    simulator.restart_flights(&mut flights, &airports, thread_pool);
-    flight_updates_loop(&simulator, flights, &airports, thread_pool);
+    simulator.restart_flights(&flight_codes, &airports, thread_pool);
+    flight_updates_loop(&simulator, flight_codes, &airports, thread_pool);
 }
 
-fn flight_updates_loop(simulator: &Simulator, flights: Vec<Flight>, airports: &HashMap<String, Airport>, thread_pool: &ThreadPoolClient) {
+fn flight_updates_loop(simulator: &Simulator, flight_codes: HashSet<String>, airports: &HashMap<String, Airport>, thread_pool: &ThreadPoolClient) {
     let step = get_user_data("Enter the step time:")
         .parse::<f32>()
         .unwrap_or(10.0);
     let interval = get_user_data("Enter the interval time:")
         .parse::<u64>()
         .unwrap_or(1000);
-    simulator.flight_updates_loop(flights, airports, step, interval, thread_pool);
+    simulator.flight_updates_loop(flight_codes, airports, step, interval, thread_pool);
 }
 
-fn add_flights_for_airport(flights: &mut HashMap<String, Flight>, simulator: &Simulator, thread_pool: &ThreadPoolClient) {
+fn add_flights_for_airport(flights: &mut HashSet<String>, simulator: &Simulator, thread_pool: &ThreadPoolClient) {
     let airport_code = get_user_data("Enter the airport code:");
     let flights_for_airport = simulator.get_flights(&airport_code, thread_pool);
     for flight in flights_for_airport {
-        flights.insert(flight.get_code(), flight);
+        flights.insert(flight.get_code());
     }
 }
 
-fn add_single_flight(flights: &mut HashMap<String, Flight>, simulator: &Simulator, thread_pool: &ThreadPoolClient) {
+fn add_single_flight(flight_codes: &mut HashSet<String>, simulator: &Simulator, thread_pool: &ThreadPoolClient) {
     let flight = get_flight_data();
     simulator.insert_single_flight(&flight, thread_pool);
-    flights.insert(flight.get_code(), flight);
+    flight_codes.insert(flight.get_code());
 }
 
 fn get_flight_data() -> Flight {
