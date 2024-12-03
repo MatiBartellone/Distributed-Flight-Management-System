@@ -162,7 +162,6 @@ impl Simulator {
             flight.get_speed(), 
             flight.get_fuel_level()
         );
-        dbg!(&query);
         client.execute_strong_query_without_response(&query, frame_id)
     }
 
@@ -171,7 +170,6 @@ impl Simulator {
             "INSERT INTO {TABLE_FLIGHTS_BY_AIRPORT} ({COL_AIRPORT_CODE}, {COL_FLIGHT_CODE}) VALUES ('{}', '{}');",
             airport_code, flight_code
         );
-        dbg!(&query);
         client.execute_strong_query_without_response(&query, frame_id)
     }
 
