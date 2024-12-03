@@ -38,11 +38,14 @@ impl CassandraConnection {
         Ok(Self { stream })
     }
 
-    fn write_stream(&mut self, frame: &Frame) -> Result<(), String> {
+    pub fn write_stream(&mut self, frame: &Frame) -> Result<(), String> {
         let frame_bytes = frame.to_bytes()
             .map_err(|_| "Error al convertir a bytes".to_string())?;
-        
-        self.stream.write_all(&frame_bytes)
+
+        let mut message = (frame_bytes.len() as i32).to_be_bytes().to_vec();
+        message.extend(frame_bytes);
+
+        self.stream.write_all(&message)
             .map_err(|_| "Error al escribir".to_string())?;
 
         self.stream.flush()
@@ -50,11 +53,21 @@ impl CassandraConnection {
         Ok(())
     }
 
-    fn read_stream(&mut self) -> Result<Frame, String> {
-        let mut buf = [0; 60000];
-        match self.stream.read(&mut buf) {
-            Ok(n) if n > 0 => Frame::parse_frame(&buf[..n]),
-            _ => Err("Fail reading the response".to_string()),
+    pub fn read_stream(&mut self) -> Result<Frame, String> {
+        let mut size_buffer = [0; 4];
+        self.stream
+            .read_exact(&mut size_buffer)
+            .map_err(|_| String::from("Failed to read stream size"))?;
+        let size = i32::from_be_bytes(size_buffer) as usize;
+
+        if size == 0 {
+            Err("Fail reading the response".to_string())
+        } else {
+            let mut buffer = vec![0; size];
+            self.stream
+                .read_exact(&mut buffer)
+                .map_err(|_| String::from("Failed to read full message"))?;
+            Frame::parse_frame(&buffer[0..])
         }
     }
     

@@ -37,6 +37,7 @@ fn main() {
             "execute" => send_execute(&mut connector),
             "queries" => {
                 send_queries(&mut connector);
+                input.clear();
                 continue;
             },
             _ => {

@@ -164,7 +164,8 @@ const AES_KEY: [u8; 32] = [
 /// writes all to stream using encrypted data
 pub fn write_to_stream(stream: &mut TcpStream, content: &[u8]) -> Result<(), Errors> {
     let (encrypted_data, iv) = encrypt_message(content, &AES_KEY)?;
-    let mut message = iv.clone();
+    let mut message = ((encrypted_data.len() + iv.len()) as i32).to_be_bytes().to_vec();
+    message.extend(iv.clone());
     message.extend(encrypted_data);
     stream
         .write_all(&message)
@@ -173,15 +174,24 @@ pub fn write_to_stream(stream: &mut TcpStream, content: &[u8]) -> Result<(), Err
 
 /// reads from stream decrypting the received data
 pub fn read_exact_from_stream(stream: &mut TcpStream) -> Result<Vec<u8>, Errors> {
-    let mut buffer = [0; 10000];
-    let size = stream
-        .read(&mut buffer)
-        .map_err(|_| ServerError(String::from("Failed to read stream")))?;
+    let mut size_buffer = [0; 4];
+    if stream.read_exact(&mut size_buffer).is_err() {
+        return Ok(Vec::new());
+    }
+
+    let size = i32::from_be_bytes(size_buffer) as usize;
+
+    let mut buffer = vec![0; size];
+    stream
+        .read_exact(&mut buffer)
+        .map_err(|_| ServerError(String::from("Failed to read full message")))?;
+
     if size < 16 {
         return Ok(Vec::new());
     }
     let iv = &buffer[..16];
-    let encrypted_data = &buffer[16..size];
+    let encrypted_data = &buffer[16..];
+
     decrypt_message(encrypted_data, iv, &AES_KEY)
 }
 

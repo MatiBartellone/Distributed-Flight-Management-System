@@ -27,6 +27,7 @@ impl ClientHandler {
                 Ok(vec) => match execute_request(vec.clone()) {
                     Ok(response) => write_to_tls_stream(&mut stream, response.as_slice())?,
                     Err(e) => {
+                        println!("{}", &e);
                         let frame = ErrorBuilder::build_error_frame(
                             Frame::parse_frame(vec.as_slice())?,
                             e,
