@@ -109,7 +109,7 @@ impl Flight {
     }
 
     fn image_texture(&self, painter: &Painter) -> Result<Texture, ()> {
-        let image_data = read("../ui/src/img/flight32.png").map_err(|_| ())?;
+        let image_data = read("src/img/flight32.png").map_err(|_| ())?;
         let airplane_texture = Texture::new(&image_data, painter.ctx()).map_err(|_| ())?;
         Ok(airplane_texture)
     }

@@ -9,7 +9,6 @@ use crate::flight_implementation::flight_selected::FlightSelected;
 
 use super::airport::Airport;
 
-#[derive(Clone)]
 pub struct Airports {
     pub airports: HashMap<String, Airport>, 
     pub selected_airport_code: Arc<Mutex<Option<String>>>,
@@ -69,7 +68,7 @@ impl Airports {
         if let Some(code) = &*selected_airport_code {
             if let Some(airport) = self.airports.get(code) {
                 drop(selected_airport_code);
-                airport.draw(response, painter.clone(), projector, &self.selected_airport_code);
+                airport.draw(response, painter.clone(), projector, &self.selected_airport_code, &self.selected_flight);
                 return true;
             }
         }
@@ -82,24 +81,29 @@ impl Airports {
             Err(_) => return false,
         };
 
-        if let Some(flight) = &*selected_flight {
-            if let Some(airport) = self.airports.get(flight.get_departure_airport()) {
-                airport.draw(response, painter.clone(), projector, &self.selected_airport_code);
-            }
-            if let Some(airport) = self.airports.get(flight.get_arrival_airport()) {
-                airport.draw(response, painter.clone(), projector, &self.selected_airport_code);
-                flight.draw_flight_path(painter.clone(), projector);
-            }
-            return true;
+        let Some(flight) = &*selected_flight else {
+            return false;
+        };
+
+        flight.draw_flight_path(painter.clone(), projector);
+        let departure_airport = self.airports.get(flight.get_departure_airport());
+        let arrival_airport = self.airports.get(flight.get_arrival_airport());
+        drop(selected_flight); // Unlock the selected flight to use it in the draw method
+
+        if let Some(airport) = departure_airport {
+            airport.draw(response, painter.clone(), projector, &self.selected_airport_code, &self.selected_flight);
         }
-        false
+        if let Some(airport) = arrival_airport {
+            airport.draw(response, painter.clone(), projector, &self.selected_airport_code, &self.selected_flight);
+        }
+        true
     }
 }
 
 impl Plugin for &mut Airports {
     /// Could be three cases:
-    /// 1. Draw the selected airport
-    /// 2. Draw the selected flight airport
+    /// 1. Draw the selected flight airports
+    /// 2. Draw the selected airport
     /// 3. Draw all airports if there is no selected airport or flight
     fn run(&mut self, response: &Response, painter: Painter, projector: &Projector) {
         if self.draw_selected_flight_airports(response, &painter, projector) {
@@ -114,6 +118,7 @@ impl Plugin for &mut Airports {
                 painter.clone(),
                 projector,
                 &self.selected_airport_code,
+                &self.selected_flight,
             );
         }
     }

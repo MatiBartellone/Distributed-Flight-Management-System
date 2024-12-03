@@ -122,6 +122,23 @@ impl FlightApp {
         }
     }
 
+    fn clear_flight_data(&self) {
+        if let Ok(mut flight_lock) = self.selected_flight.lock() {
+            *flight_lock = None;
+        }
+        if let Ok(mut flights_lock) = self.flights.flights.lock() {
+            *flights_lock = Vec::new();
+        }
+    }
+
+    fn check_selected_airport(&self) {
+        if let Ok(selected_airport) = self.selected_airport_code.lock() {
+            if selected_airport.is_none() {
+                self.clear_flight_data();
+            }
+        }
+    }
+
     /// Check if an airport is selected
     pub fn is_airport_selected(selected_airport: &Arc<Mutex<Option<String>>>) -> bool {
         match selected_airport.lock() {
@@ -133,6 +150,7 @@ impl FlightApp {
 
 impl eframe::App for FlightApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        self.check_selected_airport();
         egui::SidePanel::left("information_panel")
             .min_width(150.0)
             .max_width(230.0)

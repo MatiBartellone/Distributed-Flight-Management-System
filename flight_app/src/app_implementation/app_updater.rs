@@ -49,21 +49,9 @@ impl AppUpdater {
     }
 
     fn update_flights(&self) {
-        let Some(airport_code) = self.get_airport_code() else {
-            self.clear_flight_data();
-            return;
-        };
+        let Some(airport_code) = self.get_airport_code() else {return;};
         self.load_selected_flight();
         self.load_flights(&airport_code);
-    }
-
-    fn clear_flight_data(&self) {
-        if let Ok(mut flight_lock) = self.selected_flight.lock() {
-            *flight_lock = None;
-        }
-        if let Ok(mut flights_lock) = self.flights.lock() {
-            *flights_lock = Vec::new();
-        }
     }
 
     fn get_selected_flight(&self) -> Option<String> {
