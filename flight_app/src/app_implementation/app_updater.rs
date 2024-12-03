@@ -39,18 +39,20 @@ impl AppUpdater {
         });
     }
 
-    fn update_flights(&self) {
-        let airport_code = match self.selected_airport_code.lock() {
-            Ok(lock) => match &*lock {
-                Some(code) => code.to_string(),
-                None => {
-                    self.clear_flight_data();
-                    return;
-                }
-            },
-            Err(_) => return,
-        };
+    fn get_airport_code(&self) -> Option<String> {
+        if let Ok(lock) = self.selected_airport_code.lock() {
+            if let Some(code) = &*lock {
+                return Some(code.to_string())
+            }
+        }
+        None
+    }
 
+    fn update_flights(&self) {
+        let Some(airport_code) = self.get_airport_code() else {
+            self.clear_flight_data();
+            return;
+        };
         self.load_selected_flight();
         self.load_flights(&airport_code);
     }
@@ -74,11 +76,16 @@ impl AppUpdater {
     }
 
     fn load_selected_flight(&self){
-        if let Some(selected_flight_code) = self.get_selected_flight() {
-            let selected_flight = self.client.get_flight_selected(&selected_flight_code, &self.thread_pool);
-            if let Ok(mut selected_flight_lock) = self.selected_flight.lock() {
-                *selected_flight_lock = selected_flight;
-            }
+        let Some(selected_flight_code) = self.get_selected_flight() else { return };
+        let selected_flight = self.client.get_flight_selected(&selected_flight_code, &self.thread_pool);
+        if let Ok(mut selected_flight_lock) = self.selected_flight.lock() {
+            *selected_flight_lock = selected_flight;
+        }
+    }
+
+    fn update_flights_data(&self, flights_information: Vec<Flight>) {
+        if let Ok(mut flights_lock) = self.flights.lock() {
+            *flights_lock = flights_information;
         }
     }
 
@@ -87,9 +94,11 @@ impl AppUpdater {
             .client
             .get_flights(airport_code, &self.thread_pool);
         flights_information.sort_by_key(|flight| flight.code.to_string());
-
-        if let Ok(mut flights_lock) = self.flights.lock() {
-            *flights_lock = flights_information;
+        
+        match self.get_airport_code() {
+            Some(actual_airport_code) if actual_airport_code == airport_code => self.update_flights_data(flights_information),
+            Some(actual_airport_code) => self.load_flights(&actual_airport_code),
+            None => self.update_flights_data(flights_information)
         }
     }
 }

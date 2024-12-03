@@ -10,39 +10,6 @@ use crate::{
 
 use super::app_updater::AppUpdater;
 
-/// List of the airports codes to use in the app
-pub fn get_airports_codes() -> Vec<String> {
-    vec![
-        "EZE".to_string(), // Aeropuerto Internacional Ministro Pistarini (Argentina)
-        "JFK".to_string(), // John F. Kennedy International Airport (EE. UU.)
-        "SCL".to_string(), // Aeropuerto Internacional Comodoro Arturo Merino Benítez (Chile)
-        "MIA".to_string(), // Aeropuerto Internacional de Miami (EE. UU.)
-        "DFW".to_string(), // Dallas/Fort Worth International Airport (EE. UU.)
-        "GRU".to_string(), // Aeroporto Internacional de São Paulo/Guarulhos (Brasil)
-        "MAD".to_string(), // Aeropuerto Adolfo Suárez Madrid-Barajas (España)
-        "CDG".to_string(), // Aeropuerto Charles de Gaulle (Francia)
-        "LAX".to_string(), // Los Angeles International Airport (EE. UU.)
-        "AMS".to_string(), // Luchthaven Schiphol (Países Bajos)
-        "NRT".to_string(), // Narita International Airport (Japón)
-        "LHR".to_string(), // Aeropuerto de Heathrow (Reino Unido)
-        "FRA".to_string(), // Aeropuerto de Frankfurt (Alemania)
-        "SYD".to_string(), // Sydney Kingsford Smith Airport (Australia)
-        "SFO".to_string(), // San Francisco International Airport (EE. UU.)
-        "BOG".to_string(), // Aeropuerto Internacional El Dorado (Colombia)
-        "MEX".to_string(), // Aeropuerto Internacional de la Ciudad de México (México)
-        "YYC".to_string(), // Aeropuerto Internacional de Calgary (Canadá)
-        "OSL".to_string(), // Aeropuerto de Oslo-Gardermoen (Noruega)
-        "DEL".to_string(), // Aeropuerto Internacional Indira Gandhi (India)
-        "PEK".to_string(), // Aeropuerto Internacional de Pekín-Capital (China)
-        "SVO".to_string(), // Aeropuerto Internacional Sheremétievo (Rusia)
-        "RUH".to_string(), // Aeropuerto Internacional Rey Khalid (Arabia Saudita)
-        "CGK".to_string(), // Aeropuerto Internacional Soekarno-Hatta (Indonesia)
-        "JNB".to_string(), // Aeropuerto Internacional O. R. Tambo (Sudáfrica)
-        "BKO".to_string(), // Aeropuerto Internacional Modibo Keïta (Mali)
-        "CAI".to_string(), // Aeropuerto Internacional de El Cairo (Egipto)
-    ]
-}
-
 pub struct FlightApp {
     pub airports: Airports,
     pub selected_airport_code: Arc<Mutex<Option<String>>>,
@@ -55,6 +22,7 @@ pub struct FlightApp {
 
 impl FlightApp {
     /// Create a new FlightApp with the given Cassandra clients and the egui context
+    /// Start the app updater thread to update the app information
     pub fn new(egui_ctx: Context, clients: Vec<CassandraClient>) -> Self {
         Self::set_scroll_style(&egui_ctx);
         let client = UIClient;
@@ -176,4 +144,38 @@ impl eframe::App for FlightApp {
             MapPanel.ui(ui, self);
         });
     }
+}
+
+
+/// List of the airports codes to use in the app
+fn get_airports_codes() -> Vec<String> {
+    vec![
+        "EZE".to_string(), // Aeropuerto Internacional Ministro Pistarini (Argentina)
+        "JFK".to_string(), // John F. Kennedy International Airport (EE. UU.)
+        "SCL".to_string(), // Aeropuerto Internacional Comodoro Arturo Merino Benítez (Chile)
+        "MIA".to_string(), // Aeropuerto Internacional de Miami (EE. UU.)
+        "DFW".to_string(), // Dallas/Fort Worth International Airport (EE. UU.)
+        "GRU".to_string(), // Aeroporto Internacional de São Paulo/Guarulhos (Brasil)
+        "MAD".to_string(), // Aeropuerto Adolfo Suárez Madrid-Barajas (España)
+        "CDG".to_string(), // Aeropuerto Charles de Gaulle (Francia)
+        "LAX".to_string(), // Los Angeles International Airport (EE. UU.)
+        "AMS".to_string(), // Luchthaven Schiphol (Países Bajos)
+        "NRT".to_string(), // Narita International Airport (Japón)
+        "LHR".to_string(), // Aeropuerto de Heathrow (Reino Unido)
+        "FRA".to_string(), // Aeropuerto de Frankfurt (Alemania)
+        "SYD".to_string(), // Sydney Kingsford Smith Airport (Australia)
+        "SFO".to_string(), // San Francisco International Airport (EE. UU.)
+        "BOG".to_string(), // Aeropuerto Internacional El Dorado (Colombia)
+        "MEX".to_string(), // Aeropuerto Internacional de la Ciudad de México (México)
+        "YYC".to_string(), // Aeropuerto Internacional de Calgary (Canadá)
+        "OSL".to_string(), // Aeropuerto de Oslo-Gardermoen (Noruega)
+        "DEL".to_string(), // Aeropuerto Internacional Indira Gandhi (India)
+        "PEK".to_string(), // Aeropuerto Internacional de Pekín-Capital (China)
+        "SVO".to_string(), // Aeropuerto Internacional Sheremétievo (Rusia)
+        "RUH".to_string(), // Aeropuerto Internacional Rey Khalid (Arabia Saudita)
+        "CGK".to_string(), // Aeropuerto Internacional Soekarno-Hatta (Indonesia)
+        "JNB".to_string(), // Aeropuerto Internacional O. R. Tambo (Sudáfrica)
+        "BKO".to_string(), // Aeropuerto Internacional Modibo Keïta (Mali)
+        "CAI".to_string(), // Aeropuerto Internacional de El Cairo (Egipto)
+    ]
 }

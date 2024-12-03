@@ -124,7 +124,6 @@ impl Simulator {
         Some(codes)
     }
 
-
     /// Insert a flight in the database
     pub fn insert_single_flight(&self, flight: &Flight, thread_pool: &ThreadPoolClient) {
         let flight_thread = flight.clone();
