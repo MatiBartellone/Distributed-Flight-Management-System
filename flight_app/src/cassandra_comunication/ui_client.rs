@@ -1,21 +1,21 @@
-use std::{collections::{HashMap, HashSet}, sync::{mpsc::{self}, Arc, Mutex}};
+use std::collections::HashMap;
 
-use crate::{airport_implementation::airport::Airport, flight_implementation::{flight::Flight, flight_selected::{FlightSelected, FlightStatus, FlightTracking}, flight_state::FlightState}};
+use crate::{airport_implementation::airport::Airport, flight_implementation::{flight::Flight, flight_selected::{FlightSelected, FlightStatus, FlightTracking}, flight_state::FlightState}, utils::query_builder::QueryBuilder};
 
-use super::{cassandra_client::{CassandraClient, STREAM}, thread_pool_client::ThreadPoolClient};
+use super::cassandra_client::{CassandraClient, STREAM};
 
 // Constantes globales para nombres de tablas y columnas en snake case
 const KEYSPACE_AVIATION: &str = "aviation";
-const TABLE_AIRPORTS: &str = "aviation.airports";
-const TABLE_FLIGHTS_BY_AIRPORT: &str = "aviation.flights_by_airport";
-const TABLE_FLIGHT_INFO: &str = "aviation.flight_info";
+const TABLE_AIRPORTS: &str = "airports";
+const TABLE_FLIGHTS_BY_AIRPORT: &str = "flights_by_airport";
 
 // Columnas
+const COL_AIRPORT_CODE: &str = "airport_code";
 const COL_NAME: &str = "name";
 const COL_POSITION_LAT: &str = "position_lat";
 const COL_POSITION_LON: &str = "position_lon";
+
 const COL_CODE: &str = "code";
-const COL_AIRPORT_CODE: &str = "airport_code";
 const COL_FLIGHT_CODE: &str = "flight_code";
 const COL_STATUS: &str = "status";
 const COL_ARRIVAL_AIRPORT: &str = "arrival_airport";
@@ -28,42 +28,42 @@ const COL_ALTITUDE: &str = "altitude";
 const COL_SPEED: &str = "speed";
 const COL_FUEL_LEVEL: &str = "fuel_level";
 
-pub struct UIClient;
+const FRAME_ID : usize = STREAM as usize;
+
+pub struct UIClient{
+    client: CassandraClient,
+}
 
 impl UIClient {
+    pub fn new(client: CassandraClient) -> Self {
+        Self {
+            client,
+        }
+    }
     /// Use the aviation keyspace in the cassandra database
-    pub fn use_aviation_keyspace(&self, client: &mut CassandraClient) -> Result<(), String> {
+    pub fn use_aviation_keyspace(&mut self) -> Result<(), String> {
         let frame_id = STREAM as usize;
         let query = format!("USE {};", KEYSPACE_AVIATION);
-        client.execute_strong_query_without_response(&query, &frame_id)
+        self.client.execute_strong_query_without_response(&query, &frame_id)
     }
 
     /// Get the information of the airports
-    pub fn get_airports(&self, airports_codes: Vec<String>, thread_pool: &ThreadPoolClient) -> Vec<Airport> {
-        let (tx, rx) = mpsc::channel();
-        let tx = Arc::new(Mutex::new(tx));
-        for code in airports_codes {
-            let tx = Arc::clone(&tx);
-            thread_pool.execute(move |frame_id, client| {
-                if let Some(airport) = Self.get_airport(client, &code, &frame_id) {
-                    if let Ok(tx) = tx.lock(){
-                        let _ = tx.send(airport);
-                    }
-                }
-            });
+    pub fn get_airports(&mut self, airports_codes: Vec<String>) -> HashMap<String, Airport> {
+        let mut airports = HashMap::new();
+        for airport_code in airports_codes {
+            if let Some(airport) = self.get_airport(&airport_code, &FRAME_ID) {
+                airports.insert(airport_code, airport);
+            }
         }
-        thread_pool.join();
-        drop(tx);
-        rx.into_iter().collect()
+        airports
     }
 
-    fn get_airport(&self, client: &mut CassandraClient, airport_code: &str, frame_id: &usize) -> Option<Airport> {
-        let query = format!(
-            "SELECT {}, {}, {}, {} FROM {} WHERE {} = '{}';",
-            COL_NAME, COL_POSITION_LAT, COL_POSITION_LON, COL_CODE, 
-            TABLE_AIRPORTS, COL_CODE, airport_code
-        );
-        let values = client.execute_strong_select_query(&query, frame_id).ok()?;
+    fn get_airport(&mut self, airport_code: &str, frame_id: &usize) -> Option<Airport> {
+        let query = QueryBuilder::new("SELECT", TABLE_AIRPORTS)
+            .select(vec![COL_NAME, COL_POSITION_LAT, COL_POSITION_LON, COL_CODE])
+            .where_condition(&format!("{} = '{}'", COL_CODE, airport_code), None)
+            .build();
+        let values = self.client.execute_strong_select_query(&query, frame_id).ok()?;
         self.values_to_airport(&values)
     }
 
@@ -82,132 +82,75 @@ impl UIClient {
         })
     }
 
-    fn get_codes(
-        &self,
-        airport_code: &str,
-        thread_pool: &ThreadPoolClient
-    ) -> HashSet<String> {
-        let (tx, rx) = mpsc::channel();
-        let airport_code = airport_code.to_string();
-        thread_pool.execute(move |frame_id, client| {
-            if let Some(flight_codes) = Self.get_flight_codes_by_airport(client, &airport_code, &frame_id) {
-                tx.send(flight_codes).expect("Error sending the flight codes");
-            } else {
-                tx.send(HashSet::new()).expect("Error sending the flight codes");
-            }
-        });
-    
-        thread_pool.join();
-        rx.recv().unwrap_or_default()
-    }
-
-    // Gets all de flights codes going or leaving the aiport
-    fn get_flight_codes_by_airport(&self, client: &mut CassandraClient, airport_code: &str, frame_id: &usize) -> Option<HashSet<String>> {
-        let query = format!(
-            "SELECT {} FROM {} WHERE {} = '{}';",
-            COL_FLIGHT_CODE, TABLE_FLIGHTS_BY_AIRPORT, COL_AIRPORT_CODE, airport_code
-        );
-        let values = client.execute_strong_select_query(&query, frame_id).ok()?;
-        self.values_to_flight_codes(&values)
-    }
-
-    // Transforms the values to flight codes
-    fn values_to_flight_codes(&self, flight_codes: &Vec<HashMap<String, String>>) -> Option<HashSet<String>> {
-        let mut codes = HashSet::new();
-        for row in flight_codes {
-            if let Some(code) = row.get(COL_FLIGHT_CODE){
-                codes.insert(code.to_string());
-            }
-        }
-        Some(codes)
-    }
-
     /// Get the basic information of the flights
-    pub fn get_flights(
-        &self,
-        airport_code: &str,
-        thread_pool: &ThreadPoolClient
-    ) -> Vec<Flight> {
-        let flight_codes = self.get_codes(airport_code, thread_pool);
-    
-        let (tx, rx) = mpsc::channel();
-        let tx = Arc::new(Mutex::new(tx));
-        for code in flight_codes {
-            let tx = Arc::clone(&tx);
-            thread_pool.execute(move |frame_id, client| {
-                if let Some(flight) = Self.get_flight(client, &code, &frame_id) {
-                    if let Ok(tx) = tx.lock(){
-                        let _ = tx.send(flight);
-                    }
-                }
-            });
+    pub fn get_flights(&mut self, airport_code: &str) -> Vec<Flight> {
+        let status_values = self.get_flight_status(airport_code, &FRAME_ID);
+        let tracking_values = self.get_flight_tracking(airport_code, &FRAME_ID);
+
+        let mut flights = Vec::new();
+        for (status, tracking) in status_values.iter().zip(tracking_values.iter()) {
+            let Some(flight) = self.get_flight(status, tracking) else {continue};
+            flights.push(flight);
         }
-    
-        thread_pool.join();
-        drop(tx);
-        rx.into_iter().collect()
+        flights
     }
 
-    fn get_flight(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<Flight> {
-        let mut flight = Flight { code: flight_code.to_string(), ..Default::default() };
-        self.get_flight_status(client, &mut flight, frame_id)?;
-        self.get_flight_tracking(client, &mut flight, frame_id)?;
+    fn get_flight(&self, status: &HashMap<String, String>, tracking: &HashMap<String, String>) -> Option<Flight> {
+        let mut flight = Flight::default();
+        self.values_to_flight_status(status, &mut flight)?;
+        self.values_to_flight_tracking(tracking, &mut flight)?;
         Some(flight)
     }
 
-    fn get_flight_status(&self, client: &mut CassandraClient, flight: &mut Flight, frame_id: &usize) -> Option<()> {
-        let query = format!(
-            "SELECT {}, {}, {} FROM {} WHERE {} = '{}';",
-            COL_FLIGHT_CODE, COL_STATUS, COL_ARRIVAL_AIRPORT,
-            TABLE_FLIGHT_INFO, COL_FLIGHT_CODE, flight.code
-        );
-        let values = client.execute_strong_select_query(&query, frame_id).ok()?;
-        self.values_to_flight_status(&values, flight)
+    fn get_flight_status(&mut self, airport_code: &str, frame_id: &usize) -> Vec<HashMap<String, String>> {
+        let query = QueryBuilder::new("SELECT", TABLE_FLIGHTS_BY_AIRPORT)
+            .select(vec![COL_FLIGHT_CODE, COL_STATUS, COL_ARRIVAL_AIRPORT])
+            .where_condition(&format!("{} = '{}'", COL_AIRPORT_CODE, airport_code), None)
+            .order_by(COL_FLIGHT_CODE, None)
+            .build();
+        self.client.execute_strong_select_query(&query, frame_id)
+            .unwrap_or_default()
     }
 
-    fn values_to_flight_status(&self, values: &[HashMap<String, String>], flight: &mut Flight)-> Option<()> {
-        let strong_row = values.first()?;
-
-        flight.code = strong_row
+    fn values_to_flight_status(&self, values: &HashMap<String, String>, flight: &mut Flight)-> Option<()> {
+        flight.code = values
             .get(COL_FLIGHT_CODE)?
             .to_string();
             
-        let status_str = strong_row.get(COL_STATUS)?;
+        let status_str = values.get(COL_STATUS)?;
         flight.status = FlightState::new(status_str);
         
-        flight.arrival_airport = strong_row
+        flight.arrival_airport = values
             .get(COL_ARRIVAL_AIRPORT)?
             .to_string();
 
         Some(())
     }
 
-    fn get_flight_tracking(&self, client: &mut CassandraClient, flight: &mut Flight, frame_id: &usize) -> Option<()> {
-        let query = format!(
-            "SELECT {}, {}, {}, {} FROM {} WHERE {} = '{}';",
-            COL_POSITION_LAT, COL_POSITION_LON, COL_ARRIVAL_POSITION_LAT, COL_ARRIVAL_POSITION_LON,
-            TABLE_FLIGHT_INFO, COL_FLIGHT_CODE, flight.code
-        );
-        let values = client.execute_weak_select_query(&query, frame_id).ok()?;
-        self.values_to_flight_tracking(&values, flight)
+    fn get_flight_tracking(&mut self, airport_code: &str, frame_id: &usize) -> Vec<HashMap<String, String>> {
+        let query = QueryBuilder::new("SELECT", TABLE_FLIGHTS_BY_AIRPORT)
+            .select(vec![COL_POSITION_LAT, COL_POSITION_LON, COL_ARRIVAL_POSITION_LAT, COL_ARRIVAL_POSITION_LON])
+            .where_condition(&format!("{} = '{}'", COL_AIRPORT_CODE, airport_code), None)
+            .order_by(COL_FLIGHT_CODE, None)
+            .build();
+        self.client.execute_weak_select_query(&query, frame_id)
+            .unwrap_or_default()
     }
 
-    fn values_to_flight_tracking(&self, values: &[HashMap<String, String>], flight: &mut Flight)-> Option<()> {
-        let weak_row = values.first()?;
-
-        flight.position.0 = weak_row
+    fn values_to_flight_tracking(&self, values: &HashMap<String, String>, flight: &mut Flight)-> Option<()> {
+        flight.position.0 = values
             .get(COL_POSITION_LAT)?
             .parse().ok()?;
         
-        flight.position.1 = weak_row
+        flight.position.1 = values
             .get(COL_POSITION_LON)?
             .parse().ok()?;
 
-        flight.arrival_position.0 = weak_row
+        flight.arrival_position.0 = values
             .get(COL_ARRIVAL_POSITION_LAT)?
             .parse().ok()?;
         
-        flight.arrival_position.1 = weak_row
+        flight.arrival_position.1 = values
             .get(COL_ARRIVAL_POSITION_LON)?
             .parse().ok()?;
         
@@ -215,33 +158,22 @@ impl UIClient {
     }
 
     // Get the complete information of the flight
-    pub fn get_flight_selected(&self, flight_code: &str, thread_pool: &ThreadPoolClient) -> Option<FlightSelected> {
-        let (tx, rx) = mpsc::channel();
-        let flight_code = flight_code.to_string();
-        thread_pool.execute(move |frame_id, client| {
-            let flight_status = Self.get_flight_selected_status(client, &flight_code, &frame_id);
-            let flight_tracking = Self.get_flight_selected_tracking(client, &flight_code, &frame_id);
-            if let (Some(status), Some(tracking)) = (flight_status, flight_tracking) {
-                tx.send(Some(FlightSelected {
-                    status,
-                    info: tracking,
-                })).expect("Failed to send flight data");
-            } else {
-                tx.send(None).expect("Failed to send None for missing flight data");
-            }
-        });
-    
-        thread_pool.join();
-        rx.recv().unwrap()
+    pub fn get_flight_selected(&mut self, flight_code: &str, airport_code: &str) -> Option<FlightSelected> {
+        let status = self.get_flight_selected_status(flight_code, airport_code, &FRAME_ID)?;
+        let tracking = self.get_flight_selected_tracking(flight_code, airport_code, &FRAME_ID)?;
+        Some(FlightSelected {
+            status,
+            tracking,
+        })
     }
 
-    fn get_flight_selected_status(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightStatus> {
-        let query = format!(
-            "SELECT {}, {}, {}, {}, {}, {} FROM {} WHERE {} = '{}';",
-            COL_FLIGHT_CODE, COL_STATUS, COL_DEPARTURE_AIRPORT, COL_ARRIVAL_AIRPORT, COL_DEPARTURE_TIME, COL_ARRIVAL_TIME,
-            TABLE_FLIGHT_INFO, COL_FLIGHT_CODE, flight_code
-        );
-        let values = client.execute_strong_select_query(&query, frame_id).ok()?;
+    fn get_flight_selected_status(&mut self, flight_code: &str, airport_code: &str, frame_id: &usize) -> Option<FlightStatus> {
+        let query = QueryBuilder::new("SELECT", TABLE_FLIGHTS_BY_AIRPORT)
+            .select(vec![COL_FLIGHT_CODE, COL_STATUS, COL_DEPARTURE_AIRPORT, COL_ARRIVAL_AIRPORT, COL_DEPARTURE_TIME, COL_ARRIVAL_TIME])
+            .where_condition(&format!("{} = '{}'", COL_AIRPORT_CODE, airport_code), Some("AND"))
+            .where_condition(&format!("{} = '{}'", COL_FLIGHT_CODE, flight_code), None)
+            .build();
+        let values = self.client.execute_strong_select_query(&query, frame_id).ok()?;
         self.values_to_flight_selected_status(&values)
     }
     
@@ -265,14 +197,13 @@ impl UIClient {
         })
     }
 
-    fn get_flight_selected_tracking(&self, client: &mut CassandraClient, flight_code: &str, frame_id: &usize) -> Option<FlightTracking> {
-        let query = format!(
-            "SELECT {}, {}, {}, {}, {}, {}, {} FROM {} WHERE {} = '{}';",
-            COL_POSITION_LAT, COL_POSITION_LON, COL_ARRIVAL_POSITION_LAT, COL_ARRIVAL_POSITION_LON,
-            COL_ALTITUDE, COL_SPEED, COL_FUEL_LEVEL,
-            TABLE_FLIGHT_INFO, COL_FLIGHT_CODE, flight_code
-        );
-        let values = client.execute_weak_select_query(&query, frame_id).ok()?;
+    fn get_flight_selected_tracking(&mut self, flight_code: &str, airport_code: &str, frame_id: &usize) -> Option<FlightTracking> {
+        let query = QueryBuilder::new("SELECT", TABLE_FLIGHTS_BY_AIRPORT)
+            .select(vec![COL_POSITION_LAT, COL_POSITION_LON, COL_ARRIVAL_POSITION_LAT, COL_ARRIVAL_POSITION_LON, COL_ALTITUDE, COL_SPEED, COL_FUEL_LEVEL])
+            .where_condition(&format!("{} = '{}'", COL_AIRPORT_CODE, airport_code), Some("AND"))
+            .where_condition(&format!("{} = '{}'", COL_FLIGHT_CODE, flight_code), None)
+            .build();
+        let values = self.client.execute_weak_select_query(&query, frame_id).ok()?;
         self.values_to_flight_selected_tracking(&values)
     }
 

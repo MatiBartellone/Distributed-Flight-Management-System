@@ -158,7 +158,7 @@ fn send_queries(connector: &mut CassandraConnection) {
     for line in reader.lines() {
         let line = line.unwrap();
         let query = line.trim();
-        if query.starts_with("/") {
+        if query.starts_with("/") || query.is_empty() || query.starts_with("\n") {
             continue;
         }
         let mut body = Vec::new();

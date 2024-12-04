@@ -7,7 +7,7 @@ use super::{flight_state::FlightState, flights::get_flight_pos2};
 #[derive(Default, Debug)]
 pub struct FlightSelected {
     pub status: FlightStatus,
-    pub info: FlightTracking
+    pub tracking: FlightTracking
 }
 
 #[derive(Default, Debug)]
@@ -33,8 +33,8 @@ pub struct FlightTracking {
 
 
 impl FlightSelected {
-    pub fn new(info: FlightTracking, status: FlightStatus) -> Self {
-        Self { info, status }
+    pub fn new(tracking: FlightTracking, status: FlightStatus) -> Self {
+        Self { tracking, status }
     }
 
     /// List the full information of the selected flight
@@ -78,15 +78,15 @@ impl FlightSelected {
     }
 
     pub fn get_position(&self) -> &(f64, f64) {
-        &self.info.position
+        &self.tracking.position
     }
 
     pub fn set_position(&mut self, position: (f64, f64)) {
-        self.info.position = position;
+        self.tracking.position = position;
     }
 
     pub fn get_altitude(&self) -> f64 {
-        self.info.altitude
+        self.tracking.altitude
     }
 
     pub fn get_departure_airport(&self) -> &String {
@@ -106,11 +106,11 @@ impl FlightSelected {
     }
 
     pub fn get_speed(&self) -> f32 {
-        self.info.speed
+        self.tracking.speed
     }
 
     pub fn get_fuel_level(&self) -> f32 {
-        self.info.fuel_level
+        self.tracking.fuel_level
     }
 
     pub fn get_departure_time(&self) -> &String {
@@ -122,11 +122,11 @@ impl FlightSelected {
     }
 
     pub fn get_arrival_position(&self) -> &(f64, f64) {
-        &self.info.arrival_position
+        &self.tracking.arrival_position
     }
 
     pub fn set_arrival_position(&mut self, arrival_position: (f64, f64)) {
-        self.info.arrival_position = arrival_position;
+        self.tracking.arrival_position = arrival_position;
     }
 }
 

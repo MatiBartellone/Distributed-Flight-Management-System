@@ -1,16 +1,15 @@
 use std::{
     sync::{Arc, Mutex},
-    thread,
+    thread, time::Duration,
 };
 
-use crate::{cassandra_comunication::{thread_pool_client::ThreadPoolClient, ui_client::UIClient}, flight_implementation::{flight::Flight, flight_selected::FlightSelected}};
+use crate::{cassandra_comunication::ui_client::UIClient, flight_implementation::{flight::Flight, flight_selected::FlightSelected}};
 
 pub struct AppUpdater {
     selected_flight: Arc<Mutex<Option<FlightSelected>>>,
     selected_airport_code: Arc<Mutex<Option<String>>>,
     flights: Arc<Mutex<Vec<Flight>>>,
-    client: UIClient,
-    thread_pool: ThreadPoolClient,
+    ui_client: UIClient
 }
 
 impl AppUpdater {
@@ -18,24 +17,22 @@ impl AppUpdater {
         selected_flight: Arc<Mutex<Option<FlightSelected>>>,
         selected_airport_code: Arc<Mutex<Option<String>>>,
         flights: Arc<Mutex<Vec<Flight>>>,
-        client: UIClient,
-        thread_pool: ThreadPoolClient,
+        ui_client: UIClient,
     ) -> Self {
         Self {
             selected_flight,
             selected_airport_code,
             flights,
-            client,
-            thread_pool,
+            ui_client
         }
     }
 
     /// Start the app updater thread
-    pub fn start(self, ctx: egui::Context) {
+    pub fn start(mut self, ctx: egui::Context) {
         thread::spawn(move || loop {
             self.update_flights();
             ctx.request_repaint();
-            //thread::sleep(Duration::from_millis(1000));
+            thread::sleep(Duration::from_millis(400));
         });
     }
 
@@ -48,9 +45,9 @@ impl AppUpdater {
         None
     }
 
-    fn update_flights(&self) {
+    fn update_flights(&mut self) {
         let Some(airport_code) = self.get_airport_code() else {return;};
-        self.load_selected_flight();
+        self.load_selected_flight(&airport_code);
         self.load_flights(&airport_code);
     }
 
@@ -63,9 +60,9 @@ impl AppUpdater {
         None
     }
 
-    fn load_selected_flight(&self){
+    fn load_selected_flight(&mut self, airport_code: &str) {
         let Some(selected_flight_code) = self.get_selected_flight() else { return };
-        let selected_flight = self.client.get_flight_selected(&selected_flight_code, &self.thread_pool);
+        let selected_flight = self.ui_client.get_flight_selected(&selected_flight_code, airport_code);
         if let Ok(mut selected_flight_lock) = self.selected_flight.lock() {
             *selected_flight_lock = selected_flight;
         }
@@ -77,11 +74,10 @@ impl AppUpdater {
         }
     }
 
-    fn load_flights(&self, airport_code: &str) {
-        let mut flights_information = self
-            .client
-            .get_flights(airport_code, &self.thread_pool);
-        flights_information.sort_by_key(|flight| flight.code.to_string());
+    fn load_flights(&mut self, airport_code: &str) {
+        let flights_information = self
+            .ui_client
+            .get_flights(airport_code);
         
         match self.get_airport_code() {
             Some(actual_airport_code) if actual_airport_code == airport_code => self.update_flights_data(flights_information),
