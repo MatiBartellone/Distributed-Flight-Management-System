@@ -5,7 +5,7 @@ use super::flight_state::FlightState;
 #[derive(Default, Clone, Debug)]
 pub struct Flight {
     pub status: FlightStatus,
-    pub info: FlightTracking,
+    pub tracking: FlightTracking,
 }
 
 #[derive(Default, Clone, Debug)]
@@ -30,8 +30,8 @@ pub struct FlightTracking  {
 }
 
 impl Flight {
-    pub fn new(info: FlightTracking, status: FlightStatus) -> Self {
-        Self { info, status }
+    pub fn new(tracking: FlightTracking, status: FlightStatus) -> Self {
+        Self { tracking, status }
     }
 
     /// Restart with initial values and set the position
@@ -57,8 +57,8 @@ impl Flight {
 
     fn update_position(&mut self, arrival_position: (f64, f64), step: f32) {
         // Convertir coordenadas a radianes
-        let lat1: f64 = deg_to_rad(self.info.position.0);
-        let lon1: f64 = deg_to_rad(self.info.position.1);
+        let lat1: f64 = deg_to_rad(self.tracking.position.0);
+        let lon1: f64 = deg_to_rad(self.tracking.position.1);
         let lat2: f64 = deg_to_rad(arrival_position.0);
         let lon2: f64 = deg_to_rad(arrival_position.1);
     
@@ -104,18 +104,18 @@ impl Flight {
         let distance_to_target = self.get_distance_to_target(arrival_position);
 
         if distance_to_target < 200.0 {
-            self.info.altitude -= 500.0 * step as f64;
-        } else if self.info.altitude < 10000.0 {
-            self.info.altitude += 300.0 * step as f64;
+            self.tracking.altitude -= 500.0 * step as f64;
+        } else if self.tracking.altitude < 10000.0 {
+            self.tracking.altitude += 300.0 * step as f64;
         } else if distance_to_target < 500.0 {
-            self.info.altitude -= 200.0 * step as f64;
+            self.tracking.altitude -= 200.0 * step as f64;
         }
     
-        self.info.altitude = self.info.altitude.clamp(0.0, 12000.0);
+        self.tracking.altitude = self.tracking.altitude.clamp(0.0, 12000.0);
     }
 
     fn update_speed(&mut self, arrival_position: (f64, f64), step: f32) {
-        let target_speed = if self.info.altitude < 5000.0 {
+        let target_speed = if self.tracking.altitude < 5000.0 {
             300.0
         } else if self.get_distance_to_target(arrival_position) < 50.0 {
             200.0
@@ -125,21 +125,21 @@ impl Flight {
     
         let acceleration = 50.0 * step;
     
-        if self.info.speed < target_speed {
-            self.info.speed = (self.info.speed + acceleration).min(target_speed);
-        } else if self.info.speed > target_speed {
-            self.info.speed = (self.info.speed - acceleration).max(target_speed);
+        if self.tracking.speed < target_speed {
+            self.tracking.speed = (self.tracking.speed + acceleration).min(target_speed);
+        } else if self.tracking.speed > target_speed {
+            self.tracking.speed = (self.tracking.speed - acceleration).max(target_speed);
         }
     }
 
     fn update_fuel(&mut self, step: f32) {
-        let fuel_consumption = (self.info.speed * step) / 100.0;
-        self.info.fuel_level -= fuel_consumption;
-        self.info.fuel_level = self.info.fuel_level.max(0.0);
+        let fuel_consumption = (self.tracking.speed * step) / 100.0;
+        self.tracking.fuel_level -= fuel_consumption;
+        self.tracking.fuel_level = self.tracking.fuel_level.max(0.0);
     }
 
     fn update_status_if_target_reached(&mut self, target_position: (f64, f64)) {
-        if self.info.position == target_position {
+        if self.tracking.position == target_position {
             self.set_status(FlightState::Arrived);
         }
     }
@@ -168,19 +168,19 @@ impl Flight {
     }
 
     pub fn get_position(&self) -> &(f64, f64) {
-        &self.info.position
+        &self.tracking.position
     }
 
     pub fn set_position(&mut self, position: (f64, f64)) {
-        self.info.position = position;
+        self.tracking.position = position;
     }
 
     pub fn get_altitude(&self) -> f64 {
-        self.info.altitude
+        self.tracking.altitude
     }
 
     pub fn set_altitude(&mut self, altitude: f64) {
-        self.info.altitude = altitude;
+        self.tracking.altitude = altitude;
     }
 
     pub fn get_departure_airport(&self) -> &String {
@@ -200,19 +200,19 @@ impl Flight {
     }
 
     pub fn get_speed(&self) -> f32 {
-        self.info.speed
+        self.tracking.speed
     }
 
     pub fn set_speed(&mut self, speed: f32) {
-        self.info.speed = speed;
+        self.tracking.speed = speed;
     }
 
     pub fn get_fuel_level(&self) -> f32 {
-        self.info.fuel_level
+        self.tracking.fuel_level
     }
 
     pub fn set_fuel_level(&mut self, fuel_level: f32) {
-        self.info.fuel_level = fuel_level;
+        self.tracking.fuel_level = fuel_level;
     }
 
     pub fn get_departure_time(&self) -> &String {
@@ -224,7 +224,7 @@ impl Flight {
     }
 
     pub fn get_arrival_position(&self) -> &(f64, f64) {
-        &self.info.arrival_position
+        &self.tracking.arrival_position
     }
 }
 

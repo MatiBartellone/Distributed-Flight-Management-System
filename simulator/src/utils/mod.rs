@@ -4,3 +4,4 @@ pub mod constants;
 pub mod frame;
 pub mod types_to_bytes;
 pub mod system_functions;
+pub mod query_builder;

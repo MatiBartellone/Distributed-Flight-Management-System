@@ -92,13 +92,21 @@ impl ThreadPoolClient {
     }
 
     /// Send a job to the worker 
-    pub fn execute<F>(&self, f: F)
+    pub fn execute<T, F>(&self, f: F) -> Receiver<T>
     where
-        F: FnOnce(usize, &mut CassandraClient) + Send + 'static,
+        T: Send + 'static,
+        F: FnOnce(usize, &mut CassandraClient) -> T + Send + 'static,
     {
         self.increase_counter_job();
-        let job = Box::new(f);
-        let _ = self.sender.send(job);
+        let (result_sender, result_receiver) = mpsc::channel();
+
+        let job = Box::new(move |id: usize, client: &mut CassandraClient| {
+            let result = f(id, client);
+            result_sender.send(result).unwrap();
+        });
+
+        self.sender.send(job).unwrap();
+        result_receiver
     }
 
     fn no_more_jobes(&self) -> bool {

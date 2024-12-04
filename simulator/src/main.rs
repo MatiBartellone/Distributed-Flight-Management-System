@@ -18,7 +18,8 @@ fn loop_option(thread_pool: &ThreadPoolClient) {
     let simulator = Simulator;
     let codes = get_airports_codes();
     let airports = simulator.get_airports(codes, thread_pool);
-    let mut flight_codes = HashSet::new();
+    let mut airport_codes = HashSet::new();
+    let mut flights_inserted = HashMap::new();
     loop {
         clear_screen();
         println!("Choose an option:");
@@ -28,40 +29,60 @@ fn loop_option(thread_pool: &ThreadPoolClient) {
         println!("4. Exit");
         let option = get_user_data("--> ");
         match option.as_str() {
-            "1" => add_flights_for_airport(&mut flight_codes, &simulator, thread_pool),
-            "2" => add_single_flight(&mut flight_codes, &simulator, thread_pool),
+            "1" => add_flights_for_airport(&airports, &mut airport_codes),
+            "2" => add_single_flight(&mut flights_inserted, &airports, &simulator, thread_pool),
             "3" => break,
             "4" => return,
             _ => println!("Invalid option"),
         }
     }
     clear_screen();
-    simulator.restart_flights(&flight_codes, &airports, thread_pool);
-    flight_updates_loop(&simulator, flight_codes, &airports, thread_pool);
+    flight_updates_loop(&simulator, &mut flights_inserted, &airports, &mut airport_codes, thread_pool);
 }
 
-fn flight_updates_loop(simulator: &Simulator, flight_codes: HashSet<String>, airports: &HashMap<String, Airport>, thread_pool: &ThreadPoolClient) {
+fn separate_flights_by_airport(flights_inserted: &mut HashMap<String, Flight>, airport_codes: &mut HashSet<String>) -> HashSet<String> {
+    let mut flight_no_in_selected_airports = HashSet::new();
+    for flight in flights_inserted.values() {
+        if airport_codes.get(flight.get_departure_airport()).is_some() {
+            continue;
+        }
+        if airport_codes.get(flight.get_arrival_airport()).is_some() {
+            continue;
+        }
+        flight_no_in_selected_airports.insert(flight.get_code());
+    }
+    flight_no_in_selected_airports
+}
+
+fn flight_updates_loop(simulator: &Simulator, flights_inserted: &mut HashMap<String, Flight>, airports: &HashMap<String, Airport>, airport_codes: &mut HashSet<String>, thread_pool: &ThreadPoolClient) {
     let step = get_user_data("Enter the step time:")
         .parse::<f32>()
-        .unwrap_or(10.0);
+        .unwrap_or(1.0);
     let interval = get_user_data("Enter the interval time:")
         .parse::<u64>()
         .unwrap_or(1000);
-    simulator.flight_updates_loop(flight_codes, airports, step, interval, thread_pool);
+    let flight_codes = separate_flights_by_airport(flights_inserted, airport_codes);
+    simulator.flight_updates_loop(airports, flight_codes, step, interval, thread_pool);
 }
 
-fn add_flights_for_airport(flights: &mut HashSet<String>, simulator: &Simulator, thread_pool: &ThreadPoolClient) {
+fn add_flights_for_airport(airports: &HashMap<String, Airport>, airport_codes: &mut HashSet<String>){
     let airport_code = get_user_data("Enter the airport code:");
-    let flights_for_airport = simulator.get_flights(&airport_code, thread_pool);
-    for flight in flights_for_airport {
-        flights.insert(flight.get_code());
+    if airports.contains_key(&airport_code) {
+        airport_codes.insert(airport_code);
+    } else {
+        println!("Invalid airport code");
     }
 }
 
-fn add_single_flight(flight_codes: &mut HashSet<String>, simulator: &Simulator, thread_pool: &ThreadPoolClient) {
-    let flight = get_flight_data();
+fn add_single_flight(flights_inserted: &mut HashMap<String, Flight>, airports: &HashMap<String, Airport>, simulator: &Simulator, thread_pool: &ThreadPoolClient) {
+    let mut flight = get_flight_data();
+    let position = match airports.get(flight.get_departure_airport()){
+        Some(airport) => airport.position,
+        None => {println!("Invalid airport code"); return;}
+    };
+    flight.restart(position);
     simulator.insert_single_flight(&flight, thread_pool);
-    flight_codes.insert(flight.get_code());
+    flights_inserted.insert(flight.get_code(), flight);
 }
 
 fn get_flight_data() -> Flight {
@@ -69,8 +90,8 @@ fn get_flight_data() -> Flight {
         let code = get_user_data("Enter flight code:");
         let departure_airport = get_user_data("Enter departure airport code:");
         let arrival_airport = get_user_data("Enter arrival airport code:");
-        let departure_time = get_user_data("Enter departure time (e.g., YYYY-MM-DD HH:MM):");
-        let arrival_time = get_user_data("Enter arrival time (e.g., YYYY-MM-DD HH:MM):");
+        let departure_time = get_user_data("Enter departure time (e.g., HH:MM:SS):");
+        let arrival_time = get_user_data("Enter arrival time (e.g., HH:MM:SS):");
 
         let status = FlightStatus {
             code,
