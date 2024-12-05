@@ -156,16 +156,30 @@ fn get_flight_data() -> Flight {
         Flight::new(FlightTracking::default(), status)
 }
 
+fn authenticate_client(client: &mut CassandraClient) {
+    loop {
+        let user = get_user_data("Enter the user: ");
+        let password = get_user_data("Enter the password: ");
+        let Err(e) = client.authenticate(&user, &password) else {
+            break;
+        };
+        println!("Error authenticating: {e}\n trying again...");
+    }
+}
+
 fn inicializate_clients() -> Result<Vec<CassandraClient>, String> {
     let cant_clients = get_user_data("Enter the number of clients: ").parse::<usize>()
         .map_err(|_| "Error parsing the number of clients".to_string())?;
     
     let simulator = Simulator;
     let mut clients = Vec::new();
-    for _ in 0..cant_clients {
+    for i in 0..cant_clients {
+        clear_screen();
+        println!("Client {}", i + 1);
         let node = get_user_data("FULL IP (ip:port): ");
-        let mut  client = CassandraClient::new(&node)?;
-        client.inicializate()?;
+        let mut client = CassandraClient::new(&node)?;
+        client.start_up()?;
+        authenticate_client(&mut client);
         simulator.use_aviation_keyspace(&mut client)?;
         clients.push(client);
     }
