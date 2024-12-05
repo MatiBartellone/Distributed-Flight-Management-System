@@ -49,17 +49,30 @@ impl Flights {
             });
     }
 
+    fn get_flight_selected_code(&self) -> Option<String> {
+        let on_flight_selected = match self.on_flight_selected.lock() {
+            Ok(lock) => lock,
+            Err(_) => return None,
+        };
+        if let Some(flight_selected) = &*on_flight_selected {
+            return Some(flight_selected.get_code());
+        }
+        None
+    }
+
     fn draw_flights(&self, response: &Response, painter: &Painter, projector: &Projector) {
         let flights = match self.flights.lock() {
             Ok(lock) => lock,
             Err(_) => return,
         };
+        let selected_code = self.get_flight_selected_code();
         for flight in flights.iter() {
             flight.draw(
                 response,
                 painter.clone(),
                 projector,
                 &self.on_flight_selected,
+                &selected_code
             );
         }
     }

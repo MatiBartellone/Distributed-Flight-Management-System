@@ -64,6 +64,11 @@ impl AppUpdater {
         let Some(selected_flight_code) = self.get_selected_flight() else { return };
         let selected_flight = self.ui_client.get_flight_selected(&selected_flight_code, airport_code);
         if let Ok(mut selected_flight_lock) = self.selected_flight.lock() {
+            if let Some(existing_flight) = &*selected_flight_lock {
+                if existing_flight.get_code() != selected_flight_code {
+                    return;
+                }
+            }
             *selected_flight_lock = selected_flight;
         }
     }
@@ -82,7 +87,7 @@ impl AppUpdater {
         match self.get_airport_code() {
             Some(actual_airport_code) if actual_airport_code == airport_code => self.update_flights_data(flights_information),
             Some(actual_airport_code) => self.load_flights(&actual_airport_code),
-            None => self.update_flights_data(flights_information)
+            None => self.update_flights_data(Vec::new())
         }
     }
 }

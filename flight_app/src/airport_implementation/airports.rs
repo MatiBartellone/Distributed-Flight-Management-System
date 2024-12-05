@@ -17,7 +17,6 @@ pub struct Airports {
 
 impl Airports {
     pub fn new(airports: HashMap<String, Airport>, selected_airport_code: Arc<Mutex<Option<String>>>, selected_flight: Arc<Mutex<Option<FlightSelected>>>) -> Self {
-        println!("Creating airports len: {}", airports.len());
         Self {
             airports,
             selected_airport_code,
@@ -80,7 +79,6 @@ impl Airports {
             return false;
         };
 
-        flight.draw_flight_path(painter.clone(), projector);
         let departure_airport = self.airports.get(flight.get_departure_airport());
         let arrival_airport = self.airports.get(flight.get_arrival_airport());
         drop(selected_flight); // Unlock the selected flight to use it in the draw method

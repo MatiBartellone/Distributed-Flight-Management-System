@@ -121,7 +121,6 @@ impl UIClient {
             if let Some(status) = status_map.get(&flight_code) {
                 if let Some(flight) = self.get_flight(status, &tracking) {
                     flights.push(flight);
-                    dbg!(&flights.len());
                 }
             }
         }
@@ -129,10 +128,8 @@ impl UIClient {
     }
 
     fn get_flight(&self, status: &HashMap<String, String>, tracking: &HashMap<String, String>) -> Option<Flight> {
-        dbg!(&status);
         let mut flight = Flight::default();
         self.values_to_flight_status(status, &mut flight)?;
-        dbg!(&tracking);
         self.values_to_flight_tracking(tracking, &mut flight)?;
         Some(flight)
     }
