@@ -82,22 +82,57 @@ impl UIClient {
         })
     }
 
+    fn get_status_map(&self, status_values: Vec<HashMap<String, String>>) -> HashMap<String, HashMap<String, String>>  {
+        status_values
+            .into_iter()
+            .filter_map(|status| {
+                if let Some(code) = status.get(COL_FLIGHT_CODE) {
+                    Some((code.to_string(), status))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+    
+    fn get_tracking_map(&self, tracking_values: Vec<HashMap<String, String>>) -> Vec<(String, HashMap<String, String>)> {
+        tracking_values
+            .into_iter()
+            .filter_map(|mut tracking| {
+                if let Some(code) = tracking.remove(COL_FLIGHT_CODE) {
+                    Some((code, tracking))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
     /// Get the basic information of the flights
     pub fn get_flights(&mut self, airport_code: &str) -> Vec<Flight> {
         let status_values = self.get_flight_status(airport_code, &FRAME_ID);
         let tracking_values = self.get_flight_tracking(airport_code, &FRAME_ID);
 
+        let status_map = self.get_status_map(status_values);
+        let tracking_map = self.get_tracking_map(tracking_values);
+
         let mut flights = Vec::new();
-        for (status, tracking) in status_values.iter().zip(tracking_values.iter()) {
-            let Some(flight) = self.get_flight(status, tracking) else {continue};
-            flights.push(flight);
+        for (flight_code, tracking) in tracking_map {
+            if let Some(status) = status_map.get(&flight_code) {
+                if let Some(flight) = self.get_flight(status, &tracking) {
+                    flights.push(flight);
+                    dbg!(&flights.len());
+                }
+            }
         }
         flights
     }
 
     fn get_flight(&self, status: &HashMap<String, String>, tracking: &HashMap<String, String>) -> Option<Flight> {
+        dbg!(&status);
         let mut flight = Flight::default();
         self.values_to_flight_status(status, &mut flight)?;
+        dbg!(&tracking);
         self.values_to_flight_tracking(tracking, &mut flight)?;
         Some(flight)
     }
@@ -129,7 +164,7 @@ impl UIClient {
 
     fn get_flight_tracking(&mut self, airport_code: &str, frame_id: &usize) -> Vec<HashMap<String, String>> {
         let query = QueryBuilder::new("SELECT", TABLE_FLIGHTS_BY_AIRPORT)
-            .select(vec![COL_POSITION_LAT, COL_POSITION_LON, COL_ARRIVAL_POSITION_LAT, COL_ARRIVAL_POSITION_LON])
+            .select(vec![COL_FLIGHT_CODE, COL_POSITION_LAT, COL_POSITION_LON, COL_ARRIVAL_POSITION_LAT, COL_ARRIVAL_POSITION_LON])
             .where_condition(&format!("{} = '{}'", COL_AIRPORT_CODE, airport_code), None)
             .order_by(COL_FLIGHT_CODE, None)
             .build();

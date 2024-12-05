@@ -102,7 +102,7 @@ impl ThreadPoolClient {
 
         let job = Box::new(move |id: usize, client: &mut CassandraClient| {
             let result = f(id, client);
-            result_sender.send(result).unwrap();
+            let _ = result_sender.send(result);
         });
 
         self.sender.send(job).unwrap();

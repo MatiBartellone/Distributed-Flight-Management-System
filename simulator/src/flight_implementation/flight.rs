@@ -12,7 +12,6 @@ pub struct Flight {
 pub struct FlightStatus {
     // strong consistency
     pub code: String,
-    pub status: FlightState,
     pub departure_airport: String,
     pub arrival_airport: String,
     pub departure_time: String,
@@ -26,7 +25,8 @@ pub struct FlightTracking  {
     pub arrival_position: (f64, f64),
     pub altitude: f64,
     pub speed: f32,
-    pub fuel_level: f32
+    pub fuel_level: f32,
+    pub status: FlightState,
 }
 
 impl Flight {
@@ -151,6 +151,10 @@ impl Flight {
         ((target_x - current_x).powi(2) + (target_y - current_y).powi(2)).sqrt()
     }
 
+    pub fn has_arrived(&self) -> bool {
+        self.get_status() == &FlightState::Arrived
+    }
+
     pub fn get_code(&self) -> String {
         self.status.code.to_string()
     }
@@ -160,11 +164,11 @@ impl Flight {
     }
 
     pub fn get_status(&self) -> &FlightState {
-        &self.status.status
+        &self.tracking.status
     }
 
     pub fn set_status(&mut self, status: FlightState) {
-        self.status.status = status;
+        self.tracking.status = status;
     }
 
     pub fn get_position(&self) -> &(f64, f64) {
@@ -225,6 +229,10 @@ impl Flight {
 
     pub fn get_arrival_position(&self) -> &(f64, f64) {
         &self.tracking.arrival_position
+    }
+
+    pub fn set_arrival_position(&mut self, position: (f64, f64)) {
+        self.tracking.arrival_position = position;
     }
 }
 

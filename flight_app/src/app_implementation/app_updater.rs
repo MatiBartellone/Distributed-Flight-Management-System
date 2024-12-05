@@ -32,7 +32,7 @@ impl AppUpdater {
         thread::spawn(move || loop {
             self.update_flights();
             ctx.request_repaint();
-            thread::sleep(Duration::from_millis(400));
+            thread::sleep(Duration::from_millis(200));
         });
     }
 
