@@ -56,11 +56,11 @@ impl<'a> App for LoginApp<'a> {
     }
 }
 
-pub fn run_login_app(client: &mut CassandraClient) {
+pub fn run_login_app(client: &mut CassandraClient) -> Result<(), String> {
     let options = eframe::NativeOptions::default();
     eframe::run_native(
         "Flight App",
         options,
         Box::new(|_| Ok(Box::new(LoginApp::new(client)))),
-    ).unwrap();
+    ).map_err(|e| e.to_string())
 }

@@ -144,7 +144,6 @@ impl Worker {
                 // Get and execute the job from the channel
                 let job = receiver.lock().unwrap().recv().unwrap();
                 job(id, &mut client);
-                println!("Job done");
 
                 // Decrease the task counter and check if there are no more jobs
                 let task_decrease = decrease_counter_job(&task_cont);

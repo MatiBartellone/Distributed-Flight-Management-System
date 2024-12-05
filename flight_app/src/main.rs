@@ -23,7 +23,7 @@ fn inicializate_client() -> Result<UIClient, String> {
     let node = get_user_data("FULL IP (ip:port): ");
     let mut client = CassandraClient::new(&node)?;
     client.start_up()?;
-    run_login_app(&mut client);
+    run_login_app(&mut client)?;
     let mut ui_client = UIClient::new(client);
     ui_client.use_aviation_keyspace()?;
     Ok(ui_client)

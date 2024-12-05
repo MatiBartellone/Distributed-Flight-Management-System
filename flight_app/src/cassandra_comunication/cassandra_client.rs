@@ -75,8 +75,8 @@ impl CassandraClient {
         match frame.opcode {
             OP_ERROR => {
                 let mut cursor = BytesCursor::new(frame.body.as_slice());
-                let _ = vec![cursor.read_u8().unwrap(), cursor.read_u8().unwrap()];
-                let msg = cursor.read_string().unwrap();
+                let _ = vec![cursor.read_u8()?, cursor.read_u8()?];
+                let msg = cursor.read_string()?;
                 Err(format!("Error: {}",  msg))
             }
             _ => Ok(()),
