@@ -45,7 +45,7 @@ impl FlightApp {
     fn get_maxbox_tile() -> Mapbox {
         Mapbox {
             style: MapboxStyle::NavigationNight,
-            high_resolution: true,
+            high_resolution: false,
             access_token: "pk.eyJ1IjoiaXZhbi1tYXhpbW9mZiIsImEiOiJjbTJnZXVpbTMwMGZiMmxvbnBtZmZrYzhxIn0.ML4CVWvfANu4abq_24r6Wg".to_string()
         }
     }
