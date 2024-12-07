@@ -2,7 +2,7 @@ use flight_app::{app_implementation::{flight_app::FlightApp, login_app::run_logi
 
 fn main() -> Result<(), eframe::Error> {
     clear_screen();
-    let client = match inicializate_client() {
+    let client = match initialize_client() {
         Ok(clients) => clients,
         Err(e) => {
             println!("{}", e);
@@ -19,7 +19,7 @@ fn main() -> Result<(), eframe::Error> {
     )
 }
 
-fn inicializate_client() -> Result<UIClient, String> {
+fn initialize_client() -> Result<UIClient, String> {
     let node = get_user_data("FULL IP (ip:port): ");
     let mut client = CassandraClient::new(&node)?;
     client.start_up()?;

@@ -37,6 +37,11 @@ impl Airports {
             });
     }
 
+    /// Set the airports to the airports list
+    pub fn set_airports(&mut self, airports: HashMap<String, Airport>) {
+        self.airports = airports;
+    }
+
     /// Get the coordinates of an airport given its code
     pub fn get_airport_coordinates(&self, airport_code: &str) -> (f64, f64) {
         self.airports

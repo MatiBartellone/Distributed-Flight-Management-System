@@ -12,12 +12,12 @@ impl InformationPanel {
             self.show_heading_fligths(ui, app, &airport_name);
             ui.separator();
             self.show_flight_information(ui, app);
-        } else {
-            // Information of airports
-            ui.heading("Aeropuertos");
-            ui.separator();
-            app.airports.list_airports(ui);
+            return;
         }
+        // Information of airports
+        self.show_heading_airports(ui, app);
+        ui.separator();
+        app.airports.list_airports(ui);
     }
 
     fn show_heading_fligths(&self, ui: &mut egui::Ui, app: &mut FlightApp, airport_name: &str) {
@@ -25,6 +25,13 @@ impl InformationPanel {
             app.clear_selection();
         }
         ui.heading(airport_name);
+    }
+
+    fn show_heading_airports(&self, ui: &mut egui::Ui, app: &mut FlightApp) {
+        if ui.button("⟳").clicked() {
+            app.restore_airports();
+        }
+        ui.heading("Aeropuertos");
     }
 
     fn show_flight_information(&self, ui: &mut egui::Ui, app: &mut FlightApp) {

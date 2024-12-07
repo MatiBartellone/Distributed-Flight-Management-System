@@ -5,7 +5,7 @@ use egui::Context;
 use walkers::{sources::{Mapbox, MapboxStyle}, HttpTiles, MapMemory};
 
 use crate::{
-    airport_implementation::airports::Airports, cassandra_comunication::ui_client::UIClient, flight_implementation::{flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}
+    airport_implementation::airports::Airports, cassandra_comunication::ui_client::UIClient, flight_implementation::{flight::Flight, flight_selected::FlightSelected, flights::Flights}, panels::{information::InformationPanel, map::MapPanel}
 };
 
 use super::app_updater::AppUpdater;
@@ -15,6 +15,7 @@ pub struct FlightApp {
     pub selected_airport_code: Arc<Mutex<Option<String>>>,
     pub flights: Flights,
     pub selected_flight: Arc<Mutex<Option<FlightSelected>>>,
+    pub updater: AppUpdater,
     // Map
     pub tiles: HttpTiles,
     pub map_memory: MapMemory
@@ -25,21 +26,28 @@ impl FlightApp {
     /// Start the app updater thread to update the app information
     pub fn new(egui_ctx: Context, mut ui_client: UIClient) -> Self {
         Self::set_scroll_style(&egui_ctx);
-        let (selected_flight, flights) = Self::inicializate_flights_information();
-        let (selected_airport_code, airports) = Self::inicializate_airport_information(&mut ui_client, &selected_flight);
+        let (selected_flight, flights) = Self::initialize_flights_information();
+        let (selected_airport_code, airports) = Self::initialize_airport_information(&mut ui_client, &selected_flight);
         let map_memory = Self::initialize_map_memory();
         let tile_source = Self::get_maxbox_tile();
 
-        let mut app = Self {
+        let updater = Self::initialize_app_updater(
+            Arc::clone(&selected_flight),
+            Arc::clone(&selected_airport_code),
+            Arc::clone(&flights.flights),
+            ui_client,
+        );
+        updater.start(egui_ctx.clone());
+
+        Self {
             airports,
             selected_airport_code,
             flights,
             selected_flight,
+            updater,
             tiles: HttpTiles::new(tile_source, egui_ctx.clone()),
             map_memory,
-        };
-        app.start_app_updater(egui_ctx, ui_client);
-        app
+        }
     }
 
     fn get_maxbox_tile() -> Mapbox {
@@ -56,7 +64,7 @@ impl FlightApp {
         egui_ctx.set_style(style);
     }
 
-    fn inicializate_airport_information(ui_client: &mut UIClient, selected_flight: &Arc<Mutex<Option<FlightSelected>>>) -> (Arc<Mutex<Option<String>>>, Airports) {
+    fn initialize_airport_information(ui_client: &mut UIClient, selected_flight: &Arc<Mutex<Option<FlightSelected>>>) -> (Arc<Mutex<Option<String>>>, Airports) {
         let selected_airport_code = Arc::new(Mutex::new(None));
         let airports = Airports::new(
             ui_client.get_airports(get_airports_codes()),
@@ -66,7 +74,7 @@ impl FlightApp {
         (selected_airport_code, airports)
     }
 
-    fn inicializate_flights_information() -> (Arc<Mutex<Option<FlightSelected>>>, Flights) {
+    fn initialize_flights_information() -> (Arc<Mutex<Option<FlightSelected>>>, Flights) {
         let selected_flight = Arc::new(Mutex::new(None));
         let flights = Flights::new(Vec::new(), Arc::clone(&selected_flight));
         (selected_flight, flights)
@@ -78,19 +86,18 @@ impl FlightApp {
         map_memory
     }
 
-    // Start the app updater thread to update the app information
-    fn start_app_updater(&mut self, ctx: egui::Context, ui_client: UIClient) {
-        let selected_flight = Arc::clone(&self.selected_flight);
-        let selected_airport_code = Arc::clone(&self.selected_airport_code);
-        let flights = Arc::clone(&self.flights.flights);
-
+    fn initialize_app_updater(
+        selected_flight: Arc<Mutex<Option<FlightSelected>>>,
+        selected_airport_code: Arc<Mutex<Option<String>>>,
+        flights: Arc<Mutex<Vec<Flight>>>,
+        ui_client: UIClient,
+    ) -> AppUpdater {
         AppUpdater::new(
             selected_flight,
             selected_airport_code,
             flights,
-            ui_client
+            ui_client,
         )
-        .start(ctx);
     }
 
     fn get_airport_code(&self) -> Option<String> {
@@ -141,6 +148,15 @@ impl FlightApp {
             Ok(lock) => (*lock).is_some(),
             Err(_) => false,
         }
+    }
+
+    /// Restore the airports information and set it to the airports list of the app
+    pub fn restore_airports(&mut self) {
+        let Some(new_airports) = self
+            .updater
+            .restore_airports(get_airports_codes()) else {return;};
+
+        self.airports.set_airports(new_airports);
     }
 }
 
