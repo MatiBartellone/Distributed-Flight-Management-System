@@ -33,7 +33,7 @@ fn loop_option(thread_pool: &ThreadPoolClient) {
             "1" => add_flights_for_airport(&airports, &mut airport_codes),
             "2" => add_single_flight(&mut flights_inserted, &airports, &simulator, thread_pool),
             "3" => {
-                flight_updates_loop(&simulator, &mut flights_inserted, &airports, &mut airport_codes, thread_pool);
+                flight_updates_loop(&simulator, &mut flights_inserted, &mut airport_codes, thread_pool);
                 airport_codes.clear();
                 flights_inserted.clear();
             },
@@ -98,7 +98,7 @@ fn separate_flights_by_airport(flights_inserted: &mut HashMap<String, Flight>, a
     minimize_airports_for_flights(flight_no_in_selected_airports)
 }
 
-fn flight_updates_loop(simulator: &Simulator, flights_inserted: &mut HashMap<String, Flight>, airports: &HashMap<String, Airport>, airport_codes: &mut HashSet<String>, thread_pool: &ThreadPoolClient) {
+fn flight_updates_loop(simulator: &Simulator, flights_inserted: &mut HashMap<String, Flight>, airport_codes: &mut HashSet<String>, thread_pool: &ThreadPoolClient) {
     let step = get_user_data("Enter the step time: ")
         .parse::<f32>()
         .unwrap_or(1.0);
@@ -110,7 +110,7 @@ fn flight_updates_loop(simulator: &Simulator, flights_inserted: &mut HashMap<Str
         .iter()
         .map(|airport_code| airport_code.to_string())
         .collect();
-    simulator.flight_updates_loop(airports, airport_codes, flight_codes_by_airport, step, interval, thread_pool);
+    simulator.flight_updates_loop(airport_codes, flight_codes_by_airport, step, interval, thread_pool);
 }
 
 fn add_flights_for_airport(airports: &HashMap<String, Airport>, airport_codes: &mut HashSet<String>){

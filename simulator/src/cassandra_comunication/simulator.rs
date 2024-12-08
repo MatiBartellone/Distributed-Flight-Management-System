@@ -284,7 +284,8 @@ impl Simulator {
             altitude,
             speed,
             fuel_level,
-            status
+            status,
+            ..Default::default()
         })
     }
 
@@ -330,7 +331,6 @@ impl Simulator {
     /// Loop that updates the flights in the airport every interval of time
     pub fn flight_updates_loop(
         &self,
-        airports: &HashMap<String, Airport>,
         airport_codes: Vec<String>,
         flight_codes_by_airport: HashMap<String, Vec<String>>,
         step: f32,
@@ -345,13 +345,8 @@ impl Simulator {
                     continue;
                 }
                 all_arrived = false;
-
-                let arrival_position = match  airports.get(flight.get_arrival_airport()) {
-                    Some(airport) => airport.position,
-                    None => continue,
-                };
                 let _ = thread_pool.execute(move |frame_id, client| {
-                    flight.update_progress(arrival_position, step);
+                    flight.update_progress(step);
                     let _ = Self.update_flight(client, &flight, &frame_id);
                     if flight.has_arrived() {
                         println!("Flight {} has arrived.", flight.get_code());
