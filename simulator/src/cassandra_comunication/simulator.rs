@@ -86,12 +86,12 @@ impl Simulator {
         let flight_thread = flight.clone();
         thread_pool.execute(move |frame_id, client| {
             let airport_code = flight_thread.get_departure_airport();
-            _ = Self.insert_flight(client, &flight_thread, &airport_code, &frame_id);
+            _ = Self.insert_flight(client, &flight_thread, airport_code, &frame_id);
         });
         let flight_thread = flight.clone();
         thread_pool.execute(move |frame_id, client| {
             let airport_code = flight_thread.get_arrival_airport();
-            _ = Self.insert_flight(client, &flight_thread, &airport_code, &frame_id);
+            _ = Self.insert_flight(client, &flight_thread, airport_code, &frame_id);
         });
     }
 
@@ -117,7 +117,7 @@ impl Simulator {
                 vec![
                     &format!("'{}'", airport_code), 
                     &format!("'{}'", flight.get_code()), 
-                    &format!("'{}'", flight.get_status().to_string()),
+                    &format!("'{}'", flight.get_status()),
                     &format!("'{}'", flight.get_departure_airport()), 
                     &format!("'{}'", flight.get_arrival_airport()), 
                     &format!("'{}'", flight.get_departure_time()), 
@@ -158,11 +158,8 @@ impl Simulator {
         status_values
             .into_iter()
             .filter_map(|status| {
-                if let Some(code) = status.get(COL_FLIGHT_CODE) {
-                    Some((code.to_string(), status))
-                } else {
-                    None
-                }
+                let code = status.get(COL_FLIGHT_CODE)?;
+                Some((code.to_string(), status))
             })
             .collect()
     }
@@ -171,19 +168,17 @@ impl Simulator {
         tracking_values
             .into_iter()
             .filter_map(|mut tracking| {
-                if let Some(code) = tracking.remove(COL_FLIGHT_CODE) {
-                    Some((code, tracking))
-                } else {
-                    None
-                }
+                tracking
+                    .remove(COL_FLIGHT_CODE)
+                    .map(|code| (code, tracking))
             })
             .collect()
     }
 
     /// Get the information of the flights
-    fn get_flights_by_airport(&self, airport_code: &str, flight_codes_airport: &Vec<String>, client: &mut CassandraClient, frame_id: &usize) -> Vec<Flight> {
-        let status_values = Self.get_flight_status(client, &airport_code, flight_codes_airport, &frame_id);
-        let tracking_values= Self.get_flight_tracking(client, &airport_code, flight_codes_airport, &frame_id);
+    fn get_flights_by_airport(&self, airport_code: &str, flight_codes_airport: &[String], client: &mut CassandraClient, frame_id: &usize) -> Vec<Flight> {
+        let status_values = Self.get_flight_status(client, airport_code, flight_codes_airport, frame_id);
+        let tracking_values= Self.get_flight_tracking(client, airport_code, flight_codes_airport, frame_id);
         
         let status_map = self.get_status_map(status_values);
         let tracking_map = self.get_tracking_map(tracking_values);
@@ -209,10 +204,10 @@ impl Simulator {
         })
     }
 
-    fn get_flight_status(&self, client: &mut CassandraClient, airport_code: &str, flight_codes_airport: &Vec<String>, frame_id: &usize) ->Vec<HashMap<String, String>> {
+    fn get_flight_status(&self, client: &mut CassandraClient, airport_code: &str, flight_codes_airport: &[String], frame_id: &usize) ->Vec<HashMap<String, String>> {
         let mut query_builder = QueryBuilder::new("SELECT", TABLE_FLIGHTS_BY_AIRPORT)
             .select(vec![COL_FLIGHT_CODE, COL_DEPARTURE_AIRPORT, COL_ARRIVAL_AIRPORT, COL_DEPARTURE_TIME, COL_ARRIVAL_TIME])
-            .where_condition(&format!("{} = '{}'", COL_AIRPORT_CODE, airport_code), Some(&"AND"));
+            .where_condition(&format!("{} = '{}'", COL_AIRPORT_CODE, airport_code), Some("AND"));
 
         if !flight_codes_airport.is_empty() {
             let or_conditions: Vec<String> = flight_codes_airport
@@ -246,10 +241,10 @@ impl Simulator {
         })
     }
 
-    fn get_flight_tracking(&mut self, client: &mut CassandraClient, airport_code: &str, flight_codes_airport: &Vec<String>, frame_id: &usize) -> Vec<HashMap<String, String>> {
+    fn get_flight_tracking(&mut self, client: &mut CassandraClient, airport_code: &str, flight_codes_airport: &[String], frame_id: &usize) -> Vec<HashMap<String, String>> {
         let mut query_builder = QueryBuilder::new("SELECT", TABLE_FLIGHTS_BY_AIRPORT)
             .select(vec![COL_FLIGHT_CODE, COL_STATUS, COL_POSITION_LAT, COL_POSITION_LON, COL_ARRIVAL_POSITION_LAT, COL_ARRIVAL_POSITION_LON, COL_ALTITUDE, COL_SPEED, COL_FUEL_LEVEL])
-            .where_condition(&format!("{} = '{}'", COL_AIRPORT_CODE, airport_code), Some(&"AND"));
+            .where_condition(&format!("{} = '{}'", COL_AIRPORT_CODE, airport_code), Some("AND"));
 
         if !flight_codes_airport.is_empty() {
             let or_conditions: Vec<String> = flight_codes_airport
@@ -299,7 +294,7 @@ impl Simulator {
         let query = QueryBuilder::new("UPDATE", TABLE_FLIGHTS_BY_AIRPORT)
             .update(
                 vec![
-                    (COL_STATUS, &format!("'{}'", flight.get_status().to_string())),
+                    (COL_STATUS, &format!("'{}'", flight.get_status())),
                     (COL_POSITION_LAT, &format!("{:.1}", flight.get_position().0)), 
                     (COL_POSITION_LON, &format!("{:.1}", flight.get_position().1)), 
                     (COL_ARRIVAL_POSITION_LAT, &format!("{:.1}", flight.get_arrival_position().0)), 
@@ -309,8 +304,8 @@ impl Simulator {
                     (COL_FUEL_LEVEL, &format!("{:.1}", flight.get_fuel_level()))
                 ]
             )
-            .where_condition(&format!("{} = '{}'", COL_FLIGHT_CODE, flight.get_code()), Some(&"AND"))
-            .where_condition(&format!("{} = '{}'", COL_AIRPORT_CODE, airport_code), Some(&"AND"))
+            .where_condition(&format!("{} = '{}'", COL_FLIGHT_CODE, flight.get_code()), Some("AND"))
+            .where_condition(&format!("{} = '{}'", COL_AIRPORT_CODE, airport_code), Some("AND"))
             .build();
         client.execute_weak_query_without_response(&query, frame_id)
     }

@@ -87,11 +87,8 @@ impl UIClient {
         status_values
             .into_iter()
             .filter_map(|status| {
-                if let Some(code) = status.get(COL_FLIGHT_CODE) {
-                    Some((code.to_string(), status))
-                } else {
-                    None
-                }
+                let code = status.get(COL_FLIGHT_CODE)?;
+                Some((code.to_string(), status))
             })
             .collect()
     }
@@ -100,11 +97,9 @@ impl UIClient {
         tracking_values
             .into_iter()
             .filter_map(|mut tracking| {
-                if let Some(code) = tracking.remove(COL_FLIGHT_CODE) {
-                    Some((code, tracking))
-                } else {
-                    None
-                }
+                tracking
+                    .remove(COL_FLIGHT_CODE)
+                    .map(|code| (code, tracking))
             })
             .collect()
     }

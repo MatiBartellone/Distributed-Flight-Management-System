@@ -52,14 +52,14 @@ fn minimize_airports_for_flights(flight_no_in_selected_airports: HashMap<String,
     while !uncovered_flights.is_empty() {
         // Agroup flights by airport
         let mut airport_coverage: HashMap<String, Vec<&Flight>> = HashMap::new();
-        for (_ , flight) in &uncovered_flights {
+        for flight in uncovered_flights.values() {
             airport_coverage
                 .entry(flight.get_departure_airport().to_string())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(flight);
             airport_coverage
                 .entry(flight.get_arrival_airport().to_string())
-                .or_insert_with(Vec::new)
+                .or_default()
                 .push(flight);
         }
 
