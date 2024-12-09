@@ -49,6 +49,7 @@ impl UIClient {
 
     /// Get the information of the airports
     pub fn get_airports(&mut self, airports_codes: Vec<String>) -> HashMap<String, Airport> {
+        self.use_aviation_keyspace().unwrap();
         let mut airports = HashMap::new();
         for airport_code in airports_codes {
             if let Some(airport) = self.get_airport(&airport_code, &FRAME_ID) {

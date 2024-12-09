@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use simulator::{cassandra_comunication::{cassandra_client::CassandraClient, simulator::Simulator, thread_pool_client::ThreadPoolClient}, flight_implementation::{airport::Airport, flight::{Flight, FlightStatus, FlightTracking}}, utils::system_functions::{clear_screen, get_user_data}};
 
 fn main() {
+    clear_screen();
     let clients = match inicializate_clients() {
         Ok(clients) => clients,
         Err(e) => {
@@ -66,7 +67,7 @@ fn minimize_airports_for_flights(flight_no_in_selected_airports: HashMap<String,
         let best_airport = airport_coverage
             .iter()
             .max_by_key(|(_, flights)| flights.len())
-            .map(|(airport, _)| airport.clone())
+            .map(|(airport, _)| airport.to_string())
             .unwrap();
 
         // Get the flights covered by the airport

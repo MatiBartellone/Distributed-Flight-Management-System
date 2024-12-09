@@ -105,7 +105,7 @@ impl ThreadPoolClient {
             let _ = result_sender.send(result);
         });
 
-        self.sender.send(job).unwrap();
+        let _ = self.sender.send(job);
         result_receiver
     }
 
@@ -150,7 +150,14 @@ impl Worker {
         let _thread = thread::spawn(move || {
             loop {
                 // Get and execute the job from the channel
-                let job = receiver.lock().unwrap().recv().unwrap();
+                let job_receiver = match receiver.lock() {
+                    Ok(receiver) => receiver,
+                    Err(_) => break,
+                };
+                let job = match job_receiver.recv() {
+                    Ok(job) => job,
+                    Err(_) => break,
+                };
                 job(id, &mut client);
 
                 // Decrease the task counter and check if there are no more jobs
