@@ -2,6 +2,8 @@ use egui::{vec2, Align2, Color32, FontId, Painter, Pos2, Response, Vec2};
 use std::sync::{Arc, Mutex};
 use walkers::{Position, Projector};
 
+use crate::flight_implementation::flight_selected::FlightSelected;
+
 #[derive(Clone, PartialEq)]
 pub struct Airport {
     pub name: String,
@@ -43,9 +45,10 @@ impl Airport {
         painter: Painter,
         projector: &Projector,
         selected_airport_code: &Arc<Mutex<Option<String>>>,
+        selected_flight: &Arc<Mutex<Option<FlightSelected>>>,
     ) {
         self.draw_icon_airport(painter.clone(), projector);
-        self.clickeable_airport(response, projector, selected_airport_code);
+        self.clickeable_airport(response, projector, selected_airport_code, selected_flight);
         self.holdeable_airport(response, painter, projector);
     }
 
@@ -97,25 +100,34 @@ impl Airport {
         );
     }
 
+    fn update_selection(&self, 
+        selected_airport_code: &Arc<Mutex<Option<String>>>,
+        selected_flight: &Arc<Mutex<Option<FlightSelected>>>,
+    ) {
+        if let Ok(mut selected_airport) = selected_airport_code.lock() {
+            match &*selected_airport {
+                Some(airport) if airport == &self.code => *selected_airport = None,
+                Some(_) | None => *selected_airport = Some(self.code.to_string()),
+            }
+        }
+        if let Ok(mut selected_flight_lock) = selected_flight.lock() {
+            *selected_flight_lock = None;
+        }
+    }
+
     // Si lo clikea cambia el aeropuerto seleccionado
     fn clickeable_airport(
         &self,
         response: &Response,
         projector: &Projector,
         selected_airport_code: &Arc<Mutex<Option<String>>>,
+        selected_flight: &Arc<Mutex<Option<FlightSelected>>>,
     ) {
         let screen_airport_position = self.get_airport_pos2(projector);
         if self.is_hovering_on_airport(response, screen_airport_position)
             && response.clicked_by(egui::PointerButton::Primary)
         {
-            let mut selected_airport = match selected_airport_code.lock() {
-                Ok(lock) => lock,
-                Err(_) => return,
-            };
-            match &*selected_airport {
-                Some(airport) if airport == &self.code => *selected_airport = None,
-                Some(_) | None => *selected_airport = Some(self.code.to_string()),
-            }
+            self.update_selection(selected_airport_code, selected_flight);
         }
     }
 

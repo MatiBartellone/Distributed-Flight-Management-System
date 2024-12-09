@@ -20,22 +20,31 @@ pub fn write_to_tls_stream(
     stream: &mut StreamOwned<ServerConnection, TcpStream>,
     content: &[u8],
 ) -> Result<(), Errors> {
+    let mut message = (content.len() as i32).to_be_bytes().to_vec();
+    message.extend_from_slice(content);
     stream
-        .write_all(content)
+        .write_all(&message)
         .map_err(|_| ServerError(String::from("Failed to write to stream")))
 }
 
 pub fn read_exact_from_tls_stream(
     stream: &mut StreamOwned<ServerConnection, TcpStream>,
 ) -> Result<Vec<u8>, Errors> {
-    let mut buffer = [0; 1024];
-    let size = stream
-        .read(&mut buffer)
+    let mut size_buffer = [0; 4];
+    stream
+        .read_exact(&mut size_buffer)
+        .map_err(|_| ServerError(String::from("Failed to read stream size")))?;
+    let size = i32::from_be_bytes(size_buffer) as usize;
+
+    let mut buffer = vec![0; size];
+
+    stream
+        .read_exact(&mut buffer)
         .map_err(|_| ServerError(String::from("Failed to read stream")))?;
     if size == 0 {
         return Ok(Vec::new());
     }
-    Ok(buffer[0..size].to_vec())
+    Ok(buffer[0..].to_vec())
 }
 
 pub fn read_from_stream_no_zero(

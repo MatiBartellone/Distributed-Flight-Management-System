@@ -37,6 +37,7 @@ fn main() {
             "execute" => send_execute(&mut connector),
             "queries" => {
                 send_queries(&mut connector);
+                input.clear();
                 continue;
             },
             _ => {
@@ -149,12 +150,15 @@ fn send_queries(connector: &mut CassandraConnection) {
     let path = get_user_data("Queries path : ");
     let consistency = get_user_data("General consistency: ");
 
-    let file = File::open(path).unwrap();
+    let Ok(file) = File::open(path) else {
+        return;
+    };
+
     let reader = BufReader::new(file);
     for line in reader.lines() {
         let line = line.unwrap();
         let query = line.trim();
-        if query.starts_with("/") {
+        if query.starts_with("/") || query.is_empty() || query.starts_with("\n") {
             continue;
         }
         let mut body = Vec::new();
@@ -185,6 +189,8 @@ fn send_queries(connector: &mut CassandraConnection) {
             }
         }
     }
+
+    println!("\nFinished running queries\n");
 }
 
 fn send_prepare(connector: &mut CassandraConnection) {

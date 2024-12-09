@@ -68,7 +68,13 @@ impl Response {
                 encoder.write_i16(data_type_id)?;
             }
         }
-        encoder.write_int(rows.len() as i32)?;
+        let mut row_count : i32 = 0;
+        for row in rows {
+            if !row.deleted {
+                row_count += 1;
+            }
+        }
+        encoder.write_int(row_count)?;
         for row in rows {
             if row.deleted {
                 continue;

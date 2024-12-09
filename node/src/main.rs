@@ -51,19 +51,28 @@ fn get_args() -> (bool, String) {
 fn start_gossip() -> Result<(), Errors> {
     thread::spawn(move || -> Result<(), Errors> {
         loop {
-            sleep(Duration::from_secs(1));
-            GossipEmitter::start_gossip()?;
-            Handler::check_for_perished()?;
-            {
-                use_node_meta_data(|handler| {
-                    for ip in handler.get_booting_nodes(NODES_METADATA_PATH)? {
-                        HintsSender::send_hints(ip)?;
-                    }
-                    Ok(())
-                })?
+            let result = gossip();
+            if let Err(e) = result {
+                println!("Failed to gossip: {}", e);
             }
+
         }
     });
+    Ok(())
+}
+
+fn gossip() -> Result<(), Errors> {
+    sleep(Duration::from_secs(1));
+    GossipEmitter::start_gossip()?;
+    Handler::check_for_perished()?;
+    {
+        use_node_meta_data(|handler| {
+            for ip in handler.get_booting_nodes(NODES_METADATA_PATH)? {
+                HintsSender::send_hints(ip)?;
+            }
+            Ok(())
+        })?
+    }
     Ok(())
 }
 

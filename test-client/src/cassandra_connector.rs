@@ -39,8 +39,11 @@ impl CassandraConnection {
 
     pub fn write_stream(&mut self, frame: &Frame) -> Result<(), String> {
         let frame_bytes = frame.to_bytes();
-        
-        self.stream.write_all(&frame_bytes)
+
+        let mut message = (frame_bytes.len() as i32).to_be_bytes().to_vec();
+        message.extend(frame_bytes);
+
+        self.stream.write_all(&message)
             .map_err(|_| "Error al escribir".to_string())?;
 
         self.stream.flush()
@@ -49,10 +52,20 @@ impl CassandraConnection {
     }
 
     pub fn read_stream(&mut self) -> Result<Frame, String> {
-        let mut buf = [0; 1024];
-        match self.stream.read(&mut buf) {
-            Ok(n) if n > 0 => Frame::parse_frame(&buf[..n]).map_err(|e| format!("{:?}", e)),
-            _ => Err("Fail reading the response".to_string()),
+        let mut size_buffer = [0; 4];
+        self.stream
+            .read_exact(&mut size_buffer)
+            .map_err(|_| String::from("Failed to read stream size"))?;
+        let size = i32::from_be_bytes(size_buffer) as usize;
+
+        if size == 0 {
+            Err("Fail reading the response".to_string())
+        } else {
+            let mut buffer = vec![0; size];
+            self.stream
+                .read_exact(&mut buffer)
+                .map_err(|_| String::from("Failed to read full message"))?;
+            Frame::parse_frame(&buffer[0..]).map_err(|_| String::from("Failed to parse frame"))
         }
     }
     
@@ -68,7 +81,7 @@ impl CassandraConnection {
                 .iter()
                 .cloned(),
         );
-        let certs = Self::load_certs("certificates/certificate.pem")?;
+        let certs = Self::load_certs("../certificates/certificate.pem")?;
         for cert in certs {
             root_store.add(cert).map_err(|_| "Failed to add cert to root store".to_string())?;
         }

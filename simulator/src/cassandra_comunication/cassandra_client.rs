@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::utils::{
-        bytes_cursor::BytesCursor, consistency_level::ConsistencyLevel, constants::{ROW_RESPONSE, OP_AUTHENTICATE, OP_AUTH_CHALLENGE, OP_AUTH_RESPONSE, OP_AUTH_SUCCESS, OP_RESULT}, frame::Frame, system_functions::get_user_data, types_to_bytes::TypesToBytes
+        bytes_cursor::BytesCursor, consistency_level::ConsistencyLevel, constants::{OP_AUTH_RESPONSE, OP_ERROR, OP_RESULT, ROW_RESPONSE}, frame::Frame, types_to_bytes::TypesToBytes
     };
 use super::cassandra_connector::CassandraConnection;
 
@@ -25,13 +25,8 @@ impl CassandraClient {
         self.connection.send_and_receive(frame)
     }
 
-    // Get ready the client for use in keyspace airport
-    pub fn inicializate(&mut self) -> Result<(), String> {
-        self.start_up()
-    }
-
-    // Send a startup
-    fn start_up(&mut self) -> Result<(), String> {
+    /// Send a startup message to the server to start the connection
+    pub fn start_up(&mut self) -> Result<(), String> {
         let body = self.get_start_up_body()?;
         let mut frame = Frame::new(
             VERSION,
@@ -41,8 +36,8 @@ impl CassandraClient {
             body.len() as u32,
             body,
         );
-        let frame_response = self.send_and_receive(&mut frame)?;
-        self.handle_frame_response(frame_response)
+        let _ = self.send_and_receive(&mut frame)?;
+        Ok(())
     }
 
     fn get_start_up_body(&self) -> Result<Vec<u8>, String> {
@@ -54,8 +49,8 @@ impl CassandraClient {
     }
 
     // Send the authentication until it success
-    fn authenticate_response(&mut self) -> Result<(), String> {
-        let body = self.get_authenticate_body()?;
+    pub fn authenticate(&mut self, user: &str, password: &str) -> Result<(), String> {
+        let body = self.get_authenticate_body(user, password)?;
         let mut frame = Frame::new(
             VERSION,
             FLAGS,
@@ -68,9 +63,9 @@ impl CassandraClient {
         self.handle_frame_response(frame_response)
     }
 
-    fn get_authenticate_body(&self) -> Result<Vec<u8>, String> {
+    fn get_authenticate_body(&self, user: &str, password: &str) -> Result<Vec<u8>, String> {
+        let credentials = format!("{}:{}", user, password);
         let mut types_to_bytes = TypesToBytes::default();
-        let credentials = get_user_data("Credentials with format (user:password)\n");
         types_to_bytes.write_long_string(&credentials)?;
         Ok(types_to_bytes.into_bytes())
     }
@@ -78,13 +73,15 @@ impl CassandraClient {
     // Handles the read frame
     fn handle_frame_response(&mut self, frame: Frame) -> Result<(), String> {
         match frame.opcode {
-            OP_AUTHENTICATE | OP_AUTH_CHALLENGE => self.authenticate_response(),
-            OP_AUTH_SUCCESS => Ok(()),
-            _ => Err("Invalid OP response".to_string()),
+            OP_ERROR => {
+                let mut cursor = BytesCursor::new(frame.body.as_slice());
+                let _ = vec![cursor.read_u8()?, cursor.read_u8()?];
+                let msg = cursor.read_string()?;
+                Err(format!("Error: {}",  msg))
+            }
+            _ => Ok(()),
         }
     }
-
-
 
     // Get a query body with consistency
     pub fn get_body_query(

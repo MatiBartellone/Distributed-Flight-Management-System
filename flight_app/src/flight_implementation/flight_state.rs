@@ -1,5 +1,6 @@
 use std::fmt;
 
+use egui::Color32;
 use FlightState::*;
 
 #[derive(Clone, PartialEq, Debug, Default)]
@@ -23,7 +24,18 @@ impl FlightState {
             _ => FlightState::default(),
         }
     }
+
+    pub fn get_color(&self) -> Color32 {
+        match self {
+            FlightState::OnTime => Color32::GREEN,
+            FlightState::Delayed => Color32::YELLOW,
+            FlightState::Cancelled => Color32::RED,
+            FlightState::Arrived => Color32::BLUE,
+            FlightState::Inactive => Color32::GRAY, 
+        }
+    }
 }
+
 impl fmt::Display for FlightState {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {

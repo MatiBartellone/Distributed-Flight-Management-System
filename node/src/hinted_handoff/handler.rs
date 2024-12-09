@@ -27,6 +27,7 @@ impl Handler {
     }
 
     pub fn check_for_perished() -> Result<(), Errors> {
+        fs::create_dir_all(HINTED_HANDOFF_DATA).map_err(|e| ServerError(e.to_string()))?;
         for entry in fs::read_dir(HINTED_HANDOFF_DATA)
             .map_err(|_| ServerError(String::from("cannot read directory")))?
         {

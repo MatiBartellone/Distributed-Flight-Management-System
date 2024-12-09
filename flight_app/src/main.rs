@@ -1,8 +1,8 @@
-use flight_app::{app_implementation::flight_app::FlightApp, cassandra_comunication::{cassandra_client::CassandraClient, ui_client::UIClient}, utils::system_functions::{clear_screen, get_user_data}};
+use flight_app::{app_implementation::{flight_app::FlightApp, login_app::run_login_app}, cassandra_comunication::{cassandra_client::CassandraClient, ui_client::UIClient}, utils::system_functions::{clear_screen, get_user_data}};
 
 fn main() -> Result<(), eframe::Error> {
     clear_screen();
-    let clients = match inicializate_clients() {
+    let client = match initialize_client() {
         Ok(clients) => clients,
         Err(e) => {
             println!("{}", e);
@@ -15,22 +15,16 @@ fn main() -> Result<(), eframe::Error> {
     eframe::run_native(
         "Flight App",
         options,
-        Box::new(|cc| Ok(Box::new(FlightApp::new(cc.egui_ctx.clone(), clients)))),
+        Box::new(|cc| Ok(Box::new(FlightApp::new(cc.egui_ctx.clone(), client)))),
     )
 }
 
-fn inicializate_clients() -> Result<Vec<CassandraClient>, String> {
-    let cant_clients = get_user_data("Enter the number of clients: ").parse::<usize>()
-        .map_err(|_| "Error parsing the number of clients".to_string())?;
-    
-    let simulator = UIClient;
-    let mut clients = Vec::new();
-    for _ in 0..cant_clients {
-        let node = get_user_data("FULL IP (ip:port): ");
-        let mut client = CassandraClient::new(&node)?;
-        client.inicializate()?;
-        simulator.use_aviation_keyspace(&mut client)?;
-        clients.push(client);
-    }
-    Ok(clients)
+fn initialize_client() -> Result<UIClient, String> {
+    let node = get_user_data("FULL IP (ip:port): ");
+    let mut client = CassandraClient::new(&node)?;
+    client.start_up()?;
+    run_login_app(&mut client)?;
+    let mut ui_client = UIClient::new(client);
+    ui_client.use_aviation_keyspace()?;
+    Ok(ui_client)
 }

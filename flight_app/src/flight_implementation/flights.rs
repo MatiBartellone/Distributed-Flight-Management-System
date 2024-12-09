@@ -6,7 +6,6 @@ use walkers::{Plugin, Position, Projector};
 
 use super::flight::Flight;
 use super::flight_selected::FlightSelected;
-use super::flight_state::FlightState;
 
 pub struct Flights {
     pub flights: Arc<Mutex<Vec<Flight>>>,
@@ -40,11 +39,7 @@ impl Flights {
 
                 for flight in flights.iter() {
                     let status_text = flight.status.to_string();
-                    let status_color = match flight.status {
-                        FlightState::OnTime => egui::Color32::GREEN,
-                        FlightState::Delayed => egui::Color32::RED,
-                        _ => egui::Color32::default(),
-                    };
+                    let status_color = flight.status.get_color();
                 
                     ui.horizontal(|ui| {
                         ui.label(flight.code.to_string() + ": ");
@@ -54,17 +49,30 @@ impl Flights {
             });
     }
 
+    fn get_flight_selected_code(&self) -> Option<String> {
+        let on_flight_selected = match self.on_flight_selected.lock() {
+            Ok(lock) => lock,
+            Err(_) => return None,
+        };
+        if let Some(flight_selected) = &*on_flight_selected {
+            return Some(flight_selected.get_code());
+        }
+        None
+    }
+
     fn draw_flights(&self, response: &Response, painter: &Painter, projector: &Projector) {
         let flights = match self.flights.lock() {
             Ok(lock) => lock,
             Err(_) => return,
         };
+        let selected_code = self.get_flight_selected_code();
         for flight in flights.iter() {
             flight.draw(
                 response,
                 painter.clone(),
                 projector,
                 &self.on_flight_selected,
+                &selected_code
             );
         }
     }
