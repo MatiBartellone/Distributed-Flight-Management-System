@@ -23,7 +23,7 @@ impl<'a> LoginApp<'a> {
     }
 }
 
-impl<'a> App for LoginApp<'a> {
+impl App for LoginApp<'_> {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         Window::new("Login")
             .resizable(false)
