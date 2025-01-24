@@ -9,6 +9,9 @@ pub enum State {
     Active,
     Inactive,
     Booting,
+    StandBy,
+    ShuttingDown,
+    Recovering,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -72,6 +75,19 @@ impl Node {
     pub fn set_booting(&mut self) {
         self.state = Booting
     }
+
+    pub fn set_stand_by(&mut self) {
+        self.state = State::StandBy;
+    }
+
+    pub fn set_shutting_down(&mut self) {
+        self.state = State::ShuttingDown;
+    }
+
+    pub fn set_recovering(&mut self) {
+        self.state = State::Recovering;
+    }
+
 
     pub fn set_state(&mut self, state: &State) {
         self.state = state.clone();

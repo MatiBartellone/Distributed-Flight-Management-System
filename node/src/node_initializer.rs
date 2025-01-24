@@ -148,12 +148,12 @@ impl NodeInitializer {
     pub fn set_cluster(&self) -> Result<bool, Errors> {
         let mut nodes = Vec::<Node>::new();
         let mut node = self.get_node();
-        let mut needs_booting = false;
+        let mut needs_recovering = false;
         if !self.is_first {
             let mut stream = connect_to_socket(self.get_seed_ip().get_seed_listener_socket())?;
             nodes = deserialize_from_slice(read_exact_from_stream(&mut stream)?.as_slice())?;
-            needs_booting = set_node_pos(&mut node, &nodes);
-            if needs_booting {
+            needs_recovering = set_node_pos(&mut node, &nodes);
+            if needs_recovering {
                 nodes = eliminate_node_by_ip(&nodes, node.get_ip())
             }
             write_to_stream(&mut stream, serialize_to_string(&node)?.as_bytes())?
@@ -162,7 +162,7 @@ impl NodeInitializer {
         if let Err(e) = NodesMetaDataAccess::write_cluster(NODES_METADATA_PATH, &cluster) {
             println!("{}", e);
         }
-        Ok(needs_booting)
+        Ok(needs_recovering)
     }
 }
 
@@ -178,7 +178,7 @@ fn set_node_pos(node: &mut Node, nodes: &Vec<Node>) -> bool {
     for received_node in nodes {
         if received_node.get_ip() == node.get_ip() {
             node.position = received_node.get_pos();
-            node.set_booting();
+            node.set_recovering();
             return true;
         }
         if received_node.get_pos() > higher_position {

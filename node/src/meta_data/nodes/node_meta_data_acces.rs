@@ -81,6 +81,17 @@ impl NodesMetaDataAccess {
     pub fn set_active(&self, path: &str, ip: &NodeIp) -> Result<(), Errors> {
         self.set_state(path, ip, State::Active)
     }
+    pub fn set_stand_by(&self, path: &str, ip: &NodeIp) -> Result<(), Errors> {
+        self.set_state(path, ip, State::StandBy)
+    }
+
+    pub fn set_shutting_down(&self, path: &str, ip: &NodeIp) -> Result<(), Errors> {
+        self.set_state(path, ip, State::ShuttingDown)
+    }
+
+    pub fn set_recovering(&self, path: &str, ip: &NodeIp) -> Result<(), Errors> {
+        self.set_state(path, ip, State::Recovering)
+    }
 
     pub fn set_own_node_active(&self, path: &str) -> Result<(), Errors> {
         let cluster = NodesMetaDataAccess::read_cluster(path)?;
@@ -127,11 +138,11 @@ impl NodesMetaDataAccess {
         Ok(cluster.len_nodes())
     }
 
-    pub fn get_booting_nodes(&self, path: &str) -> Result<Vec<NodeIp>, Errors> {
+    pub fn get_recovering_nodes(&self, path: &str) -> Result<Vec<NodeIp>, Errors> {
         let mut nodes = Vec::new();
         let cluster = NodesMetaDataAccess::read_cluster(path)?;
         for node in cluster.get_other_nodes() {
-            if node.state == State::Booting {
+            if node.state == State::Recovering {
                 nodes.push(NodeIp::new_from_ip(node.get_ip()));
             }
         }

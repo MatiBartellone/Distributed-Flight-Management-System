@@ -1,7 +1,7 @@
 use crate::meta_data::meta_data_handler::use_node_meta_data;
 use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::Node;
-use crate::meta_data::nodes::node::State::Booting;
+use crate::meta_data::nodes::node::State::{Booting, Recovering};
 use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
@@ -37,7 +37,7 @@ impl GossipEmitter {
             let cluster = node_meta_data.get_cluster(NODES_METADATA_PATH)?;
             let nodes = cluster.get_other_nodes();
             if let Some(random_node) = nodes.choose(&mut rng) {
-                if random_node.state != Booting {
+                if random_node.state != Booting && random_node.state != Recovering {
                     return Ok(Some(NodeIp::new_from_ip(random_node.get_ip())));
                 }
             }

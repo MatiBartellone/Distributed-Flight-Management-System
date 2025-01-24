@@ -21,11 +21,11 @@ fn main() -> Result<(), Errors> {
     let (uses_config, config_file) = get_args();
     let node_data = NodeInitializer::new(uses_config, config_file)?;
 
-    let needs_booting = node_data.set_cluster()?;
+    let needs_recovering = node_data.set_cluster()?;
 
     node_data.start_listeners();
 
-    if needs_booting {
+    if needs_recovering {
         HintsReceiver::start_listening(node_data.get_ip())?;
     };
 
@@ -67,7 +67,7 @@ fn gossip() -> Result<(), Errors> {
     Handler::check_for_perished()?;
     {
         use_node_meta_data(|handler| {
-            for ip in handler.get_booting_nodes(NODES_METADATA_PATH)? {
+            for ip in handler.get_recovering_nodes(NODES_METADATA_PATH)? {
                 HintsSender::send_hints(ip)?;
             }
             Ok(())

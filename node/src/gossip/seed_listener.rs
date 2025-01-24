@@ -39,7 +39,7 @@ impl SeedListener {
             let cluster = node_metadata.get_cluster(NODES_METADATA_PATH)?;
             for node in cluster.get_other_nodes().iter() {
                 if node.get_ip() == new_node.get_ip() {
-                    node_metadata.set_booting(NODES_METADATA_PATH, new_node.get_ip())?;
+                    node_metadata.set_recovering(NODES_METADATA_PATH, new_node.get_ip())?;
                     return Ok(());
                 }
             }
