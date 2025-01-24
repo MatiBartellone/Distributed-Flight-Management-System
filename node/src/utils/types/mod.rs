@@ -5,3 +5,4 @@ pub mod primary_key;
 pub mod timestamp;
 pub mod tls_stream;
 pub mod token_conversor;
+mod range;
