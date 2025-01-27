@@ -13,7 +13,7 @@ impl Range {
     }
 
     pub fn new_full() -> Self {
-        Self::new(1, 1)
+        Self::from_fraction(1, 1)
     }
 
     pub fn get_start(&self) -> usize {
@@ -34,7 +34,10 @@ impl Range {
 
     /// Creates a new murmur3 `Range` based on the segment specified by the fraction `index/total`.
     pub fn from_fraction(index: usize, total: usize) -> Self {
-        assert!(index > 0 && index <= total, "Index must be between 1 and total (inclusive)");
+        assert!(
+            index > 0 && index <= total,
+            "Index must be between 1 and total (inclusive)"
+        );
         assert!(total > 0, "Total must be greater than 0");
 
         let global_start = 0;

@@ -1,4 +1,6 @@
 use crate::parsers::tokens::literal::Literal;
+use crate::parsers::tokens::terms::BooleanOperations::Logical;
+use crate::parsers::tokens::terms::LogicalOperators::*;
 use crate::parsers::tokens::terms::Term;
 use crate::parsers::tokens::token::Token;
 use crate::queries::insert_query::InsertQuery;
@@ -7,8 +9,6 @@ use crate::utils::parser_constants::{COMMA, EXISTS, IF, INTO, VALUES};
 use crate::utils::types::token_conversor::get_next_value;
 use std::iter::Peekable;
 use std::vec::IntoIter;
-use crate::parsers::tokens::terms::BooleanOperations::Logical;
-use crate::parsers::tokens::terms::LogicalOperators::*;
 
 pub struct InsertQueryParser;
 
@@ -84,7 +84,11 @@ fn if_clause(
         Some(Token::Reserved(res)) if res == IF => {
             let mut tokens = match tokens.next() {
                 Some(Token::IterateToken(list)) => list.into_iter().peekable(),
-                _ => return Err(Errors::SyntaxError("Unexpected token in if-clause".to_string())),
+                _ => {
+                    return Err(Errors::SyntaxError(
+                        "Unexpected token in if-clause".to_string(),
+                    ))
+                }
             };
             query.if_exists = Some(exists(&mut tokens)?);
             check_following_token(&mut tokens)
@@ -96,7 +100,9 @@ fn if_clause(
 
 fn check_following_token(tokens: &mut Peekable<IntoIter<Token>>) -> Result<(), Errors> {
     if tokens.next().is_some() {
-        return Err(Errors::SyntaxError(String::from("Nothing should follow a if-clause")));
+        return Err(Errors::SyntaxError(String::from(
+            "Nothing should follow a if-clause",
+        )));
     }
     Ok(())
 }
@@ -118,7 +124,9 @@ fn exists(tokens: &mut Peekable<IntoIter<Token>>) -> Result<bool, Errors> {
             Some(Token::Reserved(res)) if res == EXISTS => handle_not_exists(tokens),
             _ => Err(Errors::SyntaxError("Unexpected token".to_string())),
         },
-        _ => Err(Errors::SyntaxError("Unexpected token in if-clause".to_string())),
+        _ => Err(Errors::SyntaxError(
+            "Unexpected token in if-clause".to_string(),
+        )),
     }
 }
 
@@ -177,11 +185,11 @@ fn get_values(list: Vec<Token>) -> Result<Vec<Literal>, Errors> {
 mod tests {
     use std::vec;
 
+    use super::*;
+    use crate::parsers::tokens::terms::BooleanOperations::Logical;
     use crate::parsers::tokens::{
         data_type::DataType, literal::Literal, terms::Term, token::Token,
     };
-    use crate::parsers::tokens::terms::BooleanOperations::Logical;
-    use super::*;
 
     fn assert_error(result: Result<InsertQuery, Errors>, expected: &str) {
         assert!(result.is_err());
@@ -226,7 +234,10 @@ mod tests {
         }
         if let Some(exists) = exists {
             let list = match exists {
-                "NOT EXISTS" => vec![Token::Term(Term::BooleanOperations(Logical(Not))), Token::Reserved(EXISTS.to_string())],
+                "NOT EXISTS" => vec![
+                    Token::Term(Term::BooleanOperations(Logical(Not))),
+                    Token::Reserved(EXISTS.to_string()),
+                ],
                 "EXISTS" => vec![Token::Reserved(EXISTS.to_string())],
                 _ => vec![Token::Reserved(exists.to_string())],
             };
@@ -235,7 +246,14 @@ mod tests {
         tokens
     }
 
-    fn get_insert_query(table: &str, hd1: &str, hd2: &str, col1: &str, col2: &str, if_exists: Option<bool>) -> InsertQuery {
+    fn get_insert_query(
+        table: &str,
+        hd1: &str,
+        hd2: &str,
+        col1: &str,
+        col2: &str,
+        if_exists: Option<bool>,
+    ) -> InsertQuery {
         InsertQuery {
             table_name: table.to_string(),
             headers: vec![String::from(hd1), String::from(hd2)],
@@ -249,7 +267,17 @@ mod tests {
 
     #[test]
     fn test_insert_query_parser_valid() {
-        let tokens = get_insert_tokens(INTO, "kp.table_name", "id", "name", VALUES, "3", "Thiago", None, None);
+        let tokens = get_insert_tokens(
+            INTO,
+            "kp.table_name",
+            "id",
+            "name",
+            VALUES,
+            "3",
+            "Thiago",
+            None,
+            None,
+        );
         let expected = get_insert_query("kp.table_name", "id", "name", "3", "Thiago", None);
         assert_eq!(expected, InsertQueryParser::parse(tokens).unwrap());
     }
@@ -298,7 +326,17 @@ mod tests {
 
     #[test]
     fn test_insert_query_parser_missing_values() {
-        let tokens = get_insert_tokens(INTO, "kp.table_name", "id", "name", "NOT VALUES", "", "", None, None);
+        let tokens = get_insert_tokens(
+            INTO,
+            "kp.table_name",
+            "id",
+            "name",
+            "NOT VALUES",
+            "",
+            "",
+            None,
+            None,
+        );
         let result = InsertQueryParser::parse(tokens);
         assert_error(result, "headers not followed by VALUES");
     }
@@ -322,7 +360,17 @@ mod tests {
 
     #[test]
     fn test_insert_query_parser_exists_clause_valid_exists() {
-        let tokens = get_insert_tokens(INTO, "kp.table_name", "id", "name", VALUES, "3", "Thiago", Some("IF"), Some("EXISTS"));
+        let tokens = get_insert_tokens(
+            INTO,
+            "kp.table_name",
+            "id",
+            "name",
+            VALUES,
+            "3",
+            "Thiago",
+            Some("IF"),
+            Some("EXISTS"),
+        );
         let expected = get_insert_query("kp.table_name", "id", "name", "3", "Thiago", Some(true));
         let result = InsertQueryParser::parse(tokens);
         assert_eq!(expected, result.unwrap());
@@ -330,7 +378,17 @@ mod tests {
 
     #[test]
     fn test_insert_query_parser_exists_clause_valid_not_exists() {
-        let tokens = get_insert_tokens(INTO, "kp.table_name", "id", "name", VALUES, "3", "Thiago", Some("IF"), Some("NOT EXISTS"));
+        let tokens = get_insert_tokens(
+            INTO,
+            "kp.table_name",
+            "id",
+            "name",
+            VALUES,
+            "3",
+            "Thiago",
+            Some("IF"),
+            Some("NOT EXISTS"),
+        );
         let expected = get_insert_query("kp.table_name", "id", "name", "3", "Thiago", Some(false));
         let result = InsertQueryParser::parse(tokens);
         assert_eq!(expected, result.unwrap());
@@ -338,7 +396,17 @@ mod tests {
 
     #[test]
     fn test_insert_query_parser_exists_clause_invalid_token() {
-        let tokens = get_insert_tokens(INTO, "kp.table_name", "id", "name", VALUES, "3", "Thiago", Some("IF"), Some("INVALID"));
+        let tokens = get_insert_tokens(
+            INTO,
+            "kp.table_name",
+            "id",
+            "name",
+            VALUES,
+            "3",
+            "Thiago",
+            Some("IF"),
+            Some("INVALID"),
+        );
         let result = InsertQueryParser::parse(tokens);
         assert_error(result, "Unexpected token in if-clause");
     }

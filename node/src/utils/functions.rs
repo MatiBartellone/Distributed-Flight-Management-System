@@ -17,7 +17,6 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 
-
 /// validates the table name (keyspace.table) and returns it complete.
 ///
 /// It checks for emptiness or not usage of kp or table
@@ -164,7 +163,9 @@ const AES_KEY: [u8; 32] = [
 /// writes all to stream using encrypted data
 pub fn write_to_stream(stream: &mut TcpStream, content: &[u8]) -> Result<(), Errors> {
     let (encrypted_data, iv) = encrypt_message(content, &AES_KEY)?;
-    let mut message = ((encrypted_data.len() + iv.len()) as i32).to_be_bytes().to_vec();
+    let mut message = ((encrypted_data.len() + iv.len()) as i32)
+        .to_be_bytes()
+        .to_vec();
     message.extend(iv.clone());
     message.extend(encrypted_data);
     stream

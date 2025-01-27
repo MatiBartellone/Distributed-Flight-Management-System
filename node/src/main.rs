@@ -55,7 +55,6 @@ fn start_gossip() -> Result<(), Errors> {
             if let Err(e) = result {
                 println!("Failed to gossip: {}", e);
             }
-
         }
     });
     Ok(())

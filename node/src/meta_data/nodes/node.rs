@@ -1,9 +1,9 @@
 use crate::meta_data::nodes::node::State::{Active, Booting, Inactive};
 use crate::utils::errors::Errors;
 use crate::utils::types::node_ip::NodeIp;
+use crate::utils::types::range::Range;
 use crate::utils::types::timestamp::Timestamp;
 use serde::{Deserialize, Serialize};
-use crate::utils::types::range::Range;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum State {
@@ -101,7 +101,11 @@ impl Node {
     }
 
     pub fn set_range_by_pos(&mut self, nodes_quantity: usize) {
-        self.range = Range::new(self.position, nodes_quantity);
+        self.range = Range::from_fraction(self.position, nodes_quantity);
+    }
+
+    pub fn set_nonexistent_range(&mut self) {
+        self.range = Range::new_nonexistent();
     }
 
     pub fn set_state(&mut self, state: &State) {

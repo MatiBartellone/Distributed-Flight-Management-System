@@ -14,11 +14,11 @@ use crate::utils::functions::{
     write_to_stream,
 };
 use crate::utils::types::node_ip::NodeIp;
+use crate::utils::types::range::Range;
 use serde::Deserialize;
 use std::fs::File;
 use std::io::Write;
 use std::{fs, io, thread};
-use crate::utils::types::range::Range;
 
 pub struct NodeInitializer {
     pub ip: NodeIp,
@@ -92,7 +92,8 @@ impl NodeInitializer {
         }
         store_ip(&NodeIp::new_from_ip(&config.ip))?;
         Ok(Self {
-            node: Node::new(&config.ip, 1, config.is_seed, Range::new_full()).expect("Error creating node"),
+            node: Node::new(&config.ip, 1, config.is_seed, Range::new_full())
+                .expect("Error creating node"),
             ip: config.ip,
             seed_ip: config.seed_ip,
             is_first: config.is_first,
@@ -157,7 +158,7 @@ impl NodeInitializer {
             if needs_recovering {
                 nodes = eliminate_node_by_ip(&nodes, node.get_ip())
             }
-            node.set_range(Range::new(node.get_pos(), nodes.len() + 1 )); // set range in pos / total nodes
+            node.set_range(Range::from_fraction(node.get_pos(), nodes.len() + 1)); // set range in pos / total nodes
             write_to_stream(&mut stream, serialize_to_string(&node)?.as_bytes())?
         }
         let cluster = Cluster::new(Node::new_from_node(&node), nodes);

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use crate::meta_data::meta_data_handler::use_node_meta_data;
 use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::{Node, State};
@@ -9,6 +8,7 @@ use crate::utils::functions::{
     write_to_stream,
 };
 use crate::utils::types::node_ip::NodeIp;
+use std::collections::HashMap;
 use std::net::TcpStream;
 
 pub struct GossipListener;
@@ -20,13 +20,23 @@ impl GossipListener {
 
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
         let buf = read_exact_from_stream(stream)?;
-        let received_nodes: HashMap<NodeIp, Node> = deserialize_from_slice(buf.as_slice())?;
+        let received_nodes_list: Vec<Node> = deserialize_from_slice(buf.as_slice())?;
+        let received_nodes: HashMap<NodeIp, Node> = received_nodes_list
+            .into_iter()
+            .map(|node| (node.get_ip().clone(), node))
+            .collect();
         let cluster = Self::get_cluster()?;
         let own_node = cluster.get_own_node();
 
         let mut emitter_required_changes = Self::get_emitter_missing_nodes(&received_nodes)?;
         let mut new_nodes = Self::get_listener_missing_nodes(&received_nodes)?;
-        Self::check_differences(&cluster, received_nodes, &mut emitter_required_changes, &mut new_nodes);
+        Self::check_differences(
+            &cluster,
+            received_nodes,
+            &mut emitter_required_changes,
+            &mut new_nodes,
+        );
+        Self::eliminate_shutting_down_nodes(&mut new_nodes);
 
         use_node_meta_data(|handler| {
             handler.set_new_cluster(
@@ -51,9 +61,12 @@ impl GossipListener {
         received_nodes: &HashMap<NodeIp, Node>,
     ) -> Result<Vec<Node>, Errors> {
         let mut missing_nodes = Vec::new();
-        let nodes_list = use_node_meta_data(|handler| { handler.get_full_nodes_list(NODES_METADATA_PATH) })?;
+        let nodes_list =
+            use_node_meta_data(|handler| handler.get_full_nodes_list(NODES_METADATA_PATH))?;
         for registered_node in nodes_list {
-            if registered_node.state != State::ShuttingDown && !received_nodes.contains_key(&registered_node.get_ip()) {
+            if registered_node.state != State::ShuttingDown
+                && !received_nodes.contains_key(&registered_node.get_ip())
+            {
                 missing_nodes.push(registered_node);
             }
         }
@@ -64,9 +77,12 @@ impl GossipListener {
         received_nodes: &HashMap<NodeIp, Node>,
     ) -> Result<Vec<Node>, Errors> {
         let mut missing_nodes = Vec::new();
-        let nodes_list = use_node_meta_data(|handler| { handler.get_full_nodes_list(NODES_METADATA_PATH) })?;
+        let nodes_list =
+            use_node_meta_data(|handler| handler.get_full_nodes_list(NODES_METADATA_PATH))?;
         for (node_ip, node) in received_nodes {
-            if node.state != State::ShuttingDown && nodes_list.iter().find(|n| n.get_ip() == node_ip).is_none() {
+            if node.state != State::ShuttingDown
+                && nodes_list.iter().find(|n| n.get_ip() == node_ip).is_none()
+            {
                 missing_nodes.push(Node::new_from_node(node));
             }
         }
@@ -117,5 +133,9 @@ impl GossipListener {
             return -1;
         }
         0
+    }
+
+    fn eliminate_shutting_down_nodes(nodes: &mut Vec<Node>) {
+        nodes.retain(|node| node.state != State::ShuttingDown);
     }
 }

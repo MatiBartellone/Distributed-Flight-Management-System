@@ -1,8 +1,15 @@
 use std::collections::HashMap;
 
-use crate::{utils::{types::node_ip::NodeIp, errors::Errors, constants::BEST, response::Response}, parsers::tokens::data_type::DataType, data_access::row::Row};
+use crate::{
+    data_access::row::Row,
+    parsers::tokens::data_type::DataType,
+    utils::{constants::BEST, errors::Errors, response::Response, types::node_ip::NodeIp},
+};
 
-use super::{utils::split_bytes, row_response::RowResponse, row_comparer::RowComparer, data_response::DataResponse};
+use super::{
+    data_response::DataResponse, row_comparer::RowComparer, row_response::RowResponse,
+    utils::split_bytes,
+};
 
 pub struct ResponseManager {
     responses_bytes: HashMap<String, Vec<u8>>,
@@ -83,7 +90,7 @@ impl ResponseManager {
         self.store_better_response(rows, &keyspace, &table, &column)?;
         Ok(())
     }
-    
+
     fn get_first_ip(&self) -> Result<&str, Errors> {
         self.responses_bytes
             .keys()
@@ -91,7 +98,7 @@ impl ResponseManager {
             .map(|ip| ip.as_str())
             .ok_or_else(|| Errors::ServerError("No response found".to_string()))
     }
-    
+
     fn aggregate_rows(&self, first_ip: &str) -> Result<Vec<Row>, Errors> {
         let mut rows = self.read_rows(first_ip)?;
         for ip in self.responses_bytes.keys() {
@@ -100,7 +107,7 @@ impl ResponseManager {
         }
         Ok(rows)
     }
-    
+
     fn store_better_response(
         &mut self,
         rows: Vec<Row>,
@@ -135,7 +142,7 @@ impl ResponseManager {
             data_response.keyspace().to_string(),
             data_response.table().to_string(),
         ))
-    }  
+    }
 
     pub fn get_pks_headers(&self, ip: &str) -> Result<HashMap<String, DataType>, Errors> {
         let data_response = self.get_row_response(ip)?;
@@ -153,25 +160,25 @@ impl ResponseManager {
         let columns = self.get_columns(ip)?;
         Response::protocol_row(rows, &keyspace, &table, columns)
     }
-
-    
 }
-
 
 #[cfg(test)]
 mod tests {
-    use crate::{data_access::column::Column, parsers::tokens::literal::Literal, utils::types_to_bytes::TypesToBytes};
+    use crate::{
+        data_access::column::Column, parsers::tokens::literal::Literal,
+        utils::types_to_bytes::TypesToBytes,
+    };
 
     use super::*;
     use std::collections::HashMap;
-    fn rows_especial() ->Vec<u8> {
+    fn rows_especial() -> Vec<u8> {
         let mut response_data = mock_response_data_especial(); // Datos de las filas
         let meta_data = mock_meta_data(); // Datos de los metadatos
-    
+
         let division_offset = response_data.len(); // Offset de división
         response_data.extend(meta_data); // Combina filas y metadatos
         response_data.extend(&division_offset.to_be_bytes()); // Agrega el offset como un entero de 4 bytes
-    
+
         response_data
     }
     // Mocks necesarios
@@ -179,21 +186,33 @@ mod tests {
         let mut rows = vec![
             Row::new(
                 vec![
-                    Column::new(&"column1".to_string(), &Literal::new("value1".to_string(), DataType::Text)),
-                    Column::new(&"column2".to_string(), &Literal::new("value2".to_string(), DataType::Text)),
+                    Column::new(
+                        &"column1".to_string(),
+                        &Literal::new("value1".to_string(), DataType::Text),
+                    ),
+                    Column::new(
+                        &"column2".to_string(),
+                        &Literal::new("value2".to_string(), DataType::Text),
+                    ),
                 ],
                 vec!["pk1".to_string(), "pk2".to_string()],
             ),
             Row::new(
                 vec![
-                    Column::new(&"column3".to_string(), &Literal::new("value3".to_string(), DataType::Text)),
-                    Column::new(&"column4".to_string(), &Literal::new("value4".to_string(), DataType::Text)),
+                    Column::new(
+                        &"column3".to_string(),
+                        &Literal::new("value3".to_string(), DataType::Text),
+                    ),
+                    Column::new(
+                        &"column4".to_string(),
+                        &Literal::new("value4".to_string(), DataType::Text),
+                    ),
                 ],
                 vec!["pk3".to_string(), "pk4".to_string()],
             ),
         ];
         rows[0].deleted = true;
-        let mut encoder = TypesToBytes::default(); 
+        let mut encoder = TypesToBytes::default();
         Response::write_rows(&rows, &mut encoder).expect("Failed to create mock response data");
         encoder.into_bytes()
     }
@@ -202,20 +221,32 @@ mod tests {
         let rows = vec![
             Row::new(
                 vec![
-                    Column::new(&"column1".to_string(), &Literal::new("value1".to_string(), DataType::Text)),
-                    Column::new(&"column2".to_string(), &Literal::new("value2".to_string(), DataType::Text)),
+                    Column::new(
+                        &"column1".to_string(),
+                        &Literal::new("value1".to_string(), DataType::Text),
+                    ),
+                    Column::new(
+                        &"column2".to_string(),
+                        &Literal::new("value2".to_string(), DataType::Text),
+                    ),
                 ],
                 vec!["pk1".to_string(), "pk2".to_string()],
             ),
             Row::new(
                 vec![
-                    Column::new(&"column3".to_string(), &Literal::new("value3".to_string(), DataType::Text)),
-                    Column::new(&"column4".to_string(), &Literal::new("value4".to_string(), DataType::Text)),
+                    Column::new(
+                        &"column3".to_string(),
+                        &Literal::new("value3".to_string(), DataType::Text),
+                    ),
+                    Column::new(
+                        &"column4".to_string(),
+                        &Literal::new("value4".to_string(), DataType::Text),
+                    ),
                 ],
                 vec!["pk3".to_string(), "pk4".to_string()],
             ),
         ];
-        let mut encoder = TypesToBytes::default(); 
+        let mut encoder = TypesToBytes::default();
         Response::write_rows(&rows, &mut encoder).expect("Failed to create mock response data");
         encoder.into_bytes()
     }
@@ -228,9 +259,9 @@ mod tests {
             ("pk1".to_string(), DataType::Text),
             ("pk2".to_string(), DataType::Int),
         ];
-    
+
         let mut encoder = TypesToBytes::default();
-    
+
         encoder.write_string(keyspace).unwrap();
         encoder.write_string(table).unwrap();
         encoder.write_short(pks.len() as u16).unwrap();
@@ -243,21 +274,21 @@ mod tests {
         for name in columns {
             encoder.write_string(&name).unwrap();
         }
-    
+
         encoder.into_bytes()
     }
 
     fn rows() -> Vec<u8> {
         let mut response_data = mock_response_data(); // Datos de las filas
         let meta_data = mock_meta_data(); // Datos de los metadatos
-    
+
         let division_offset = response_data.len(); // Offset de división
         response_data.extend(meta_data); // Combina filas y metadatos
         response_data.extend(&division_offset.to_be_bytes()); // Agrega el offset como un entero de 4 bytes
-    
+
         response_data
     }
-    
+
     fn data_type_to_byte(data: DataType) -> i16 {
         match data {
             DataType::Boolean => 0x0004,  // Código de tipo para `BOOLEAN`
@@ -273,7 +304,10 @@ mod tests {
     #[test]
     fn test_new_response_manager() {
         let mut responses = HashMap::new();
-        responses.insert(NodeIp::new_from_single_string("127.0.0.1:8080").unwrap(), rows());
+        responses.insert(
+            NodeIp::new_from_single_string("127.0.0.1:8080").unwrap(),
+            rows(),
+        );
         let manager = ResponseManager::new(&responses);
         assert!(manager.is_ok());
         let manager = manager.unwrap();
@@ -284,7 +318,10 @@ mod tests {
     #[test]
     fn test_get_ips() {
         let mut responses = HashMap::new();
-        responses.insert(NodeIp::new_from_single_string("127.0.0.1:8080").unwrap(), rows());
+        responses.insert(
+            NodeIp::new_from_single_string("127.0.0.1:8080").unwrap(),
+            rows(),
+        );
         let manager = ResponseManager::new(&responses).unwrap();
         let ips = manager.get_ips();
         assert_eq!(ips, vec!["127.0.0.1:8080".to_string()]);
@@ -294,7 +331,10 @@ mod tests {
     fn test_some_row_is_deleted() {
         let mut responses = HashMap::new();
         let rows = rows_especial();
-        responses.insert(NodeIp::new_from_single_string("127.0.0.1:8080").unwrap(), rows);
+        responses.insert(
+            NodeIp::new_from_single_string("127.0.0.1:8080").unwrap(),
+            rows,
+        );
         let manager = ResponseManager::new(&responses).unwrap();
         let resul = manager.some_row_is_deleted().unwrap();
         // Aquí debes simular un row eliminado para hacer que la función retorne verdadero
@@ -304,13 +344,15 @@ mod tests {
     #[test]
     fn test_get_keyspace_table() {
         let mut responses = HashMap::new();
-        responses.insert(NodeIp::new_from_single_string("127.0.0.1:8080").unwrap(), rows());
+        responses.insert(
+            NodeIp::new_from_single_string("127.0.0.1:8080").unwrap(),
+            rows(),
+        );
         let manager = ResponseManager::new(&responses).unwrap();
         let result = manager.get_keyspace_table("127.0.0.1:8080");
         assert!(result.is_ok());
         let (keyspace, table) = result.unwrap();
         assert_eq!(keyspace, "test_keyspace"); // Cambiar por un valor esperado
-        assert_eq!(table, "test_table");     // Cambiar por un valor esperado
+        assert_eq!(table, "test_table"); // Cambiar por un valor esperado
     }
 }
-

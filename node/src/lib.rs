@@ -19,7 +19,7 @@ pub mod client_handler;
 mod tests {
     pub mod delete_tests;
     pub mod insert_tests;
+    pub mod queries_tests;
     pub mod select_tests;
     pub mod update_tests;
-    pub mod queries_tests;
 }

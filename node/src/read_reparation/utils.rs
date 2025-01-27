@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{utils::{errors::Errors, types::bytes_cursor::BytesCursor}, data_access::{column::Column, row::Row}};
-
-
+use crate::{
+    data_access::{column::Column, row::Row},
+    utils::{errors::Errors, types::bytes_cursor::BytesCursor},
+};
 
 pub fn split_bytes(data: &[u8]) -> Result<(Vec<u8>, Vec<u8>), Errors> {
     let division_offset = &data[data.len() - 4..];
@@ -29,10 +30,14 @@ pub fn to_hash_rows(rows: Vec<Row>) -> HashMap<Vec<String>, Row> {
     hash
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::{read_reparation::utils::{split_bytes, to_hash_rows, to_hash_columns}, data_access::{column::Column, row::Row}, parsers::tokens::{literal::Literal, data_type::DataType}, utils::types::timestamp::Timestamp};
+    use crate::{
+        data_access::{column::Column, row::Row},
+        parsers::tokens::{data_type::DataType, literal::Literal},
+        read_reparation::utils::{split_bytes, to_hash_columns, to_hash_rows},
+        utils::types::timestamp::Timestamp,
+    };
 
     fn create_test_column(name: &str, value: &str, timestamp: i64) -> Column {
         Column {
@@ -45,7 +50,7 @@ mod tests {
     fn create_test_row(primary_key: Vec<&str>, columns: Vec<Column>) -> Row {
         Row::new(columns, primary_key.into_iter().map(String::from).collect())
     }
-    
+
     #[test]
     fn test_split_bytes() {
         let data = vec![1, 2, 3, 4, 5, 6, 7, 8, 0, 0, 0, 4];

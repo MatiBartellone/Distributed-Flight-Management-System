@@ -1,7 +1,6 @@
-use std::collections::HashMap;
 use crate::meta_data::meta_data_handler::use_node_meta_data;
 use crate::meta_data::nodes::cluster::Cluster;
-use crate::meta_data::nodes::node::Node;
+use crate::meta_data::nodes::node::{Node, State};
 use crate::meta_data::nodes::node::State::{Booting, Recovering};
 use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
@@ -22,7 +21,7 @@ impl GossipEmitter {
             return Ok(());
         };
         if let Ok(mut stream) = TcpStream::connect(ip.get_gossip_socket()) {
-            Self::send_nodes_map(&mut stream)?;
+            Self::send_nodes_list(&mut stream)?;
             Self::get_nodes_list(&mut stream)?;
             use_node_meta_data(|handler| handler.update_ranges(NODES_METADATA_PATH))
         } else {
@@ -52,15 +51,10 @@ impl GossipEmitter {
         use_node_meta_data(|handler| handler.set_inactive(NODES_METADATA_PATH, &ip))
     }
 
-    fn send_nodes_map(stream: &mut TcpStream) -> Result<(), Errors> {
-        let nodes_list = use_node_meta_data(|handler| handler.get_full_nodes_list(NODES_METADATA_PATH))?;
-
-        let nodes_map: HashMap<NodeIp, Node> = nodes_list
-            .into_iter()
-            .map(|node| (node.get_ip().clone(), node))
-            .collect();
-
-        let serialized = serialize_to_string(&nodes_map)?;
+    fn send_nodes_list(stream: &mut TcpStream) -> Result<(), Errors> {
+        let nodes_list =
+            use_node_meta_data(|handler| handler.get_full_nodes_list(NODES_METADATA_PATH))?;
+        let serialized = serialize_to_string(&nodes_list)?;
         write_to_stream(stream, serialized.as_bytes())
     }
 
@@ -84,6 +78,7 @@ impl GossipEmitter {
                 new_list.push(Node::new_from_node(node));
             }
         }
+        Self::eliminate_shutting_down_nodes(&mut new_list);
         Ok(Cluster::new(
             Node::new_from_node(cluster.get_own_node()),
             new_list,
@@ -97,5 +92,9 @@ impl GossipEmitter {
             }
         }
         false
+    }
+
+    fn eliminate_shutting_down_nodes(nodes_list: &mut Vec<Node>) {
+        nodes_list.retain(|node| node.state != State::ShuttingDown);
     }
 }
