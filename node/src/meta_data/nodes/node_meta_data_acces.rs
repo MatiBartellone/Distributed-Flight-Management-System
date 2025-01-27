@@ -148,6 +148,19 @@ impl NodesMetaDataAccess {
         }
         Ok(nodes)
     }
+
+    pub fn update_ranges(&self, path: &str) -> Result<(), Errors> {
+        let nodes_quantity = self.get_nodes_quantity(path)?;
+        let mut own_node = Node::new_from_node(Self::read_cluster(path)?.get_own_node());
+        own_node.set_range_by_pos(nodes_quantity);
+        let mut other_nodes = Vec::new();
+        for node in Self::read_cluster(path)?.get_other_nodes() {
+            let mut new_node = Node::new_from_node(node);
+            new_node.set_range_by_pos(nodes_quantity);
+            other_nodes.push(new_node);
+        }
+        Self::write_cluster(path, &Cluster::new(own_node, other_nodes))
+    }
 }
 
 fn hash_string_murmur3(input: &str) -> usize {

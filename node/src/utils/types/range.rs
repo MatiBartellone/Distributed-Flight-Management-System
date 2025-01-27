@@ -1,3 +1,6 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Range {
     pub start: usize,
     pub end: usize,
@@ -7,6 +10,10 @@ impl Range {
     pub fn new(start: usize, end: usize) -> Self {
         assert!(start <= end, "Start must be less than or equal to End");
         Self { start, end }
+    }
+
+    pub fn new_full() -> Self {
+        Self::new(1, 1)
     }
 
     pub fn get_start(&self) -> usize {

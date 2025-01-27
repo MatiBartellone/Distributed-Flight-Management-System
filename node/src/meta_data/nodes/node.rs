@@ -3,6 +3,7 @@ use crate::utils::errors::Errors;
 use crate::utils::types::node_ip::NodeIp;
 use crate::utils::types::timestamp::Timestamp;
 use serde::{Deserialize, Serialize};
+use crate::utils::types::range::Range;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum State {
@@ -18,16 +19,18 @@ pub enum State {
 pub struct Node {
     pub ip: NodeIp,
     pub position: usize,
+    pub range: Range,
     pub is_seed: bool,
     pub state: State,
     pub timestamp: Timestamp,
 }
 
 impl Node {
-    pub fn new(ip: &NodeIp, position: usize, is_seed: bool) -> Result<Self, Errors> {
+    pub fn new(ip: &NodeIp, position: usize, is_seed: bool, range: Range) -> Result<Self, Errors> {
         Ok(Self {
             ip: NodeIp::new_from_ip(ip),
             position,
+            range,
             is_seed,
             state: Active,
             timestamp: Timestamp::new(),
@@ -38,6 +41,7 @@ impl Node {
         Self {
             ip: NodeIp::new_from_ip(&node.ip),
             position: node.position,
+            range: node.range.clone(),
             is_seed: node.is_seed,
             state: node.state.clone(),
             timestamp: Timestamp::new_from_timestamp(&node.timestamp),
@@ -88,6 +92,17 @@ impl Node {
         self.state = State::Recovering;
     }
 
+    pub fn get_range(&self) -> Range {
+        self.range.clone()
+    }
+
+    pub fn set_range(&mut self, range: Range) {
+        self.range = range;
+    }
+
+    pub fn set_range_by_pos(&mut self, nodes_quantity: usize) {
+        self.range = Range::new(self.position, nodes_quantity);
+    }
 
     pub fn set_state(&mut self, state: &State) {
         self.state = state.clone();
