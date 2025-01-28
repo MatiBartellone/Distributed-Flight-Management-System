@@ -1,4 +1,5 @@
-use crate::meta_data::nodes::node::State::{Active, Booting, Inactive};
+use std::fmt::Display;
+use crate::meta_data::nodes::node::State::{Active, Booting, Inactive, StandBy, ShuttingDown, Recovering};
 use crate::utils::errors::Errors;
 use crate::utils::types::node_ip::NodeIp;
 use crate::utils::types::range::Range;
@@ -13,6 +14,19 @@ pub enum State {
     StandBy,
     ShuttingDown,
     Recovering,
+}
+
+impl Display for State {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Active => write!(f, "Active"),
+            Inactive => write!(f, "Inactive"),
+            Booting => write!(f, "Booting"),
+            StandBy => write!(f, "StandBy"),
+            ShuttingDown => write!(f, "ShuttingDown"),
+            Recovering => write!(f, "Recovering"),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -56,6 +70,10 @@ impl Node {
         self.position
     }
 
+    pub fn set_pos(&mut self, pos: usize) {
+        self.position = pos;
+    }
+
     pub fn is_seed(&self) -> bool {
         self.is_seed
     }
@@ -81,15 +99,15 @@ impl Node {
     }
 
     pub fn set_stand_by(&mut self) {
-        self.state = State::StandBy;
+        self.state = StandBy;
     }
 
     pub fn set_shutting_down(&mut self) {
-        self.state = State::ShuttingDown;
+        self.state = ShuttingDown;
     }
 
     pub fn set_recovering(&mut self) {
-        self.state = State::Recovering;
+        self.state = Recovering;
     }
 
     pub fn get_range(&self) -> Range {

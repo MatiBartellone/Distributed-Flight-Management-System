@@ -16,6 +16,7 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
 use std::{env, thread};
+use node::terminal_input::TerminalInput;
 
 fn main() -> Result<(), Errors> {
     let (uses_config, config_file) = get_args();
@@ -25,9 +26,15 @@ fn main() -> Result<(), Errors> {
 
     node_data.start_listeners();
 
+    TerminalInput::new().start_listening();
+
     if needs_recovering {
         HintsReceiver::start_listening(node_data.get_ip())?;
-    };
+    } else {
+        // booting receiver
+        sleep(Duration::from_secs(5));
+        println!("Booting finished");
+    }
 
     start_gossip()?;
 

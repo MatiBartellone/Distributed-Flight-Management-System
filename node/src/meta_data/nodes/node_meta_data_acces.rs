@@ -9,6 +9,7 @@ use crate::{
 };
 use murmur3::murmur3_32;
 use std::{fs::File, io::Cursor};
+use std::collections::HashSet;
 
 #[derive(Debug)]
 pub struct NodesMetaDataAccess;
@@ -93,6 +94,36 @@ impl NodesMetaDataAccess {
         self.set_state(path, ip, State::Recovering)
     }
 
+    pub fn set_own_state(&self, path: &str, state: State) -> Result<(), Errors> {
+        let cluster = NodesMetaDataAccess::read_cluster(path)?;
+        let mut new_node = Node::new_from_node(cluster.get_own_node());
+        new_node.set_state(&state);
+        new_node.update_timestamp();
+        let mut nodes_list = Vec::new();
+        for node in cluster.get_other_nodes() {
+            nodes_list.push(Node::new_from_node(node))
+        }
+        let new_cluster = Cluster::new(new_node, nodes_list);
+        Self::write_cluster(path, &new_cluster)?;
+        Ok(())
+    }
+
+    pub fn set_own_node_to_shutting_down(&self, path: &str) -> Result<(), Errors> {
+        let cluster = NodesMetaDataAccess::read_cluster(path)?;
+        let mut new_node = Node::new_from_node(cluster.get_own_node());
+        new_node.set_shutting_down();
+        new_node.set_nonexistent_range();
+        new_node.set_pos(0);
+        new_node.update_timestamp();
+        let mut nodes_list = Vec::new();
+        for node in cluster.get_other_nodes() {
+            nodes_list.push(Node::new_from_node(node))
+        }
+        let new_cluster = Cluster::new(new_node, nodes_list);
+        Self::write_cluster(path, &new_cluster)?;
+        Ok(())
+    }
+
     pub fn set_own_node_active(&self, path: &str) -> Result<(), Errors> {
         let cluster = NodesMetaDataAccess::read_cluster(path)?;
         let mut new_node = Node::new_from_node(cluster.get_own_node());
@@ -116,6 +147,8 @@ impl NodesMetaDataAccess {
         let cluster = Self::read_cluster(path)?;
         if let Some(primary_key) = primary_key {
             let hashing_key = hash_string_murmur3(&primary_key.join(""));
+
+            // se obtiene pos con el primer nod que este en rango. despues se continua como esta
             let pos = hashing_key % cluster.len_nodes() + 1;
             let keyspace_metadata = KeyspaceMetaDataAccess {};
             let replication =
@@ -150,13 +183,18 @@ impl NodesMetaDataAccess {
     }
 
     pub fn update_ranges(&self, path: &str) -> Result<(), Errors> {
+        self.update_positions(path)?;
         let nodes_quantity = self
             .get_full_nodes_list(path)?
             .iter()
             .filter(|node| node.state != State::ShuttingDown)
             .count();
         let mut own_node = Node::new_from_node(Self::read_cluster(path)?.get_own_node());
-        own_node.set_range_by_pos(nodes_quantity);
+        if own_node.state == State::ShuttingDown {
+            own_node.set_nonexistent_range()
+        } else {
+            own_node.set_range_by_pos(nodes_quantity);
+        }
         let mut other_nodes = Vec::new();
         for node in Self::read_cluster(path)?.get_other_nodes() {
             let mut new_node = Node::new_from_node(node);
@@ -168,6 +206,47 @@ impl NodesMetaDataAccess {
             other_nodes.push(new_node);
         }
         Self::write_cluster(path, &Cluster::new(own_node, other_nodes))
+    }
+
+    fn update_positions(&self, path: &str) -> Result<(), Errors> {
+        let missing_position = self.get_missing_position(path)?;
+        if missing_position == 0 {
+            return Ok(());
+        }
+
+        let cluster = Self::read_cluster(path)?;
+        let (node, other_nodes) = (cluster.get_own_node(), cluster.get_other_nodes());
+        let mut new_nodes = Vec::new();
+        for node in other_nodes {
+            let mut new_node = Node::new_from_node(node);
+            if node.position > missing_position {
+                new_node.set_pos(node.position - 1);
+            }
+            new_nodes.push(new_node);
+        }
+        let mut new_node = Node::new_from_node(node);
+        if node.position > missing_position {
+            new_node.set_pos(node.position - 1);
+        }
+        Self::write_cluster(path, &Cluster::new(new_node, new_nodes))
+    }
+
+    fn get_missing_position(&self, path: &str) -> Result<usize, Errors> {
+        let node_quantity = self.get_nodes_quantity(path)?;
+        let mut positions: HashSet<usize> = HashSet::new();
+        for node in &self.get_full_nodes_list(path)? {
+            if node.position > 0 { // Only consider active nodes
+                positions.insert(node.position);
+            }
+        }
+        let mut missing_position = 0;
+        for pos in 1..=node_quantity {
+            if !positions.contains(&pos) {
+                missing_position = pos;
+                break;
+            }
+        }
+        Ok(missing_position)
     }
 }
 

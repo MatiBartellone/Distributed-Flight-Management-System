@@ -8,7 +8,6 @@ pub struct Range {
 
 impl Range {
     pub fn new(start: usize, end: usize) -> Self {
-        assert!(start <= end, "Start must be less than or equal to End");
         Self { start, end }
     }
 
@@ -34,12 +33,9 @@ impl Range {
 
     /// Creates a new murmur3 `Range` based on the segment specified by the fraction `index/total`.
     pub fn from_fraction(index: usize, total: usize) -> Self {
-        assert!(
-            index > 0 && index <= total,
-            "Index must be between 1 and total (inclusive)"
-        );
-        assert!(total > 0, "Total must be greater than 0");
-
+        if total == 0 {
+            return Self::new_nonexistent();
+        }
         let global_start = 0;
         let global_end = u32::MAX as usize;
 
