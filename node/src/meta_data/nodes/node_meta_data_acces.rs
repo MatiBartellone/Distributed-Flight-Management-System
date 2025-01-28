@@ -147,16 +147,30 @@ impl NodesMetaDataAccess {
         let cluster = Self::read_cluster(path)?;
         if let Some(primary_key) = primary_key {
             let hashing_key = hash_string_murmur3(&primary_key.join(""));
-
-            // se obtiene pos con el primer nod que este en rango. despues se continua como esta
-            let pos = hashing_key % cluster.len_nodes() + 1;
-            let keyspace_metadata = KeyspaceMetaDataAccess {};
-            let replication =
-                keyspace_metadata.get_replication(KEYSPACE_METADATA_PATH.to_owned(), &keyspace)?;
-            cluster.get_nodes(pos, replication)
+            Self::get_range_based_partitions(hashing_key, &cluster, keyspace)
         } else {
             cluster.get_all_ips()
         }
+    }
+
+    // rangos mejores distribuidos pero mayor cambio al agregar o sacar nodos
+    #[allow(dead_code)]
+    fn get_mod_based_partitions(hashing_key: usize, cluster: &Cluster, keyspace: String) -> Result<Vec<NodeIp>, Errors> {
+        let pos = hashing_key % cluster.len_nodes() + 1;
+        let keyspace_metadata = KeyspaceMetaDataAccess {};
+        let replication =
+            keyspace_metadata.get_replication(KEYSPACE_METADATA_PATH.to_owned(), &keyspace)?;
+        cluster.get_nodes(pos, replication)
+    }
+
+    // rangos distribuidos linealmente pero menor cambio al agregar o sacar nodos
+    #[allow(dead_code)]
+    fn get_range_based_partitions(hashing_key: usize, cluster: &Cluster, keyspace: String) -> Result<Vec<NodeIp>, Errors> {
+        let pos = cluster.get_node_pos_by_range(hashing_key)?;
+        let keyspace_metadata = KeyspaceMetaDataAccess {};
+        let replication =
+            keyspace_metadata.get_replication(KEYSPACE_METADATA_PATH.to_owned(), &keyspace)?;
+        cluster.get_nodes(pos, replication)
     }
 
     pub fn append_new_node(&self, path: &str, new_node: Node) -> Result<(), Errors> {

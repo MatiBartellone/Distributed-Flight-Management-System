@@ -29,21 +29,24 @@ impl GossipListener {
         let own_node = cluster.get_own_node();
 
         let mut emitter_required_changes = Self::get_emitter_missing_nodes(&received_nodes)?;
-        let mut new_nodes = Self::get_listener_missing_nodes(&received_nodes)?;
+        let (mut new_nodes, nodes_added) = Self::get_listener_missing_nodes(&received_nodes)?;
         Self::check_differences(
             &cluster,
             received_nodes,
             &mut emitter_required_changes,
             &mut new_nodes,
         );
-        Self::eliminate_shutting_down_nodes(&mut new_nodes);
+        let shutting_down_founded = Self::eliminate_shutting_down_nodes(&mut new_nodes);
 
         use_node_meta_data(|handler| {
             handler.set_new_cluster(
                 NODES_METADATA_PATH,
                 &Cluster::new(Node::new_from_node(own_node), new_nodes),
             )?;
-            handler.update_ranges(NODES_METADATA_PATH)
+            if shutting_down_founded || nodes_added {
+                handler.update_ranges(NODES_METADATA_PATH)?
+            }
+            Ok(())
         })?;
         Self::send_required_changes(stream, emitter_required_changes)
     }
@@ -75,7 +78,7 @@ impl GossipListener {
 
     fn get_listener_missing_nodes(
         received_nodes: &HashMap<NodeIp, Node>,
-    ) -> Result<Vec<Node>, Errors> {
+    ) -> Result<(Vec<Node>, bool), Errors> {
         let mut missing_nodes = Vec::new();
         let nodes_list =
             use_node_meta_data(|handler| handler.get_full_nodes_list(NODES_METADATA_PATH))?;
@@ -86,7 +89,8 @@ impl GossipListener {
                 missing_nodes.push(Node::new_from_node(node));
             }
         }
-        Ok(missing_nodes)
+        let nodes_added = missing_nodes.len() > 0;
+        Ok((missing_nodes, nodes_added))
     }
 
     fn check_differences(
@@ -135,7 +139,9 @@ impl GossipListener {
         0
     }
 
-    fn eliminate_shutting_down_nodes(nodes: &mut Vec<Node>) {
+    fn eliminate_shutting_down_nodes(nodes: &mut Vec<Node>) -> bool {
+        let found_shutting_down = nodes.iter().any(|node| node.state == State::ShuttingDown);
         nodes.retain(|node| node.state != State::ShuttingDown);
+        found_shutting_down
     }
 }

@@ -1,8 +1,8 @@
 ip:
-  ip: "127.0.0.2"
+  ip: "127.0.0.1"
   port: 9090
 seed_ip:
   ip: "127.0.0.1"
   port: 9090
-is_first: false
+is_first: true
 is_seed: true

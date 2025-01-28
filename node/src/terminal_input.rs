@@ -79,9 +79,9 @@ impl TerminalInput {
         use_node_meta_data(|handler| {
             handler.set_own_node_to_shutting_down(NODES_METADATA_PATH)?;
             handler.update_ranges(NODES_METADATA_PATH)
-        })
-        // send data
-        // shut down ctrl + c
+        })?;
+        // send data to other nodes
+        std::process::exit(0);
     }
 
     fn pause() -> Result<(), Errors> {

@@ -16,16 +16,20 @@ pub struct GossipEmitter;
 impl GossipEmitter {
     /// Starts Gossip process
     /// It connects to a rando ip from the cluster and exchanges information from node metadata
-    pub fn start_gossip() -> Result<(), Errors> {
+    pub fn start_gossip() -> Result<bool, Errors> {
         let Some(ip) = Self::get_random_ip()? else {
-            return Ok(());
+            return Ok(false);
         };
         if let Ok(mut stream) = TcpStream::connect(ip.get_gossip_socket()) {
             Self::send_nodes_list(&mut stream)?;
-            Self::get_nodes_list(&mut stream)?;
-            use_node_meta_data(|handler| handler.update_ranges(NODES_METADATA_PATH))
+            let new_node_added = Self::get_nodes_list(&mut stream)?;
+            if new_node_added {
+                use_node_meta_data(|handler| handler.update_ranges(NODES_METADATA_PATH))?;
+            }
+            Ok(new_node_added)
         } else {
-            Self::set_inactive(ip)
+            Self::set_inactive(ip)?;
+            Ok(false)
         }
     }
 
@@ -58,15 +62,22 @@ impl GossipEmitter {
         write_to_stream(stream, serialized.as_bytes())
     }
 
-    fn get_nodes_list(stream: &mut TcpStream) -> Result<(), Errors> {
+    fn get_nodes_list(stream: &mut TcpStream) -> Result<bool, Errors> {
         let buf = read_exact_from_stream(stream)?;
         let received_nodes: Vec<Node> = deserialize_from_slice(buf.as_slice())?;
-        let new_cluster = Self::get_new_cluster(received_nodes)?;
-        use_node_meta_data(|handler| handler.set_new_cluster(NODES_METADATA_PATH, &new_cluster))
+        let cluster = use_node_meta_data(|handler| handler.get_cluster(NODES_METADATA_PATH))?;
+        let mut got_new_node = false;
+        for node in &received_nodes {
+            if !Self::is_node_in_list(&cluster.get_other_nodes(), &node) {
+                got_new_node = true;
+            }
+        }
+        let new_cluster = Self::get_new_cluster(&cluster, received_nodes)?;
+        use_node_meta_data(|handler| handler.set_new_cluster(NODES_METADATA_PATH, &new_cluster))?;
+        Ok(got_new_node)
     }
 
-    fn get_new_cluster(received_nodes: Vec<Node>) -> Result<Cluster, Errors> {
-        let cluster = use_node_meta_data(|handler| handler.get_cluster(NODES_METADATA_PATH))?;
+    fn get_new_cluster(cluster: &Cluster, received_nodes: Vec<Node>) -> Result<Cluster, Errors> {
         let mut new_list = Vec::new();
         for node in received_nodes {
             if node.get_pos() != cluster.get_own_node().get_pos() {
@@ -78,7 +89,9 @@ impl GossipEmitter {
                 new_list.push(Node::new_from_node(node));
             }
         }
-        Self::eliminate_shutting_down_nodes(&mut new_list);
+        if Self::eliminate_shutting_down_nodes(&mut new_list) {
+            use_node_meta_data(|handler| handler.update_ranges(NODES_METADATA_PATH))?;
+        }
         Ok(Cluster::new(
             Node::new_from_node(cluster.get_own_node()),
             new_list,
@@ -94,7 +107,9 @@ impl GossipEmitter {
         false
     }
 
-    fn eliminate_shutting_down_nodes(nodes_list: &mut Vec<Node>) {
+    fn eliminate_shutting_down_nodes(nodes_list: &mut Vec<Node>) -> bool {
+        let found_shutting_down = nodes_list.iter().any(|node| node.state == State::ShuttingDown);
         nodes_list.retain(|node| node.state != State::ShuttingDown);
+        found_shutting_down
     }
 }

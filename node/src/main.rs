@@ -22,7 +22,7 @@ fn main() -> Result<(), Errors> {
     let (uses_config, config_file) = get_args();
     let node_data = NodeInitializer::new(uses_config, config_file)?;
 
-    let needs_recovering = node_data.set_cluster()?;
+    let (needs_recovering, needs_booting) = node_data.set_cluster()?;
 
     node_data.start_listeners();
 
@@ -30,9 +30,12 @@ fn main() -> Result<(), Errors> {
 
     if needs_recovering {
         HintsReceiver::start_listening(node_data.get_ip())?;
-    } else {
+    } else if needs_booting{
         // booting receiver
         sleep(Duration::from_secs(5));
+        use_node_meta_data(|handler| {
+            handler.set_own_node_active(NODES_METADATA_PATH)
+        })?;
         println!("Booting finished");
     }
 
@@ -69,7 +72,10 @@ fn start_gossip() -> Result<(), Errors> {
 
 fn gossip() -> Result<(), Errors> {
     sleep(Duration::from_secs(1));
-    GossipEmitter::start_gossip()?;
+    let new_node_added = GossipEmitter::start_gossip()?;
+    if new_node_added {
+        // check tables and send data
+    }
     Handler::check_for_perished()?;
     {
         use_node_meta_data(|handler| {
