@@ -1,0 +1,13 @@
+version: "3.9"
+services:
+  nodo:
+    build:
+      context: ./node
+      dockerfile: Dockerfile
+    environment:
+      NODE_ID: 1
+      TOTAL_NODES: 3
+  flight_app:
+    build:
+      context: ./flight_app
+      dockerfile: Dockerfile
