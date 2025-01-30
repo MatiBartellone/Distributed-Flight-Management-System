@@ -158,7 +158,7 @@ impl Flight {
     }
 
     fn is_hovering_on_flight(&self, response: &Response, screen_flight_position: Pos2) -> bool {
-        response.hover_pos().map_or(false, |pos| {
+        response.hover_pos().is_some_and(|pos| {
             let airplane_size = egui::Vec2::new(30.0, 30.0);
             let airplane_rect = egui::Rect::from_center_size(screen_flight_position, airplane_size);
             airplane_rect.contains(pos)
