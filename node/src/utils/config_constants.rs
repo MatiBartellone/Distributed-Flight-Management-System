@@ -4,3 +4,4 @@ pub const MAX_CLIENTS: usize = 5;
 pub const HINTED_HANDOFF_HOURS: i64 = 3;
 pub const TIMEOUT_SECS: u64 = 5;
 pub const HINTED_HANDOFF_TIMEOUT_SECS: u64 = 10;
+pub const SHUTTING_DOWN_TIMEOUT_SECS: i64 = 10;

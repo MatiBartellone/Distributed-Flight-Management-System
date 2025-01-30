@@ -36,7 +36,8 @@ impl GossipListener {
             &mut emitter_required_changes,
             &mut new_nodes,
         );
-        let shutting_down_founded = Self::eliminate_shutting_down_nodes(&mut new_nodes);
+        let shutting_down_founded = Self::shutting_down_count(cluster.get_other_nodes())
+            < Self::shutting_down_count(&new_nodes);
 
         use_node_meta_data(|handler| {
             handler.set_new_cluster(
@@ -68,7 +69,7 @@ impl GossipListener {
             use_node_meta_data(|handler| handler.get_full_nodes_list(NODES_METADATA_PATH))?;
         for registered_node in nodes_list {
             if registered_node.state != State::ShuttingDown
-                && !received_nodes.contains_key(&registered_node.get_ip())
+                && !received_nodes.contains_key(registered_node.get_ip())
             {
                 missing_nodes.push(registered_node);
             }
@@ -84,12 +85,12 @@ impl GossipListener {
             use_node_meta_data(|handler| handler.get_full_nodes_list(NODES_METADATA_PATH))?;
         for (node_ip, node) in received_nodes {
             if node.state != State::ShuttingDown
-                && nodes_list.iter().find(|n| n.get_ip() == node_ip).is_none()
+                && !nodes_list.iter().any(|n| n.get_ip() == node_ip)
             {
                 missing_nodes.push(Node::new_from_node(node));
             }
         }
-        let nodes_added = missing_nodes.len() > 0;
+        let nodes_added = !missing_nodes.is_empty();
         Ok((missing_nodes, nodes_added))
     }
 
@@ -103,13 +104,13 @@ impl GossipListener {
         for (node_ip, node) in received_nodes {
             if &node_ip != own_node.get_ip() {
                 if let Some(registered_node) = nodes_list.iter().find(|n| n.get_ip() == &node_ip) {
-                    match Self::needs_to_update(&registered_node, &node) {
+                    match Self::needs_to_update(registered_node, &node) {
                         1 => {
-                            required_changes.push(Node::new_from_node(&registered_node));
-                            new_nodes.push(Node::new_from_node(&registered_node));
+                            required_changes.push(Node::new_from_node(registered_node));
+                            new_nodes.push(Node::new_from_node(registered_node));
                         }
                         -1 => new_nodes.push(node),
-                        _ => new_nodes.push(Node::new_from_node(&registered_node)),
+                        _ => new_nodes.push(Node::new_from_node(registered_node)),
                     }
                 }
             } else if Self::needs_to_update(own_node, &node) == -1 {
@@ -139,9 +140,10 @@ impl GossipListener {
         0
     }
 
-    fn eliminate_shutting_down_nodes(nodes: &mut Vec<Node>) -> bool {
-        let found_shutting_down = nodes.iter().any(|node| node.state == State::ShuttingDown);
-        nodes.retain(|node| node.state != State::ShuttingDown);
-        found_shutting_down
+    fn shutting_down_count(new_nodes: &[Node]) -> usize {
+        new_nodes
+            .iter()
+            .filter(|n| n.state == State::ShuttingDown)
+            .count()
     }
 }

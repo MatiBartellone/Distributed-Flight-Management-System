@@ -1,9 +1,10 @@
 use rustls::{ServerConnection, StreamOwned};
 
-use crate::meta_data::meta_data_handler::use_client_meta_data;
+use crate::meta_data::meta_data_handler::{use_client_meta_data, use_node_meta_data};
+use crate::meta_data::nodes::node::State;
 use crate::parsers::parser_factory::ParserFactory;
 use crate::response_builders::error_builder::ErrorBuilder;
-use crate::utils::constants::CLIENT_METADATA_PATH;
+use crate::utils::constants::{CLIENT_METADATA_PATH, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::parser_constants::{AUTH_RESPONSE, AUTH_SUCCESS, STARTUP};
 use crate::utils::types::frame::Frame;
@@ -42,6 +43,17 @@ impl ClientHandler {
 }
 
 fn execute_request(bytes: Vec<u8>) -> Result<Vec<u8>, Errors> {
+    use_node_meta_data(|handler| {
+        if handler
+            .get_cluster(NODES_METADATA_PATH)?
+            .get_own_node()
+            .state
+            == State::StandBy
+        {
+            return Err(Errors::Invalid(String::from("Node is in standby mode")));
+        }
+        Ok(())
+    })?;
     let frame = Frame::parse_frame(bytes.as_slice())?;
     frame.validate_request_frame()?;
     let initial_opcode = frame.opcode;

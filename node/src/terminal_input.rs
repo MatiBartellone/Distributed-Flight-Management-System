@@ -1,14 +1,22 @@
-use std::{io, thread};
-use std::io::Write;
-use std::sync::Arc;
-use rustls::lock::Mutex;
 use crate::meta_data::meta_data_handler::use_node_meta_data;
 use crate::meta_data::nodes::node::State;
+use crate::utils::config_constants::SHUTTING_DOWN_TIMEOUT_SECS;
 use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
+use rustls::lock::Mutex;
+use std::io::Write;
+use std::sync::Arc;
+use std::thread::sleep;
+use std::{io, thread};
 
 pub struct TerminalInput {
     file: Option<String>,
+}
+
+impl Default for TerminalInput {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TerminalInput {
@@ -59,7 +67,7 @@ impl TerminalInput {
             file.write_all(data.as_bytes())
                 .expect("Error writing to file");
         } else {
-            print!("{}", data);
+            println!("{}", data);
         }
     }
 
@@ -81,12 +89,21 @@ impl TerminalInput {
             handler.update_ranges(NODES_METADATA_PATH)
         })?;
         // send data to other nodes
+        println!("Shutting down...");
+        sleep(std::time::Duration::from_secs(
+            SHUTTING_DOWN_TIMEOUT_SECS as u64,
+        ));
         std::process::exit(0);
     }
 
     fn pause() -> Result<(), Errors> {
         use_node_meta_data(|handler| {
-            if handler.get_cluster(NODES_METADATA_PATH)?.get_own_node().state == State::Active {
+            if handler
+                .get_cluster(NODES_METADATA_PATH)?
+                .get_own_node()
+                .state
+                == State::Active
+            {
                 handler.set_own_state(NODES_METADATA_PATH, State::StandBy)?
             }
             Ok(())
@@ -95,16 +112,25 @@ impl TerminalInput {
 
     fn resume() -> Result<(), Errors> {
         use_node_meta_data(|handler| {
-            if handler.get_cluster(NODES_METADATA_PATH)?.get_own_node().state == State::StandBy {
+            if handler
+                .get_cluster(NODES_METADATA_PATH)?
+                .get_own_node()
+                .state
+                == State::StandBy
+            {
                 handler.set_own_state(NODES_METADATA_PATH, State::Active)?
             }
             Ok(())
         })
     }
 
-    fn state(&self) -> Result<(), Errors>{
+    fn state(&self) -> Result<(), Errors> {
         use_node_meta_data(|handler| {
-            let state = handler.get_cluster(NODES_METADATA_PATH)?.get_own_node().state.to_string();
+            let state = handler
+                .get_cluster(NODES_METADATA_PATH)?
+                .get_own_node()
+                .state
+                .to_string();
             self.print(&state);
             Ok(())
         })

@@ -27,10 +27,6 @@ impl Range {
         value >= self.start && value <= self.end
     }
 
-    pub fn cmp(&self, other: &Self) -> bool {
-        self.start == other.start && self.end == other.end
-    }
-
     /// Creates a new murmur3 `Range` based on the segment specified by the fraction `index/total`.
     pub fn from_fraction(index: usize, total: usize) -> Self {
         if total == 0 {

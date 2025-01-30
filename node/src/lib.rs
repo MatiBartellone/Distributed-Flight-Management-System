@@ -7,12 +7,12 @@ pub mod gossip;
 pub mod hinted_handoff;
 pub mod meta_data;
 pub mod node_initializer;
-pub mod terminal_input;
 pub mod parsers;
 pub mod queries;
 pub mod query_delegation;
 pub mod read_reparation;
 pub mod response_builders;
+pub mod terminal_input;
 pub mod utils;
 
 pub mod client_handler;

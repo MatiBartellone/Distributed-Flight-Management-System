@@ -43,7 +43,8 @@ impl SeedListener {
                     return Ok(());
                 }
             }
-            node_metadata.append_new_node(NODES_METADATA_PATH, new_node)
+            node_metadata.append_new_node(NODES_METADATA_PATH, new_node)?;
+            node_metadata.update_ranges(NODES_METADATA_PATH)
         })
     }
 }

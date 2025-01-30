@@ -1,5 +1,7 @@
 use super::{cluster::Cluster, node::Node};
 use crate::meta_data::nodes::node::State;
+use crate::utils::config_constants::SHUTTING_DOWN_TIMEOUT_SECS;
+use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::functions::{deserialize_from_slice, write_all_to_file};
 use crate::utils::types::node_ip::NodeIp;
@@ -8,8 +10,8 @@ use crate::{
     utils::{constants::KEYSPACE_METADATA_PATH, errors::Errors},
 };
 use murmur3::murmur3_32;
-use std::{fs::File, io::Cursor};
 use std::collections::HashSet;
+use std::{fs::File, io::Cursor};
 
 #[derive(Debug)]
 pub struct NodesMetaDataAccess;
@@ -62,7 +64,6 @@ impl NodesMetaDataAccess {
             } else {
                 let mut inactive = Node::new_from_node(node);
                 inactive.set_state(&state);
-                inactive.update_timestamp();
                 nodes_list.push(inactive);
             }
         }
@@ -98,7 +99,6 @@ impl NodesMetaDataAccess {
         let cluster = NodesMetaDataAccess::read_cluster(path)?;
         let mut new_node = Node::new_from_node(cluster.get_own_node());
         new_node.set_state(&state);
-        new_node.update_timestamp();
         let mut nodes_list = Vec::new();
         for node in cluster.get_other_nodes() {
             nodes_list.push(Node::new_from_node(node))
@@ -114,7 +114,6 @@ impl NodesMetaDataAccess {
         new_node.set_shutting_down();
         new_node.set_nonexistent_range();
         new_node.set_pos(0);
-        new_node.update_timestamp();
         let mut nodes_list = Vec::new();
         for node in cluster.get_other_nodes() {
             nodes_list.push(Node::new_from_node(node))
@@ -128,7 +127,6 @@ impl NodesMetaDataAccess {
         let cluster = NodesMetaDataAccess::read_cluster(path)?;
         let mut new_node = Node::new_from_node(cluster.get_own_node());
         new_node.set_active();
-        new_node.update_timestamp();
         let mut nodes_list = Vec::new();
         for node in cluster.get_other_nodes() {
             nodes_list.push(Node::new_from_node(node))
@@ -155,7 +153,11 @@ impl NodesMetaDataAccess {
 
     // rangos mejores distribuidos pero mayor cambio al agregar o sacar nodos
     #[allow(dead_code)]
-    fn get_mod_based_partitions(hashing_key: usize, cluster: &Cluster, keyspace: String) -> Result<Vec<NodeIp>, Errors> {
+    fn get_mod_based_partitions(
+        hashing_key: usize,
+        cluster: &Cluster,
+        keyspace: String,
+    ) -> Result<Vec<NodeIp>, Errors> {
         let pos = hashing_key % cluster.len_nodes() + 1;
         let keyspace_metadata = KeyspaceMetaDataAccess {};
         let replication =
@@ -165,7 +167,11 @@ impl NodesMetaDataAccess {
 
     // rangos distribuidos linealmente pero menor cambio al agregar o sacar nodos
     #[allow(dead_code)]
-    fn get_range_based_partitions(hashing_key: usize, cluster: &Cluster, keyspace: String) -> Result<Vec<NodeIp>, Errors> {
+    fn get_range_based_partitions(
+        hashing_key: usize,
+        cluster: &Cluster,
+        keyspace: String,
+    ) -> Result<Vec<NodeIp>, Errors> {
         let pos = cluster.get_node_pos_by_range(hashing_key)?;
         let keyspace_metadata = KeyspaceMetaDataAccess {};
         let replication =
@@ -197,70 +203,138 @@ impl NodesMetaDataAccess {
     }
 
     pub fn update_ranges(&self, path: &str) -> Result<(), Errors> {
-        self.update_positions(path)?;
-        let nodes_quantity = self
-            .get_full_nodes_list(path)?
+        let cluster = Self::read_cluster(path)?;
+        let mut own_node = Node::new_from_node(cluster.get_own_node());
+        let mut updated_other_nodes = self.get_new_node_vec(cluster.get_other_nodes());
+
+        let active_node_count = self.calculate_active_node_count(&own_node, &cluster)?;
+
+        if let Some(missing_position) =
+            self.get_missing_position_from_nodes(&own_node, &updated_other_nodes)?
+        {
+            self.adjust_node_positions(&mut own_node, &mut updated_other_nodes, missing_position);
+        }
+
+        self.update_node_ranges(&mut own_node, &mut updated_other_nodes, active_node_count);
+
+        Self::write_cluster(path, &Cluster::new(own_node, updated_other_nodes))?;
+        Ok(())
+    }
+
+    fn get_new_node_vec(&self, nodes: &Vec<Node>) -> Vec<Node> {
+        let mut new_nodes = Vec::new();
+        for node in nodes {
+            new_nodes.push(Node::new_from_node(node))
+        }
+        new_nodes
+    }
+
+    fn calculate_active_node_count(
+        &self,
+        own_node: &Node,
+        cluster: &Cluster,
+    ) -> Result<usize, Errors> {
+        let active_node_count = cluster
+            .get_other_nodes()
             .iter()
             .filter(|node| node.state != State::ShuttingDown)
             .count();
-        let mut own_node = Node::new_from_node(Self::read_cluster(path)?.get_own_node());
-        if own_node.state == State::ShuttingDown {
-            own_node.set_nonexistent_range()
-        } else {
-            own_node.set_range_by_pos(nodes_quantity);
-        }
-        let mut other_nodes = Vec::new();
-        for node in Self::read_cluster(path)?.get_other_nodes() {
-            let mut new_node = Node::new_from_node(node);
-            if node.state == State::ShuttingDown {
-                new_node.set_nonexistent_range()
+
+        Ok(active_node_count
+            + (if own_node.state != State::ShuttingDown {
+                1
             } else {
-                new_node.set_range_by_pos(nodes_quantity);
-            }
-            other_nodes.push(new_node);
-        }
-        Self::write_cluster(path, &Cluster::new(own_node, other_nodes))
+                0
+            }))
     }
 
-    fn update_positions(&self, path: &str) -> Result<(), Errors> {
-        let missing_position = self.get_missing_position(path)?;
-        if missing_position == 0 {
-            return Ok(());
+    fn update_node_ranges(
+        &self,
+        own_node: &mut Node,
+        updated_other_nodes: &mut Vec<Node>,
+        active_node_count: usize,
+    ) {
+        if own_node.state == State::ShuttingDown {
+            own_node.set_nonexistent_range();
+        } else {
+            own_node.set_range_by_pos(active_node_count);
         }
 
-        let cluster = Self::read_cluster(path)?;
-        let (node, other_nodes) = (cluster.get_own_node(), cluster.get_other_nodes());
-        let mut new_nodes = Vec::new();
-        for node in other_nodes {
-            let mut new_node = Node::new_from_node(node);
+        for node in updated_other_nodes {
+            if node.state == State::ShuttingDown {
+                node.set_nonexistent_range();
+            } else {
+                node.set_range_by_pos(active_node_count);
+            }
+        }
+    }
+
+    fn adjust_node_positions(
+        &self,
+        own_node: &mut Node,
+        updated_other_nodes: &mut [Node],
+        missing_position: usize,
+    ) {
+        for node in updated_other_nodes.iter_mut() {
             if node.position > missing_position {
-                new_node.set_pos(node.position - 1);
+                node.set_pos(node.position - 1);
             }
-            new_nodes.push(new_node);
         }
-        let mut new_node = Node::new_from_node(node);
-        if node.position > missing_position {
-            new_node.set_pos(node.position - 1);
+        if own_node.position > missing_position {
+            own_node.set_pos(own_node.position - 1);
         }
-        Self::write_cluster(path, &Cluster::new(new_node, new_nodes))
     }
 
-    fn get_missing_position(&self, path: &str) -> Result<usize, Errors> {
-        let node_quantity = self.get_nodes_quantity(path)?;
+    fn get_missing_position_from_nodes(
+        &self,
+        own_node: &Node,
+        other_nodes: &[Node],
+    ) -> Result<Option<usize>, Errors> {
         let mut positions: HashSet<usize> = HashSet::new();
-        for node in &self.get_full_nodes_list(path)? {
-            if node.position > 0 { // Only consider active nodes
+        if own_node.position > 0 {
+            positions.insert(own_node.position);
+        }
+        for node in other_nodes {
+            if node.position > 0 {
                 positions.insert(node.position);
             }
         }
-        let mut missing_position = 0;
+        let node_quantity = positions.len();
         for pos in 1..=node_quantity {
             if !positions.contains(&pos) {
-                missing_position = pos;
-                break;
+                return Ok(Some(pos));
             }
         }
-        Ok(missing_position)
+        Ok(None) // No missing position.
+    }
+
+    pub fn check_for_perished_shutting_down_nodes(&self) -> Result<(), Errors> {
+        for node in Self::read_cluster(NODES_METADATA_PATH)?.get_other_nodes() {
+            if node.state == State::ShuttingDown
+                && node
+                    .get_timestamp()
+                    .has_perished_seconds(SHUTTING_DOWN_TIMEOUT_SECS)
+            {
+                self.eliminate_perished_shutting_down_nodes()?
+            }
+        }
+        Ok(())
+    }
+
+    fn eliminate_perished_shutting_down_nodes(&self) -> Result<(), Errors> {
+        let cluster = Self::read_cluster(NODES_METADATA_PATH)?;
+        let mut nodes_list = Vec::new();
+        for node in cluster.get_other_nodes() {
+            if node.state != State::ShuttingDown
+                || !node
+                    .get_timestamp()
+                    .has_perished_seconds(SHUTTING_DOWN_TIMEOUT_SECS)
+            {
+                nodes_list.push(Node::new_from_node(node))
+            }
+        }
+        let new_cluster = Cluster::new(Node::new_from_node(cluster.get_own_node()), nodes_list);
+        Self::write_cluster(NODES_METADATA_PATH, &new_cluster)
     }
 }
 

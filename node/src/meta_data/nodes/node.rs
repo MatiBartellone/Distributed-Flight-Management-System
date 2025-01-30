@@ -1,10 +1,12 @@
-use std::fmt::Display;
-use crate::meta_data::nodes::node::State::{Active, Booting, Inactive, StandBy, ShuttingDown, Recovering};
+use crate::meta_data::nodes::node::State::{
+    Active, Booting, Inactive, Recovering, ShuttingDown, StandBy,
+};
 use crate::utils::errors::Errors;
 use crate::utils::types::node_ip::NodeIp;
 use crate::utils::types::range::Range;
 use crate::utils::types::timestamp::Timestamp;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum State {
@@ -72,6 +74,7 @@ impl Node {
 
     pub fn set_pos(&mut self, pos: usize) {
         self.position = pos;
+        self.update_timestamp()
     }
 
     pub fn is_seed(&self) -> bool {
@@ -87,27 +90,27 @@ impl Node {
     }
 
     pub fn set_inactive(&mut self) {
-        self.state = Inactive;
+        self.set_state(&Inactive)
     }
 
     pub fn set_active(&mut self) {
-        self.state = Active
+        self.set_state(&Active)
     }
 
     pub fn set_booting(&mut self) {
-        self.state = Booting
+        self.set_state(&Booting)
     }
 
     pub fn set_stand_by(&mut self) {
-        self.state = StandBy;
+        self.set_state(&StandBy)
     }
 
     pub fn set_shutting_down(&mut self) {
-        self.state = ShuttingDown;
+        self.set_state(&ShuttingDown)
     }
 
     pub fn set_recovering(&mut self) {
-        self.state = Recovering;
+        self.set_state(&Recovering)
     }
 
     pub fn get_range(&self) -> Range {
@@ -116,17 +119,21 @@ impl Node {
 
     pub fn set_range(&mut self, range: Range) {
         self.range = range;
+        self.update_timestamp()
     }
 
     pub fn set_range_by_pos(&mut self, nodes_quantity: usize) {
         self.range = Range::from_fraction(self.position, nodes_quantity);
+        self.update_timestamp()
     }
 
     pub fn set_nonexistent_range(&mut self) {
         self.range = Range::new_nonexistent();
+        self.update_timestamp()
     }
 
     pub fn set_state(&mut self, state: &State) {
         self.state = state.clone();
+        self.update_timestamp()
     }
 }
