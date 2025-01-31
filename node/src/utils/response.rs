@@ -68,7 +68,7 @@ impl Response {
                 encoder.write_i16(data_type_id)?;
             }
         }
-        let mut row_count : i32 = 0;
+        let mut row_count: i32 = 0;
         for row in rows {
             if !row.deleted {
                 row_count += 1;
@@ -126,10 +126,9 @@ impl Response {
             encoder.write_string(&column.value.value)?;
             let data_type_id = Response::data_type_to_byte(column.value.data_type.clone());
             encoder.write_i16(data_type_id)?;
-            encoder.write_i64(column.timestamp.timestamp)?;  
+            encoder.write_i64(column.timestamp.timestamp)?;
         }
         Ok(())
-        
     }
 
     pub fn write_meta_data_response(

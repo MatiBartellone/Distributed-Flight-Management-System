@@ -132,7 +132,7 @@ impl Airport {
     }
 
     fn is_hovering_on_airport(&self, response: &Response, screen_airport_position: Pos2) -> bool {
-        response.hover_pos().map_or(false, |pos| {
+        response.hover_pos().is_some_and(|pos| {
             let airplane_size = egui::Vec2::new(30.0, 30.0);
             let airplane_rect =
                 egui::Rect::from_center_size(screen_airport_position, airplane_size);

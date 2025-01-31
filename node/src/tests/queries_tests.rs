@@ -3,13 +3,16 @@ mod tests {
     use crate::meta_data::meta_data_handler::{use_client_meta_data, use_keyspace_meta_data};
     use crate::parsers::query_parser::{query_lexer, query_parser};
     use crate::utils::constants::CLIENT_METADATA_PATH;
-    use crate::utils::test_functions::{add_one_finished, check_and_run_teardown, get_query_result, setup};
+    use crate::utils::test_functions::{
+        add_one_finished, check_and_run_teardown, get_query_result, setup,
+    };
     use crate::utils::types::bytes_cursor::BytesCursor;
 
     #[test]
     fn use_valid_keyspace() {
         setup();
-        use_client_meta_data(|handler| handler.add_new_client(CLIENT_METADATA_PATH.to_string())).unwrap();
+        use_client_meta_data(|handler| handler.add_new_client(CLIENT_METADATA_PATH.to_string()))
+            .unwrap();
         let result = get_query_result("USE test");
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), vec![0, 0, 0, 3, 0, 4, 116, 101, 115, 116]);
@@ -29,7 +32,8 @@ mod tests {
     #[test]
     fn use_valid_keyspace_with_query() {
         setup();
-        use_client_meta_data(|handler| handler.add_new_client(CLIENT_METADATA_PATH.to_string())).unwrap();
+        use_client_meta_data(|handler| handler.add_new_client(CLIENT_METADATA_PATH.to_string()))
+            .unwrap();
         let result = get_query_result("USE test");
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), vec![0, 0, 0, 3, 0, 4, 116, 101, 115, 116]); //3 4 test
@@ -46,7 +50,8 @@ mod tests {
     #[test]
     fn create_valid_keyspace() {
         setup();
-        let result = get_query_result("CREATE KEYSPACE valid WITH replication = {'replication_factor' : 1}");
+        let result =
+            get_query_result("CREATE KEYSPACE valid WITH replication = {'replication_factor' : 1}");
         assert!(result.is_ok());
 
         let mut cursor = BytesCursor::new(result.unwrap().as_slice());
@@ -66,10 +71,14 @@ mod tests {
     fn create_existing_keyspace() {
         setup();
 
-        let result = get_query_result("CREATE KEYSPACE valid2 WITH replication = {'replication_factor' : 1}");
+        let result = get_query_result(
+            "CREATE KEYSPACE valid2 WITH replication = {'replication_factor' : 1}",
+        );
         assert!(result.is_ok());
 
-        let result = get_query_result("CREATE KEYSPACE valid2 WITH replication = {'replication_factor' : 1}");
+        let result = get_query_result(
+            "CREATE KEYSPACE valid2 WITH replication = {'replication_factor' : 1}",
+        );
         assert!(result.is_err());
 
         let result = get_query_result("DROP KEYSPACE valid2");
@@ -102,7 +111,9 @@ mod tests {
         setup();
 
         // Crear la tabla
-        let result = get_query_result("CREATE TABLE test.test1 (id int, name text, age int, PRIMARY KEY (id))");
+        let result = get_query_result(
+            "CREATE TABLE test.test1 (id int, name text, age int, PRIMARY KEY (id))",
+        );
         assert!(result.is_ok());
 
         let mut cursor = BytesCursor::new(result.unwrap().as_slice());
@@ -114,7 +125,6 @@ mod tests {
         let result = get_query_result("INSERT INTO test.test1 (id) VALUES (1)");
         assert!(result.is_ok());
 
-
         add_one_finished();
         check_and_run_teardown();
     }
@@ -123,10 +133,12 @@ mod tests {
     fn create_existing_table() {
         setup();
 
-        let result = get_query_result("CREATE TABLE test.test2 (id int, value text, PRIMARY KEY (id))");
+        let result =
+            get_query_result("CREATE TABLE test.test2 (id int, value text, PRIMARY KEY (id))");
         assert!(result.is_ok());
 
-        let result = get_query_result("CREATE TABLE test.test2 (id int, value text, PRIMARY KEY (id))");
+        let result =
+            get_query_result("CREATE TABLE test.test2 (id int, value text, PRIMARY KEY (id))");
         assert!(result.is_err());
 
         let result = get_query_result("INSERT INTO test.test2 (id) VALUES (1)");
@@ -151,7 +163,8 @@ mod tests {
     fn create_table_duplicate_columns() {
         setup();
 
-        let result = get_query_result("CREATE TABLE test.test4 (id int, id text, PRIMARY KEY (id))");
+        let result =
+            get_query_result("CREATE TABLE test.test4 (id int, id text, PRIMARY KEY (id))");
         assert!(result.is_err());
 
         add_one_finished();
@@ -162,7 +175,9 @@ mod tests {
     fn drop_existing_keyspace() {
         setup();
 
-        let create_result = get_query_result("CREATE KEYSPACE test_drop_keyspace WITH replication = {'replication_factor' : 1}");
+        let create_result = get_query_result(
+            "CREATE KEYSPACE test_drop_keyspace WITH replication = {'replication_factor' : 1}",
+        );
         assert!(create_result.is_ok());
 
         let result = get_query_result("DROP KEYSPACE test_drop_keyspace");
@@ -195,7 +210,9 @@ mod tests {
     fn drop_existing_table() {
         setup();
 
-        let create_result = get_query_result("CREATE TABLE test.drop_table (id int, name text, age int, PRIMARY KEY (id))");
+        let create_result = get_query_result(
+            "CREATE TABLE test.drop_table (id int, name text, age int, PRIMARY KEY (id))",
+        );
         assert!(create_result.is_ok());
 
         let result = get_query_result("DROP TABLE test.drop_table");
@@ -224,6 +241,4 @@ mod tests {
         add_one_finished();
         check_and_run_teardown();
     }
-
-
 }

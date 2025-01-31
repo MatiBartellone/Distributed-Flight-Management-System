@@ -35,6 +35,11 @@ impl Timestamp {
         let milliseconds = hours * 1000 * 60 * 60;
         Utc::now().timestamp_millis() > self.timestamp + milliseconds
     }
+
+    pub fn has_perished_seconds(&self, seconds: i64) -> bool {
+        let milliseconds = seconds * 1000;
+        Utc::now().timestamp_millis() > self.timestamp + milliseconds
+    }
 }
 
 impl Default for Timestamp {

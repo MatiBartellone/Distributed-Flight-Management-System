@@ -1,4 +1,3 @@
-
 use crate::parsers::tokens::terms::ComparisonOperators::Equal;
 use crate::parsers::tokens::terms::LogicalOperators::And;
 use crate::utils::types::token_conversor::{create_paren_list_token, create_symbol_token};
@@ -53,7 +52,7 @@ impl RepairRow {
             create_identifier_token(identifier),
             create_comparison_operation_token(Equal),
             create_token_from_literal(literal.clone()),
-            create_symbol_token(",")
+            create_symbol_token(","),
         ]
     }
 
@@ -66,11 +65,14 @@ impl RepairRow {
         let mut change_row = false;
         self.create_base_update(query)?;
         let best_col_map = to_hash_columns(best_column);
-        let mut changes: Vec<Token> = Vec::new(); 
+        let mut changes: Vec<Token> = Vec::new();
         for column in node_columns {
             if let Some(best_column) = best_col_map.get(&column.column_name) {
                 if column.value.value != best_column.value.value {
-                    changes.append(&mut Self::add_update_changes(&column.column_name, &best_column.value));
+                    changes.append(&mut Self::add_update_changes(
+                        &column.column_name,
+                        &best_column.value,
+                    ));
                     change_row = true
                 }
             }
@@ -159,7 +161,6 @@ impl RepairRow {
                 true
             }
             (false, false) => {
-                
                 // Actualización si difieren valores
                 if self.create_update_changes(
                     &mut query,
@@ -179,23 +180,21 @@ impl RepairRow {
 
 impl Default for RepairRow {
     fn default() -> Self {
-            Self::new()
-        }
+        Self::new()
     }
+}
 
 #[cfg(test)]
 mod tests {
-    use crate::parsers::tokens::{literal::create_literal, data_type::DataType};
+    use crate::parsers::tokens::{data_type::DataType, literal::create_literal};
 
     use super::*;
-    
-
 
     fn create_column(name: &str, value: Literal) -> Column {
         Column::new(&name.to_string(), &value)
     }
 
-    fn create_row(columns: Vec<Column>, pks: Vec<String> ,deleted: bool) -> Row {
+    fn create_row(columns: Vec<Column>, pks: Vec<String>, deleted: bool) -> Row {
         let mut res = Row::new(columns, pks);
         res.deleted = deleted;
         res
@@ -233,7 +232,6 @@ mod tests {
                 create_identifier_token("value"),
                 create_symbol_token(","),
             ]),
-            
             create_reserved_token("VALUES"),
             create_paren_list_token(vec![
                 create_token_literal("1", DataType::Int),
@@ -320,7 +318,6 @@ mod tests {
                 create_identifier_token("value"),
                 create_symbol_token(","),
             ]),
-            
             create_reserved_token("VALUES"),
             create_paren_list_token(vec![
                 create_token_literal("1", DataType::Int),
@@ -383,4 +380,3 @@ mod tests {
         assert_eq!(query, expected_tokens)
     }
 }
-

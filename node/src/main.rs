@@ -5,6 +5,7 @@ use node::hinted_handoff::hints_receiver::HintsReceiver;
 use node::hinted_handoff::hints_sender::HintsSender;
 use node::meta_data::meta_data_handler::use_node_meta_data;
 use node::node_initializer::NodeInitializer;
+use node::terminal_input::TerminalInput;
 use node::utils::config_constants::MAX_CLIENTS;
 use node::utils::constants::NODES_METADATA_PATH;
 use node::utils::errors::Errors;
@@ -21,14 +22,21 @@ fn main() -> Result<(), Errors> {
     let (uses_config, config_file) = get_args();
     let node_data = NodeInitializer::new(uses_config, config_file)?;
 
-    let needs_booting = node_data.set_cluster()?;
+    let (needs_recovering, needs_booting) = node_data.set_cluster()?;
 
     node_data.start_listeners();
 
-    if needs_booting {
-        HintsReceiver::start_listening(node_data.get_ip())?;
-    };
+    TerminalInput::new().start_listening();
 
+    if needs_recovering {
+        HintsReceiver::start_listening(node_data.get_ip())?;
+    } else if needs_booting {
+        // booting receiver
+        sleep(Duration::from_secs(5));
+        use_node_meta_data(|handler| handler.set_own_node_active(NODES_METADATA_PATH))?;
+        println!("Booting finished");
+    }
+    use_node_meta_data(|handler| handler.update_ranges(NODES_METADATA_PATH))?;
     start_gossip()?;
 
     set_node_listener(node_data.get_ip())
@@ -55,7 +63,6 @@ fn start_gossip() -> Result<(), Errors> {
             if let Err(e) = result {
                 println!("Failed to gossip: {}", e);
             }
-
         }
     });
     Ok(())
@@ -63,11 +70,15 @@ fn start_gossip() -> Result<(), Errors> {
 
 fn gossip() -> Result<(), Errors> {
     sleep(Duration::from_secs(1));
-    GossipEmitter::start_gossip()?;
+    let node_added_or_removed = GossipEmitter::start_gossip()?;
+    if node_added_or_removed {
+        // check tables and send data
+    }
+    use_node_meta_data(|handler| handler.check_for_perished_shutting_down_nodes())?;
     Handler::check_for_perished()?;
     {
         use_node_meta_data(|handler| {
-            for ip in handler.get_booting_nodes(NODES_METADATA_PATH)? {
+            for ip in handler.get_recovering_nodes(NODES_METADATA_PATH)? {
                 HintsSender::send_hints(ip)?;
             }
             Ok(())

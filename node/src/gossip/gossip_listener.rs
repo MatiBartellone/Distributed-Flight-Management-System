@@ -1,6 +1,6 @@
 use crate::meta_data::meta_data_handler::use_node_meta_data;
 use crate::meta_data::nodes::cluster::Cluster;
-use crate::meta_data::nodes::node::Node;
+use crate::meta_data::nodes::node::{Node, State};
 use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
 use crate::utils::functions::{
@@ -8,6 +8,7 @@ use crate::utils::functions::{
     write_to_stream,
 };
 use crate::utils::types::node_ip::NodeIp;
+use std::collections::HashMap;
 use std::net::TcpStream;
 
 pub struct GossipListener;
@@ -19,26 +20,36 @@ impl GossipListener {
 
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
         let buf = read_exact_from_stream(stream)?;
-        let received_nodes: Vec<Node> = deserialize_from_slice(buf.as_slice())?;
+        let received_nodes_list: Vec<Node> = deserialize_from_slice(buf.as_slice())?;
+        let received_nodes: HashMap<NodeIp, Node> = received_nodes_list
+            .into_iter()
+            .map(|node| (node.get_ip().clone(), node))
+            .collect();
         let cluster = Self::get_cluster()?;
         let own_node = cluster.get_own_node();
-        let (mut new_nodes, mut required_changes) = (Vec::new(), Vec::new());
 
-        Self::check_missing_nodes(&cluster, &received_nodes, &mut required_changes);
-
+        let mut emitter_required_changes = Self::get_emitter_missing_nodes(&received_nodes)?;
+        let (mut new_nodes, nodes_added) = Self::get_listener_missing_nodes(&received_nodes)?;
         Self::check_differences(
             &cluster,
             received_nodes,
-            &mut required_changes,
+            &mut emitter_required_changes,
             &mut new_nodes,
         );
+        let shutting_down_founded = Self::shutting_down_count(cluster.get_other_nodes())
+            < Self::shutting_down_count(&new_nodes);
+
         use_node_meta_data(|handler| {
             handler.set_new_cluster(
                 NODES_METADATA_PATH,
                 &Cluster::new(Node::new_from_node(own_node), new_nodes),
-            )
+            )?;
+            if shutting_down_founded || nodes_added {
+                handler.update_ranges(NODES_METADATA_PATH)?
+            }
+            Ok(())
         })?;
-        Self::send_required_changes(stream, required_changes)
+        Self::send_required_changes(stream, emitter_required_changes)
     }
 
     fn send_required_changes(
@@ -50,45 +61,59 @@ impl GossipListener {
         Ok(())
     }
 
-    fn check_missing_nodes(
-        cluster: &Cluster,
-        received_nodes: &Vec<Node>,
-        required_changes: &mut Vec<Node>,
-    ) {
-        let (own_node, nodes_list) = (cluster.get_own_node(), cluster.get_other_nodes());
+    fn get_emitter_missing_nodes(
+        received_nodes: &HashMap<NodeIp, Node>,
+    ) -> Result<Vec<Node>, Errors> {
+        let mut missing_nodes = Vec::new();
+        let nodes_list =
+            use_node_meta_data(|handler| handler.get_full_nodes_list(NODES_METADATA_PATH))?;
         for registered_node in nodes_list {
-            if Self::get_node(registered_node, received_nodes).is_none() {
-                required_changes.push(Node::new_from_node(registered_node));
+            if registered_node.state != State::ShuttingDown
+                && !received_nodes.contains_key(registered_node.get_ip())
+            {
+                missing_nodes.push(registered_node);
             }
         }
-        if Self::get_node(own_node, received_nodes).is_none() {
-            required_changes.push(Node::new_from_node(own_node));
+        Ok(missing_nodes)
+    }
+
+    fn get_listener_missing_nodes(
+        received_nodes: &HashMap<NodeIp, Node>,
+    ) -> Result<(Vec<Node>, bool), Errors> {
+        let mut missing_nodes = Vec::new();
+        let nodes_list =
+            use_node_meta_data(|handler| handler.get_full_nodes_list(NODES_METADATA_PATH))?;
+        for (node_ip, node) in received_nodes {
+            if node.state != State::ShuttingDown
+                && !nodes_list.iter().any(|n| n.get_ip() == node_ip)
+            {
+                missing_nodes.push(Node::new_from_node(node));
+            }
         }
+        let nodes_added = !missing_nodes.is_empty();
+        Ok((missing_nodes, nodes_added))
     }
 
     fn check_differences(
         cluster: &Cluster,
-        received_nodes: Vec<Node>,
+        received_nodes: HashMap<NodeIp, Node>,
         required_changes: &mut Vec<Node>,
         new_nodes: &mut Vec<Node>,
     ) {
         let (own_node, nodes_list) = (cluster.get_own_node(), cluster.get_other_nodes());
-        for received_node in received_nodes {
-            if received_node.get_pos() != own_node.get_pos() {
-                match Self::get_node(&received_node, nodes_list) {
-                    Some(registered_node) => {
-                        match Self::needs_to_update(&registered_node, &received_node) {
-                            1 => {
-                                required_changes.push(Node::new_from_node(&registered_node));
-                                new_nodes.push(Node::new_from_node(&registered_node));
-                            }
-                            -1 => new_nodes.push(received_node),
-                            _ => new_nodes.push(registered_node),
+        for (node_ip, node) in received_nodes {
+            if &node_ip != own_node.get_ip() {
+                if let Some(registered_node) = nodes_list.iter().find(|n| n.get_ip() == &node_ip) {
+                    match Self::needs_to_update(registered_node, &node) {
+                        1 => {
+                            required_changes.push(Node::new_from_node(registered_node));
+                            new_nodes.push(Node::new_from_node(registered_node));
                         }
+                        -1 => new_nodes.push(node),
+                        _ => new_nodes.push(Node::new_from_node(registered_node)),
                     }
-                    None => new_nodes.push(received_node),
                 }
-            } else if Self::needs_to_update(own_node, &received_node) == -1 {
+            } else if Self::needs_to_update(own_node, &node) == -1 {
                 required_changes.push(Node::new_from_node(own_node));
             }
         }
@@ -115,12 +140,10 @@ impl GossipListener {
         0
     }
 
-    fn get_node(node: &Node, nodes_list: &Vec<Node>) -> Option<Node> {
-        for n in nodes_list {
-            if n.get_pos() == node.get_pos() {
-                return Some(Node::new_from_node(n));
-            }
-        }
-        None
+    fn shutting_down_count(new_nodes: &[Node]) -> usize {
+        new_nodes
+            .iter()
+            .filter(|n| n.state == State::ShuttingDown)
+            .count()
     }
 }

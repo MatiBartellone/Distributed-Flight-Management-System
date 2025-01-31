@@ -79,4 +79,3 @@ mod tests {
         assert!(!symbols.is_symbol("")); // Verifica que una cadena vacía no sea símbolo
     }
 }
-

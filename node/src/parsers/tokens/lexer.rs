@@ -200,12 +200,9 @@ fn replace_simple_chars(query: &str) -> String {
         }
         if let Some(replace) = characters.get_mapping(&current.to_string()) {
             result.push_str(replace);
-            
-        }
-        else {
+        } else {
             result.push(current);
         }
-        
     }
 
     result
@@ -221,7 +218,6 @@ fn divide_words(query: &str) -> Vec<String> {
 fn is_section(word: &str) -> bool {
     matches!(word.chars().next(), Some('$' | '\'' | '"'))
 }
-
 
 /// Establece un formato estándar para la entrada de texto, eliminando los comentarios y dividiendo
 /// el texto en palabras o secciones, de acuerdo con el contexto de los delimitadores.
@@ -282,11 +278,7 @@ mod tests {
     fn test_negative_number() {
         let input = r#"hola -234 hola1"#;
         let resultado = standardize(input);
-        let expected = vec![
-            "hola",
-            "-234",
-            "hola1",
-        ];
+        let expected = vec!["hola", "-234", "hola1"];
         //imprimir_vector(&resultado);
         assert_eq!(resultado, expected);
     }

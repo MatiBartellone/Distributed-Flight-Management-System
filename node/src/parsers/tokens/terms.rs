@@ -99,7 +99,6 @@ fn to_boolean(word: &str) -> Option<Token> {
     }
 }
 
-
 /// Convierte una cadena en un término (token aritmético, booleano o literal).
 ///
 /// # Parámetros
@@ -257,4 +256,3 @@ mod tests {
         assert_eq!(string_to_term("UNKNOWN"), None); // Caso no soportado
     }
 }
-

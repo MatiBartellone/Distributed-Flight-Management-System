@@ -510,7 +510,6 @@ mod tests {
         "{\"columns\":[{\"column_name\":\"name\",\"value\":{\"value\":\"Jane\",\"data_type\":\"Text\"}".to_string()
     }
 
-
     #[test]
     fn test_insert_row_pk_already_exists() {
         let _lock = TABLE_MUTEX.lock();

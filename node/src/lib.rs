@@ -12,6 +12,7 @@ pub mod queries;
 pub mod query_delegation;
 pub mod read_reparation;
 pub mod response_builders;
+pub mod terminal_input;
 pub mod utils;
 
 pub mod client_handler;
@@ -19,7 +20,7 @@ pub mod client_handler;
 mod tests {
     pub mod delete_tests;
     pub mod insert_tests;
+    pub mod queries_tests;
     pub mod select_tests;
     pub mod update_tests;
-    pub mod queries_tests;
 }

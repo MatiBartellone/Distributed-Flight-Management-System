@@ -22,7 +22,7 @@ impl HintsReceiver {
         let mut hints = Vec::new();
         let timeout = Duration::from_secs(HINTED_HANDOFF_TIMEOUT_SECS);
         let mut last_connection_time = Instant::now();
-        println!("Booting...");
+        println!("Recovering hints...");
         loop {
             if last_connection_time.elapsed() >= timeout {
                 break;
@@ -36,7 +36,7 @@ impl HintsReceiver {
             }
         }
         Self::execute_queries(&mut hints)?;
-        Self::finish_booting()?;
+        Self::finish_recovering()?;
         Ok(())
     }
 
@@ -59,9 +59,9 @@ impl HintsReceiver {
         Ok(())
     }
 
-    fn finish_booting() -> Result<(), Errors> {
+    fn finish_recovering() -> Result<(), Errors> {
         use_node_meta_data(|handler| handler.set_own_node_active(NODES_METADATA_PATH))?;
-        println!("Finished booting");
+        println!("Finished recovering");
         Ok(())
     }
 }
