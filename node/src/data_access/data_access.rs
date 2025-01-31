@@ -383,7 +383,7 @@ impl DataAccess {
         Ok(false)
     }
 
-    fn get_deserialized_stream(&self, path: &String) -> Result<impl Iterator<Item = Row>, Errors> {
+    pub fn get_deserialized_stream(&self, path: &String) -> Result<impl Iterator<Item = Row>, Errors> {
         let file = self.open_file(path)?;
         let reader = BufReader::new(file);
         let rows: Vec<Row> =

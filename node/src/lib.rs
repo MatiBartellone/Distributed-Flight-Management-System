@@ -11,6 +11,7 @@ pub mod parsers;
 pub mod queries;
 pub mod query_delegation;
 pub mod read_reparation;
+pub mod redistribution;
 pub mod response_builders;
 pub mod utils;
 
