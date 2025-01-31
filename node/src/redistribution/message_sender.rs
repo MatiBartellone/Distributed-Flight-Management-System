@@ -1,4 +1,4 @@
-use crate::{data_access::{data_access_handler::use_data_access, row::Row}, utils::{errors::Errors, constants::{DATA_ACCESS_PATH, NODES_METADATA_PATH}, types::node_ip}, queries::insert_query, query_delegation::query_delegator::QueryDelegator, meta_data::meta_data_handler::{use_keyspace_meta_data, use_node_meta_data}};
+use crate::{data_access::{data_access_handler::use_data_access, row::Row}, utils::{errors::Errors, constants::{DATA_ACCESS_PATH, NODES_METADATA_PATH}, types::node_ip}, queries::{insert_query, delete_query}, query_delegation::query_delegator::QueryDelegator, meta_data::meta_data_handler::{use_keyspace_meta_data, use_node_meta_data}};
 use std::fs;
 
 use super::builder_message::BuilderMessage;
@@ -20,7 +20,7 @@ impl MessageSender {
                     let rows = use_data_access(|data_access| {
                         data_access.get_deserialized_stream(&path)
                     })?;
-                    MessageSender::redistribute_table(rows, keyspace_table, &path)?;
+                    MessageSender::redistribute_table(rows, keyspace_table)?;
                 }
             }
         }
@@ -28,11 +28,11 @@ impl MessageSender {
         Ok(())
     }
 
-    fn redistribute_table<I>(rows: I, table: &str, path: &String) -> Result<(), Errors>
+    fn redistribute_table<I>(rows: I, table: &str) -> Result<(), Errors>
     where
         I: Iterator<Item = Row>,
     {
-        let keyspace = get_keyspace(&path);
+        let keyspace = get_keyspace(&table);
         let own_node = use_node_meta_data(|handler| handler.get_own_ip(NODES_METADATA_PATH))?;
         for row in rows {
             let nodes_list = use_node_meta_data(|handler| handler.get_partition_full_ips(NODES_METADATA_PATH, &Some(row.primary_key.to_vec()), keyspace.to_owned()))?;
@@ -41,6 +41,8 @@ impl MessageSender {
                     let insert_query = BuilderMessage::build_insert(row.clone(), table.to_string())?;
                     QueryDelegator::send_to_node(node_ip, insert_query)?;
                 }
+                let delete_query = BuilderMessage::build_delete(row, table.to_owned())?;
+                QueryDelegator::send_to_node(own_node.clone(), delete_query)?;
             }   
         }
         Ok(())
