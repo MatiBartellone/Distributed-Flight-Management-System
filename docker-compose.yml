@@ -1,13 +1,33 @@
 version: "3.9"
 services:
-  nodo:
+  seed_node:
     build:
       context: ./node
       dockerfile: Dockerfile
-    environment:
-      NODE_ID: 1
-      TOTAL_NODES: 3
+    networks:
+      - cluster
+  node:
+    build:
+      context: ./node
+      dockerfile: Dockerfile
+    depends_on:
+      - seed_node
+    networks:
+      - cluster
   flight_app:
     build:
       context: ./flight_app
       dockerfile: Dockerfile
+    networks:
+      - cluster
+  simulator:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+  test-client:
+    build:
+      context: ./test-client
+      dockerfile: Dockerfile
+networks:
+  cluster:
+    driver: bridge
