@@ -3,7 +3,7 @@ use crate::{utils::{errors::Errors, types::token_conversor::{create_reserved_tok
 pub struct BuilderMessage;
 
 impl BuilderMessage {
-    fn build_insert(row: Row, table: String) -> Result<Box<dyn Query>, Errors> {
+    pub fn build_insert(row: Row, table: String) -> Result<Box<dyn Query>, Errors> {
         let query = BuilderMessage::create_query_insert(row.columns, table)?;
         query_parser(query)
     }
