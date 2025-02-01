@@ -23,6 +23,7 @@ impl BuilderMessage {
         query_parser(query)
     }
 
+    //path = keyspace.table
     pub fn build_table(path: String) -> Result<Box<dyn Query>, Errors> {
         let query = BuilderMessage::create_query_table(path)?;
         query_parser(query)

@@ -1,4 +1,4 @@
-use crate::{data_access::{data_access_handler::use_data_access, row::Row}, utils::{errors::Errors, constants::{DATA_ACCESS_PATH, NODES_METADATA_PATH}, types::node_ip}, queries::{insert_query, delete_query}, query_delegation::query_delegator::QueryDelegator, meta_data::meta_data_handler::{use_keyspace_meta_data, use_node_meta_data}};
+use crate::{data_access::{data_access_handler::use_data_access, row::Row}, utils::{errors::Errors, constants::{DATA_ACCESS_PATH, NODES_METADATA_PATH, KEYSPACE_METADATA_PATH}, types::node_ip::{self, NodeIp}}, queries::{insert_query, delete_query, create_keyspace_query, create_table_query}, query_delegation::query_delegator::QueryDelegator, meta_data::meta_data_handler::{use_keyspace_meta_data, use_node_meta_data}};
 use std::fs;
 
 use super::builder_message::BuilderMessage;
@@ -25,6 +25,25 @@ impl MessageSender {
             }
         }
     
+        Ok(())
+    }
+
+    pub fn send_meta_data(new_node: NodeIp) -> Result<(), Errors> {
+        let keyspaces = use_keyspace_meta_data(|handler| {
+            handler.get_keyspaces_names(KEYSPACE_METADATA_PATH.to_owned())
+        })?;
+        for keyspace in keyspaces {
+            let create_keyspace_query = BuilderMessage::build_keyspace(keyspace.to_string())?;
+            QueryDelegator::send_to_node(new_node.clone(), create_keyspace_query)?;
+            let tables = use_keyspace_meta_data(|handler| {
+                handler.get_tables_from_keyspace(KEYSPACE_METADATA_PATH.to_owned(), &keyspace)
+            })?;
+            for table in tables {
+                let path = format!("{}.{}", keyspace, table);
+                let create_table_query = BuilderMessage::build_table(path)?;
+                QueryDelegator::send_to_node(new_node.clone(), create_table_query)?;
+            }
+        }
         Ok(())
     }
 

@@ -101,6 +101,13 @@ impl KeyspaceMetaDataAccess {
         Ok(())
     }
 
+    pub fn get_keyspaces_names(&self, path: String) -> Result<Vec<String>, Errors> {
+        let mut file = Self::open_file(path)?;
+        let keyspaces = Self::extract_hash_from_json(&mut file)?;
+        Self::reset_pointer(&mut file)?;
+        Ok(keyspaces.keys().cloned().collect::<Vec<String>>())
+    }
+
     pub fn get_columns_type(
         &self,
         path: String,
