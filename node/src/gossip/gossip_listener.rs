@@ -3,10 +3,7 @@ use crate::meta_data::nodes::cluster::Cluster;
 use crate::meta_data::nodes::node::{Node, State};
 use crate::utils::constants::NODES_METADATA_PATH;
 use crate::utils::errors::Errors;
-use crate::utils::functions::{
-    deserialize_from_slice, read_exact_from_stream, serialize_to_string, start_listener,
-    write_to_stream,
-};
+use crate::utils::functions::{deserialize_from_slice, read_exact_from_stream, redistribute_data, serialize_to_string, start_listener, write_to_stream};
 use crate::utils::types::node_ip::NodeIp;
 use std::collections::HashMap;
 use std::net::TcpStream;
@@ -43,12 +40,11 @@ impl GossipListener {
             handler.set_new_cluster(
                 NODES_METADATA_PATH,
                 &Cluster::new(Node::new_from_node(own_node), new_nodes),
-            )?;
-            if shutting_down_founded || nodes_added {
-                handler.update_ranges(NODES_METADATA_PATH)?
-            }
-            Ok(())
+            )
         })?;
+        if shutting_down_founded || nodes_added {
+            redistribute_data()?
+        }
         Self::send_required_changes(stream, emitter_required_changes)
     }
 

@@ -1,8 +1,8 @@
-use crate::meta_data::meta_data_handler::use_client_meta_data;
+use crate::meta_data::meta_data_handler::{use_client_meta_data, use_node_meta_data};
 use crate::meta_data::meta_data_handler::use_keyspace_meta_data;
 use crate::parsers::tokens::data_type::DataType;
 use crate::queries::where_logic::where_clause::WhereClause;
-use crate::utils::constants::{CLIENT_METADATA_PATH, IP_FILE, KEYSPACE_METADATA_PATH};
+use crate::utils::constants::{CLIENT_METADATA_PATH, IP_FILE, KEYSPACE_METADATA_PATH, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::types::node_ip::NodeIp;
@@ -16,6 +16,7 @@ use std::fs;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
+use crate::redistribution::message_sender::MessageSender;
 
 /// validates the table name (keyspace.table) and returns it complete.
 ///
@@ -250,4 +251,15 @@ pub fn connect_to_socket(socket_addr: SocketAddr) -> Result<TcpStream, Errors> {
 pub fn write_all_to_file(file: &mut File, content: &[u8]) -> Result<(), Errors> {
     file.write_all(content)
         .map_err(|_| ServerError(String::from("Failed to write to file")))
+}
+
+pub fn redistribute_data() -> Result<(), Errors> {
+    use_node_meta_data(|handler| {
+        handler.update_ranges(NODES_METADATA_PATH)?;
+        for ip in handler.get_booting_ips(NODES_METADATA_PATH)? {
+            MessageSender::send_meta_data(ip)?
+        }
+        Ok(())
+    })?;
+    MessageSender::redistribute()
 }
