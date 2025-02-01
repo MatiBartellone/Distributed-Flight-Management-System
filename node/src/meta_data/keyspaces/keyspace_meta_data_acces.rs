@@ -52,6 +52,13 @@ impl KeyspaceMetaDataAccess {
         Ok(keyspace.replication_factor)
     }
 
+    pub fn get_strategy(&self, path: String, keyspace_name: &str) -> Result<String, Errors> {
+        let mut file = Self::open_file(path)?;
+        let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
+        let keyspace = get_keyspace_mutable(&mut keyspaces, keyspace_name)?;
+        Ok(keyspace.replication_strategy.clone())
+    }
+
     pub fn get_tables_from_keyspace(
         &self,
         path: String,
@@ -92,6 +99,13 @@ impl KeyspaceMetaDataAccess {
         keyspaces.remove(name);
         Self::save_hash_to_json(&mut file, &keyspaces)?;
         Ok(())
+    }
+
+    pub fn get_keyspaces_names(&self, path: String) -> Result<Vec<String>, Errors> {
+        let mut file = Self::open_file(path)?;
+        let keyspaces = Self::extract_hash_from_json(&mut file)?;
+        Self::reset_pointer(&mut file)?;
+        Ok(keyspaces.keys().cloned().collect::<Vec<String>>())
     }
 
     pub fn get_columns_type(
