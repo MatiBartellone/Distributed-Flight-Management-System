@@ -1,4 +1,4 @@
-use crate::{data_access::{data_access_handler::use_data_access, row::Row}, utils::{errors::Errors, constants::{DATA_ACCESS_PATH, NODES_METADATA_PATH, KEYSPACE_METADATA_PATH}, types::node_ip::NodeIp}, query_delegation::query_delegator::QueryDelegator, meta_data::meta_data_handler::{use_keyspace_meta_data, use_node_meta_data}};
+use crate::{data_access::{data_access_handler::use_data_access, row::Row}, utils::{errors::Errors, constants::{DATA_ACCESS_PATH, NODES_METADATA_PATH, KEYSPACE_METADATA_PATH}, types::node_ip::NodeIp}, query_delegation::query_delegator::QueryDelegator, meta_data::meta_data_handler::{use_keyspace_meta_data, use_node_meta_data}, queries::drop_keyspace_query};
 use std::fs;
 use crate::queries::query::Query;
 use super::builder_message::BuilderMessage;
@@ -47,6 +47,18 @@ impl MessageSender {
         Ok(())
     }
 
+    pub fn send_drop_keyspace() -> Result<(), Errors> {
+        let keyspaces = use_keyspace_meta_data(|handler| {
+            handler.get_keyspaces_names(KEYSPACE_METADATA_PATH.to_owned())
+        })?;
+        for keyspace in keyspaces {
+            let drop_keyspace_query = BuilderMessage::build_drop(keyspace)?;
+            let _ = drop_keyspace_query.run();
+        }
+        Ok(())
+    }
+
+
     fn redistribute_table<I>(rows: I, table: &str) -> Result<(), Errors>
     where
         I: Iterator<Item = Row>,
@@ -61,7 +73,8 @@ impl MessageSender {
                     Self::send_to_node(node_ip, insert_query);
                 }
                 let delete_query = BuilderMessage::build_delete(row, table.to_owned())?;
-                Self::send_to_node(own_node.clone(), delete_query);
+                let _ = delete_query.run();
+
             }   
         }
         Ok(())
