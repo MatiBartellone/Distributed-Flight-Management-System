@@ -91,6 +91,7 @@ impl TerminalInput {
             handler.update_ranges(NODES_METADATA_PATH)
         })?;
         MessageSender::redistribute()?;
+        MessageSender::send_drop_keyspace()?;
         sleep(std::time::Duration::from_secs(
             SHUTTING_DOWN_TIMEOUT_SECS as u64,
         ));
