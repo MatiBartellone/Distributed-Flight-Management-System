@@ -68,8 +68,8 @@ impl MessageSender {
     }
 
     fn send_to_node(node_ip: NodeIp, query: Box<dyn Query>){
-        if QueryDelegator::send_to_node(node_ip, query).is_err(){
-            // ignoro el error
+        match QueryDelegator::send_to_node(node_ip, query) {
+            _ => {}//ingonor el error
         }
     }
 }

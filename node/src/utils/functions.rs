@@ -255,11 +255,13 @@ pub fn write_all_to_file(file: &mut File, content: &[u8]) -> Result<(), Errors> 
 
 pub fn redistribute_data() -> Result<(), Errors> {
     use_node_meta_data(|handler| {
-        handler.update_ranges(NODES_METADATA_PATH)?;
-        for ip in handler.get_booting_ips(NODES_METADATA_PATH)? {
-            MessageSender::send_meta_data(ip)?
-        }
-        Ok(())
+        handler.update_ranges(NODES_METADATA_PATH)
     })?;
+    let booting_ips = use_node_meta_data(|handler| {
+        handler.get_booting_ips(NODES_METADATA_PATH)
+    })?;
+    for ip in booting_ips {
+         MessageSender::send_meta_data(ip)?
+    }
     MessageSender::redistribute()
 }
