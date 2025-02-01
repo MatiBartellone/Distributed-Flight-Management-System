@@ -1,4 +1,4 @@
-use crate::{data_access::{data_access_handler::use_data_access, row::Row}, utils::{errors::Errors, constants::{DATA_ACCESS_PATH, NODES_METADATA_PATH, KEYSPACE_METADATA_PATH}, types::node_ip::{self, NodeIp}}, queries::{insert_query, delete_query, create_keyspace_query, create_table_query}, query_delegation::query_delegator::QueryDelegator, meta_data::meta_data_handler::{use_keyspace_meta_data, use_node_meta_data}};
+use crate::{data_access::{data_access_handler::use_data_access, row::Row}, utils::{errors::Errors, constants::{DATA_ACCESS_PATH, NODES_METADATA_PATH, KEYSPACE_METADATA_PATH}, types::node_ip::NodeIp}, query_delegation::query_delegator::QueryDelegator, meta_data::meta_data_handler::{use_keyspace_meta_data, use_node_meta_data}};
 use std::fs;
 
 use super::builder_message::BuilderMessage;
@@ -51,7 +51,7 @@ impl MessageSender {
     where
         I: Iterator<Item = Row>,
     {
-        let keyspace = get_keyspace(&table);
+        let keyspace = get_keyspace(table);
         let own_node = use_node_meta_data(|handler| handler.get_own_ip(NODES_METADATA_PATH))?;
         for row in rows {
             let nodes_list = use_node_meta_data(|handler| handler.get_partition_full_ips(NODES_METADATA_PATH, &Some(row.primary_key.to_vec()), keyspace.to_owned()))?;

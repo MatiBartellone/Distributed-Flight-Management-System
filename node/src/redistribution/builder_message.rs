@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{utils::{errors::Errors, types::{token_conversor::{create_reserved_token, create_identifier_token, create_symbol_token, create_token_from_literal, create_paren_list_token, create_iterate_list_token, create_comparison_operation_token, create_token_literal, create_logical_operation_token, create_brace_list_token, create_data_type_token}, primary_key::PrimaryKey}, constants::{KEYSPACE_METADATA_PATH, REPLICATION}, parser_constants::COMMA}, data_access::{row::Row, column::{Column, self}}, queries::query::Query, parsers::{tokens::{token::Token, literal::create_literal}, query_parser::query_parser}, read_reparation::utils::to_hash_columns, meta_data::meta_data_handler::use_keyspace_meta_data};
+use crate::{utils::{errors::Errors, types::token_conversor::{create_reserved_token, create_identifier_token, create_symbol_token, create_token_from_literal, create_paren_list_token, create_iterate_list_token, create_comparison_operation_token, create_token_literal, create_logical_operation_token, create_brace_list_token, create_data_type_token}, constants::KEYSPACE_METADATA_PATH, parser_constants::COMMA}, data_access::{row::Row, column::Column}, queries::query::Query, parsers::{tokens::token::Token, query_parser::query_parser}, meta_data::meta_data_handler::use_keyspace_meta_data};
 use crate::parsers::tokens::terms::ComparisonOperators::Equal;
 use crate::parsers::tokens::terms::LogicalOperators::And;
-use crate::parsers::tokens::{data_type::DataType, literal::Literal};
+use crate::parsers::tokens::data_type::DataType;
 const COLON: &str = ":";
 pub struct BuilderMessage;
 
@@ -83,23 +83,25 @@ impl BuilderMessage {
     }
 
     fn create_query_keyspace(keyspace: String) -> Result<Vec<Token>, Errors> {
-        let mut query: Vec<Token> = Vec::new();
-        query.push(create_reserved_token("CREATE"));
-        query.push(create_reserved_token("KEYSPACE"));
-        query.push(create_identifier_token(&keyspace));
-        query.push(create_reserved_token("WITH"));
-        query.push(create_reserved_token("REPLICATION"));
-        query.push(create_comparison_operation_token(Equal));
-        query.push(brace_list(&keyspace)?);
+        let query: Vec<Token> = vec![
+            create_reserved_token("CREATE"),
+            create_reserved_token("KEYSPACE"),
+            create_identifier_token(&keyspace),
+            create_reserved_token("WITH"),
+            create_reserved_token("REPLICATION"),
+            create_comparison_operation_token(Equal),
+            brace_list(&keyspace)?
+        ];
         Ok(query)
     }
 
     fn create_query_table(table: String) -> Result<Vec<Token>, Errors> {
-        let mut query: Vec<Token> = Vec::new();
-        query.push(create_reserved_token("CREATE"));
-        query.push(create_reserved_token("TABLE"));
-        query.push(create_identifier_token(&table));
-        query.push(paren_list(&table)?);
+        let query: Vec<Token> = vec![
+            create_reserved_token("CREATE"),
+            create_reserved_token("TABLE"),
+            create_identifier_token(&table),
+            paren_list(&table)?
+        ];
         Ok(query)
     }
 
@@ -108,16 +110,18 @@ impl BuilderMessage {
 
 fn brace_list(keyspace: &str) -> Result<Token,Errors> {
     let (replication, strategy) = get_meta_data_keyspace(keyspace)?;
-    let mut list: Vec<Token> = Vec::new();
-    list.push(create_token_literal("class", DataType::Text));
-    list.push(create_symbol_token(COLON));
-    list.push(create_token_literal(&strategy, DataType::Text));
+    let list: Vec<Token> = vec![
+        create_token_literal("class", DataType::Text),
+        create_symbol_token(COLON),
+        create_token_literal(&strategy, DataType::Text),
 
-    list.push(create_symbol_token(COMMA));
+        create_symbol_token(COMMA),
 
-    list.push(create_token_literal("replication_factor", DataType::Text));
-    list.push(create_symbol_token(COLON));
-    list.push(create_token_literal(&replication, DataType::Int));
+        create_token_literal("replication_factor", DataType::Text),
+        create_symbol_token(COLON),
+        create_token_literal(&replication, DataType::Int)
+    ];
+    
 
     Ok(create_brace_list_token(list))
 }
