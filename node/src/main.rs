@@ -6,7 +6,7 @@ use node::hinted_handoff::hints_sender::HintsSender;
 use node::meta_data::meta_data_handler::use_node_meta_data;
 use node::node_initializer::NodeInitializer;
 use node::terminal_input::TerminalInput;
-use node::utils::config_constants::MAX_CLIENTS;
+use node::utils::config_constants::{BOOTING_TIMEOUT_SECS, MAX_CLIENTS};
 use node::utils::constants::NODES_METADATA_PATH;
 use node::utils::errors::Errors;
 use node::utils::types::node_ip::NodeIp;
@@ -17,6 +17,7 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::thread::sleep;
 use std::time::Duration;
 use std::{env, thread};
+use node::utils::functions::redistribute_data;
 
 fn main() -> Result<(), Errors> {
     let (uses_config, config_file) = get_args();
@@ -31,8 +32,7 @@ fn main() -> Result<(), Errors> {
     if needs_recovering {
         HintsReceiver::start_listening(node_data.get_ip())?;
     } else if needs_booting {
-        // booting receiver
-        sleep(Duration::from_secs(5));
+        sleep(Duration::from_secs(BOOTING_TIMEOUT_SECS));
         use_node_meta_data(|handler| handler.set_own_node_active(NODES_METADATA_PATH))?;
         println!("Booting finished");
     }
@@ -72,7 +72,7 @@ fn gossip() -> Result<(), Errors> {
     sleep(Duration::from_secs(1));
     let node_added_or_removed = GossipEmitter::start_gossip()?;
     if node_added_or_removed {
-        // check tables and send data
+        redistribute_data()?
     }
     use_node_meta_data(|handler| handler.check_for_perished_shutting_down_nodes())?;
     Handler::check_for_perished()?;

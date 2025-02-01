@@ -23,9 +23,6 @@ impl GossipEmitter {
         if let Ok(mut stream) = TcpStream::connect(ip.get_gossip_socket()) {
             Self::send_nodes_list(&mut stream)?;
             let node_added_or_removed = Self::get_nodes_list(&mut stream)?;
-            if node_added_or_removed {
-                use_node_meta_data(|handler| handler.update_ranges(NODES_METADATA_PATH))?;
-            }
             Ok(node_added_or_removed)
         } else {
             Self::set_inactive(ip)?;

@@ -202,6 +202,17 @@ impl NodesMetaDataAccess {
         Ok(nodes)
     }
 
+    pub fn get_booting_ips(&self, path: &str) -> Result<Vec<NodeIp>, Errors> {
+        let mut nodes = Vec::new();
+        let cluster = NodesMetaDataAccess::read_cluster(path)?;
+        for node in cluster.get_other_nodes() {
+            if node.state == State::Booting {
+                nodes.push(NodeIp::new_from_ip(node.get_ip()));
+            }
+        }
+        Ok(nodes)
+    }
+
     pub fn update_ranges(&self, path: &str) -> Result<(), Errors> {
         let cluster = Self::read_cluster(path)?;
         let mut own_node = Node::new_from_node(cluster.get_own_node());
