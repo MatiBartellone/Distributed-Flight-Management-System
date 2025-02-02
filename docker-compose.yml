@@ -9,7 +9,7 @@ services:
       - IS_FIRST=true
     networks:
       cluster:
-        ipv4_address: 127.0.0.2
+        ipv4_address: 192.168.100.2
   seed_node:
     build:
       context: ./node
@@ -21,7 +21,7 @@ services:
       - first_seed_node
     networks:
       cluster:
-        ipv4_address: 127.0.0.3
+        ipv4_address: 192.168.100.3
   node:
     build:
       context: ./node
@@ -32,8 +32,7 @@ services:
     depends_on:
       - first_seed_node
     networks:
-      cluster:
-        ipv4_address: 127.0.0.7
+      cluster: {}
   flight_app:
     build:
       context: ./flight_app
@@ -48,10 +47,14 @@ services:
     build:
       context: ./test-client
       dockerfile: Dockerfile
+    stdin_open: true
+    tty: true
+    networks:
+      - cluster
 networks:
   cluster:
     driver: bridge
     ipam:
       driver: default
       config:
-        - subnet: "127.0.0.0/24"
+        - subnet: "192.168.100.0/24"

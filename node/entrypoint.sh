@@ -9,14 +9,10 @@ ip:
   ip: "$IP_ADDRESS"
   port: 9090
 seed_ip:
-  ip: "127.0.0.2"
+  ip: "192.168.100.2"
   port: 9090
 is_first: ${IS_FIRST}
 is_seed: ${IS_SEED}
 EOF
-
-echo "=== Configuración final (src/config.yaml) ==="
-cat src/config.yaml
-echo ""
 
 ./target/release/node default
