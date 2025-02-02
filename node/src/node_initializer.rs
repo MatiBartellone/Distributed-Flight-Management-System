@@ -17,7 +17,7 @@ use crate::utils::types::node_ip::NodeIp;
 use serde::Deserialize;
 use std::fs::File;
 use std::io::Write;
-use std::{env, fs, io, thread};
+use std::{fs, io, thread};
 
 pub struct NodeInitializer {
     pub ip: NodeIp,
@@ -47,12 +47,13 @@ impl NodeInitializer {
     }
 
     fn get_data_by_user() -> Result<Self, Errors> {
-        let ip = env::var("HOSTNAME").unwrap();
-        println!("{:?}", ip);
-        let port = 9090;
+        let ip = get_user_data("Node's ip: ");
+
+        let port = get_user_data("Node's port ([port, port+5] are used): ");
+        let port = port.parse::<u16>().expect("Could not parse port");
         
         let (seed_ip, seed_port, is_first) =
-            match "Y" {
+            match get_user_data("Is this the first node? [Y][N]: ").as_str() {
                 "Y" => (ip.to_string(), port.to_string(), true),
                 _ => (
                     get_user_data("Seed node ip: "),

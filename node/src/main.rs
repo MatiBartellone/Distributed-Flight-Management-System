@@ -77,6 +77,7 @@ fn gossip() -> Result<(), Errors> {
 }
 
 fn set_node_listener(ip: NodeIp) -> Result<(), Errors> {
+    println!("Ip --> {}", ip.get_std_socket());
     let listener = TcpListener::bind(ip.get_std_socket()).expect("Error binding socket");
     println!("Server listening on {}", ip.get_string_ip());
 

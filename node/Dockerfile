@@ -1,5 +1,9 @@
 FROM rust
+# RUN apt-get update && apt-get install -y curl
 WORKDIR /node
 COPY . /node
 RUN cargo build --release
-CMD ["./target/release/node"]
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
