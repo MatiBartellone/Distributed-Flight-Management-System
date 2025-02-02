@@ -10,6 +10,11 @@ services:
     networks:
       cluster:
         ipv4_address: 192.168.100.2
+    healthcheck:
+      test: ["CMD", "nc", "-z", "192.168.100.2", "9090"]
+      interval: 5s
+      retries: 10
+      start_period: 5s
   seed_node:
     build:
       context: ./node
@@ -18,7 +23,8 @@ services:
       - IS_SEED=true
       - IS_FIRST=false
     depends_on:
-      - first_seed_node
+      first_seed_node:
+        condition: service_healthy
     networks:
       cluster:
         ipv4_address: 192.168.100.3
@@ -32,23 +38,29 @@ services:
     depends_on:
       - first_seed_node
     networks:
-      cluster: {}
+      - cluster
   flight_app:
     build:
       context: ./flight_app
       dockerfile: Dockerfile
+    depends_on:
+      - first_seed_node
     networks:
       - cluster
   simulator:
     build:
       context: ./simulator
       dockerfile: Dockerfile
+    depends_on:
+      - first_seed_node
+    networks:
+      - cluster
   test-client:
     build:
       context: ./test-client
       dockerfile: Dockerfile
-    stdin_open: true
-    tty: true
+    depends_on:
+      - first_seed_node
     networks:
       - cluster
 networks:

@@ -13,6 +13,7 @@ pub mod query_delegation;
 pub mod read_reparation;
 pub mod response_builders;
 pub mod utils;
+pub mod logger;
 
 pub mod client_handler;
 #[cfg(test)]

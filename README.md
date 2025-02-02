@@ -27,3 +27,4 @@ A continuacion se detallan los pasos para compilar y ejecutar el programa.
 • Ver logs hasta el momento: docker logs <container_id>
 • Ver logs de todos en tiempo real de un contenedor en especifico: docker logs -f <container_id>
 • Ejecutar con entrada de la terminal: docker-compose run --rm <service>
+Entrar 
