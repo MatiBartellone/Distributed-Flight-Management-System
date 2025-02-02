@@ -4,10 +4,10 @@ use std::fs::{File, OpenOptions};
 use std::io::{Seek, SeekFrom, Write};
 //use std::sync::{Arc, Mutex, MutexGuard};
 use super::{keyspace::Keyspace, table::Table};
+use crate::utils::constants::KEYSPACE_METADATA_PATH;
 use crate::utils::functions::{deserialize_from_str, write_all_to_file};
 use crate::utils::types::primary_key::PrimaryKey;
 use std::{collections::HashMap, io::Read};
-use crate::utils::constants::KEYSPACE_METADATA_PATH;
 
 #[derive(Debug)]
 pub struct KeyspaceMetaDataAccess;
@@ -52,6 +52,13 @@ impl KeyspaceMetaDataAccess {
         Ok(keyspace.replication_factor)
     }
 
+    pub fn get_strategy(&self, path: String, keyspace_name: &str) -> Result<String, Errors> {
+        let mut file = Self::open_file(path)?;
+        let mut keyspaces = Self::extract_hash_from_json(&mut file)?;
+        let keyspace = get_keyspace_mutable(&mut keyspaces, keyspace_name)?;
+        Ok(keyspace.replication_strategy.clone())
+    }
+
     pub fn get_tables_from_keyspace(
         &self,
         path: String,
@@ -92,6 +99,13 @@ impl KeyspaceMetaDataAccess {
         keyspaces.remove(name);
         Self::save_hash_to_json(&mut file, &keyspaces)?;
         Ok(())
+    }
+
+    pub fn get_keyspaces_names(&self, path: String) -> Result<Vec<String>, Errors> {
+        let mut file = Self::open_file(path)?;
+        let keyspaces = Self::extract_hash_from_json(&mut file)?;
+        Self::reset_pointer(&mut file)?;
+        Ok(keyspaces.keys().cloned().collect::<Vec<String>>())
     }
 
     pub fn get_columns_type(

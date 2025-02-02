@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 pub struct Literal {
     /// El valor literal como una cadena de texto.
     pub value: String,
-    
+
     /// El tipo de dato asociado al literal (por ejemplo, `Int`, `Decimal`, etc.).
     pub(crate) data_type: DataType,
 }
@@ -127,7 +127,6 @@ fn is_valid_time(input: &str) -> Option<Token> {
     None
 }
 
-
 /// Convierte una cadena de texto en un `Token::Term(Term::Literal)` según el tipo de dato.
 ///
 /// Esta función verifica diferentes tipos de literales como `Date`, `Time`, `BigInt`, `Decimal`, `Boolean`, y `Text`, y retorna un `Token::Term` si la cadena es válida para alguno de estos tipos.
@@ -158,7 +157,6 @@ pub fn to_literal(word: &str) -> Option<Token> {
     }
     None
 }
-
 
 /// Crea un `Literal` con el valor y tipo de dato especificado.
 ///

@@ -56,6 +56,19 @@ impl Cluster {
         Ok(ips)
     }
 
+    pub fn get_node_pos_by_range(&self, range: usize) -> Result<usize, Errors> {
+        if self.own_node.get_range().is_in_range(range) {
+            return Ok(self.own_node.get_pos());
+        } else {
+            for node in self.other_nodes.iter() {
+                if node.get_range().is_in_range(range) {
+                    return Ok(node.get_pos());
+                }
+            }
+        }
+        Ok(1)
+    }
+
     fn is_in_range(start: usize, end: usize, position: usize, maximum: usize) -> bool {
         if end <= maximum {
             position >= start && position < end

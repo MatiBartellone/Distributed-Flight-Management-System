@@ -14,6 +14,7 @@ use crate::utils::functions::{
     write_to_stream,
 };
 use crate::utils::types::node_ip::NodeIp;
+use crate::utils::types::range::Range;
 use serde::Deserialize;
 use std::fs::File;
 use std::io::Write;
@@ -74,7 +75,7 @@ impl NodeInitializer {
         Ok(Self {
             ip: NodeIp::new_from_string(ip.as_str(), port)?,
             seed_ip: NodeIp::new_from_string(seed_ip.as_str(), seed_port)?,
-            node: Node::new(&node_ip, 1, is_seed).expect("Error creating node"),
+            node: Node::new(&node_ip, 1, is_seed, Range::new_full()).expect("Error creating node"),
             is_first,
             is_seed,
         })
@@ -91,7 +92,8 @@ impl NodeInitializer {
         }
         store_ip(&NodeIp::new_from_ip(&config.ip))?;
         Ok(Self {
-            node: Node::new(&config.ip, 1, config.is_seed).expect("Error creating node"),
+            node: Node::new(&config.ip, 1, config.is_seed, Range::new_full())
+                .expect("Error creating node"),
             ip: config.ip,
             seed_ip: config.seed_ip,
             is_first: config.is_first,
@@ -145,24 +147,27 @@ impl NodeInitializer {
         }
     }
 
-    pub fn set_cluster(&self) -> Result<bool, Errors> {
+    pub fn set_cluster(&self) -> Result<(bool, bool), Errors> {
         let mut nodes = Vec::<Node>::new();
         let mut node = self.get_node();
-        let mut needs_booting = false;
+        let (mut needs_recovering, mut needs_booting) = (false, false);
         if !self.is_first {
+            needs_booting = true;
+            node.set_booting();
             let mut stream = connect_to_socket(self.get_seed_ip().get_seed_listener_socket())?;
             nodes = deserialize_from_slice(read_exact_from_stream(&mut stream)?.as_slice())?;
-            needs_booting = set_node_pos(&mut node, &nodes);
-            if needs_booting {
+            needs_recovering = set_node_pos(&mut node, &nodes);
+            if needs_recovering {
                 nodes = eliminate_node_by_ip(&nodes, node.get_ip())
             }
+            node.set_range(Range::from_fraction(node.get_pos(), nodes.len() + 1)); // set range in pos / total nodes
             write_to_stream(&mut stream, serialize_to_string(&node)?.as_bytes())?
         }
         let cluster = Cluster::new(Node::new_from_node(&node), nodes);
         if let Err(e) = NodesMetaDataAccess::write_cluster(NODES_METADATA_PATH, &cluster) {
             println!("{}", e);
         }
-        Ok(needs_booting)
+        Ok((needs_recovering, needs_booting))
     }
 }
 
@@ -178,7 +183,7 @@ fn set_node_pos(node: &mut Node, nodes: &Vec<Node>) -> bool {
     for received_node in nodes {
         if received_node.get_ip() == node.get_ip() {
             node.position = received_node.get_pos();
-            node.set_booting();
+            node.set_recovering();
             return true;
         }
         if received_node.get_pos() > higher_position {

@@ -2,7 +2,6 @@
 //!
 //! Este módulo proporciona la estructura `WordsReserved` para manejar un conjunto de palabras reservadas predefinidas.
 
-
 use std::collections::HashSet;
 
 const RESERVED_WORDS: &[&str] = &[
@@ -48,7 +47,6 @@ const RESERVED_WORDS: &[&str] = &[
     "EXISTS",
 ];
 
-
 /// Representa un conjunto de palabras reservadas predefinidas.
 ///
 /// La estructura `WordsReserved` permite verificar si una palabra pertenece al conjunto de palabras
@@ -58,7 +56,6 @@ pub struct WordsReserved {
 }
 
 impl WordsReserved {
-    
     /// Crea una nueva instancia de `WordsReserved` con las palabras reservadas predefinidas.
     ///
     /// # Retorno

@@ -2,6 +2,7 @@ use crate::data_access::data_access_handler::DataAccessHandler;
 use crate::data_access::row::Row;
 use crate::meta_data::meta_data_handler::MetaDataHandler;
 use crate::parsers::query_parser::{query_lexer, query_parser};
+use crate::read_reparation::row_response::RowResponse;
 use crate::utils::errors::Errors;
 use crate::utils::types::node_ip::NodeIp;
 use std::fs::File;
@@ -9,7 +10,6 @@ use std::io::Write;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Once;
 use std::thread;
-use crate::read_reparation::row_response::RowResponse;
 
 static INIT: Once = Once::new();
 static FINISHED: AtomicUsize = AtomicUsize::new(0);

@@ -383,7 +383,7 @@ impl DataAccess {
         Ok(false)
     }
 
-    fn get_deserialized_stream(&self, path: &String) -> Result<impl Iterator<Item = Row>, Errors> {
+    pub fn get_deserialized_stream(&self, path: &String) -> Result<impl Iterator<Item = Row>, Errors> {
         let file = self.open_file(path)?;
         let reader = BufReader::new(file);
         let rows: Vec<Row> =
@@ -509,7 +509,6 @@ mod tests {
     fn get_updated_string() -> String {
         "{\"columns\":[{\"column_name\":\"name\",\"value\":{\"value\":\"Jane\",\"data_type\":\"Text\"}".to_string()
     }
-
 
     #[test]
     fn test_insert_row_pk_already_exists() {

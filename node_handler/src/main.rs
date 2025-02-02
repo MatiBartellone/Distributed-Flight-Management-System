@@ -34,6 +34,9 @@ fn print_node_list(nodes_vec: &mut Vec<Node>) {
             State::Active => Box::new(color::Green),
             State::Inactive => Box::new(color::Red),
             State::Booting => Box::new(color::Blue),
+            State::StandBy => Box::new(color::Yellow),
+            State::ShuttingDown => Box::new(color::Rgb(255, 128, 00)),
+            State::Recovering => Box::new(color::Magenta),
         };
 
         let (seed_color, is_seed): (Box<dyn termion::color::Color>, &str) = match node.is_seed {
@@ -93,6 +96,9 @@ pub enum State {
     Active,
     Inactive,
     Booting,
+    StandBy,
+    ShuttingDown,
+    Recovering,
 }
 
 impl Display for State {
@@ -101,6 +107,9 @@ impl Display for State {
             State::Active => write!(f, "Active"),
             State::Inactive => write!(f, "Inactive"),
             State::Booting => write!(f, "Booting"),
+            State::StandBy => write!(f, "StandBy"),
+            State::ShuttingDown => write!(f, "ShuttingDown"),
+            State::Recovering => write!(f, "Recovering"),
         }
     }
 }

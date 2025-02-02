@@ -1,17 +1,14 @@
-use std::collections::HashMap;
 use super::repair_row::RepairRow;
 use super::response_manager::ResponseManager;
 use super::utils::to_hash_rows;
 use crate::utils::types::node_ip::NodeIp;
 use crate::{
     data_access::row::Row,
-    parsers::{
-        query_parser::query_parser,
-        tokens::token::Token,
-    },
+    parsers::{query_parser::query_parser, tokens::token::Token},
     query_delegation::query_delegator::QueryDelegator,
     utils::{constants::BEST, errors::Errors},
 };
+use std::collections::HashMap;
 
 pub struct ReadRepair {
     response_manager: ResponseManager,
@@ -45,7 +42,7 @@ impl ReadRepair {
             .initializer(keyspace, table, pks.keys().cloned().collect());
         Ok(())
     }
-    
+
     fn repair(&self) -> Result<(), Errors> {
         let better_response = self.response_manager.cast_to_protocol_row(BEST)?;
         for ip in self.response_manager.get_ips() {
@@ -74,8 +71,9 @@ impl ReadRepair {
     ) -> Result<(), Errors> {
         for node_row in node_rows {
             if let Some(best_row) = best.remove(&node_row.primary_key) {
-                let (change_row, query) =
-                    self.repair_row.repair_row(best_row.clone(), node_row.clone())?;
+                let (change_row, query) = self
+                    .repair_row
+                    .repair_row(best_row.clone(), node_row.clone())?;
                 if change_row {
                     ReadRepair::send_reparation(query, ip)?;
                 }
@@ -103,6 +101,5 @@ impl ReadRepair {
         let node_ip = NodeIp::new_from_single_string(ip)?;
         QueryDelegator::send_to_node(node_ip, query_parsed)?;
         Ok(())
-    }    
+    }
 }
-

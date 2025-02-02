@@ -8,13 +8,12 @@ use crate::utils::parser_constants::{
     SELECT, SET, WHERE,
 };
 
-
 /// Enum que representa los distintos tipos de tokens que se pueden generar durante
 /// la tokenización de una consulta CQL.
-/// 
+///
 /// Los tokens están organizados en una estructura jerárquica, permitiendo representar
 /// de manera eficiente la consulta para su análisis posterior.
-/// 
+///
 /// # Tipos de tokens
 /// - **Identifier(String):** Representa identificadores de objetos o entidades, como nombres de columnas,
 ///   tablas, keyspaces, etc. Los identificadores pueden estar entre comillas dobles para preservar su formato exacto.
@@ -168,12 +167,11 @@ fn close_sub_list_if(word: &str) -> bool {
         && !(word_upper == AND || word_upper == OR || word_upper == NOT || word_upper == EXISTS)
 }
 
-
 /// Tokenización recursiva.
 ///
 /// Esta función es la base del proceso de tokenización y permite manejar
 /// estructuras anidadas como sublistas o bloques delimitados.
-/// 
+///
 /// # Parámetros
 /// - `words`: Vector de palabras de entrada.
 /// - `closure`: Función que determina la condición de cierre de una sublista.
@@ -207,7 +205,6 @@ where
     Ok(res)
 }
 
-
 /// Tokenizador de consultas CQL.
 ///
 /// Este módulo convierte una consulta en texto en una secuencia de tokens, siguiendo
@@ -234,7 +231,7 @@ where
 ///     "=".to_string(),
 ///     "42".to_string(),
 /// ];
-/// 
+///
 /// let resultado = tokenize(consulta);
 /// assert!(resultado.is_ok());
 /// ```
@@ -772,7 +769,7 @@ mod tests {
             Token::Identifier("users".to_string()), // Manejo de comillas
             Token::Reserved("ADD".to_string()),
             Token::Identifier("age".to_string()), // Manejo de comillas
-            Token::DataType(DataType::Int) // Tipo de dato
+            Token::DataType(DataType::Int),       // Tipo de dato
         ];
 
         let result = tokenize(query).unwrap();

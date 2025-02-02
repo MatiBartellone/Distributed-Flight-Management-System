@@ -143,8 +143,8 @@ impl BytesCursor {
     pub fn read_bool(&mut self) -> Result<bool, Errors> {
         let byte = self.read_u8()?; // Lee un byte
         match byte {
-            0 => Ok(false),  // Si el byte es 0, devuelve false
-            1 => Ok(true),   // Si el byte es 1, devuelve true
+            0 => Ok(false), // Si el byte es 0, devuelve false
+            1 => Ok(true),  // Si el byte es 1, devuelve true
             _ => Err(Errors::ProtocolError(String::from("Invalid boolean value"))), // Si no es 0 o 1, da error
         }
     }
