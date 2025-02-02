@@ -81,7 +81,7 @@ impl CassandraConnection {
                 .iter()
                 .cloned(),
         );
-        let certs = Self::load_certs("../certificates/certificate.pem")?;
+        let certs = Self::load_certs("certificates/certificate.pem")?;
         for cert in certs {
             root_store.add(cert).map_err(|_| "Failed to add cert to root store".to_string())?;
         }

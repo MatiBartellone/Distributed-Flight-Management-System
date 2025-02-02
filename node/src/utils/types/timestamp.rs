@@ -1,4 +1,6 @@
-use chrono::Utc;
+use std::fmt;
+
+use chrono::{MappedLocalTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
@@ -39,6 +41,18 @@ impl Timestamp {
     pub fn has_perished_seconds(&self, seconds: i64) -> bool {
         let milliseconds = seconds * 1000;
         Utc::now().timestamp_millis() > self.timestamp + milliseconds
+    }
+}
+
+impl fmt::Display for Timestamp {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let datetime_opt = Utc.timestamp_millis_opt(self.timestamp);
+        match datetime_opt {
+            MappedLocalTime::Single(datetime) => {
+                write!(f, "{}", datetime.format("%Y-%m-%d %H:%M:%S%.3f"))
+            }
+            _ => write!(f, "Invalid timestamp"),
+        }
     }
 }
 

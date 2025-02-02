@@ -1,5 +1,6 @@
 use rustls::{ServerConnection, StreamOwned};
 
+use crate::logger::Logger;
 use crate::meta_data::meta_data_handler::{use_client_meta_data, use_node_meta_data};
 use crate::meta_data::nodes::node::State;
 use crate::parsers::parser_factory::ParserFactory;
@@ -17,18 +18,24 @@ impl ClientHandler {
     pub fn handle_client(
         mut stream: StreamOwned<ServerConnection, TcpStream>,
     ) -> Result<(), Errors> {
+        let logger = Logger::new("server.log");
+        logger.log_message("New client.");
+        
         add_new_client()?;
         loop {
             match read_exact_from_tls_stream(&mut stream) {
                 Err(_) => {
-                    println!("Client disconnected");
+                    logger.log_message("Client disconnected.");
                     delete_client()?;
                     break;
                 }
                 Ok(vec) => match execute_request(vec.clone()) {
-                    Ok(response) => write_to_tls_stream(&mut stream, response.as_slice())?,
+                    Ok(response) => {
+                        logger.log_response(&format!("Respuesta enviada: {:?}", response));    
+                        write_to_tls_stream(&mut stream, response.as_slice())?
+                    }
                     Err(e) => {
-                        println!("{}", &e);
+                        logger.log_error(&format!("{}", &e));
                         let frame = ErrorBuilder::build_error_frame(
                             Frame::parse_frame(vec.as_slice())?,
                             e,

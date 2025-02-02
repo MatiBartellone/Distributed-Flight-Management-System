@@ -15,6 +15,7 @@ pub mod redistribution;
 pub mod response_builders;
 pub mod terminal_input;
 pub mod utils;
+pub mod logger;
 
 pub mod client_handler;
 #[cfg(test)]

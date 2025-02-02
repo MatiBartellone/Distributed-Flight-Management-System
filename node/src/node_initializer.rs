@@ -52,7 +52,7 @@ impl NodeInitializer {
 
         let port = get_user_data("Node's port ([port, port+5] are used): ");
         let port = port.parse::<u16>().expect("Could not parse port");
-
+        
         let (seed_ip, seed_port, is_first) =
             match get_user_data("Is this the first node? [Y][N]: ").as_str() {
                 "Y" => (ip.to_string(), port.to_string(), true),

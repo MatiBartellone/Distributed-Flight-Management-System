@@ -1,0 +1,62 @@
+[ req ]
+default_bits        = 2048
+default_keyfile     = privkey.pem
+default_md          = sha256
+string_mask         = utf8only
+distinguished_name  = req_distinguished_name
+req_extensions      = v3_req
+x509_extensions     = v3_req
+prompt              = no  # Esto evita que OpenSSL te pida los valores de manera interactiva
+
+[ req_distinguished_name ]
+countryName         = AR
+stateOrProvinceName = Buenos Aires
+localityName        = Capital
+organizationName    = FIUBA
+organizationalUnitName = Inmutables
+commonName          = 127.0.0.1
+
+[ v3_req ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+IP.1 = 127.0.0.1
+IP.2 = 127.0.0.2
+IP.3 = 127.0.0.3
+IP.4 = 127.0.0.4
+IP.5 = 127.0.0.5
+IP.6 = 127.0.0.6
+IP.7 = 127.0.0.7
+IP.8 = 127.0.0.8
+IP.9 = 127.0.0.9
+IP.10 = 100.121.23.76    # MAti pc
+IP.11 = 100.121.215.44   # Ivan notebook
+IP.12 = 100.125.226.56   # Thiago notebook
+IP.13 = 100.120.124.15   # Ivan PC
+IP.14 = 100.116.150.128  # Mati notebook 
+IP.15 = 100.73.119.43    # Thiago PC
+
+IP.16 = 192.168.100.1
+IP.17 = 192.168.100.2
+IP.18 = 192.168.100.3
+IP.19 = 192.168.100.4
+IP.20 = 192.168.100.5
+IP.21 = 192.168.100.6
+IP.22 = 192.168.100.7
+IP.23 = 192.168.100.8
+IP.24 = 192.168.100.9
+IP.25 = 192.168.100.10
+IP.26 = 192.168.100.11
+IP.27 = 192.168.100.12
+IP.28 = 192.168.100.13
+IP.29 = 192.168.100.14
+IP.30 = 192.168.100.15
+IP.31 = 192.168.100.16
+IP.32 = 192.168.100.17
+IP.33 = 192.168.100.18
+IP.34 = 192.168.100.19
+IP.35 = 192.168.100.20
+IP.36 = 192.168.100.21
+IP.37 = 192.168.100.22
+IP.38 = 192.168.100.23
+IP.39 = 192.168.100.24
