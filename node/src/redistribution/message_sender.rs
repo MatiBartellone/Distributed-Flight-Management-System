@@ -1,4 +1,4 @@
-use crate::{data_access::{data_access_handler::use_data_access, row::Row}, utils::{errors::Errors, constants::{DATA_ACCESS_PATH, NODES_METADATA_PATH, KEYSPACE_METADATA_PATH}, types::node_ip::NodeIp}, query_delegation::query_delegator::QueryDelegator, meta_data::meta_data_handler::{use_keyspace_meta_data, use_node_meta_data}, queries::drop_keyspace_query};
+use crate::{data_access::{data_access_handler::use_data_access, row::Row}, utils::{errors::Errors, constants::{DATA_ACCESS_PATH, NODES_METADATA_PATH, KEYSPACE_METADATA_PATH}, types::node_ip::NodeIp}, query_delegation::query_delegator::QueryDelegator, meta_data::meta_data_handler::{use_keyspace_meta_data, use_node_meta_data}};
 use std::fs;
 use crate::queries::query::Query;
 use super::builder_message::BuilderMessage;
@@ -81,8 +81,8 @@ impl MessageSender {
     }
 
     fn send_to_node(node_ip: NodeIp, query: Box<dyn Query>){
-        match QueryDelegator::send_to_node(node_ip, query) {
-            _ => {}//ingonor el error
+        if QueryDelegator::send_to_node(node_ip, query).is_err() {
+            //ingonor el error
         }
     }
 }
