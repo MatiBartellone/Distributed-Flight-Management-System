@@ -3,6 +3,6 @@ WORKDIR /node
 COPY . /node
 RUN cargo build --release
 
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY *.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/*.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

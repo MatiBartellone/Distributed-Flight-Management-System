@@ -10,6 +10,8 @@ services:
     environment:
       - IS_SEED=true
       - IS_FIRST=true
+    volumes:
+      - shared_metadata:/node/src/meta_data/nodes/
     networks:
       cluster:
         ipv4_address: 192.168.100.2
@@ -46,15 +48,6 @@ services:
       - first_seed_node
     networks:
       - cluster
-  simulator:
-    build:
-      context: ./simulator
-      dockerfile: Dockerfile
-    container_name: "simulator"
-    depends_on:
-      - first_seed_node
-    networks:
-      - cluster
   test-client:
     build:
       context: ./test-client
@@ -64,6 +57,16 @@ services:
       - first_seed_node
     networks:
       - cluster
+  node_handler:
+    build:
+      context: ./node_handler
+      dockerfile: Dockerfile
+    container_name: monitor
+    volumes:
+      - shared_metadata:/node/src/meta_data/nodes/
+    command: cargo run /node/src/meta_data/nodes/metadata.json
+    networks:
+      - cluster
 networks:
   cluster:
     driver: bridge
@@ -71,3 +74,5 @@ networks:
       driver: default
       config:
         - subnet: "192.168.100.0/24"
+volumes:
+  shared_metadata:

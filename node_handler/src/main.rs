@@ -6,6 +6,7 @@ use std::fmt::Display;
 use std::thread::sleep;
 use std::time::Duration;
 use termion::{color, style};
+use std::env;
 
 
 fn clear_screen() {
@@ -61,13 +62,9 @@ fn print_node_list(nodes_vec: &mut Vec<Node>) {
 }
 
 fn main() {
-    print!("Enter a node meta data path");
-    io::stdout().flush().expect("Failed to flush stdout");
-    let mut path = String::new();
-    io::stdin()
-        .read_line(&mut path)
-        .expect("Error reading data");
-    path = path.trim().to_string();
+
+    let args: Vec<String> = env::args().collect();
+    let path = &args[1];
     loop {
         let p = path.clone();
         print_node_list(&mut read_cluster(p.as_str()));
