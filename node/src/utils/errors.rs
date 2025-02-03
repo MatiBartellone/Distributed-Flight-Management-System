@@ -57,6 +57,27 @@ impl Errors {
         }
     }
 
+    pub fn new(error_type: &[u8], msg: String) -> Errors {
+        match error_type {
+            SERVER_ERROR => Errors::ServerError(msg),
+            PROTOCOL_ERROR => Errors::ProtocolError(msg),
+            BAD_CREDENTIALS => Errors::BadCredentials(msg),
+            UNAVAILABLE_EXCEPTION => Errors::UnavailableException(msg),
+            OVERLOADED => Errors::Overloaded(msg),
+            IS_BOOTSTRAPPING => Errors::IsBootstrapping(msg),
+            TRUNCATE_ERROR => Errors::TruncateError(msg),
+            WRITE_TIMEOUT => Errors::WriteTimeout(msg),
+            READ_TIMEOUT => Errors::ReadTimeout(msg),
+            SYNTAX_ERROR => Errors::SyntaxError(msg),
+            UNAUTHORIZED => Errors::Unauthorized(msg),
+            INVALID => Errors::Invalid(msg),
+            CONFIG_ERROR => Errors::ConfigError(msg),
+            ALREADY_EXISTS => Errors::AlreadyExists(msg),
+            UNPREPARED => Errors::Unprepared(msg),
+            _ => Errors::ServerError(msg),
+        }
+    }
+
     pub fn serialize(&self) -> Vec<u8> {
         let mut data = Vec::new();
         match self {

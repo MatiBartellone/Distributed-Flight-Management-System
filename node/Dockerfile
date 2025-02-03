@@ -1,5 +1,4 @@
 FROM rust
-# RUN apt-get update && apt-get install -y curl
 WORKDIR /node
 COPY . /node
 RUN cargo build --release

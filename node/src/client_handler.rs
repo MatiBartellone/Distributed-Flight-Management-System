@@ -5,12 +5,13 @@ use crate::meta_data::meta_data_handler::{use_client_meta_data, use_node_meta_da
 use crate::meta_data::nodes::node::State;
 use crate::parsers::parser_factory::ParserFactory;
 use crate::response_builders::error_builder::ErrorBuilder;
-use crate::utils::constants::{CLIENT_METADATA_PATH, NODES_METADATA_PATH};
+use crate::utils::constants::{CLIENT_METADATA_PATH, LOGGER_PATH, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::parser_constants::{AUTH_RESPONSE, AUTH_SUCCESS, STARTUP};
 use crate::utils::types::frame::Frame;
 use crate::utils::types::tls_stream::{read_exact_from_tls_stream, write_to_tls_stream};
 use std::net::TcpStream;
+use crate::utils::frame_reader::FrameReader;
 
 pub struct ClientHandler {}
 
@@ -18,8 +19,7 @@ impl ClientHandler {
     pub fn handle_client(
         mut stream: StreamOwned<ServerConnection, TcpStream>,
     ) -> Result<(), Errors> {
-        let logger = Logger::new("server.log");
-        logger.log_message("New client.");
+        let logger = Logger::new(LOGGER_PATH);
         
         add_new_client()?;
         loop {
@@ -31,7 +31,8 @@ impl ClientHandler {
                 }
                 Ok(vec) => match execute_request(vec.clone()) {
                     Ok(response) => {
-                        logger.log_response(&format!("Respuesta enviada: {:?}", response));    
+                        let string_response = FrameReader::read_frame(Frame::parse_frame(response.as_slice())?)?;
+                        logger.log_response(&string_response);    
                         write_to_tls_stream(&mut stream, response.as_slice())?
                     }
                     Err(e) => {

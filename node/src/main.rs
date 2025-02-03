@@ -3,11 +3,12 @@ use node::gossip::gossip_emitter::GossipEmitter;
 use node::hinted_handoff::handler::Handler;
 use node::hinted_handoff::hints_receiver::HintsReceiver;
 use node::hinted_handoff::hints_sender::HintsSender;
+use node::logger::Logger;
 use node::meta_data::meta_data_handler::use_node_meta_data;
 use node::node_initializer::NodeInitializer;
 use node::terminal_input::TerminalInput;
+use node::utils::constants::{LOGGER_PATH, NODES_METADATA_PATH};
 use node::utils::config_constants::{BOOTING_TIMEOUT_SECS, MAX_CLIENTS};
-use node::utils::constants::NODES_METADATA_PATH;
 use node::utils::errors::Errors;
 use node::utils::types::node_ip::NodeIp;
 use node::utils::types::tls_stream::{create_server_config, get_stream_owned};
@@ -34,7 +35,8 @@ fn main() -> Result<(), Errors> {
     } else if needs_booting {
         sleep(Duration::from_secs(BOOTING_TIMEOUT_SECS));
         use_node_meta_data(|handler| handler.set_own_node_active(NODES_METADATA_PATH))?;
-        println!("Booting finished");
+        let logger = Logger::new("server.log");
+        logger.log_message("Booting Finished");
     }
     use_node_meta_data(|handler| handler.update_ranges(NODES_METADATA_PATH))?;
     start_gossip()?;
@@ -58,10 +60,11 @@ fn get_args() -> (bool, String) {
 
 fn start_gossip() -> Result<(), Errors> {
     thread::spawn(move || -> Result<(), Errors> {
+        let logger = Logger::new(LOGGER_PATH);
         loop {
             let result = gossip();
             if let Err(e) = result {
-                println!("Failed to gossip: {}", e);
+                logger.log_error(format!("Failed to gossip: {}", e).as_str());
             }
         }
     });
@@ -89,7 +92,8 @@ fn gossip() -> Result<(), Errors> {
 
 fn set_node_listener(ip: NodeIp) -> Result<(), Errors> {
     let listener = TcpListener::bind(ip.get_std_socket()).expect("Error binding socket");
-    println!("Server listening on {}", ip.get_string_ip());
+    let logger = Logger::new(LOGGER_PATH);
+    logger.log_message(format!("Server listening on {}", ip.get_string_ip()).as_str());
 
     let (tx, rx) = mpsc::channel();
     let rx = Arc::new(Mutex::new(rx));
@@ -101,16 +105,17 @@ fn set_node_listener(ip: NodeIp) -> Result<(), Errors> {
 }
 
 fn accept_connections(listener: TcpListener, tx: mpsc::Sender<TcpStream>) {
+    let logger = Logger::new(LOGGER_PATH);
     for incoming in listener.incoming() {
         match incoming {
             Ok(stream) => {
-                println!("Client connected: {:?}", stream.peer_addr());
+                logger.log_message(format!("Client connected: {:?}", stream.peer_addr()).as_str());
                 if let Err(e) = tx.send(stream) {
-                    println!("Error sending stream to thread pool: {}", e);
+                    logger.log_error(format!("Error sending stream to thread pool: {}", e).as_str());
                 }
             }
             Err(e) => {
-                println!("Error accepting connection: {}", e);
+                logger.log_error(format!("Error accepting connection: {}", e).as_str());
             }
         }
     }
@@ -122,6 +127,7 @@ fn start_thread_pool(rx: Arc<Mutex<mpsc::Receiver<TcpStream>>>) -> Result<(), Er
         let rx = Arc::clone(&rx);
         let server_config = Arc::new(server_config.clone());
         thread::spawn(move || loop {
+            let logger = Logger::new(LOGGER_PATH);
             let stream = {
                 let lock = rx.lock().unwrap();
                 lock.recv()
@@ -129,7 +135,7 @@ fn start_thread_pool(rx: Arc<Mutex<mpsc::Receiver<TcpStream>>>) -> Result<(), Er
             match stream {
                 Ok(stream) => {
                     if let Err(e) = handle_client(stream, server_config.clone()) {
-                        println!("Error handling client: {}", e);
+                        logger.log_error(format!("Error handling client: {}", e).as_str());
                     }
                 }
                 _ => break,
