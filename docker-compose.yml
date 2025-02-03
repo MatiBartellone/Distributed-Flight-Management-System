@@ -4,6 +4,9 @@ services:
     build:
       context: ./node
       dockerfile: Dockerfile
+    stdin_open: true
+    tty: false
+    container_name: "first_seed"
     environment:
       - IS_SEED=true
       - IS_FIRST=true
@@ -19,6 +22,8 @@ services:
     build:
       context: ./node
       dockerfile: Dockerfile
+    stdin_open: true
+    tty: false
     environment:
       - IS_SEED=true
       - IS_FIRST=false
@@ -32,17 +37,11 @@ services:
     build:
       context: ./node
       dockerfile: Dockerfile
+    stdin_open: true
+    tty: false
     environment:
       - IS_SEED=false
       - IS_FIRST=false
-    depends_on:
-      - first_seed_node
-    networks:
-      - cluster
-  flight_app:
-    build:
-      context: ./flight_app
-      dockerfile: Dockerfile
     depends_on:
       - first_seed_node
     networks:
@@ -51,6 +50,7 @@ services:
     build:
       context: ./simulator
       dockerfile: Dockerfile
+    container_name: "simulator"
     depends_on:
       - first_seed_node
     networks:
@@ -59,6 +59,7 @@ services:
     build:
       context: ./test-client
       dockerfile: Dockerfile
+    container_name: "test-client"
     depends_on:
       - first_seed_node
     networks:
