@@ -27,4 +27,17 @@ A continuacion se detallan los pasos para compilar y ejecutar el programa.
 • Ver logs hasta el momento: docker logs <container_id>
 • Ver logs de todos en tiempo real de un contenedor en especifico: docker logs -f <container_id>
 • Ejecutar con entrada de la terminal: docker-compose run --rm <service>
-Entrar 
+Entrar
+
+Para ejecutar comandos en nodos especificos se deben ejecutar los archivos .sh dentro del nodo.
+Primero se les tiene que dat permiso de ejecucion con chmod +x /node/<script>.sh --> ej: chmod +x /node/send_command.sh
+luego se ejecuta corriendolo enviandole los argumentos necesarios, esta es la lista de comandos:
+./send_command.sh <container_name> <command>
+./exit_node.sh <container_name>
+./pause_node.sh <container_name>
+./resume_node.sh <container_name>
+./state_node.sh <container_name>
+
+Para poder conectarte a los nodos desde fuera de docker se mapean los puertos, de tal manera que se puede conectar con localhost:<puerto_mapeado>
+Para first_seed_node el puerto mapeado es 9090.
+Para los nodos, al ser escalable el puerto no es fijo. Asi que al correrlos se usa 'docker ps' para ver el puerto al que fue mapeado.

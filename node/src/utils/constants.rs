@@ -17,3 +17,4 @@ pub const HINTS_RECEIVER_MOD: i32 = 6;
 pub const REPLICATION: &str = "replication_factor";
 pub const STRATEGY: &str = "class";
 pub const ASTERIK: &str = "*";
+pub const LOGGER_PATH: &str = "server.log";

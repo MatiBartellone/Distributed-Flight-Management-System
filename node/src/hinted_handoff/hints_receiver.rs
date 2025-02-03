@@ -1,7 +1,8 @@
 use crate::hinted_handoff::stored_query::StoredQuery;
+use crate::logger::Logger;
 use crate::meta_data::meta_data_handler::use_node_meta_data;
 use crate::utils::config_constants::HINTED_HANDOFF_TIMEOUT_SECS;
-use crate::utils::constants::NODES_METADATA_PATH;
+use crate::utils::constants::{LOGGER_PATH, NODES_METADATA_PATH};
 use crate::utils::errors::Errors;
 use crate::utils::errors::Errors::ServerError;
 use crate::utils::functions::{
@@ -22,7 +23,8 @@ impl HintsReceiver {
         let mut hints = Vec::new();
         let timeout = Duration::from_secs(HINTED_HANDOFF_TIMEOUT_SECS);
         let mut last_connection_time = Instant::now();
-        println!("Recovering hints...");
+        let logger = Logger::new(LOGGER_PATH);
+        logger.log_message("Recovering hints...");
         loop {
             if last_connection_time.elapsed() >= timeout {
                 break;
@@ -61,7 +63,8 @@ impl HintsReceiver {
 
     fn finish_recovering() -> Result<(), Errors> {
         use_node_meta_data(|handler| handler.set_own_node_active(NODES_METADATA_PATH))?;
-        println!("Finished recovering");
+        let logger = Logger::new(LOGGER_PATH);
+        logger.log_message("Finished recovering");
         Ok(())
     }
 }

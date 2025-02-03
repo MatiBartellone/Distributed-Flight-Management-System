@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 use std::net::IpAddr;
-use std::io;
 use std::fmt::Display;
 use std::thread::sleep;
 use std::time::Duration;

@@ -16,10 +16,12 @@ services:
       cluster:
         ipv4_address: 192.168.100.2
     healthcheck:
-      test: ["CMD", "nc", "-z", "192.168.100.2", "9090"]
+      test: ["CMD", "nc", "-z", "192.168.100.2", "9092"]
       interval: 5s
       retries: 10
       start_period: 5s
+    ports:
+      - "9090:9090"
   seed_node:
     build:
       context: ./node
@@ -48,6 +50,8 @@ services:
       - first_seed_node
     networks:
       - cluster
+    ports:
+      - "9090"
   test-client:
     build:
       context: ./test-client

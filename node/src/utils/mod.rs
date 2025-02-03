@@ -8,3 +8,4 @@ pub mod response;
 pub mod test_functions;
 pub mod types;
 pub mod types_to_bytes;
+pub mod frame_reader;

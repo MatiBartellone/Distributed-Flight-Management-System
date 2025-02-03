@@ -21,9 +21,20 @@ impl Logger {
     }
 
     fn write_log(&self, log_message: &str) {
-        let mut file = self.log_file.lock().unwrap();
+        let mut file = match self.log_file.lock() {
+            Ok(f) => f,
+            Err(e) => {
+                println!("Error al bloquear el archivo de log: {}", e);
+                return;
+            }
+        };
+    
         let timestamp = Timestamp::new();
-        writeln!(file, "[{}] {}", timestamp, log_message).unwrap();
+        let log_entry = format!("[{}] {}", timestamp, log_message);
+    
+        if let Err(e) = writeln!(file, "{}", log_entry) {
+            println!("Error al escribir en el archivo de log: {}", e);
+        }
         println!("[{}] {}", timestamp, log_message);
     }
 
