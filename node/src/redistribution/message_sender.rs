@@ -1,6 +1,6 @@
 use crate::{data_access::{data_access_handler::use_data_access, row::Row}, utils::{errors::Errors, constants::{DATA_ACCESS_PATH, NODES_METADATA_PATH, KEYSPACE_METADATA_PATH}, types::node_ip::NodeIp}, query_delegation::query_delegator::QueryDelegator, meta_data::meta_data_handler::{use_keyspace_meta_data, use_node_meta_data}};
 use std::fs;
-
+use crate::queries::query::Query;
 use super::builder_message::BuilderMessage;
 
 pub struct MessageSender;
@@ -34,18 +34,30 @@ impl MessageSender {
         })?;
         for keyspace in keyspaces {
             let create_keyspace_query = BuilderMessage::build_keyspace(keyspace.to_string())?;
-            QueryDelegator::send_to_node(new_node.clone(), create_keyspace_query)?;
+            Self::send_to_node(new_node.clone(), create_keyspace_query);
             let tables = use_keyspace_meta_data(|handler| {
                 handler.get_tables_from_keyspace(KEYSPACE_METADATA_PATH.to_owned(), &keyspace)
             })?;
             for table in tables {
                 let path = format!("{}.{}", keyspace, table);
                 let create_table_query = BuilderMessage::build_table(path)?;
-                QueryDelegator::send_to_node(new_node.clone(), create_table_query)?;
+                Self::send_to_node(new_node.clone(), create_table_query)
             }
         }
         Ok(())
     }
+
+    pub fn send_drop_keyspace() -> Result<(), Errors> {
+        let keyspaces = use_keyspace_meta_data(|handler| {
+            handler.get_keyspaces_names(KEYSPACE_METADATA_PATH.to_owned())
+        })?;
+        for keyspace in keyspaces {
+            let drop_keyspace_query = BuilderMessage::build_drop(keyspace)?;
+            let _ = drop_keyspace_query.run();
+        }
+        Ok(())
+    }
+
 
     fn redistribute_table<I>(rows: I, table: &str) -> Result<(), Errors>
     where
@@ -58,13 +70,20 @@ impl MessageSender {
             if !nodes_list.contains(&own_node) {
                 for node_ip in nodes_list {
                     let insert_query = BuilderMessage::build_insert(row.clone(), table.to_string())?;
-                    QueryDelegator::send_to_node(node_ip, insert_query)?;
+                    Self::send_to_node(node_ip, insert_query);
                 }
                 let delete_query = BuilderMessage::build_delete(row, table.to_owned())?;
-                QueryDelegator::send_to_node(own_node.clone(), delete_query)?;
+                let _ = delete_query.run();
+
             }   
         }
         Ok(())
+    }
+
+    fn send_to_node(node_ip: NodeIp, query: Box<dyn Query>){
+        if QueryDelegator::send_to_node(node_ip, query).is_err() {
+            //ingonor el error
+        }
     }
 }
 

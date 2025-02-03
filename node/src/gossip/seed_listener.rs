@@ -8,6 +8,7 @@ use crate::utils::functions::{
 };
 use crate::utils::types::node_ip::NodeIp;
 use std::net::TcpStream;
+use crate::redistribution::message_sender::MessageSender;
 
 pub struct SeedListener;
 
@@ -19,7 +20,8 @@ impl SeedListener {
     fn handle_connection(stream: &mut TcpStream) -> Result<(), Errors> {
         Self::send_nodes_list(stream)?;
         let new_node = Self::get_new_node(stream)?;
-        Self::set_new_node(new_node)
+        Self::set_new_node(&new_node)?;
+        Self::redistribute(new_node)
     }
 
     fn send_nodes_list(stream: &mut TcpStream) -> Result<(), Errors> {
@@ -34,7 +36,7 @@ impl SeedListener {
         deserialize_from_slice(buf.as_slice())
     }
 
-    fn set_new_node(new_node: Node) -> Result<(), Errors> {
+    fn set_new_node(new_node: &Node) -> Result<(), Errors> {
         use_node_meta_data(|node_metadata| {
             let cluster = node_metadata.get_cluster(NODES_METADATA_PATH)?;
             for node in cluster.get_other_nodes().iter() {
@@ -43,8 +45,13 @@ impl SeedListener {
                     return Ok(());
                 }
             }
-            node_metadata.append_new_node(NODES_METADATA_PATH, new_node)?;
+            node_metadata.append_new_node(NODES_METADATA_PATH, Node::new_from_node(new_node))?;
             node_metadata.update_ranges(NODES_METADATA_PATH)
         })
+    }
+
+    fn redistribute(new_node: Node) -> Result<(), Errors> {
+        MessageSender::send_meta_data(new_node.get_ip().clone())?;
+        MessageSender::redistribute()
     }
 }

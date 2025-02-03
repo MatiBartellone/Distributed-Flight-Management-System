@@ -8,6 +8,7 @@ use std::io::Write;
 use std::sync::Arc;
 use std::thread::sleep;
 use std::{io, thread};
+use crate::redistribution::message_sender::MessageSender;
 
 pub struct TerminalInput {
     file: Option<String>,
@@ -84,12 +85,13 @@ impl TerminalInput {
     }
 
     fn exit() -> Result<(), Errors> {
+        println!("Shutting down...");
         use_node_meta_data(|handler| {
             handler.set_own_node_to_shutting_down(NODES_METADATA_PATH)?;
             handler.update_ranges(NODES_METADATA_PATH)
         })?;
-        // send data to other nodes
-        println!("Shutting down...");
+        MessageSender::redistribute()?;
+        MessageSender::send_drop_keyspace()?;
         sleep(std::time::Duration::from_secs(
             SHUTTING_DOWN_TIMEOUT_SECS as u64,
         ));

@@ -29,6 +29,11 @@ impl BuilderMessage {
         query_parser(query)
     }
 
+    pub fn build_drop(keyspace: String) -> Result<Box<dyn Query>, Errors> {
+        let query = BuilderMessage::create_drop_keyspace(keyspace)?;
+        query_parser(query)
+    }
+
     
 
     fn create_query_insert(
@@ -101,6 +106,15 @@ impl BuilderMessage {
             create_reserved_token("TABLE"),
             create_identifier_token(&table),
             paren_list(&table)?
+        ];
+        Ok(query)
+    }
+
+    fn create_drop_keyspace(keyspace: String) -> Result<Vec<Token>, Errors> {
+        let query: Vec<Token> = vec![
+            create_reserved_token("DROP"),
+            create_reserved_token("KEYSPACE"),
+            create_identifier_token(&keyspace),
         ];
         Ok(query)
     }
